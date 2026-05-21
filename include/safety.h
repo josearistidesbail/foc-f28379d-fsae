@@ -1,0 +1,31 @@
+//=============================================================================
+// safety.h - Latched-fault registry and ISR-side trip checks.
+//
+// HW-level overcurrent goes through ePWM trip-zone (configured in SysConfig
+// + per-variant inverter_*.c). This module owns the SW-side latch.
+//=============================================================================
+#ifndef SAFETY_H
+#define SAFETY_H
+
+#include <stdint.h>
+#include <stdbool.h>
+
+typedef enum {
+    FAULT_NONE          = 0,
+    FAULT_OVERCURRENT   = (1u << 0),
+    FAULT_OVERVOLTAGE   = (1u << 1),
+    FAULT_UNDERVOLTAGE  = (1u << 2),
+    FAULT_OVERTEMP      = (1u << 3),
+    FAULT_GATE_DRIVER   = (1u << 4),
+    FAULT_SENSOR_LOSS   = (1u << 5),
+    FAULT_WATCHDOG      = (1u << 6),
+} Fault_Bits_t;
+
+extern void     safety_init(void);
+extern void     safety_check_isr(void);          // call last in foc ISR
+extern void     safety_latch(uint16_t bits);     // OR into latched mask
+extern bool     safety_is_clear(void);
+extern uint16_t safety_get_latched(void);
+extern void     safety_clear(void);              // only callable from IDLE
+
+#endif // SAFETY_H

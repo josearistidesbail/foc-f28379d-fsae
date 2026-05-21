@@ -1,0 +1,17 @@
+/**
+ * board_boostxl_drv8305.syscfg
+ *
+ * SysConfig for the Debug variant: LAUNCHXL-F28379D + BOOSTXL-DRV8305.
+ * Open this file in CCS (double-click) to use the SysConfig GUI.
+ *
+ * Modules you need to add and configure (see README "SysConfig setup"):
+ *   - ePWM1 (phase W), ePWM5 (phase V), ePWM6 (phase U)
+ *       up-down count, 10 kHz, deadband 500 ns, SOC on period match
+ *   - ADC: ADCA (Iu/Iw/Vbus), ADCB (Iv); EOC1 interrupt -> adcA1_isr
+ *   - eQEP1 with GPIOs for encoder A/B/I
+ *   - SPI-A for DRV8305 register access
+ *   - CMPSS1/2/3 -> ePWM TZ1 for HW overcurrent trip
+ *   - GPIO: 124 (DRV8305 EN/CS), 125 (nFAULT), 31 (LED), 67 (scope)
+ *
+ * @cliArgs --device "F2837xD" --package "337ZWT" --part "F2837xD_337ZWT"
+ */
