@@ -18,6 +18,12 @@ volatile float32_t g_qep_theta_elec   = 0.0f;
 volatile float32_t g_qep_omega_elec   = 0.0f;
 volatile int32_t   g_qep_mech_offset_cnt = 0;
 
+// TODO: Debugging QEP (Step 3 verification), remove after
+volatile uint32_t g_dbg_qep_count;        // QPOSCNT - should change with rotation
+volatile uint32_t g_dbg_qep_index_latch;  // QPOSILAT - count latched on index pulse
+volatile uint16_t g_dbg_qep_status;       // QEPSTS bits: 0x20=fwd dir, 0x02=1st idx seen
+volatile int16_t  g_dbg_qep_direction;    // +1 forward, -1 reverse
+
 static int32_t s_last_cnt;
 static float   s_omega_lpf;
 

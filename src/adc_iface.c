@@ -14,6 +14,12 @@ static volatile uint16_t s_iu_offset = ISENSE_ZERO_CODE;
 static volatile uint16_t s_iv_offset = ISENSE_ZERO_CODE;
 static volatile uint16_t s_iw_offset = ISENSE_ZERO_CODE;
 
+// TODO: Debugging ADC, remove after
+volatile uint16_t g_dbg_iu_raw;
+volatile uint16_t g_dbg_iv_raw;
+volatile uint16_t g_dbg_iw_raw;
+volatile uint16_t g_dbg_vbus_raw;
+
 // Helpers for the C28x driverlib ADC RESULT register access. SysConfig binds
 // these SOC indices; using SOC 0/1/2/3 here as a convention - update if your
 // SysConfig allocates differently.
@@ -41,6 +47,10 @@ void adc_read_phase_currents(FOC_Iabc_t *out)
     uint16_t cv = ADC_readResult(ADCBRESULT_BASE, SOC_IV);
     uint16_t cw = ADC_readResult(ADCARESULT_BASE, SOC_IW);
 
+    g_dbg_iu_raw = cu;
+    g_dbg_iv_raw = cv;
+    g_dbg_iw_raw = cw;
+
     out->value[0] = code_to_amps(cu, s_iu_offset, ISENSE_SIGN_U);
     out->value[1] = code_to_amps(cv, s_iv_offset, ISENSE_SIGN_V);
     out->value[2] = code_to_amps(cw, s_iw_offset, ISENSE_SIGN_W);
@@ -49,6 +59,7 @@ void adc_read_phase_currents(FOC_Iabc_t *out)
 float adc_read_vbus(void)
 {
     uint16_t c = ADC_readResult(ADCARESULT_BASE, SOC_VBUS);
+    g_dbg_vbus_raw = c;
     return (float)c * VBUS_VOLTS_PER_CODE;
 }
 

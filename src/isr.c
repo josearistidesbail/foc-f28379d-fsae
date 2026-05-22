@@ -10,10 +10,14 @@
 #include "device.h"
 #include "foc_pipeline.h"
 
+// TODO: Debugging ISR triggers, remove after
+volatile uint32_t g_isr_count = 0;
+
 #pragma CODE_SECTION(adcA1_isr, ".TI.ramfunc")
 
 __interrupt void adcA1_isr(void)
 {
+    g_isr_count++;
     foc_current_loop_isr();
 
     // Clear ADC INT flag and PIE ack.

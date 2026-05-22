@@ -17,9 +17,22 @@ extern volatile float32_t g_qep_theta_elec;
 extern volatile float32_t g_qep_omega_elec;
 extern volatile int32_t   g_qep_mech_offset_cnt;   // set by ALIGN_ROTOR
 
+// TODO: Debugging QEP (Step 3 verification), remove after
+extern volatile uint32_t g_dbg_qep_count;
+extern volatile uint32_t g_dbg_qep_index_latch;
+extern volatile uint16_t g_dbg_qep_status;
+extern volatile int16_t  g_dbg_qep_direction;
+
 static inline void sensor_update_isr(void)
 {
     int32_t cnt = (int32_t)EQEP_getPosition(EQEP1_BASE);
+
+    // TODO: Debugging QEP (Step 3 verification), remove after
+    g_dbg_qep_count       = (uint32_t)cnt;
+    g_dbg_qep_index_latch = EQEP_getIndexPositionLatch(EQEP1_BASE);
+    g_dbg_qep_status      = EQEP_getStatus(EQEP1_BASE);
+    g_dbg_qep_direction   = EQEP_getDirection(EQEP1_BASE);
+
     int32_t diff = cnt - g_qep_mech_offset_cnt;
 
     // Wrap diff into [0, CPR*4)
