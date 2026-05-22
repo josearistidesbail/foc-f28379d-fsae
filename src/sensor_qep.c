@@ -5,7 +5,8 @@
 // Here we own the speed estimator (run at 1 kHz from the slow loop), the
 // alignment-offset capture, and the boot-time init.
 //=============================================================================
-#include "F28x_Project.h"
+#include "driverlib.h"
+#include "device.h"
 #include "build_config.h"
 
 #if SENSOR_BACKEND_QEP
@@ -24,8 +25,7 @@ void sensor_init(void)
 {
     // eQEP1 is configured by SysConfig (unit + decoder + pin mux).
     // Here we just zero the integrator and capture the boot count.
-    EQep1Regs.QPOSCNT  = 0;
-    EQep1Regs.QPOSINIT = 0;
+    EQEP_setPosition(EQEP1_BASE, 0U);
     s_last_cnt   = 0;
     s_omega_lpf  = 0.0f;
 }
@@ -33,7 +33,7 @@ void sensor_init(void)
 // Called from the slow loop (1 kHz) to update the filtered speed.
 void sensor_qep_update_speed_slow(void)
 {
-    int32_t cnt = (int32_t)EQep1Regs.QPOSCNT;
+    int32_t cnt = (int32_t)EQEP_getPosition(EQEP1_BASE);
     int32_t dcnt = cnt - s_last_cnt;
     s_last_cnt = cnt;
 
@@ -53,7 +53,7 @@ void sensor_qep_update_speed_slow(void)
 // align current has been injected long enough.
 void sensor_qep_capture_zero(void)
 {
-    g_qep_mech_offset_cnt = (int32_t)EQep1Regs.QPOSCNT;
+    g_qep_mech_offset_cnt = (int32_t)EQEP_getPosition(EQEP1_BASE);
 }
 
 #endif // SENSOR_BACKEND_QEP

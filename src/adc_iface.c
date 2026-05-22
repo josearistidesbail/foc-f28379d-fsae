@@ -5,7 +5,8 @@
 // already-converted RESULTn registers here. Channel mapping comes from the
 // per-variant hw_*.h.
 //=============================================================================
-#include "F28x_Project.h"
+#include "driverlib.h"
+#include "device.h"
 #include "build_config.h"
 #include "adc_iface.h"
 
@@ -36,9 +37,9 @@ static inline float code_to_amps(int32_t code, uint16_t offset, float sign)
 
 void adc_read_phase_currents(FOC_Iabc_t *out)
 {
-    uint16_t cu = ADC_readResult(ADCARESULT_BASE,                 SOC_IU);   // ADC_BASE_IU result base
-    uint16_t cv = ADC_readResult(ADCBRESULT_BASE,                 SOC_IV);
-    uint16_t cw = ADC_readResult(ADCARESULT_BASE,                 SOC_IW);
+    uint16_t cu = ADC_readResult(ADCARESULT_BASE, SOC_IU);
+    uint16_t cv = ADC_readResult(ADCBRESULT_BASE, SOC_IV);
+    uint16_t cw = ADC_readResult(ADCARESULT_BASE, SOC_IW);
 
     out->value[0] = code_to_amps(cu, s_iu_offset, ISENSE_SIGN_U);
     out->value[1] = code_to_amps(cv, s_iv_offset, ISENSE_SIGN_V);
@@ -67,7 +68,8 @@ void adc_read_sin_cos(float *out_sin, float *out_cos)
 void adc_calibrate_offsets(uint16_t n)
 {
     uint32_t su = 0, sv = 0, sw = 0;
-    for(uint16_t i = 0; i < n; ++i)
+    uint16_t i;
+    for(i = 0; i < n; ++i)
     {
         // Wait for the next EOC. SysConfig generates an INT flag; here we
         // spin on it for the calibration window.

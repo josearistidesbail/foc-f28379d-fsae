@@ -9,8 +9,9 @@ variants out of the box:
 | **Production** | Custom `Control_Board_v2` | EMRAX 208 | RM44AC sin/cos resolver |
 
 Code is thin C wrappers over **C2000Ware MotorControl SDK 5.04** math
-libraries (`CLARKE_run`, `PARK_run`, `IPARK_run`, `SVGEN_run`, `PI_run`,
-`resolver_run`). Peripherals are configured in **SysConfig**.
+libraries (`CLARKE_run`, `PARK_run`, `IPARK_run`, `SVGEN_run`, `PI_run`).
+The RM44AC angle is `atan2f(sin, cos)` of the ADC-sampled SIN/COS pair.
+Peripherals are configured in **SysConfig**.
 
 ## Project layout (what to edit)
 
@@ -76,11 +77,9 @@ For **`board_boostxl_drv8305.syscfg`** (debug variant):
 For **`board_control_v2.syscfg`** (production variant):
 
 - All of the above, plus:
-- **ADCB** and **ADCC** wired to resolver SIN and COS inputs.
-- **DAC-A** shadow-loaded from `exc_timer_isr()` in `sensor_rm44ac.c` to
-  generate the 10 kHz excitation carrier (or HRPWM + LC filter alternative).
-- **CPU Timer 1**: tick at `EXC_LUT_RATE_HZ = 320 kHz` (10 kHz × 32-pt LUT)
-  to drive `exc_timer_isr`.
+- **ADCB** and **ADCC** wired to RM44AC SIN and COS inputs (single-ended or
+  differential per your front-end). The RM44AC outputs already-demodulated
+  sin/cos analog signals — no excitation carrier to generate.
 
 ## Bring-up steps (DO THESE IN ORDER)
 
@@ -104,11 +103,11 @@ For **`board_control_v2.syscfg`** (production variant):
    mech). Expect a clean ramp. Mirror Iq onto DAC-A via
    `debug_dac_set(s->Idq.value[1], s->omega_elec, 0.1f)` to see torque vs.
    speed on a scope.
-6. **Resolver bench bringup** — *Before* the custom board, breadboard the
-   excitation drive (DAC-A → op-amp → primary). Feed SIN/COS into ADCB ch
-   matching `hw_control_v2.h`. Watch `g_resolver_theta_mech` track a hand
-   rotation. Validate against an auxiliary encoder before trusting it under
-   power.
+6. **RM44AC bench bringup** — *Before* the custom board, wire the RM44AC
+   SIN and COS outputs into the ADC channels matching `hw_control_v2.h`.
+   Hand-rotate the magnet and watch `g_resolver_theta_mech` sweep [0, 2π).
+   Validate against an auxiliary encoder if you have one. No excitation
+   drive is required — RM44AC outputs already-demodulated sin/cos directly.
 7. **Production variant** — Build `Production_CtrlV2_EMRAX_Resolver`.
    Repeat steps 1–5 with the EMRAX on a controlled DC bus (start at 24 V).
    **Do not** energize at full bus until current-sense scaling is verified
@@ -145,9 +144,6 @@ g_datalog                          // graphable ring buffer
 
 ## Known risks
 
-- **Resolver excitation drive** on the F28379D is the biggest open hardware
-  item. The on-chip DACs are weak (~10 mA); you need an external buffer.
-  Decide buffer topology before freezing `Control_Board_v2`.
 - **`PWM_PERIOD_COUNT_OVERRIDE`** in `pwm_iface.c` falls back to a computed
   default; the SysConfig-generated module gives a more accurate value. If
   duty looks wrong, expose the SysConfig period symbol and `#define` the

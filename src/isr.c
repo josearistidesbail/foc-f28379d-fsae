@@ -6,7 +6,8 @@
 //
 // Placed in RAM (.TI.ramfunc) so the 200 MHz CPU does not stall on flash.
 //=============================================================================
-#include "F28x_Project.h"
+#include "driverlib.h"
+#include "device.h"
 #include "foc_pipeline.h"
 
 #pragma CODE_SECTION(adcA1_isr, ".TI.ramfunc")
@@ -21,9 +22,9 @@ __interrupt void adcA1_isr(void)
 }
 
 // Optional: ePWM trip-zone ISR (HW overcurrent / VDS fault).
+// HW trip latch holds PWM outputs low; software just ACKs the PIE and lets
+// the state machine pick up FAULT next tick.
 __interrupt void epwm_tz_isr(void)
 {
-    // Disable PWM outputs at the source; state machine picks up FAULT next tick.
-    EPwm1Regs.TZCLR.bit.OST = 0;        // do not clear - keep tripped
     Interrupt_clearACKGroup(INTERRUPT_ACK_GROUP2);
 }

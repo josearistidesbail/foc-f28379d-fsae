@@ -54,16 +54,10 @@
 #define VBUS_DIVIDER_RATIO      100.97f
 #define VBUS_VOLTS_PER_CODE     (ADC_VREF_V * VBUS_DIVIDER_RATIO / ADC_FULL_SCALE_CODE)
 
-// ---- Resolver excitation output ---------------------------------------
-// DAC-A drives an external power buffer to the RM44AC primary.
-// LUT-driven from a CPU-timer ISR at EXC_LUT_RATE_HZ samples/s; the LUT
-// produces EXC_FREQ_HZ sine. Adjust DAC_PEAK to match buffer span.
-#define EXC_FREQ_HZ             10000.0f
-#define EXC_LUT_LEN             32U
-#define EXC_LUT_RATE_HZ         (EXC_FREQ_HZ * EXC_LUT_LEN)
-#define EXC_DAC_BASE            DACA_BASE
-#define EXC_DAC_PEAK            2048U       // half of full-scale, biased at 2048
-#define EXC_DAC_BIAS            2048U
+// ---- RM44AC notes -------------------------------------------------------
+// The RM44AC is a magnetic sin/cos angle sensor (already-demodulated Va/Vb
+// at 90 deg). No excitation drive, no carrier demod -- the angle is
+// atan2f(sin, cos) directly. Wire SIN/COS to the ADC channels above.
 
 // ---- GPIO -------------------------------------------------------------
 // TODO[control_v2]: confirm GPIO numbers

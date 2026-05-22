@@ -1,14 +1,14 @@
 //=============================================================================
 // sensor_qep_inline.h - eQEP backend for sensor_iface.h
 //
-// Reads EQep1Regs.QPOSCNT each ISR. Mechanical angle = (count - offset) / CPR.
+// Reads EQEP_getPosition(EQEP1_BASE) each ISR. Mechanical angle = (count - offset) / CPR.
 // Electrical angle = (mech * polePairs) wrapped to [0, 2*pi).
 // Speed comes from a one-step difference filtered in src/sensor_qep.c.
 //=============================================================================
 #ifndef SENSOR_QEP_INLINE_H
 #define SENSOR_QEP_INLINE_H
 
-#include "F28x_Project.h"
+#include "driverlib.h"
 #include "build_config.h"
 #include "libraries/math/include/math.h"
 
@@ -19,7 +19,7 @@ extern volatile int32_t   g_qep_mech_offset_cnt;   // set by ALIGN_ROTOR
 
 static inline void sensor_update_isr(void)
 {
-    int32_t cnt = (int32_t)EQep1Regs.QPOSCNT;
+    int32_t cnt = (int32_t)EQEP_getPosition(EQEP1_BASE);
     int32_t diff = cnt - g_qep_mech_offset_cnt;
 
     // Wrap diff into [0, CPR*4)

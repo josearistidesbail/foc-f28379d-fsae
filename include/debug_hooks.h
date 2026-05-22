@@ -10,7 +10,7 @@
 #include "foc_types.h"
 
 #define DATALOG_CHANNELS    7
-#define DATALOG_LEN_SAMPLES 512        // ring buffer depth
+#define DATALOG_LEN_SAMPLES 256        // ring buffer depth (must be power of 2)
 
 extern void debug_init(void);
 

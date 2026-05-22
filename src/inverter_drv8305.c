@@ -6,7 +6,8 @@
 //
 // Only present when HW_BOOSTXL_DRV8305 is the active variant.
 //=============================================================================
-#include "F28x_Project.h"
+#include "driverlib.h"
+#include "device.h"
 #include "build_config.h"
 
 #if defined(HW_BOOSTXL_DRV8305)

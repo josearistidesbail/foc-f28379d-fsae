@@ -1,11 +1,14 @@
 //=============================================================================
 // debug_hooks.c - Datalog ring buffer + DAC mirror + scope GPIO.
 //=============================================================================
-#include "F28x_Project.h"
+#include "driverlib.h"
+#include "device.h"
 #include "build_config.h"
 #include "debug_hooks.h"
 
-#pragma DATA_SECTION(g_datalog, ".datalog")
+// Push into .ebss (far-data) because the linker cmd lets .ebss fragment
+// across RAMLS5 | RAMGS0 | RAMGS1; default .bss is RAMLS5-only and too small.
+#pragma DATA_SECTION(g_datalog, ".ebss")
 volatile float g_datalog[DATALOG_LEN_SAMPLES][DATALOG_CHANNELS];
 volatile uint16_t g_datalog_idx;
 

@@ -9,7 +9,8 @@
 //   3. EINT/ERTM lets the ADCA1 EOC ISR start firing -> foc_current_loop_isr().
 //   4. The super-loop is non-time-critical: heartbeat LED + slow housekeeping.
 //=============================================================================
-#include "F28x_Project.h"
+#include "driverlib.h"
+#include "device.h"
 #include "board.h"                  // SysConfig-generated
 #include "build_config.h"
 #include "foc_pipeline.h"

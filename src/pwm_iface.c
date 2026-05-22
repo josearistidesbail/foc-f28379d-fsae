@@ -5,7 +5,8 @@
 //   cmp = period_count/2 * (1 - 2*duty)  for active-low convention
 // Adjust polarity if your SysConfig uses the other.
 //=============================================================================
-#include "F28x_Project.h"
+#include "driverlib.h"
+#include "device.h"
 #include "build_config.h"
 #include "pwm_iface.h"
 
@@ -25,13 +26,12 @@ void pwm_init(void)
 
 void pwm_force_safe(void)
 {
-    // Force CMP to mid-period (50% duty) and pull AQCSFRC to force low.
-    // The simplest safe state on the BOOSTXL-DRV8305 is to clear EN_GATE
-    // (inverter_disable_gate()); here we still command 50/50 in case PWM
-    // happens to be live.
-    EPwm6Regs.CMPA.bit.CMPA = g_pwm_period_count / 2U;  // BoostXL U
-    EPwm5Regs.CMPA.bit.CMPA = g_pwm_period_count / 2U;  // BoostXL V
-    EPwm1Regs.CMPA.bit.CMPA = g_pwm_period_count / 2U;  // BoostXL W
+    // Force CMP to mid-period (50% duty). Real safe state is the gate
+    // driver disable (inverter_disable_gate()); this is belt-and-braces.
+    uint16_t mid = g_pwm_period_count / 2U;
+    EPWM_setCounterCompareValue(PWM_U_BASE, EPWM_COUNTER_COMPARE_A, mid);
+    EPWM_setCounterCompareValue(PWM_V_BASE, EPWM_COUNTER_COMPARE_A, mid);
+    EPWM_setCounterCompareValue(PWM_W_BASE, EPWM_COUNTER_COMPARE_A, mid);
 }
 
 void pwm_set_duty(const FOC_Duty_t *d)
@@ -46,13 +46,7 @@ void pwm_set_duty(const FOC_Duty_t *d)
     if(cv < 0) cv = 0; if(cv > g_pwm_period_count) cv = g_pwm_period_count;
     if(cw < 0) cw = 0; if(cw > g_pwm_period_count) cw = g_pwm_period_count;
 
-#if defined(HW_BOOSTXL_DRV8305)
-    EPwm6Regs.CMPA.bit.CMPA = (uint16_t)cu;
-    EPwm5Regs.CMPA.bit.CMPA = (uint16_t)cv;
-    EPwm1Regs.CMPA.bit.CMPA = (uint16_t)cw;
-#else
-    EPwm1Regs.CMPA.bit.CMPA = (uint16_t)cu;
-    EPwm2Regs.CMPA.bit.CMPA = (uint16_t)cv;
-    EPwm3Regs.CMPA.bit.CMPA = (uint16_t)cw;
-#endif
+    EPWM_setCounterCompareValue(PWM_U_BASE, EPWM_COUNTER_COMPARE_A, (uint16_t)cu);
+    EPWM_setCounterCompareValue(PWM_V_BASE, EPWM_COUNTER_COMPARE_A, (uint16_t)cv);
+    EPWM_setCounterCompareValue(PWM_W_BASE, EPWM_COUNTER_COMPARE_A, (uint16_t)cw);
 }
