@@ -57,9 +57,12 @@
 #define VBUS_VOLTS_PER_CODE     (ADC_VREF_V * VBUS_DIVIDER_RATIO / ADC_FULL_SCALE_CODE)
 
 // ---- GPIO -------------------------------------------------------------
-#define DRV8305_EN_GATE_GPIO    124U        // J5.61 SPI chip select / EN
-#define DRV8305_NFAULT_GPIO     125U
-#define DRV8305_SPI_BASE        SPIA_BASE
+// DRV8305 EN_GATE: active-high, wakes the gate driver out of sleep. Must
+// stay high during SPI register writes — distinct from SPI chip select.
+#define DRV8305_EN_GATE_GPIO    124U        // J5.13
+#define DRV8305_NFAULT_GPIO     125U        // J5.12 (active-low)
+#define DRV8305_SCS_GPIO        61U         // BP19 / SPISTEA pin, manually driven as CS
+// DRV8305_SPI_BASE is generated in syscfg/board.h (SPIA_BASE).
 #define LED_STATUS_GPIO         31U         // D9 on LaunchPad
 #define SCOPE_PIN_ISR_GPIO      67U         // free pin for ISR timing probe
 
@@ -69,5 +72,13 @@
 #define ISENSE_SIGN_U           (+1.0f)
 #define ISENSE_SIGN_V           (+1.0f)
 #define ISENSE_SIGN_W           (+1.0f)
+
+// ---- KCL Iu reconstruction ---------------------------------------------
+// Bench-specific: SO1 (ISENSE_A) is dead on the current BOOSTXL unit; raw
+// Iu reads zero, which would scale measured Id by ~1/3 in the Clarke step
+// and drive the current PI to 3x the commanded current. Reconstruct Iu from
+// KCL (Iu = -Iv - Iw) until SO1 hardware is replaced. Set to 0 once the
+// bench BOOSTXL is fixed and Iu measures correctly at ~2048 codes at rest.
+#define ISENSE_RECONSTRUCT_U_FROM_KCL  1
 
 #endif // HW_BOOSTXL_DRV8305_H

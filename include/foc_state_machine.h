@@ -27,6 +27,7 @@ extern void         sm_tick_1khz(void);
 // External requests.
 extern void         sm_request_run(void);
 extern void         sm_request_stop(void);
+extern void         sm_request_align(void);     // CALIBRATE -> ALIGN -> IDLE
 extern void         sm_clear_fault(void);
 
 // Raise a fault from anywhere (incl. ISR). Goes to FAULT next tick.

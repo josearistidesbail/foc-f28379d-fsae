@@ -42,6 +42,16 @@ static volatile FOC_Refs_t    s_refs;
 static volatile FOC_Signals_t s_sig;
 static uint16_t               s_decim;
 
+// TODO: Debugging Step 6 alignment, remove after.
+// Snapshotted every ISR while state is FOC_ALIGN_ROTOR. During align, theta
+// is forced to 0 and Id_ref = ALIGN_ID_INJECT_A. The expected steady state:
+//   g_dbg_align_id_meas -> ALIGN_ID_INJECT_A
+//   g_dbg_align_iq_meas -> ~0
+//   g_dbg_align_vd      -> small positive (~Rs * Id_ref + back-EMF if rotor moving)
+volatile float32_t g_dbg_align_id_meas;
+volatile float32_t g_dbg_align_iq_meas;
+volatile float32_t g_dbg_align_vd;
+
 void foc_init(void)
 {
     s_clarke = CLARKE_init(&s_clarke_obj, sizeof(s_clarke_obj));
@@ -85,9 +95,12 @@ void foc_current_loop_isr(void)
 {
     debug_isr_scope_high();
 
-    // 1. Sensor + angle
+    // 1. Sensor + angle. During ALIGN, force theta=0 so the d-axis lines up
+    //    with phase-U (alpha electrical). Sensor estimates are still updated
+    //    so we can capture the rotor's settled position at end of ALIGN.
+    FOC_State_t st = sm_get_state();
     sensor_update_isr();
-    s_sig.theta_elec = sensor_get_elec_angle();
+    s_sig.theta_elec = (st == FOC_ALIGN_ROTOR) ? 0.0f : sensor_get_elec_angle();
     s_sig.omega_elec = sensor_get_elec_speed();
 
     // 2. Phase currents -> Clarke -> Park
@@ -98,7 +111,6 @@ void foc_current_loop_isr(void)
 
     // 3. Inner current PIs
     //    (Only run when state machine allows it; otherwise zero outputs.)
-    FOC_State_t st = sm_get_state();
     if(st == FOC_RUN || st == FOC_ALIGN_ROTOR)
     {
         PI_run(s_pi_id, s_refs.id_ref, s_sig.Idq.value[0], &s_sig.Vdq.value[0]);
@@ -110,6 +122,13 @@ void foc_current_loop_isr(void)
         s_sig.Vdq.value[1] = 0.0f;
         PI_setUi(s_pi_id, 0.0f);
         PI_setUi(s_pi_iq, 0.0f);
+    }
+
+    if(st == FOC_ALIGN_ROTOR)
+    {
+        g_dbg_align_id_meas = s_sig.Idq.value[0];
+        g_dbg_align_iq_meas = s_sig.Idq.value[1];
+        g_dbg_align_vd      = s_sig.Vdq.value[0];
     }
 
     // 4. Inverse Park -> SVGEN -> PWM

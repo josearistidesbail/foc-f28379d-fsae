@@ -5,6 +5,7 @@
 #include "foc_state_machine.h"
 #include "foc_pipeline.h"
 #include "inverter_iface.h"
+#include "sensor_iface.h"
 #include "pwm_iface.h"
 #include "adc_iface.h"
 #include "safety.h"
@@ -14,8 +15,20 @@
 
 static volatile FOC_State_t s_state = FOC_IDLE;
 static volatile FOC_State_t s_requested = FOC_IDLE;
+static volatile bool        s_align_only = false;
 static volatile bool        s_fault_pending = false;
 static uint32_t             s_state_ticks;
+
+// TODO: Debugging Step 6, remove after.
+// Poke from the CCS Expressions view (function calls are flaky there):
+//   g_dbg_sm_cmd = 1  -> align-only (CALIBRATE -> ALIGN -> IDLE)
+//   g_dbg_sm_cmd = 2  -> run        (CALIBRATE -> ALIGN -> RUN)
+//   g_dbg_sm_cmd = 3  -> stop       (-> IDLE)
+//   g_dbg_sm_cmd = 4  -> clear fault
+// Auto-resets to 0 after the request is latched.
+volatile uint16_t  g_dbg_sm_cmd;
+volatile uint16_t  g_dbg_state;          // mirrors s_state for visibility
+volatile int32_t   g_dbg_align_qep_cnt;  // QPOSCNT captured at end of ALIGN
 
 static void enter(FOC_State_t next)
 {
@@ -36,8 +49,7 @@ static void enter(FOC_State_t next)
         inverter_enable_gate();
         foc_get_refs()->id_ref = ALIGN_ID_INJECT_A;
         foc_get_refs()->iq_ref = 0.0f;
-        // theta is forced to 0 in ISR by the state guard inside foc_pipeline.c;
-        // for a more rigorous align, override sensor_iface->theta here.
+        // theta is forced to 0 in foc_pipeline.c while state == ALIGN.
         break;
     case FOC_RUN:
         inverter_enable_gate();
@@ -48,24 +60,46 @@ static void enter(FOC_State_t next)
         pwm_force_safe();
         break;
     }
+
+    g_dbg_state = (uint16_t)next;
 }
 
 void sm_init(void)
 {
     enter(FOC_IDLE);
-    s_requested = FOC_IDLE;
+    s_requested  = FOC_IDLE;
+    s_align_only = false;
+    g_dbg_sm_cmd = 0;
 }
 
 FOC_State_t sm_get_state(void) { return s_state; }
 
-void sm_request_run(void)    { s_requested = FOC_RUN; }
+void sm_request_run(void)    { s_align_only = false; s_requested = FOC_RUN; }
+void sm_request_align(void)  { s_align_only = true;  s_requested = FOC_ALIGN_ROTOR; }
 void sm_request_stop(void)   { s_requested = FOC_IDLE; }
 void sm_clear_fault(void)    { if(s_state == FOC_FAULT) { safety_clear(); s_requested = FOC_IDLE; } }
 void sm_raise_fault(uint16_t code) { safety_latch(code); s_fault_pending = true; }
 
+// Pull any debug-driven command into the real request fields. Runs at 1 kHz.
+static void poll_debug_cmd(void)
+{
+    uint16_t cmd = g_dbg_sm_cmd;
+    if(cmd == 0) return;
+    g_dbg_sm_cmd = 0;
+    switch(cmd)
+    {
+    case 1: sm_request_align();   break;
+    case 2: sm_request_run();     break;
+    case 3: sm_request_stop();    break;
+    case 4: sm_clear_fault();     break;
+    default: break;
+    }
+}
+
 void sm_tick_1khz(void)
 {
     s_state_ticks++;
+    poll_debug_cmd();
 
     if(s_fault_pending && s_state != FOC_FAULT)
     {
@@ -77,7 +111,7 @@ void sm_tick_1khz(void)
     switch(s_state)
     {
     case FOC_IDLE:
-        if(s_requested == FOC_RUN)
+        if(s_requested == FOC_RUN || s_requested == FOC_ALIGN_ROTOR)
             enter(FOC_CALIBRATE_OFFSETS);
         break;
 
@@ -88,7 +122,23 @@ void sm_tick_1khz(void)
 
     case FOC_ALIGN_ROTOR:
         if(s_state_ticks >= ALIGN_TICKS)
-            enter(FOC_RUN);
+        {
+            // Latch the settled rotor position as the new electrical zero.
+            sensor_capture_zero();
+#if SENSOR_BACKEND_QEP
+            extern volatile int32_t g_qep_mech_offset_cnt;
+            g_dbg_align_qep_cnt = g_qep_mech_offset_cnt;
+#endif
+            if(s_align_only)
+            {
+                s_requested = FOC_IDLE;
+                enter(FOC_IDLE);
+            }
+            else
+            {
+                enter(FOC_RUN);
+            }
+        }
         break;
 
     case FOC_RUN:

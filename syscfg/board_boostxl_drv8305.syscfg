@@ -164,7 +164,6 @@ sci1.txQual.$name               = "myGPIOQUAL1";
 
 spi1.$name                   = "DRV8305_SPI";
 spi1.mode                    = "SPI_MODE_CONTROLLER";
-spi1.transferProtocol        = "SPI_PROT_POL0PHA1";
 spi1.useCase                 = "CUSTOM";
 spi1.useInterfacePins        = ["SPICLK@","SPISIMO@","SPISOMI@"];
 spi1.spi.spi_picoPin.$assign = "GPIO58";

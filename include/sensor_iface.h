@@ -18,6 +18,13 @@
 
 extern void sensor_init(void);
 
+// Latch the current rotor position as the new electrical zero. Called from
+// the state machine at the end of FOC_ALIGN_ROTOR, after the rotor has
+// settled to alignment with Id-axis injection. Backend-specific behaviour:
+//   QEP    : stores QPOSCNT into g_qep_mech_offset_cnt
+//   RM44AC : stores g_resolver_theta_mech into g_resolver_elec_offset
+extern void sensor_capture_zero(void);
+
 #if SENSOR_BACKEND_QEP
   #include "sensor_qep_inline.h"
 #elif SENSOR_BACKEND_RM44AC

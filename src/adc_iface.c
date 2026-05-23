@@ -54,6 +54,10 @@ void adc_read_phase_currents(FOC_Iabc_t *out)
     out->value[0] = code_to_amps(cu, s_iu_offset, ISENSE_SIGN_U);
     out->value[1] = code_to_amps(cv, s_iv_offset, ISENSE_SIGN_V);
     out->value[2] = code_to_amps(cw, s_iw_offset, ISENSE_SIGN_W);
+
+#if defined(ISENSE_RECONSTRUCT_U_FROM_KCL) && (ISENSE_RECONSTRUCT_U_FROM_KCL == 1)
+    out->value[0] = -out->value[1] - out->value[2];   // KCL: SO1 hardware dead
+#endif
 }
 
 float adc_read_vbus(void)

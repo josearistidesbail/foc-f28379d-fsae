@@ -55,11 +55,12 @@ void sensor_qep_update_speed_slow(void)
     g_qep_omega_elec = s_omega_lpf * (float)MOTOR_POLE_PAIRS * (float)SENSOR_QEP_DIR_SIGN;
 }
 
-// Called by the state machine when entering FOC_ALIGN_ROTOR after the
-// align current has been injected long enough.
+// Called by the state machine at the end of FOC_ALIGN_ROTOR.
 void sensor_qep_capture_zero(void)
 {
     g_qep_mech_offset_cnt = (int32_t)EQEP_getPosition(EQEP1_BASE);
 }
+
+void sensor_capture_zero(void) { sensor_qep_capture_zero(); }
 
 #endif // SENSOR_BACKEND_QEP

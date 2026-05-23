@@ -34,10 +34,12 @@ void sensor_init(void)
     // sensor_rm44ac_capture_zero() during the ALIGN_ROTOR state.
 }
 
-// Called by the state machine in FOC_ALIGN_ROTOR after Id has held for ~1s.
+// Called by the state machine at the end of FOC_ALIGN_ROTOR.
 void sensor_rm44ac_capture_zero(void)
 {
     g_resolver_elec_offset = g_resolver_theta_mech;
 }
+
+void sensor_capture_zero(void) { sensor_rm44ac_capture_zero(); }
 
 #endif // SENSOR_BACKEND_RM44AC
