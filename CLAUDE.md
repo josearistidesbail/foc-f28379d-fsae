@@ -99,24 +99,34 @@ Device_init() → Device_initGPIO() → Interrupt_initModule/VectorTable() → B
 ## Key Hardware Facts (Debug Variant)
 
 - **Current sense**: DRV8305 SO1/SO2/SO3, gain=10 V/V, shunt=7 mΩ, bias≈1.65 V → ~2048 codes at zero current
-- **Vbus divider**: 4.7k/(4.7k+78.7k) ≈ 1/17.74, ADC ref=3.0 V
-- **Gate enable**: GPIO124 active-high — stays low until state machine enables it
+- **ADC channel mapping (verified against official BOOSTXL + LAUNCHXL pinout JSON)**:
+  - Iu (ISENSE_A / SO1) → BP27 → **C2** (ADCC SOC0)
+  - Iv (ISENSE_B / SO2) → BP28 → **B2** (ADCB SOC1)
+  - Iw (ISENSE_C / SO3) → BP29 → **A2** (ADCA SOC2)
+  - Vbus (VSENSE_VDD)   → BP26 → **A3** (ADCA SOC3)
+- **Vbus divider**: header says 1/17.74 but bench measurement shows ~1/13.1 (12 V supply → 1248 codes). `VBUS_DIVIDER_RATIO` needs recalibration once Step 4 is fully closed.
+- **Gate enable**: GPIO124 active-high — stays low until state machine enables it (currently held high in `main.c` for bring-up Step 4)
 - **nFAULT**: GPIO125 active-low
 - **Encoder**: J14 connector (5V TXB0106 level shifters) → GPIO20/21/23 (EQEP1A/B/I)
-- **SPI for DRV8305**: SPIA_BASE
+- **SPI for DRV8305**: SPIA_BASE (not yet configured in SysConfig — Step 5)
+- **XDS100v2 backchannel UART**: GPIO43 (SCIARX) / GPIO42 (SCIATX) — wired through the FTDI bridge. GPIO28/29 are NOT the backchannel on this LaunchPad; they go to BoosterPack headers.
+
+## Bench-Specific Hardware Quirks
+
+- **BOOSTXL-DRV8305 SO1 output is dead on the current bench unit.** SO2 and SO3 both bias correctly at ~1.65 V on B2/A2; SO1 reads near 0 V at BP27/C2 with the BoosterPack attached. The DRV8305 itself is alive (EN_GATE wakes it, nFAULT clears, SO2/SO3 biased). Until a replacement BOOSTXL is on the bench, reconstruct Iu via KCL: `Iu = -Iv - Iw`. SysConfig + headers leave the C2/ADCC SOC0 wiring in place so the channel is ready when SO1 is fixed.
 
 ## Bring-Up Status
 
 - [x] Step 1 — LED heartbeat blink — confirmed on hardware
 - [x] Step 2 — ePWM + ADC pipeline — ISR confirmed firing at 10 kHz
-- [x] Step 3 — eQEP1 configured in SysConfig — not yet verified on hardware
-- [ ] Step 4 — Connect BOOSTXL-DRV8305, verify ~2048 on current channels
-- [ ] Step 5 — DRV8305 SPI init, verify nFAULT deasserts
+- [~] Step 3 — eQEP1: QPOSCNT changes with rotation ✓, but **`QEPSTS` first-index bit and `QPOSILAT` stay at 0** (likely Z wire / differential routing issue), and **direction flag flips while spinning steadily one way** (likely hand-dither at quadrature edges or A/B phase issue). Resume by physically verifying Z wire to J14 index pin, optionally toggle SysConfig `inputPolarity` "Invert Index", and watch `g_dbg_qep_status` bits 0x01 (POS_CNT_ERROR) and 0x04 (CAP_DIR_ERROR) for HW-flagged quadrature errors.
+- [~] Step 4 — DRV8305 awake, EN_GATE high, nFAULT clear, **SO2 and SO3 biased correctly on B2/A2 (~2290 codes ≈ 1.68 V)**, Vbus tracks supply on A3. **SO1 dead on bench BOOSTXL** — see "Bench-Specific Hardware Quirks". Step is effectively closed for the alive channels; revisit Iu when SO1 hardware is fixed.
+- [ ] Step 5 — DRV8305 SPI init, verify nFAULT deasserts. **Pre-work needed**: (a) add SPI module to SysConfig, (b) fix `drv8305_xfer()` to use a separate SCS pin (it currently reuses EN_GATE as chip select, which puts the DRV8305 back to sleep on every SPI transaction), (c) confirm `inverter_init()` SPI register writes actually land.
 - [ ] Step 6 — Rotor alignment current injection (FOC_ALIGN_ROTOR state)
 - [ ] Step 7 — Closed-loop current control, verify Iq/Id tracks reference
 - [ ] Step 8 — Speed loop, trip-zone HW overcurrent protection
 
-## Temporary Debug Globals (remove before production)
+## Temporary Debug Globals + Hacks (remove before production)
 
 ```c
 // src/isr.c
@@ -127,7 +137,21 @@ volatile uint16_t g_dbg_iu_raw;     // raw ADC Iu (~2048 at zero current with ha
 volatile uint16_t g_dbg_iv_raw;
 volatile uint16_t g_dbg_iw_raw;
 volatile uint16_t g_dbg_vbus_raw;
+
+// src/sensor_qep.c   (Step 3 verification)
+volatile uint32_t g_dbg_qep_count;        // QPOSCNT
+volatile uint32_t g_dbg_qep_index_latch;  // QPOSILAT — stuck at 0 on bench (index wiring issue)
+volatile uint16_t g_dbg_qep_status;       // QEPSTS bits; watch 0x01, 0x02, 0x04, 0x20
+volatile int16_t  g_dbg_qep_direction;    // +1 / -1 — flips erratically on bench
+
+// src/inverter_drv8305.c   (Step 4 verification)
+volatile uint16_t g_dbg_en_gate;    // GPIO124 readback
+volatile uint16_t g_dbg_nfault;     // GPIO125 readback (1 = OK)
 ```
+
+**Code hacks pending removal:**
+
+- `src/main.c` — temporary `inverter_enable_gate()` call right after `sm_init()` (guarded by `HW_BOOSTXL_DRV8305`). Holds DRV8305 awake so current-amp bias can be verified without engaging PWM. Remove once state machine drives EN_GATE through its proper transitions.
 
 ## Pitfalls Already Hit — Don't Repeat
 
@@ -135,5 +159,8 @@ volatile uint16_t g_dbg_vbus_raw;
 - **ePWM sync slave direction**: `phaseEnable=true` + `phaseShift=0` in up-down mode requires `counterModeAfterSync` = "Count up" — "Count down" is invalid and errors.
 - **Dead-band AHC**: Both RED and FED inputs must be ePWMxA; B complement comes from `polarityFED=inverted`. Do not set FED input to "output of RED" (DEDB_MODE).
 - **SysConfig first save**: The build output `syscfg/` directory must exist before saving. Create it with PowerShell `New-Item -ItemType Directory -Force <path>` if the project has never been built.
-- **Debugger expressions**: Macros like `ADCARESULT_BASE` cannot be evaluated — use named `volatile` globals or raw addresses.
+- **Debugger expressions**: Macros like `ADCARESULT_BASE` cannot be evaluated — use named `volatile` globals or raw addresses. Function calls from the Expressions view (e.g. `inverter_enable_gate()`) are also flaky — prefer a code-side temporary call.
+- **BOOSTXL-DRV8305 ADC pinout**: the original `hw_boostxl_drv8305.h` had the wrong channels (Iu→A0, Iv→B1, Iw→A1, Vbus→A2). Correct per the official BOOSTXL JSON + LAUNCHXL JSON is Iu→C2, Iv→B2, Iw→A2, Vbus→A3. The BOOSTXL is on Site 1 (J1–J4); BP standard pin 27→C2 (R3), 28→B2 (V3), 29→A2 (U2), 26→A3 (T2). Now also requires `myADCC` in SysConfig.
+- **Safety phase OC check loop trap**: `safety_check_isr()` was tripping FAULT_OVERCURRENT in IDLE because uncalibrated offsets (= ISENSE_ZERO_CODE = 2048) minus raw 0 codes (DRV8305 SO outputs tri-stated when EN_GATE low) yields a perceived ~−21 A. The phase OC check must only run in states where current is actually flowing (`FOC_RUN`, `FOC_ALIGN_ROTOR`).
+- **EN_GATE re-used as SPI CS**: `drv8305_xfer()` in `src/inverter_drv8305.c` currently toggles `DRV8305_EN_GATE_GPIO` as if it were the SPI chip select. That puts the DRV8305 back into sleep on every SPI transaction. SCS belongs on the real `SPISTEA` pin (GPIO61 / BP19). Fix before Step 5.
 

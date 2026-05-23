@@ -43,7 +43,7 @@ static inline float code_to_amps(int32_t code, uint16_t offset, float sign)
 
 void adc_read_phase_currents(FOC_Iabc_t *out)
 {
-    uint16_t cu = ADC_readResult(ADCARESULT_BASE, SOC_IU);
+    uint16_t cu = ADC_readResult(ADCCRESULT_BASE, SOC_IU);
     uint16_t cv = ADC_readResult(ADCBRESULT_BASE, SOC_IV);
     uint16_t cw = ADC_readResult(ADCARESULT_BASE, SOC_IW);
 
@@ -87,7 +87,7 @@ void adc_calibrate_offsets(uint16_t n)
         while(ADC_getInterruptStatus(ADCA_BASE, ADC_INT_NUMBER1) == false) { }
         ADC_clearInterruptStatus(ADCA_BASE, ADC_INT_NUMBER1);
 
-        su += ADC_readResult(ADCARESULT_BASE, SOC_IU);
+        su += ADC_readResult(ADCCRESULT_BASE, SOC_IU);
         sv += ADC_readResult(ADCBRESULT_BASE, SOC_IV);
         sw += ADC_readResult(ADCARESULT_BASE, SOC_IW);
     }

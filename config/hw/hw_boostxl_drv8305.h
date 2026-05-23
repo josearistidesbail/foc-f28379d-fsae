@@ -24,19 +24,19 @@
 #define PWM_DEADBAND_NS         500U
 
 // ---- ADC mapping --------------------------------------------------------
-// Phase currents from DRV8305 SOx outputs:
-//   Iu -> A0 (J3.30 -> DRV8305 SO1)
-//   Iv -> B1 (J3.27 -> DRV8305 SO2)
-//   Iw -> A1 (J7.69 -> DRV8305 SO3)
-// VBUS divider -> A2 (J3.25)
-#define ADC_BASE_IU             ADCA_BASE
-#define ADC_CH_IU               ADC_CH_ADCIN0
+// Per official BOOSTXL-DRV8305EVM + LAUNCHXL-F28379D BoosterPack pinout:
+//   Iu (ISENSE_A / SO1) -> BP27 -> C2 (R3)
+//   Iv (ISENSE_B / SO2) -> BP28 -> B2 (V3)
+//   Iw (ISENSE_C / SO3) -> BP29 -> A2 (U2)
+//   Vbus (VSENSE_VDD)   -> BP26 -> A3 (T2)
+#define ADC_BASE_IU             ADCC_BASE
+#define ADC_CH_IU               ADC_CH_ADCIN2
 #define ADC_BASE_IV             ADCB_BASE
-#define ADC_CH_IV               ADC_CH_ADCIN1
+#define ADC_CH_IV               ADC_CH_ADCIN2
 #define ADC_BASE_IW             ADCA_BASE
-#define ADC_CH_IW               ADC_CH_ADCIN1
+#define ADC_CH_IW               ADC_CH_ADCIN2
 #define ADC_BASE_VBUS           ADCA_BASE
-#define ADC_CH_VBUS             ADC_CH_ADCIN2
+#define ADC_CH_VBUS             ADC_CH_ADCIN3
 
 // ---- ISENSE scaling -----------------------------------------------------
 // DRV8305 has programmable SOx gain. Default after init = 10 V/V.

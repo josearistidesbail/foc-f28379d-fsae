@@ -24,6 +24,10 @@
 
 static uint16_t s_last_fault_status = 0;
 
+// TODO: Debugging DRV8305 GPIO state (Step 4 verification), remove after
+volatile uint16_t g_dbg_en_gate;   // GPIO124 readback: 1 = gate driver awake
+volatile uint16_t g_dbg_nfault;    // GPIO125 readback: 1 = OK, 0 = fault asserted (active-low)
+
 // 16-bit SPI: bit15 = R/!W, bits14..11 = address, bits10..0 = data
 static uint16_t drv8305_xfer(uint16_t rw, uint16_t addr, uint16_t data)
 {

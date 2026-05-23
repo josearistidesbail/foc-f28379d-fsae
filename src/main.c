@@ -21,6 +21,17 @@
 #include "pwm_iface.h"
 #include "safety.h"
 #include "debug_hooks.h"
+#include "debug_iface.h"
+
+extern volatile uint32_t g_isr_count;   // defined in src/isr.c, ticks at 10 kHz
+
+#if defined(HW_BOOSTXL_DRV8305)
+extern volatile uint16_t g_dbg_en_gate;   // defined in src/inverter_drv8305.c
+extern volatile uint16_t g_dbg_nfault;
+#endif
+
+// 5000 ISR ticks @ 10 kHz = 500 ms.
+#define LED_TICK_PERIOD 5000U
 
 int main(void)
 {
@@ -40,18 +51,32 @@ int main(void)
     inverter_init();        // SPI register set; gate driver stays disabled
     foc_init();
     sm_init();              // starts in FOC_IDLE
+    debug_iface_init();
+
+    // TODO: Bring-up Step 4 only — hold EN_GATE high so DRV8305 current
+    // sense amps bias at VREF/2 (~2048). Remove once Step 4 is signed off.
+#if defined(HW_BOOSTXL_DRV8305)
+    inverter_enable_gate();
+#endif
 
     // ---- 3. Globally enable interrupts ---------------------------------
     EINT;
     ERTM;
 
-    // ---- 4. Super-loop (1 Hz heartbeat + non-time-critical tasks) ------
-    uint32_t hb = 0;
+    // ---- 4. Super-loop: poll debug iface + tick-based heartbeat --------
+    uint32_t last_led_tick = 0;
     while(1)
     {
-        DEVICE_DELAY_US(500000);
-        GPIO_togglePin(LED_STATUS_GPIO);
-        hb++;
-        // Future: comms / parameter updates / telemetry.
+        debug_iface_poll();
+#if defined(HW_BOOSTXL_DRV8305)
+        g_dbg_en_gate = (uint16_t)GPIO_readPin(DRV8305_EN_GATE_GPIO);
+        g_dbg_nfault  = (uint16_t)GPIO_readPin(DRV8305_NFAULT_GPIO);
+#endif
+        uint32_t now = g_isr_count;
+        if ((now - last_led_tick) >= LED_TICK_PERIOD)
+        {
+            GPIO_togglePin(LED_STATUS_GPIO);
+            last_led_tick = now;
+        }
     }
 }

@@ -23,17 +23,24 @@ void safety_clear(void)       { s_latched = 0; }
 void safety_check_isr(void)
 {
     const FOC_Signals_t *s = foc_get_signals();
+    FOC_State_t st = sm_get_state();
 
-    if(s->Iabc.value[0] >  MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
-    if(s->Iabc.value[0] < -MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
-    if(s->Iabc.value[1] >  MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
-    if(s->Iabc.value[1] < -MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
-    if(s->Iabc.value[2] >  MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
-    if(s->Iabc.value[2] < -MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
+    // Phase overcurrent — only meaningful when actively driving current.
+    // In IDLE/FAULT the gate driver is off and shunt amp outputs may be
+    // tri-stated, so the (raw - offset) math reports a bogus reading.
+    if(st == FOC_RUN || st == FOC_ALIGN_ROTOR)
+    {
+        if(s->Iabc.value[0] >  MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
+        if(s->Iabc.value[0] < -MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
+        if(s->Iabc.value[1] >  MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
+        if(s->Iabc.value[1] < -MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
+        if(s->Iabc.value[2] >  MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
+        if(s->Iabc.value[2] < -MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
+    }
 
     float vbus = foc_get_refs()->vbus;
     if(vbus > MOTOR_OV_TRIP_V) safety_latch(FAULT_OVERVOLTAGE);
-    if(vbus < MOTOR_UV_TRIP_V && sm_get_state() == FOC_RUN)
+    if(vbus < MOTOR_UV_TRIP_V && st == FOC_RUN)
         safety_latch(FAULT_UNDERVOLTAGE);
 
     if(inverter_is_faulted()) safety_latch(FAULT_GATE_DRIVER);
