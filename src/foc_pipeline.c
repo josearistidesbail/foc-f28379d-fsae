@@ -110,6 +110,13 @@ void foc_current_loop_isr(void)
     PARK_run  (s_park, &s_sig.Iab, &s_sig.Idq);
 
     // 3. Inner current PIs
+    //    Clamp PI limits to actual VBUS each ISR so anti-windup is effective
+    //    regardless of supply voltage (e.g. 12 V bench vs 48 V rated).
+    {
+        float vmax_dyn = VDQ_MAX_FRACTION * s_refs.vbus * 0.5f;
+        PI_setMinMax(s_pi_id, -vmax_dyn, vmax_dyn);
+        PI_setMinMax(s_pi_iq, -vmax_dyn, vmax_dyn);
+    }
     //    (Only run when state machine allows it; otherwise zero outputs.)
     if(st == FOC_RUN || st == FOC_ALIGN_ROTOR)
     {

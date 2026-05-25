@@ -14,6 +14,7 @@
 
 #include "board.h"                          // SysConfig-generated: DRV8305_SPI_BASE
 #include "inverter_iface.h"
+#include "pwm_iface.h"
 #include "inc/hw_spi.h"                     // SPI_O_STS / SPI_O_FFRX / SPI_O_FFTX
 #include "inc/hw_types.h"                   // HWREGH
 
@@ -40,6 +41,14 @@ volatile uint16_t g_dbg_spi_warn;      // Warning & Watchdog Status (reg 0x01) a
 volatile uint16_t g_dbg_spi_ovvds;     // OV/VDS Faults (reg 0x02) after init
 volatile uint16_t g_dbg_spi_icflt;     // IC Faults (reg 0x03) after init
 volatile uint16_t g_dbg_spi_vgsflt;    // VGS Faults (reg 0x04) after init
+
+// Fault registers captured at the moment of entering FOC_FAULT (EN_GATE still
+// HIGH so the DRV8305 is awake). These tell you WHICH fault actually fired,
+// as opposed to g_dbg_spi_* which are snapshots taken once at init.
+volatile uint16_t g_dbg_fault_warn;     // reg 0x01 (WARN_AND_DIAG1) at fault entry
+volatile uint16_t g_dbg_fault_ovvds;    // reg 0x02 (OV_VDS_FAULTS)  at fault entry
+volatile uint16_t g_dbg_fault_icflt;    // reg 0x03 (IC_FAULTS)       at fault entry
+volatile uint16_t g_dbg_fault_vgsflt;   // reg 0x04 (VGS_FAULTS)      at fault entry
 
 // Raw SPI hardware state captured at the end of the verification read.
 // Use these to triage when the readback is wrong:
@@ -81,14 +90,50 @@ static uint16_t drv8305_xfer(uint16_t rw, uint16_t addr, uint16_t data)
     return r & 0x07FF;
 }
 
+void inverter_clear_faults(void)
+{
+    // Includes the DRV8305 wake-up delay so callers can invoke this immediately
+    // after inverter_enable_gate() without needing device.h themselves.
+    // CLR_LATCH (IC_OPERATION bit 0) clears all latched fault bits and
+    // deasserts NFAULT if no active fault condition remains.
+    DEVICE_DELAY_US(2000);
+    drv8305_xfer(0, DRV8305_REG_IC_OPERATION, 0x0001);
+    DEVICE_DELAY_US(100);
+}
+
+void inverter_snapshot_fault_regs(void)
+{
+    // Call with EN_GATE HIGH (device awake) to capture which fault fired.
+    g_dbg_fault_warn   = drv8305_xfer(1, DRV8305_REG_WARN_STATUS,   0);
+    g_dbg_fault_ovvds  = drv8305_xfer(1, DRV8305_REG_OV_VDS_FAULTS, 0);
+    g_dbg_fault_icflt  = drv8305_xfer(1, DRV8305_REG_IC_FAULTS,     0);
+    g_dbg_fault_vgsflt = drv8305_xfer(1, DRV8305_REG_VGS_FAULTS,    0);
+}
+
 void inverter_init(void)
 {
+    // NFAULT is open-drain active-low — must be an input with pull-up, otherwise
+    // GPIO_readPin returns the output latch (always 1) regardless of pin voltage.
+    GPIO_setPadConfig(DRV8305_NFAULT_GPIO, GPIO_PIN_TYPE_PULLUP);
+    GPIO_setDirectionMode(DRV8305_NFAULT_GPIO, GPIO_DIR_MODE_IN);
+
+    // Force PWMs to safe state (CMPA = period → HS duty = 0%, LS on) before
+    // EN_GATE goes high. Without this, the ePWMs run at their SysConfig-initial
+    // CMPA = 2500 (50% duty) when the gate driver first wakes up, causing VDS
+    // overcurrent faults (VDS_LA/VDS_LB) on the first switching transients.
+    pwm_force_safe();
+
     // Wake the DRV8305 first: EN_GATE low -> high. The gate driver needs
     // ~1 ms after EN_GATE rising before SPI is responsive (datasheet 7.5.1.1).
     GPIO_writePin(DRV8305_EN_GATE_GPIO, 0);
     DEVICE_DELAY_US(2000);
     GPIO_writePin(DRV8305_EN_GATE_GPIO, 1);
     DEVICE_DELAY_US(2000);
+
+    // Clear faults latched from any previous run before programming registers.
+    // Without this, a VDS/GDRV latch from the previous session keeps NFAULT
+    // asserted and prevents gate drive on every subsequent enable attempt.
+    inverter_clear_faults();
 
     // Program operating registers. Values per DRV8305 datasheet section 7.6.
     const uint16_t shunt_cfg = 0x0290;          // gain=10, blank=0.5us

@@ -42,7 +42,9 @@ static void enter(FOC_State_t next)
         pwm_force_safe();
         break;
     case FOC_CALIBRATE_OFFSETS:
-        pwm_force_safe();           // low side shorted, no commutation
+        inverter_enable_gate();
+        inverter_clear_faults();        // clear any fault latched since last inverter_init()
+        pwm_force_safe();               // SO bias must be present before sampling offsets
         adc_calibrate_offsets(CAL_SAMPLES);
         break;
     case FOC_ALIGN_ROTOR:
@@ -56,6 +58,7 @@ static void enter(FOC_State_t next)
         foc_get_refs()->id_ref = ID_REF_NOMINAL_A;
         break;
     case FOC_FAULT:
+        inverter_snapshot_fault_regs(); // read while EN_GATE still high — tells us what fired
         inverter_disable_gate();
         pwm_force_safe();
         break;
@@ -147,7 +150,8 @@ void sm_tick_1khz(void)
         break;
 
     case FOC_FAULT:
-        // Cleared via sm_clear_fault() -> back to IDLE.
+        if(s_requested == FOC_IDLE)
+            enter(FOC_IDLE);
         break;
     }
 }

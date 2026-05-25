@@ -1,8 +1,8 @@
 /**
  * These arguments were used when this file was generated. They will be automatically applied on subsequent loads
  * via the GUI or CLI. Run CLI with '--help' for additional information on how to override these arguments.
- * @cliArgs --device "F2837xD" --part "F2837xD_337ZWT" --package "F2837xD_337ZWT" --context "CPU1" --product "C2000WARE@26.00.00.00"
- * @v2CliArgs --device "TMS320F28379D" --package "337ZWT" --context "CPU1" --product "C2000WARE@26.00.00.00"
+ * @cliArgs --device "F2837xD" --part "F2837xD_337ZWT" --package "F2837xD_337ZWT" --context "CPU1" --product "C2000WARE@26.01.00.00"
+ * @v2CliArgs --device "TMS320F28379D" --package "337ZWT" --context "CPU1" --product "C2000WARE@26.01.00.00"
  * @versions {"tool":"1.27.1+4634"}
  */
 
@@ -25,6 +25,7 @@ const gpio  = scripting.addModule("/driverlib/gpio.js", {}, false);
 const gpio2 = gpio.addInstance();
 const gpio3 = gpio.addInstance();
 const gpio4 = gpio.addInstance();
+const gpio5 = gpio.addInstance();
 const sci   = scripting.addModule("/driverlib/sci.js", {}, false);
 const sci1  = sci.addInstance();
 const spi   = scripting.addModule("/driverlib/spi.js", {}, false);
@@ -72,7 +73,6 @@ led1.$name                = "LED_STATUS";
 led1.gpio.gpioPin.$assign = "GPIO31";
 
 epwm1.epwmEventTrigger_EPWM_SOC_A_triggerEnable                  = true;
-epwm1.$name                                                      = "PWM_W";
 epwm1.epwmTimebase_counterMode                                   = "EPWM_COUNTER_MODE_UP_DOWN";
 epwm1.epwmTimebase_period                                        = 5000;
 epwm1.epwmTimebase_syncOutPulseMode                              = "EPWM_SYNC_OUT_PULSE_ON_COUNTER_ZERO";
@@ -86,6 +86,7 @@ epwm1.epwmDeadband_delayFED                                      = 50;
 epwm1.epwmDeadband_polarityFED                                   = "EPWM_DB_POLARITY_ACTIVE_LOW";
 epwm1.epwmEventTrigger_EPWM_SOC_A_triggerSource                  = "EPWM_SOC_TBCTR_ZERO";
 epwm1.epwmEventTrigger_EPWM_SOC_A_triggerEventPrescalar          = "1";
+epwm1.$name                                                      = "PWM_U";
 epwm1.epwm.$assign                                               = "EPWM1";
 epwm1.epwm.epwm_aPin.$assign                                     = "GPIO0";
 epwm1.epwm.epwm_bPin.$assign                                     = "GPIO1";
@@ -104,11 +105,10 @@ epwm2.epwmDeadband_delayRED                                      = 50;
 epwm2.epwmDeadband_delayFED                                      = 50;
 epwm2.epwmDeadband_polarityFED                                   = "EPWM_DB_POLARITY_ACTIVE_LOW";
 epwm2.epwmTimebase_counterModeAfterSync                          = "EPWM_COUNT_MODE_UP_AFTER_SYNC";
-epwm2.epwm.$assign                                               = "EPWM5";
-epwm2.epwm.epwm_aPin.$assign                                     = "GPIO8";
-epwm2.epwm.epwm_bPin.$assign                                     = "GPIO9";
+epwm2.epwm.$assign                                               = "EPWM2";
+epwm2.epwm.epwm_aPin.$assign                                     = "GPIO2";
+epwm2.epwm.epwm_bPin.$assign                                     = "GPIO3";
 
-epwm3.$name                                                      = "PWM_U";
 epwm3.epwmTimebase_counterMode                                   = "EPWM_COUNTER_MODE_UP_DOWN";
 epwm3.epwmTimebase_period                                        = 5000;
 epwm3.epwmTimebase_syncOutPulseMode                              = "EPWM_SYNC_OUT_PULSE_ON_EPWMxSYNCIN";
@@ -122,9 +122,10 @@ epwm3.epwmDeadband_delayRED                                      = 50;
 epwm3.epwmDeadband_delayFED                                      = 50;
 epwm3.epwmDeadband_polarityFED                                   = "EPWM_DB_POLARITY_ACTIVE_LOW";
 epwm3.epwmTimebase_counterModeAfterSync                          = "EPWM_COUNT_MODE_UP_AFTER_SYNC";
-epwm3.epwm.$assign                                               = "EPWM6";
-epwm3.epwm.epwm_aPin.$assign                                     = "GPIO10";
-epwm3.epwm.epwm_bPin.$assign                                     = "GPIO11";
+epwm3.$name                                                      = "PWM_W";
+epwm3.epwm.$assign                                               = "EPWM3";
+epwm3.epwm.epwm_aPin.$assign                                     = "GPIO4";
+epwm3.epwm.epwm_bPin.$assign                                     = "GPIO5";
 
 eqep1.$name                 = "QEP_SENSOR";
 eqep1.useCase               = "NO STROBE";
@@ -141,13 +142,19 @@ gpio2.gpioPin.$assign   = "GPIO124";
 
 gpio3.$name           = "DRV8305_NFAULT";
 gpio3.padConfig       = "PULLUP";
-gpio3.gpioPin.$assign = "GPIO125";
+gpio3.gpioPin.$assign = "GPIO19";
 
 gpio4.$name             = "DRV8305_SCS";
 gpio4.direction         = "GPIO_DIR_MODE_OUT";
 gpio4.writeInitialValue = true;
 gpio4.initialValue      = 1;
 gpio4.gpioPin.$assign   = "GPIO61";
+
+gpio5.$name             = "DRV8305_WAKE";
+gpio5.direction         = "GPIO_DIR_MODE_OUT";
+gpio5.writeInitialValue = true;
+gpio5.initialValue      = 1;
+gpio5.gpioPin.$assign   = "GPIO125";
 
 sci1.$name                      = "UART_DEBUG";
 sci1.useCase                    = "CUSTOM";
@@ -179,7 +186,7 @@ spi1.pociQual.$name          = "myGPIOQUAL4";
  * re-solve from scratch.
  */
 eqep1.eqep.$suggestSolution          = "EQEP1";
-eqep1.eqep.eqepaPin.$suggestSolution = "GPIO20";
-eqep1.eqep.eqepbPin.$suggestSolution = "GPIO21";
+eqep1.eqep.eqepaPin.$suggestSolution = "GPIO10";
+eqep1.eqep.eqepbPin.$suggestSolution = "GPIO11";
 sci1.sci.$suggestSolution            = "SCIA";
 spi1.spi.$suggestSolution            = "SPIA";

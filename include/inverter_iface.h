@@ -12,6 +12,8 @@
 extern void inverter_init(void);            // SPI bring-up, default register set
 extern void inverter_enable_gate(void);     // EN_GATE high (or equivalent)
 extern void inverter_disable_gate(void);    // safe state - PWM driver tristate
+extern void inverter_clear_faults(void);         // send CLR_LATCH (or equivalent) to gate driver
+extern void inverter_snapshot_fault_regs(void);  // read fault registers into g_dbg_fault_* globals
 extern bool inverter_is_faulted(void);      // nFAULT pin / status read
 extern uint16_t inverter_fault_status(void);// last latched fault bits (HW specific)
 

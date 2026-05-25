@@ -31,6 +31,16 @@ bool inverter_is_faulted(void)
     return GPIO_readPin(GATE_DRV_NFAULT_GPIO) == 0;
 }
 
+void inverter_clear_faults(void)
+{
+    // TODO[control_v2]: send CLR_LATCH or equivalent to your gate driver IC.
+}
+
+void inverter_snapshot_fault_regs(void)
+{
+    // TODO[control_v2]: read fault registers into g_dbg_fault_* globals.
+}
+
 uint16_t inverter_fault_status(void)
 {
     // TODO[control_v2]: read fault register over your bus and return it.

@@ -14,12 +14,18 @@
 #define HW_NAME                 "BOOSTXL-DRV8305"
 
 // ---- ePWM mapping (BoosterPack site 1) ---------------------------------
-//  ePWM6 -> phase U  (GPIO10, GPIO11)
-//  ePWM5 -> phase V  (GPIO8,  GPIO9)
-//  ePWM1 -> phase W  (GPIO0,  GPIO1)  <- also produces the master SOC.
-#define PWM_U_BASE              EPWM6_BASE
-#define PWM_V_BASE              EPWM5_BASE
-#define PWM_W_BASE              EPWM1_BASE
+//  ePWM1 -> phase U  (GPIO0, GPIO1)  <- also produces the master SOC.
+//  ePWM2 -> phase V  (GPIO2, GPIO3)
+//  ePWM3 -> phase W  (GPIO4, GPIO5)
+#ifndef PWM_U_BASE
+#define PWM_U_BASE              EPWM1_BASE
+#endif
+#ifndef PWM_V_BASE
+#define PWM_V_BASE              EPWM2_BASE
+#endif
+#ifndef PWM_W_BASE
+#define PWM_W_BASE              EPWM3_BASE
+#endif
 #define PWM_FREQ_HZ             10000.0f
 #define PWM_DEADBAND_NS         500U
 
@@ -57,21 +63,26 @@
 #define VBUS_VOLTS_PER_CODE     (ADC_VREF_V * VBUS_DIVIDER_RATIO / ADC_FULL_SCALE_CODE)
 
 // ---- GPIO -------------------------------------------------------------
-// DRV8305 EN_GATE: active-high, wakes the gate driver out of sleep. Must
-// stay high during SPI register writes — distinct from SPI chip select.
-#define DRV8305_EN_GATE_GPIO    124U        // J5.13
-#define DRV8305_NFAULT_GPIO     125U        // J5.12 (active-low)
-#define DRV8305_SCS_GPIO        61U         // BP19 / SPISTEA pin, manually driven as CS
+// DRV8305 EN_GATE: active-high, enables gate outputs. Must stay high
+// during SPI register writes — distinct from SPI chip select.
+#define DRV8305_EN_GATE_GPIO    124U        // ENGATE
+// DRV8305 WAKE: must be driven HIGH for normal (non-sleep) operation.
+#define DRV8305_WAKE_GPIO       125U        // WAKE
+// DRV8305 nFAULT: open-drain active-low fault indicator.
+#define DRV8305_NFAULT_GPIO     19U         // FAULT (active-low)
+#define DRV8305_SCS_GPIO        61U         // SCS / SPISTEA pin, manually driven as CS
 // DRV8305_SPI_BASE is generated in syscfg/board.h (SPIA_BASE).
-#define LED_STATUS_GPIO         31U         // D9 on LaunchPad
+#define LED_STATUS_GPIO         31          // D9 on LaunchPad; also in board.h
 #define SCOPE_PIN_ISR_GPIO      67U         // free pin for ISR timing probe
 
 // ---- Current sense polarity -------------------------------------------
-// DRV8305 SOx convention: rising voltage = current FROM bridge into motor.
-// Set to +1 if KCL ABC sums to ~0 with motor running, else flip per channel.
-#define ISENSE_SIGN_U           (+1.0f)
-#define ISENSE_SIGN_V           (+1.0f)
-#define ISENSE_SIGN_W           (+1.0f)
+// DRV8305 low-side shunt convention: SO rises when current flows FROM motor
+// THROUGH low-side shunt TO GND (i.e., negative motor terminal current).
+// So code_to_amps with sign=-1 gives the correct motor-terminal polarity.
+// KCL: Iu = -Iv - Iw then gives the correct (positive) Iu.
+#define ISENSE_SIGN_U           (+1.0f)     // unused — IU reconstructed via KCL
+#define ISENSE_SIGN_V           (-1.0f)
+#define ISENSE_SIGN_W           (-1.0f)
 
 // ---- KCL Iu reconstruction ---------------------------------------------
 // Bench-specific: SO1 (ISENSE_A) is dead on the current BOOSTXL unit; raw

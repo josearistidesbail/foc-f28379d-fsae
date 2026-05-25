@@ -26,12 +26,27 @@ void pwm_init(void)
 
 void pwm_force_safe(void)
 {
-    // Force CMP to mid-period (50% duty). Real safe state is the gate
-    // driver disable (inverter_disable_gate()); this is belt-and-braces.
-    uint16_t mid = g_pwm_period_count / 2U;
-    EPWM_setCounterCompareValue(PWM_U_BASE, EPWM_COUNTER_COMPARE_A, mid);
-    EPWM_setCounterCompareValue(PWM_V_BASE, EPWM_COUNTER_COMPARE_A, mid);
-    EPWM_setCounterCompareValue(PWM_W_BASE, EPWM_COUNTER_COMPARE_A, mid);
+    // Force EPWMxA LOW via AQCSFRC (Continuous SW Force) — the highest-priority
+    // mechanism in the AQ output chain, above all hardware events (PRD, CAU, CAD).
+    //
+    // PERIOD→LOW failed because in up-down count mode CAU (CMPA_UP) has higher
+    // priority than PRD, so with CMPA=TBPRD the CMPA_UP→HIGH event won every time
+    // both fired simultaneously at CTR=TBPRD. AQCSFRC bypasses the priority scheme
+    // entirely and holds EPWMxA LOW unconditionally.
+    //
+    // The force is released in pwm_set_duty() after the new CMPA value is written,
+    // ensuring no rogue HS pulse occurs during the safe→active transition.
+    EPWM_setActionQualifierContSWForceShadowMode(PWM_U_BASE, EPWM_AQ_SW_IMMEDIATE_LOAD);
+    EPWM_setActionQualifierContSWForceAction(PWM_U_BASE, EPWM_AQ_OUTPUT_A, EPWM_AQ_SW_OUTPUT_LOW);
+    EPWM_setActionQualifierContSWForceShadowMode(PWM_V_BASE, EPWM_AQ_SW_IMMEDIATE_LOAD);
+    EPWM_setActionQualifierContSWForceAction(PWM_V_BASE, EPWM_AQ_OUTPUT_A, EPWM_AQ_SW_OUTPUT_LOW);
+    EPWM_setActionQualifierContSWForceShadowMode(PWM_W_BASE, EPWM_AQ_SW_IMMEDIATE_LOAD);
+    EPWM_setActionQualifierContSWForceAction(PWM_W_BASE, EPWM_AQ_OUTPUT_A, EPWM_AQ_SW_OUTPUT_LOW);
+
+    // Park CMPA at period_count so the first pwm_set_duty() call starts from 0% duty.
+    EPWM_setCounterCompareValue(PWM_U_BASE, EPWM_COUNTER_COMPARE_A, g_pwm_period_count);
+    EPWM_setCounterCompareValue(PWM_V_BASE, EPWM_COUNTER_COMPARE_A, g_pwm_period_count);
+    EPWM_setCounterCompareValue(PWM_W_BASE, EPWM_COUNTER_COMPARE_A, g_pwm_period_count);
 }
 
 void pwm_set_duty(const FOC_Duty_t *d)
@@ -46,7 +61,17 @@ void pwm_set_duty(const FOC_Duty_t *d)
     if(cv < 0) cv = 0; if(cv > g_pwm_period_count) cv = g_pwm_period_count;
     if(cw < 0) cw = 0; if(cw > g_pwm_period_count) cw = g_pwm_period_count;
 
+    // Write CMPA first while AQCSFRC force may still be active, then release.
+    // This prevents a rogue HS pulse during the safe→active transition: the force
+    // holds EPWMxA LOW while CMPA moves from period_count to the real duty value,
+    // so AQ takes over only with a valid (non-TBPRD) compare value already in place.
+    // Writing DISABLED when the force is already disabled is a harmless idempotent
+    // register write (AQCSFRC CSFA bits already 0).
     EPWM_setCounterCompareValue(PWM_U_BASE, EPWM_COUNTER_COMPARE_A, (uint16_t)cu);
     EPWM_setCounterCompareValue(PWM_V_BASE, EPWM_COUNTER_COMPARE_A, (uint16_t)cv);
     EPWM_setCounterCompareValue(PWM_W_BASE, EPWM_COUNTER_COMPARE_A, (uint16_t)cw);
+
+    EPWM_setActionQualifierContSWForceAction(PWM_U_BASE, EPWM_AQ_OUTPUT_A, EPWM_AQ_SW_DISABLED);
+    EPWM_setActionQualifierContSWForceAction(PWM_V_BASE, EPWM_AQ_OUTPUT_A, EPWM_AQ_SW_DISABLED);
+    EPWM_setActionQualifierContSWForceAction(PWM_W_BASE, EPWM_AQ_OUTPUT_A, EPWM_AQ_SW_DISABLED);
 }
