@@ -34,7 +34,7 @@ static uint16_t s_last_fault_status = 0;
 
 // TODO: Debugging DRV8305 GPIO state + SPI bring-up (Step 4/5), remove after.
 volatile uint16_t g_dbg_en_gate;       // GPIO124 readback: 1 = gate driver awake
-volatile uint16_t g_dbg_nfault;        // GPIO125 readback: 1 = OK, 0 = fault asserted (active-low)
+volatile uint16_t g_dbg_nfault;        // GPIO19 readback: 1 = OK, 0 = fault asserted (active-low)
 volatile uint16_t g_dbg_spi_wr_shunt;  // value written to SHUNT_AMP reg
 volatile uint16_t g_dbg_spi_rd_shunt;  // value read back from SHUNT_AMP reg (Step 5 must equal wr)
 volatile uint16_t g_dbg_spi_warn;      // Warning & Watchdog Status (reg 0x01) after init
@@ -94,10 +94,14 @@ void inverter_clear_faults(void)
 {
     // Includes the DRV8305 wake-up delay so callers can invoke this immediately
     // after inverter_enable_gate() without needing device.h themselves.
-    // CLR_LATCH (IC_OPERATION bit 0) clears all latched fault bits and
-    // deasserts NFAULT if no active fault condition remains.
+    // CLR_FLTS is IC_OPERATION (0x09) bit 1 == 0x0002. Writing 1 clears all
+    // latched fault bits and deasserts NFAULT if no active fault remains
+    // (datasheet Table 16; faults otherwise clear only on power-up or SLEEP).
+    // BUG FIX: this previously wrote 0x0001, which is bit 0 == SET_VCPH_UV
+    // (charge-pump UV threshold), NOT a fault clear — so latched VDS/OC faults
+    // survived every re-init, and a CPU restart never resets the external DRV.
     DEVICE_DELAY_US(2000);
-    drv8305_xfer(0, DRV8305_REG_IC_OPERATION, 0x0001);
+    drv8305_xfer(0, DRV8305_REG_IC_OPERATION, 0x0002);
     DEVICE_DELAY_US(100);
 }
 
@@ -130,18 +134,30 @@ void inverter_init(void)
     GPIO_writePin(DRV8305_EN_GATE_GPIO, 1);
     DEVICE_DELAY_US(2000);
 
-    // Clear faults latched from any previous run before programming registers.
-    // Without this, a VDS/GDRV latch from the previous session keeps NFAULT
-    // asserted and prevents gate drive on every subsequent enable attempt.
-    inverter_clear_faults();
-
-    // Program operating registers. Values per DRV8305 datasheet section 7.6.
+    // Program operating registers BEFORE clearing faults. In particular reg
+    // 0x07 (VDS sense blanking/deglitch) must hold a valid value first: the
+    // external DRV8305 is NOT reset by an MCU restart, so it can retain a bad
+    // config from a previous run, and clearing faults while VDS blanking is
+    // disabled just re-latches VDS_L immediately. Values per datasheet section 7.6.
     const uint16_t shunt_cfg = 0x0290;          // gain=10, blank=0.5us
     drv8305_xfer(0, DRV8305_REG_SHUNT_AMP, shunt_cfg);
-    drv8305_xfer(0, DRV8305_REG_VDS,        0x0086);  // VDS = 0.18 V trip
-    drv8305_xfer(0, DRV8305_REG_GATE_DRV_CTRL, 0x0080); // PWM mode 6x
+    // reg 0x0C VDS Sense Control = 0x0080: VDS_LEVEL=b'10000 (0.403 V),
+    // VDS_MODE=b'000 (latched shutdown). BUG FIX: the previous 0x0086 set
+    // VDS_MODE=b'110, RESERVED (Table 19 defines only 000/001/010). Level left
+    // loose for bring-up; tighten toward ~0.18 V (e.g. 0x0030 = 0.197 V) later.
+    drv8305_xfer(0, DRV8305_REG_VDS,        0x0080);
+    // reg 0x07 Gate Drive Control = 0x0216 (datasheet default): PWM_MODE=b'00
+    // (6x), DEAD_TIME=b'001 (52 ns), TBLANK=b'01 (1.75 us), TVDS=b'10 (3.5 us).
+    // BUG FIX: the previous 0x0080 set PWM_MODE=b'01 (3 inputs, not the "6x"
+    // claimed) and TBLANK=0/TVDS=0 — zero VDS blank/deglitch — so the low-side
+    // VDS comparators false-tripped (VDS_LA/LB/LC) at rest and latched NFAULT.
+    drv8305_xfer(0, DRV8305_REG_GATE_DRV_CTRL, 0x0216);
 
     DEVICE_DELAY_US(500);
+
+    // Now clear any faults latched from a previous session or the wake
+    // transient. With VDS blanking valid, the clear finally sticks.
+    inverter_clear_faults();
 
     // Verify: read SHUNT_AMP back. If SPI is wired and CS is correct, the
     // returned value matches what we wrote. Mismatch == SPI plumbing issue.

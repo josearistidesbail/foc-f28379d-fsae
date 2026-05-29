@@ -138,14 +138,28 @@ void foc_current_loop_isr(void)
         g_dbg_align_vd      = s_sig.Vdq.value[0];
     }
 
-    // 4. Inverse Park -> SVGEN -> PWM
+    // 4. Inverse Park -> SVGEN -> PWM.
+    //    Keep vbus fresh every ISR (safety_check_isr() needs it for OV/UV),
+    //    but only DRIVE the bridge when the state machine is actually
+    //    commanding current. In IDLE/CALIBRATE/FAULT we must re-assert the
+    //    pwm_force_safe() state every tick: SVGEN's zero-voltage vector maps to
+    //    50% duty on all three legs, and pwm_set_duty() releases the AQCSFRC
+    //    safe-force, so calling it here would switch all three half-bridges and
+    //    trip DRV8305 high-side VDS over-current (nFAULT) while "idle".
     s_refs.vbus = adc_read_vbus();
     SVGEN_setOneOverDcBus_invV(s_svgen, 1.0f / s_refs.vbus);
 
-    IPARK_setup(s_ipark, s_sig.theta_elec);
-    IPARK_run  (s_ipark, &s_sig.Vdq, &s_sig.Vab);
-    SVGEN_run  (s_svgen, &s_sig.Vab, &s_sig.duty);
-    pwm_set_duty(&s_sig.duty);
+    if(st == FOC_RUN || st == FOC_ALIGN_ROTOR)
+    {
+        IPARK_setup(s_ipark, s_sig.theta_elec);
+        IPARK_run  (s_ipark, &s_sig.Vdq, &s_sig.Vab);
+        SVGEN_run  (s_svgen, &s_sig.Vab, &s_sig.duty);
+        pwm_set_duty(&s_sig.duty);
+    }
+    else
+    {
+        pwm_force_safe();
+    }
 
     // 5. Decimated outer loop
     if(++s_decim >= SPEED_LOOP_DECIM)
