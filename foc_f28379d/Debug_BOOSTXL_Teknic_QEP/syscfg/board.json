@@ -1,0 +1,12 @@
+{
+    "interruptInfo" : [
+        {
+            "interruptName": "INT_myADCA_1",
+            "interruptHandler": "adcA1_isr"
+        },
+        {
+            "interruptName": "INT_UART_DEBUG_RX",
+            "interruptHandler": "sciA_rx_isr"
+        }
+    ]
+}

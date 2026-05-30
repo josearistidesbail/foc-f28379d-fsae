@@ -74,13 +74,14 @@ libraries/       TI Motor Control SDK header-only math (path-matched to SDK inst
 | Instance | Peripheral | Pins | Role |
 |---|---|---|---|
 | `LED_STATUS` | GPIO31 | — | D9 Red LED, heartbeat |
-| `PWM_W` | EPWM1 | GPIO0/1 | Phase W, master — generates ADCSOCA at CTR=0 |
-| `PWM_V` | EPWM5 | GPIO8/9 | Phase V, sync slave (count-up after sync) |
-| `PWM_U` | EPWM6 | GPIO10/11 | Phase U, sync slave |
-| `myADCA` | ADCA | A0/A1/A2 | SOC0=Iu, SOC2=Iw, SOC3=Vbus; INT1→`adcA1_isr` |
-| `myADCB` | ADCB | B1 | SOC1=Iv |
+| `PWM_U` | EPWM1 | GPIO0/1 | Phase U, master — generates ADCSOCA |
+| `PWM_V` | EPWM2 | GPIO2/3 | Phase V |
+| `PWM_W` | EPWM3 | GPIO4/5 | Phase W |
+| `myADCA` | ADCA | A2/A3 | SOC2=Iw, SOC3=Vbus; INT1→`adcA1_isr` |
+| `myADCB` | ADCB | B2 | SOC1=Iv |
+| `myADCC` | ADCC | C2 | SOC0=Iu |
 | `myADCA1_INT` | INT_ADCA_1 | — | Registered to `adcA1_isr`, PIE group 1 |
-| `QEP_SENSOR` | EQEP1 | GPIO20/21/23 | Teknic 4000CPR encoder A/B/I, QPOSMAX=15999 |
+| `QEP_SENSOR` | EQEP1 | GPIO10/11/23 | Teknic 4000CPR encoder A/B/I, QPOSMAX=15999 |
 
 **ePWM**: Up-down, TBPRD=5000 (10 kHz at EPWMCLK=100 MHz), AHC dead-band 50 counts (500 ns).
 **ADC**: 50 MHz (/4 prescaler), 15-count sample window, all SOCs triggered by EPWM1 SOCA.
@@ -105,11 +106,27 @@ Device_init() → Device_initGPIO() → Interrupt_initModule/VectorTable() → B
   - Iw (ISENSE_C / SO3) → BP29 → **A2** (ADCA SOC2)
   - Vbus (VSENSE_VDD)   → BP26 → **A3** (ADCA SOC3)
 - **Vbus divider**: header says 1/17.74 but bench measurement shows ~1/13.1 (12 V supply → 1248 codes). `VBUS_DIVIDER_RATIO` needs recalibration once Step 4 is fully closed.
-- **Gate enable**: GPIO124 active-high — stays low until state machine enables it (currently held high in `main.c` for bring-up Step 4)
-- **nFAULT**: GPIO125 active-low
-- **Encoder**: J14 connector (5V TXB0106 level shifters) → GPIO20/21/23 (EQEP1A/B/I)
-- **SPI for DRV8305**: SPIA_BASE (not yet configured in SysConfig — Step 5)
+- **Gate enable (EN_GATE)**: GPIO124 active-high — stays low until state machine enables it (currently held high in `main.c` for bring-up Step 4)
+- **WAKE**: GPIO125 — driven HIGH by SysConfig `Board_init()` for normal (non-sleep) operation. Keeping WAKE high means the DRV8305 stays awake even when EN_GATE is low, so a latched fault holds nFAULT asserted until explicitly cleared. **This pin is WAKE, not nFAULT** (earlier docs had this wrong).
+- **nFAULT**: **GPIO19** active-low, configured input + pull-up (open-drain fault output from the DRV8305). Earlier docs said GPIO125 — that was the WAKE pin; corrected per bench mapping.
+- **Encoder**: J14 connector (5V TXB0106 level shifters) → GPIO10/11/23 (EQEP1A/B/I)
+- **SPI for DRV8305**: SPIA — SDI/PICO=GPIO58, SDO/POCI=GPIO59, SCLK=GPIO60, SCS=GPIO61 (CS driven manually on GPIO61, see Step 5)
 - **XDS100v2 backchannel UART**: GPIO43 (SCIARX) / GPIO42 (SCIATX) — wired through the FTDI bridge. GPIO28/29 are NOT the backchannel on this LaunchPad; they go to BoosterPack headers.
+
+### BOOSTXL-DRV8305 ↔ LAUNCHXL-F28379D pin map (bench-confirmed)
+
+| DRV8305 signal | F28379D pin | | DRV8305 signal | F28379D pin |
+|---|---|---|---|---|
+| FAULT (nFAULT) | GPIO19 | | PWMHA / PWMLA | GPIO0 / GPIO1 (EPWM1A/B) |
+| ENGATE | GPIO124 | | PWMHB / PWMLB | GPIO2 / GPIO3 (EPWM2A/B) |
+| WAKE | GPIO125 | | PWMHC / PWMLC | GPIO4 / GPIO5 (EPWM3A/B) |
+| SCS | GPIO61 | | ISENA (Iu) | ADCIN-C2 |
+| SCLK | GPIO60 | | ISENB (Iv) | ADCIN-B2 |
+| SDI | GPIO58 | | ISENC (Iw) | ADCIN-A2 |
+| SDO | GPIO59 | | VSEN_PVDD (Vbus) | ADCIN-A3 |
+| PWRGD | RST net | | VSENA / VSENB / VSENC | ADCIN14 / ADCIN-C3 / ADCIN-B3 |
+
+(VSENA/B/C are phase-voltage-sense channels, not yet used by firmware.)
 
 ## Bench-Specific Hardware Quirks
 
@@ -120,7 +137,7 @@ Device_init() → Device_initGPIO() → Interrupt_initModule/VectorTable() → B
 - [x] Step 1 — LED heartbeat blink — confirmed on hardware
 - [x] Step 2 — ePWM + ADC pipeline — ISR confirmed firing at 10 kHz
 - [~] Step 3 — eQEP1: QPOSCNT changes with rotation ✓, but **`QEPSTS` first-index bit and `QPOSILAT` stay at 0** (likely Z wire / differential routing issue), and **direction flag flips while spinning steadily one way** (likely hand-dither at quadrature edges or A/B phase issue). Resume by physically verifying Z wire to J14 index pin, optionally toggle SysConfig `inputPolarity` "Invert Index", and watch `g_dbg_qep_status` bits 0x01 (POS_CNT_ERROR) and 0x04 (CAP_DIR_ERROR) for HW-flagged quadrature errors.
-- [~] Step 4 — DRV8305 awake, EN_GATE high, nFAULT clear, **SO2 and SO3 biased correctly on B2/A2 (~2290 codes ≈ 1.68 V)**, Vbus tracks supply on A3. **SO1 dead on bench BOOSTXL** — see "Bench-Specific Hardware Quirks". Step is effectively closed for the alive channels; revisit Iu when SO1 hardware is fixed.
+- [~] Step 4 — DRV8305 awake, EN_GATE high, nFAULT clear, **SO2 and SO3 biased correctly on B2/A2 (~2290 codes ≈ 1.68 V)**, Vbus tracks supply on A3. **SO1 dead on bench BOOSTXL** — see "Bench-Specific Hardware Quirks". Step is effectively closed for the alive channels; revisit Iu when SO1 hardware is fixed. **[2026-05-28] nFAULT later regressed to stuck-low (gate driver "not enabling"); root-caused to four bugs (ISR switching in IDLE + three mis-encoded `drv8305_xfer()` writes) and fixed/verified on HW — nFAULT high, EN_GATE stays high, SO bias ~2300. See Pitfalls "DRV8305 nFAULT stuck low".**
 - [x] Step 5 — DRV8305 SPI alive over SPIA. SHUNT_AMP write/readback verified (`g_dbg_spi_rd_shunt == 0x0290` matches the write); status registers all 0; nFAULT clear. SysConfig SPI mode is **POL0PHA0** (the C2000 mode naming does not match standard SPI conventions — TI's reference uses POL0PHA0 for DRV8305). CS on its own GPIO61/SPISTEA pin (not EN_GATE). `drv8305_xfer()` uses `SPI_writeDataBlockingFIFO()` + `SPI_readDataBlockingFIFO()`; `SPI_isBusy()` on F2837xD only watches TX FIFO occupancy, not actual transmission completion — do NOT use it for sync.
 - [~] Step 6 — Rotor alignment current injection (FOC_ALIGN_ROTOR). Code path implemented: state machine runs CALIBRATE → ALIGN → (IDLE if align-only, RUN otherwise); pipeline forces `theta_elec = 0` during ALIGN; `sensor_capture_zero()` latches the settled rotor count at end of ALIGN. **Bench verification pending.** With `_LAUNCHXL_F28379D` still NOT in the predefined symbols, all timing scales 2x — `ALIGN_DURATION_S = 1.5s` actually runs 3 s. To test: set `g_dbg_sm_cmd = 1` (align-only) from CCS Expressions view, watch the rotor snap to alignment, then check `g_dbg_align_id_meas ≈ ALIGN_ID_INJECT_A` and `g_dbg_align_qep_cnt` reflects the new encoder zero.
 - [ ] Step 7 — Closed-loop current control, verify Iq/Id tracks reference
@@ -146,7 +163,7 @@ volatile int16_t  g_dbg_qep_direction;    // +1 / -1 — flips erratically on be
 
 // src/inverter_drv8305.c   (Step 4 verification)
 volatile uint16_t g_dbg_en_gate;    // GPIO124 readback
-volatile uint16_t g_dbg_nfault;     // GPIO125 readback (1 = OK)
+volatile uint16_t g_dbg_nfault;     // GPIO19 readback (1 = OK, 0 = fault asserted)
 
 // src/inverter_drv8305.c   (Step 5 verification)
 volatile uint16_t g_dbg_spi_wr_shunt;     // 0x0290 written to SHUNT_AMP
@@ -190,4 +207,10 @@ volatile float32_t g_dbg_align_vd;        // Vd command — small positive at st
 - **F2837xD `SPI_isBusy()` is a TX-FIFO check, not a transmission-completion check.** Its implementation reads `SPI_O_FFTX.TXFFST_M` — it goes to 0 the moment TX FIFO drains into the shift register, long before bits leave the pin. The `while(SPI_isBusy()){} ; rx = SPI_readDataNonBlocking()` pattern races and reads stale RXBUF (= 0). Use `SPI_writeDataBlockingFIFO()` + `SPI_readDataBlockingFIFO()` (waits on RX FIFO non-empty) when FIFO is enabled.
 - **C2000 SPI mode names ≠ standard SPI CPOL/CPHA conventions.** For DRV8305 (datasheet says SDI latched on falling SCLK), my from-the-datasheet derivation pointed at C2000 Mode 1 (POL0PHA1). That wired clock + CS correctly but MISO came back all zeros. TI's own DRV8305 reference uses POL=0/PHA=0 (`SPI_PROT_POL0PHA0` → SysConfig "Mode 0"); copying that mode immediately fixed reads. Always cross-check SPI mode against a working TI reference, never derive solely from the slave datasheet.
 - **Iu via KCL while SO1 is dead**: the BOOSTXL on this bench reads Iu ≈ 0 (SO1 hardware fault). Without compensation, 3-sensor Clarke gives `alpha = Iu/3 actual`, so the Id measurement is ~1/3 the real current and the current PI pushes ~3x what was commanded. `hw_boostxl_drv8305.h` defines `ISENSE_RECONSTRUCT_U_FROM_KCL=1`, and `adc_read_phase_currents()` reconstructs `Iu = -Iv - Iw` after scaling. Flip the flag to 0 once SO1 is replaced.
+- **[2026-05-28] DRV8305 nFAULT stuck low — four separate bugs, all fixed & verified.** Symptom: `g_dbg_nfault=0`, `g_dbg_en_gate=0`, fault snapshot reg 0x01=`0x420` (`FAULT`+`VDS_STATUS`), reg 0x02=`0x2A0` (`VDS_LA/LB/LC` = low-side VDS OC on all phases). Root causes, all in `src/`:
+  1. **ISR switched the bridge in IDLE.** `foc_current_loop_isr()` called `pwm_set_duty()` every tick regardless of state; SVGEN's zero-voltage vector = 50% duty on all legs, and `pwm_set_duty()` releases the `AQCSFRC` safe-force — so the bridge switched at 50% in IDLE with EN_GATE forced high, tripping VDS. Fixed: gate the IPARK/SVGEN/`pwm_set_duty` block to `FOC_RUN`/`FOC_ALIGN_ROTOR`, else `pwm_force_safe()` (`foc_pipeline.c`).
+  2. **`inverter_clear_faults()` wrote `0x0001` to IC_OPERATION (0x09)** = `SET_VCPH_UV` (bit 0), NOT the fault clear. `CLR_FLTS` is **bit 1 = `0x0002`** (Table 16). The clear never cleared anything.
+  3. **Gate Drive Control (0x07) wrote `0x0080`** → PWM_MODE=`01` (3 inputs, not the "6x" the comment claimed) and **TBLANK=0/TVDS=0** (zero VDS blank/deglitch). With no blanking the low-side VDS comparators false-tripped at rest. Fixed to **`0x0216`** (6x, 1.75 µs blank, 3.5 µs deglitch — the datasheet default).
+  4. **VDS Sense Control (0x0C) wrote `0x0086`** → VDS_MODE=`b'110` (RESERVED; Table 19 defines only 000/001/010). Fixed to `0x0080` (VDS_LEVEL 0.403 V, VDS_MODE=000 latched). NOTE: level is still loose (~0.4 V); tighten toward the intended ~0.18–0.2 V (e.g. `0x0030`) before closed-loop RUN.
+  - **Ordering lesson**: a CPU/JTAG restart does **not** reset the external DRV8305 — it keeps its registers and latched faults. So `inverter_clear_faults()` must run **after** the gate-drive/VDS config, or a stale bad-blanking config re-latches VDS the instant you clear. Always decode `drv8305_xfer()` values against datasheet SLVSCX2 Tables 9/10/16/19 — never trust the inline comment.
 

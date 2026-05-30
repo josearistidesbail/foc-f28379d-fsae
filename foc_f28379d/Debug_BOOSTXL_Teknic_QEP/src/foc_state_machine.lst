@@ -1,0 +1,1848 @@
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE    1
+
+       1              ;***************************************************************
+       2              ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
+       3              ;* Date/Time created: Sat May 30 15:57:51 2026                 *
+       4              ;***************************************************************
+       5                      .compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --
+       6                      .asg    XAR2, FP
+       7              
+       8              $C$DW$CU        .dwtag  DW_TAG_compile_unit
+       9                      .dwattr $C$DW$CU, DW_AT_name("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c")
+      10                      .dwattr $C$DW$CU, DW_AT_producer("TI TMS320C2000 G3 C/C++ Codegen Unix v25.11.0.LTS Copyright (c) 199
+      11                      .dwattr $C$DW$CU, DW_AT_TI_version(0x01)
+      12                      .dwattr $C$DW$CU, DW_AT_comp_dir("/home/jose/workspace_ccstheia/foc_f28379d/Debug_BOOSTXL_Teknic_QEP"
+      13              
+      14              $C$DW$1 .dwtag  DW_TAG_subprogram
+      15                      .dwattr $C$DW$1, DW_AT_name("inverter_disable_gate")
+      16                      .dwattr $C$DW$1, DW_AT_linkage_name("inverter_disable_gate")
+      17                      .dwattr $C$DW$1, DW_AT_declaration
+      18                      .dwattr $C$DW$1, DW_AT_external
+      19                      .dwattr $C$DW$1, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/inverter_iface
+      20                      .dwattr $C$DW$1, DW_AT_decl_line(0x0e)
+      21                      .dwattr $C$DW$1, DW_AT_decl_column(0x0d)
+      22                      .dwendtag $C$DW$1
+      23              
+      24              
+      25              $C$DW$2 .dwtag  DW_TAG_subprogram
+      26                      .dwattr $C$DW$2, DW_AT_name("pwm_force_safe")
+      27                      .dwattr $C$DW$2, DW_AT_linkage_name("pwm_force_safe")
+      28                      .dwattr $C$DW$2, DW_AT_declaration
+      29                      .dwattr $C$DW$2, DW_AT_external
+      30                      .dwattr $C$DW$2, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/pwm_iface.h")
+      31                      .dwattr $C$DW$2, DW_AT_decl_line(0x0b)
+      32                      .dwattr $C$DW$2, DW_AT_decl_column(0x0d)
+      33                      .dwendtag $C$DW$2
+      34              
+      35              
+      36              $C$DW$3 .dwtag  DW_TAG_subprogram
+      37                      .dwattr $C$DW$3, DW_AT_name("inverter_enable_gate")
+      38                      .dwattr $C$DW$3, DW_AT_linkage_name("inverter_enable_gate")
+      39                      .dwattr $C$DW$3, DW_AT_declaration
+      40                      .dwattr $C$DW$3, DW_AT_external
+      41                      .dwattr $C$DW$3, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/inverter_iface
+      42                      .dwattr $C$DW$3, DW_AT_decl_line(0x0d)
+      43                      .dwattr $C$DW$3, DW_AT_decl_column(0x0d)
+      44                      .dwendtag $C$DW$3
+      45              
+      46              
+      47              $C$DW$4 .dwtag  DW_TAG_subprogram
+      48                      .dwattr $C$DW$4, DW_AT_name("inverter_clear_faults")
+      49                      .dwattr $C$DW$4, DW_AT_linkage_name("inverter_clear_faults")
+      50                      .dwattr $C$DW$4, DW_AT_declaration
+      51                      .dwattr $C$DW$4, DW_AT_external
+      52                      .dwattr $C$DW$4, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/inverter_iface
+      53                      .dwattr $C$DW$4, DW_AT_decl_line(0x0f)
+      54                      .dwattr $C$DW$4, DW_AT_decl_column(0x0d)
+      55                      .dwendtag $C$DW$4
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE    2
+
+      56              
+      57              
+      58              $C$DW$5 .dwtag  DW_TAG_subprogram
+      59                      .dwattr $C$DW$5, DW_AT_name("adc_calibrate_offsets")
+      60                      .dwattr $C$DW$5, DW_AT_linkage_name("adc_calibrate_offsets")
+      61                      .dwattr $C$DW$5, DW_AT_declaration
+      62                      .dwattr $C$DW$5, DW_AT_external
+      63                      .dwattr $C$DW$5, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/adc_iface.h")
+      64                      .dwattr $C$DW$5, DW_AT_decl_line(0x1a)
+      65                      .dwattr $C$DW$5, DW_AT_decl_column(0x0e)
+      66              $C$DW$6 .dwtag  DW_TAG_formal_parameter
+      67                      .dwattr $C$DW$6, DW_AT_type(*$C$DW$T$36)
+      68              
+      69                      .dwendtag $C$DW$5
+      70              
+      71              
+      72              $C$DW$7 .dwtag  DW_TAG_subprogram
+      73                      .dwattr $C$DW$7, DW_AT_name("inverter_snapshot_fault_regs")
+      74                      .dwattr $C$DW$7, DW_AT_linkage_name("inverter_snapshot_fault_regs")
+      75                      .dwattr $C$DW$7, DW_AT_declaration
+      76                      .dwattr $C$DW$7, DW_AT_external
+      77                      .dwattr $C$DW$7, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/inverter_iface
+      78                      .dwattr $C$DW$7, DW_AT_decl_line(0x10)
+      79                      .dwattr $C$DW$7, DW_AT_decl_column(0x0d)
+      80                      .dwendtag $C$DW$7
+      81              
+      82              
+      83              $C$DW$8 .dwtag  DW_TAG_subprogram
+      84                      .dwattr $C$DW$8, DW_AT_name("safety_clear")
+      85                      .dwattr $C$DW$8, DW_AT_linkage_name("safety_clear")
+      86                      .dwattr $C$DW$8, DW_AT_declaration
+      87                      .dwattr $C$DW$8, DW_AT_external
+      88                      .dwattr $C$DW$8, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/safety.h")
+      89                      .dwattr $C$DW$8, DW_AT_decl_line(0x1d)
+      90                      .dwattr $C$DW$8, DW_AT_decl_column(0x11)
+      91                      .dwendtag $C$DW$8
+      92              
+      93              
+      94              $C$DW$9 .dwtag  DW_TAG_subprogram
+      95                      .dwattr $C$DW$9, DW_AT_name("safety_latch")
+      96                      .dwattr $C$DW$9, DW_AT_linkage_name("safety_latch")
+      97                      .dwattr $C$DW$9, DW_AT_declaration
+      98                      .dwattr $C$DW$9, DW_AT_external
+      99                      .dwattr $C$DW$9, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/safety.h")
+     100                      .dwattr $C$DW$9, DW_AT_decl_line(0x1a)
+     101                      .dwattr $C$DW$9, DW_AT_decl_column(0x11)
+     102              $C$DW$10        .dwtag  DW_TAG_formal_parameter
+     103                      .dwattr $C$DW$10, DW_AT_type(*$C$DW$T$36)
+     104              
+     105                      .dwendtag $C$DW$9
+     106              
+     107              
+     108              $C$DW$11        .dwtag  DW_TAG_subprogram
+     109                      .dwattr $C$DW$11, DW_AT_name("sensor_capture_zero")
+     110                      .dwattr $C$DW$11, DW_AT_linkage_name("sensor_capture_zero")
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE    3
+
+     111                      .dwattr $C$DW$11, DW_AT_declaration
+     112                      .dwattr $C$DW$11, DW_AT_external
+     113                      .dwattr $C$DW$11, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_iface.
+     114                      .dwattr $C$DW$11, DW_AT_decl_line(0x1a)
+     115                      .dwattr $C$DW$11, DW_AT_decl_column(0x0d)
+     116                      .dwendtag $C$DW$11
+     117              
+     118 00000000               .data
+     119                      .align  1
+     120                      .elfsym ||s_state||,SYM_SIZE(1),SYM_BLOCKED(1)
+     121 00000000       ||s_state||:
+     122 00000000 0000          .bits           0,16
+     123                                      ; s_state @ 0
+     124              
+     125              $C$DW$12        .dwtag  DW_TAG_variable
+     126                      .dwattr $C$DW$12, DW_AT_name("s_state")
+     127                      .dwattr $C$DW$12, DW_AT_linkage_name("s_state")
+     128                      .dwattr $C$DW$12, DW_AT_type(*$C$DW$T$23)
+     129                      .dwattr $C$DW$12, DW_AT_location[DW_OP_addr ||s_state||]
+     130                      .dwattr $C$DW$12, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+     131                      .dwattr $C$DW$12, DW_AT_decl_line(0x10)
+     132                      .dwattr $C$DW$12, DW_AT_decl_column(0x1d)
+     133              
+     134 00000001               .data
+     135                      .align  1
+     136                      .elfsym ||s_requested||,SYM_SIZE(1),SYM_BLOCKED(1)
+     137 00000001       ||s_requested||:
+     138 00000001 0000          .bits           0,16
+     139                                      ; s_requested @ 0
+     140              
+     141              $C$DW$13        .dwtag  DW_TAG_variable
+     142                      .dwattr $C$DW$13, DW_AT_name("s_requested")
+     143                      .dwattr $C$DW$13, DW_AT_linkage_name("s_requested")
+     144                      .dwattr $C$DW$13, DW_AT_type(*$C$DW$T$23)
+     145                      .dwattr $C$DW$13, DW_AT_location[DW_OP_addr ||s_requested||]
+     146                      .dwattr $C$DW$13, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+     147                      .dwattr $C$DW$13, DW_AT_decl_line(0x11)
+     148                      .dwattr $C$DW$13, DW_AT_decl_column(0x1d)
+     149              
+     150 00000002               .data
+     151                      .align  1
+     152                      .elfsym ||s_align_only||,SYM_SIZE(1),SYM_BLOCKED(1)
+     153 00000002       ||s_align_only||:
+     154 00000002 0000          .bits           0,16
+     155                                      ; s_align_only @ 0
+     156              
+     157              $C$DW$14        .dwtag  DW_TAG_variable
+     158                      .dwattr $C$DW$14, DW_AT_name("s_align_only")
+     159                      .dwattr $C$DW$14, DW_AT_linkage_name("s_align_only")
+     160                      .dwattr $C$DW$14, DW_AT_type(*$C$DW$T$52)
+     161                      .dwattr $C$DW$14, DW_AT_location[DW_OP_addr ||s_align_only||]
+     162                      .dwattr $C$DW$14, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+     163                      .dwattr $C$DW$14, DW_AT_decl_line(0x12)
+     164                      .dwattr $C$DW$14, DW_AT_decl_column(0x1d)
+     165              
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE    4
+
+     166 00000003               .data
+     167                      .align  1
+     168                      .elfsym ||s_fault_pending||,SYM_SIZE(1),SYM_BLOCKED(1)
+     169 00000003       ||s_fault_pending||:
+     170 00000003 0000          .bits           0,16
+     171                                      ; s_fault_pending @ 0
+     172              
+     173              $C$DW$15        .dwtag  DW_TAG_variable
+     174                      .dwattr $C$DW$15, DW_AT_name("s_fault_pending")
+     175                      .dwattr $C$DW$15, DW_AT_linkage_name("s_fault_pending")
+     176                      .dwattr $C$DW$15, DW_AT_type(*$C$DW$T$52)
+     177                      .dwattr $C$DW$15, DW_AT_location[DW_OP_addr ||s_fault_pending||]
+     178                      .dwattr $C$DW$15, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+     179                      .dwattr $C$DW$15, DW_AT_decl_line(0x13)
+     180                      .dwattr $C$DW$15, DW_AT_decl_column(0x1d)
+     181              
+     182                      .global ||g_dbg_sm_cmd||
+     183 00000000               .bss    ||g_dbg_sm_cmd||,1,1,0
+     184              $C$DW$16        .dwtag  DW_TAG_variable
+     185                      .dwattr $C$DW$16, DW_AT_name("g_dbg_sm_cmd")
+     186                      .dwattr $C$DW$16, DW_AT_linkage_name("g_dbg_sm_cmd")
+     187                      .dwattr $C$DW$16, DW_AT_location[DW_OP_addr ||g_dbg_sm_cmd||]
+     188                      .dwattr $C$DW$16, DW_AT_type(*$C$DW$T$41)
+     189                      .dwattr $C$DW$16, DW_AT_external
+     190                      .dwattr $C$DW$16, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+     191                      .dwattr $C$DW$16, DW_AT_decl_line(0x1d)
+     192                      .dwattr $C$DW$16, DW_AT_decl_column(0x14)
+     193              
+     194                      .global ||g_dbg_state||
+     195 00000001               .bss    ||g_dbg_state||,1,1,0
+     196              $C$DW$17        .dwtag  DW_TAG_variable
+     197                      .dwattr $C$DW$17, DW_AT_name("g_dbg_state")
+     198                      .dwattr $C$DW$17, DW_AT_linkage_name("g_dbg_state")
+     199                      .dwattr $C$DW$17, DW_AT_location[DW_OP_addr ||g_dbg_state||]
+     200                      .dwattr $C$DW$17, DW_AT_type(*$C$DW$T$41)
+     201                      .dwattr $C$DW$17, DW_AT_external
+     202                      .dwattr $C$DW$17, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+     203                      .dwattr $C$DW$17, DW_AT_decl_line(0x1e)
+     204                      .dwattr $C$DW$17, DW_AT_decl_column(0x14)
+     205              
+     206              $C$DW$18        .dwtag  DW_TAG_variable
+     207                      .dwattr $C$DW$18, DW_AT_name("g_qep_mech_offset_cnt")
+     208                      .dwattr $C$DW$18, DW_AT_linkage_name("g_qep_mech_offset_cnt")
+     209                      .dwattr $C$DW$18, DW_AT_type(*$C$DW$T$48)
+     210                      .dwattr $C$DW$18, DW_AT_declaration
+     211                      .dwattr $C$DW$18, DW_AT_external
+     212                      .dwattr $C$DW$18, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_in
+     213                      .dwattr $C$DW$18, DW_AT_decl_line(0x12)
+     214                      .dwattr $C$DW$18, DW_AT_decl_column(0x1b)
+     215              
+     216 00000002               .bss    ||s_state_ticks||,2,1,1
+     217              $C$DW$19        .dwtag  DW_TAG_variable
+     218                      .dwattr $C$DW$19, DW_AT_name("s_state_ticks")
+     219                      .dwattr $C$DW$19, DW_AT_linkage_name("s_state_ticks")
+     220                      .dwattr $C$DW$19, DW_AT_type(*$C$DW$T$50)
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE    5
+
+     221                      .dwattr $C$DW$19, DW_AT_location[DW_OP_addr ||s_state_ticks||]
+     222                      .dwattr $C$DW$19, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+     223                      .dwattr $C$DW$19, DW_AT_decl_line(0x14)
+     224                      .dwattr $C$DW$19, DW_AT_decl_column(0x1d)
+     225              
+     226                      .global ||g_dbg_align_qep_cnt||
+     227 00000004               .bss    ||g_dbg_align_qep_cnt||,2,1,1
+     228              $C$DW$20        .dwtag  DW_TAG_variable
+     229                      .dwattr $C$DW$20, DW_AT_name("g_dbg_align_qep_cnt")
+     230                      .dwattr $C$DW$20, DW_AT_linkage_name("g_dbg_align_qep_cnt")
+     231                      .dwattr $C$DW$20, DW_AT_location[DW_OP_addr ||g_dbg_align_qep_cnt||]
+     232                      .dwattr $C$DW$20, DW_AT_type(*$C$DW$T$48)
+     233                      .dwattr $C$DW$20, DW_AT_external
+     234                      .dwattr $C$DW$20, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+     235                      .dwattr $C$DW$20, DW_AT_decl_line(0x1f)
+     236                      .dwattr $C$DW$20, DW_AT_decl_column(0x14)
+     237              
+     238              
+     239              $C$DW$21        .dwtag  DW_TAG_subprogram
+     240                      .dwattr $C$DW$21, DW_AT_name("foc_get_refs")
+     241                      .dwattr $C$DW$21, DW_AT_linkage_name("foc_get_refs")
+     242                      .dwattr $C$DW$21, DW_AT_type(*$C$DW$T$28)
+     243                      .dwattr $C$DW$21, DW_AT_declaration
+     244                      .dwattr $C$DW$21, DW_AT_external
+     245                      .dwattr $C$DW$21, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_pipeline.
+     246                      .dwattr $C$DW$21, DW_AT_decl_line(0x0e)
+     247                      .dwattr $C$DW$21, DW_AT_decl_column(0x15)
+     248                      .dwendtag $C$DW$21
+     249              
+     250                      .sblock ".bss"
+     251                      .sblock ".data"
+     252              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI265nwGlbJ /tmp/T
+     253              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI265pP2mQf 
+     254 00000000               .sect   ".text:sm_clear_fault"
+     255                      .clink
+     256                      .global ||sm_clear_fault||
+     257              
+     258              $C$DW$22        .dwtag  DW_TAG_subprogram
+     259                      .dwattr $C$DW$22, DW_AT_name("sm_clear_fault")
+     260                      .dwattr $C$DW$22, DW_AT_low_pc(||sm_clear_fault||)
+     261                      .dwattr $C$DW$22, DW_AT_high_pc(0x00)
+     262                      .dwattr $C$DW$22, DW_AT_linkage_name("sm_clear_fault")
+     263                      .dwattr $C$DW$22, DW_AT_external
+     264                      .dwattr $C$DW$22, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+     265                      .dwattr $C$DW$22, DW_AT_decl_line(0x53)
+     266                      .dwattr $C$DW$22, DW_AT_decl_column(0x06)
+     267                      .dwattr $C$DW$22, DW_AT_TI_max_frame_size(-2)
+     268                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 83,column 30
+     269              
+     270                      .dwfde $C$DW$CIE, ||sm_clear_fault||
+     271              
+     272              ;***************************************************************
+     273              ;* FNAME: sm_clear_fault                FR SIZE:   0           *
+     274              ;*                                                             *
+     275              ;* FUNCTION ENVIRONMENT                                        *
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE    6
+
+     276              ;*                                                             *
+     277              ;* FUNCTION PROPERTIES                                         *
+     278              ;*                            0 Parameter,  0 Auto,  0 SOE     *
+     279              ;***************************************************************
+     280              
+     281 00000000       ||sm_clear_fault||:
+     282                      .dwcfi  cfa_offset, -2
+     283                      .dwcfi  save_reg_to_mem, 26, 0
+     284 00000000 761F!         MOVW      DP,#||s_state||       ; [CPU_ARAU] 
+         00000001 0000 
+     285                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 83,column 32
+     286 00000002 9200!         MOV       AL,@||s_state||       ; [CPU_ALU] |83| 
+     287 00000003 5204          CMPB      AL,#4                 ; [CPU_ALU] |83| 
+     288 00000004 6006          B         ||$C$L1||,NEQ         ; [CPU_ALU] |83| 
+     289                      ; branchcc occurs ; [] |83| 
+     290                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 83,column 59
+     291              $C$DW$23        .dwtag  DW_TAG_TI_branch
+     292                      .dwattr $C$DW$23, DW_AT_low_pc(0x00)
+     293                      .dwattr $C$DW$23, DW_AT_name("safety_clear")
+     294                      .dwattr $C$DW$23, DW_AT_TI_call
+     295              
+     296 00000005 7640!         LCR       #||safety_clear||     ; [CPU_ALU] |83| 
+         00000006 0000 
+     297                      ; call occurs [#||safety_clear||] ; [] |83| 
+     298 00000007 761F!         MOVW      DP,#||s_requested||   ; [CPU_ARAU] 
+         00000008 0000 
+     299                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 83,column 75
+     300 00000009 2B00!         MOV       @||s_requested||,#0   ; [CPU_ALU] |83| 
+     301              ||$C$L1||:    
+     302              $C$DW$24        .dwtag  DW_TAG_TI_branch
+     303                      .dwattr $C$DW$24, DW_AT_low_pc(0x00)
+     304                      .dwattr $C$DW$24, DW_AT_TI_return
+     305              
+     306 0000000a 0006          LRETR     ; [CPU_ALU] 
+     307                      ; return occurs ; [] 
+     308                      .dwattr $C$DW$22, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machi
+     309                      .dwattr $C$DW$22, DW_AT_TI_end_line(0x53)
+     310                      .dwattr $C$DW$22, DW_AT_TI_end_column(0x65)
+     311                      .dwendentry
+     312                      .dwendtag $C$DW$22
+     313              
+     314 00000000               .sect   ".text:sm_request_stop"
+     315                      .clink
+     316                      .global ||sm_request_stop||
+     317              
+     318              $C$DW$25        .dwtag  DW_TAG_subprogram
+     319                      .dwattr $C$DW$25, DW_AT_name("sm_request_stop")
+     320                      .dwattr $C$DW$25, DW_AT_low_pc(||sm_request_stop||)
+     321                      .dwattr $C$DW$25, DW_AT_high_pc(0x00)
+     322                      .dwattr $C$DW$25, DW_AT_linkage_name("sm_request_stop")
+     323                      .dwattr $C$DW$25, DW_AT_external
+     324                      .dwattr $C$DW$25, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+     325                      .dwattr $C$DW$25, DW_AT_decl_line(0x52)
+     326                      .dwattr $C$DW$25, DW_AT_decl_column(0x06)
+     327                      .dwattr $C$DW$25, DW_AT_TI_max_frame_size(-2)
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE    7
+
+     328                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 82,column 30
+     329              
+     330                      .dwfde $C$DW$CIE, ||sm_request_stop||
+     331              
+     332              ;***************************************************************
+     333              ;* FNAME: sm_request_stop               FR SIZE:   0           *
+     334              ;*                                                             *
+     335              ;* FUNCTION ENVIRONMENT                                        *
+     336              ;*                                                             *
+     337              ;* FUNCTION PROPERTIES                                         *
+     338              ;*                            0 Parameter,  0 Auto,  0 SOE     *
+     339              ;***************************************************************
+     340              
+     341 00000000       ||sm_request_stop||:
+     342                      .dwcfi  cfa_offset, -2
+     343                      .dwcfi  save_reg_to_mem, 26, 0
+     344 00000000 761F!         MOVW      DP,#||s_requested||   ; [CPU_ARAU] 
+         00000001 0000 
+     345                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 82,column 32
+     346 00000002 2B00!         MOV       @||s_requested||,#0   ; [CPU_ALU] |82| 
+     347              $C$DW$26        .dwtag  DW_TAG_TI_branch
+     348                      .dwattr $C$DW$26, DW_AT_low_pc(0x00)
+     349                      .dwattr $C$DW$26, DW_AT_TI_return
+     350              
+     351 00000003 0006          LRETR     ; [CPU_ALU] 
+     352                      ; return occurs ; [] 
+     353                      .dwattr $C$DW$25, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machi
+     354                      .dwattr $C$DW$25, DW_AT_TI_end_line(0x52)
+     355                      .dwattr $C$DW$25, DW_AT_TI_end_column(0x38)
+     356                      .dwendentry
+     357                      .dwendtag $C$DW$25
+     358              
+     359 00000000               .sect   ".text:sm_request_run"
+     360                      .clink
+     361                      .global ||sm_request_run||
+     362              
+     363              $C$DW$27        .dwtag  DW_TAG_subprogram
+     364                      .dwattr $C$DW$27, DW_AT_name("sm_request_run")
+     365                      .dwattr $C$DW$27, DW_AT_low_pc(||sm_request_run||)
+     366                      .dwattr $C$DW$27, DW_AT_high_pc(0x00)
+     367                      .dwattr $C$DW$27, DW_AT_linkage_name("sm_request_run")
+     368                      .dwattr $C$DW$27, DW_AT_external
+     369                      .dwattr $C$DW$27, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+     370                      .dwattr $C$DW$27, DW_AT_decl_line(0x50)
+     371                      .dwattr $C$DW$27, DW_AT_decl_column(0x06)
+     372                      .dwattr $C$DW$27, DW_AT_TI_max_frame_size(-2)
+     373                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 80,column 30
+     374              
+     375                      .dwfde $C$DW$CIE, ||sm_request_run||
+     376              
+     377              ;***************************************************************
+     378              ;* FNAME: sm_request_run                FR SIZE:   0           *
+     379              ;*                                                             *
+     380              ;* FUNCTION ENVIRONMENT                                        *
+     381              ;*                                                             *
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE    8
+
+     382              ;* FUNCTION PROPERTIES                                         *
+     383              ;*                            0 Parameter,  0 Auto,  0 SOE     *
+     384              ;***************************************************************
+     385              
+     386 00000000       ||sm_request_run||:
+     387                      .dwcfi  cfa_offset, -2
+     388                      .dwcfi  save_reg_to_mem, 26, 0
+     389 00000000 761F!         MOVW      DP,#||s_align_only||  ; [CPU_ARAU] 
+         00000001 0000 
+     390                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 80,column 32
+     391 00000002 2B00!         MOV       @||s_align_only||,#0  ; [CPU_ALU] |80| 
+     392                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 80,column 54
+     393 00000003 56BF!         MOVB      @||s_requested||,#3,UNC ; [CPU_ALU] |80| 
+         00000004 0300 
+     394              $C$DW$28        .dwtag  DW_TAG_TI_branch
+     395                      .dwattr $C$DW$28, DW_AT_low_pc(0x00)
+     396                      .dwattr $C$DW$28, DW_AT_TI_return
+     397              
+     398 00000005 0006          LRETR     ; [CPU_ALU] 
+     399                      ; return occurs ; [] 
+     400                      .dwattr $C$DW$27, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machi
+     401                      .dwattr $C$DW$27, DW_AT_TI_end_line(0x50)
+     402                      .dwattr $C$DW$27, DW_AT_TI_end_column(0x4d)
+     403                      .dwendentry
+     404                      .dwendtag $C$DW$27
+     405              
+     406 00000000               .sect   ".text:sm_request_align"
+     407                      .clink
+     408                      .global ||sm_request_align||
+     409              
+     410              $C$DW$29        .dwtag  DW_TAG_subprogram
+     411                      .dwattr $C$DW$29, DW_AT_name("sm_request_align")
+     412                      .dwattr $C$DW$29, DW_AT_low_pc(||sm_request_align||)
+     413                      .dwattr $C$DW$29, DW_AT_high_pc(0x00)
+     414                      .dwattr $C$DW$29, DW_AT_linkage_name("sm_request_align")
+     415                      .dwattr $C$DW$29, DW_AT_external
+     416                      .dwattr $C$DW$29, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+     417                      .dwattr $C$DW$29, DW_AT_decl_line(0x51)
+     418                      .dwattr $C$DW$29, DW_AT_decl_column(0x06)
+     419                      .dwattr $C$DW$29, DW_AT_TI_max_frame_size(-2)
+     420                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 81,column 30
+     421              
+     422                      .dwfde $C$DW$CIE, ||sm_request_align||
+     423              
+     424              ;***************************************************************
+     425              ;* FNAME: sm_request_align              FR SIZE:   0           *
+     426              ;*                                                             *
+     427              ;* FUNCTION ENVIRONMENT                                        *
+     428              ;*                                                             *
+     429              ;* FUNCTION PROPERTIES                                         *
+     430              ;*                            0 Parameter,  0 Auto,  0 SOE     *
+     431              ;***************************************************************
+     432              
+     433 00000000       ||sm_request_align||:
+     434                      .dwcfi  cfa_offset, -2
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE    9
+
+     435                      .dwcfi  save_reg_to_mem, 26, 0
+     436 00000000 761F!         MOVW      DP,#||s_align_only||  ; [CPU_ARAU] 
+         00000001 0000 
+     437                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 81,column 32
+     438 00000002 56BF!         MOVB      @||s_align_only||,#1,UNC ; [CPU_ALU] |81| 
+         00000003 0100 
+     439                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 81,column 54
+     440 00000004 56BF!         MOVB      @||s_requested||,#2,UNC ; [CPU_ALU] |81| 
+         00000005 0200 
+     441              $C$DW$30        .dwtag  DW_TAG_TI_branch
+     442                      .dwattr $C$DW$30, DW_AT_low_pc(0x00)
+     443                      .dwattr $C$DW$30, DW_AT_TI_return
+     444              
+     445 00000006 0006          LRETR     ; [CPU_ALU] 
+     446                      ; return occurs ; [] 
+     447                      .dwattr $C$DW$29, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machi
+     448                      .dwattr $C$DW$29, DW_AT_TI_end_line(0x51)
+     449                      .dwattr $C$DW$29, DW_AT_TI_end_column(0x55)
+     450                      .dwendentry
+     451                      .dwendtag $C$DW$29
+     452              
+     453 00000000               .sect   ".text:poll_debug_cmd"
+     454                      .clink
+     455              
+     456              $C$DW$31        .dwtag  DW_TAG_subprogram
+     457                      .dwattr $C$DW$31, DW_AT_name("poll_debug_cmd")
+     458                      .dwattr $C$DW$31, DW_AT_low_pc(||poll_debug_cmd||)
+     459                      .dwattr $C$DW$31, DW_AT_high_pc(0x00)
+     460                      .dwattr $C$DW$31, DW_AT_linkage_name("poll_debug_cmd")
+     461                      .dwattr $C$DW$31, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+     462                      .dwattr $C$DW$31, DW_AT_decl_line(0x57)
+     463                      .dwattr $C$DW$31, DW_AT_decl_column(0x0d)
+     464                      .dwattr $C$DW$31, DW_AT_TI_max_frame_size(-2)
+     465                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 88,column 1,
+     466              
+     467                      .dwfde $C$DW$CIE, ||poll_debug_cmd||
+     468              
+     469              ;***************************************************************
+     470              ;* FNAME: poll_debug_cmd                FR SIZE:   0           *
+     471              ;*                                                             *
+     472              ;* FUNCTION ENVIRONMENT                                        *
+     473              ;*                                                             *
+     474              ;* FUNCTION PROPERTIES                                         *
+     475              ;*                            0 Parameter,  0 Auto,  0 SOE     *
+     476              ;***************************************************************
+     477              
+     478              ||poll_debug_cmd||:
+     479              ;* AL    assigned to cmd
+     480              $C$DW$32        .dwtag  DW_TAG_variable
+     481                      .dwattr $C$DW$32, DW_AT_name("cmd")
+     482                      .dwattr $C$DW$32, DW_AT_type(*$C$DW$T$36)
+     483                      .dwattr $C$DW$32, DW_AT_location[DW_OP_reg0]
+     484              
+     485                      .dwcfi  cfa_offset, -2
+     486                      .dwcfi  save_reg_to_mem, 26, 0
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   10
+
+     487 00000000 761F!         MOVW      DP,#||g_dbg_sm_cmd||  ; [CPU_ARAU] 
+         00000001 0000 
+     488                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 89,column 18
+     489 00000002 9200!         MOV       AL,@||g_dbg_sm_cmd||  ; [CPU_ALU] |89| 
+     490 00000003 6115          B         ||$C$L5||,EQ          ; [CPU_ALU] |89| 
+     491                      ; branchcc occurs ; [] |89| 
+     492                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 92,column 5,
+     493 00000004 5201          CMPB      AL,#1                 ; [CPU_ALU] |92| 
+     494                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 91,column 5,
+     495 00000005 2B00!         MOV       @||g_dbg_sm_cmd||,#0  ; [CPU_FPU] |91| 
+     496                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 92,column 5,
+     497 00000006 6110          B         ||$C$L4||,EQ          ; [CPU_ALU] |92| 
+     498                      ; branchcc occurs ; [] |92| 
+     499 00000007 5202          CMPB      AL,#2                 ; [CPU_ALU] |92| 
+     500 00000008 610B          B         ||$C$L3||,EQ          ; [CPU_ALU] |92| 
+     501                      ; branchcc occurs ; [] |92| 
+     502 00000009 5203          CMPB      AL,#3                 ; [CPU_ALU] |92| 
+     503 0000000a 6106          B         ||$C$L2||,EQ          ; [CPU_ALU] |92| 
+     504                      ; branchcc occurs ; [] |92| 
+     505 0000000b 5204          CMPB      AL,#4                 ; [CPU_ALU] |92| 
+     506 0000000c 600C          B         ||$C$L5||,NEQ         ; [CPU_ALU] |92| 
+     507                      ; branchcc occurs ; [] |92| 
+     508                      .dwcfi  remember_state
+     509                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 97,column 13
+     510              $C$DW$33        .dwtag  DW_TAG_TI_branch
+     511                      .dwattr $C$DW$33, DW_AT_low_pc(0x00)
+     512                      .dwattr $C$DW$33, DW_AT_name("sm_clear_fault")
+     513                      .dwattr $C$DW$33, DW_AT_TI_call
+     514              
+     515 0000000d 7640!         LCR       #||sm_clear_fault||   ; [CPU_ALU] |97| 
+         0000000e 0000 
+     516                      ; call occurs [#||sm_clear_fault||] ; [] |97| 
+     517              $C$DW$34        .dwtag  DW_TAG_TI_branch
+     518                      .dwattr $C$DW$34, DW_AT_low_pc(0x00)
+     519                      .dwattr $C$DW$34, DW_AT_TI_return
+     520              
+     521 0000000f 0006          LRETR     ; [CPU_ALU] 
+     522                      ; return occurs ; [] 
+     523                      .dwcfi  restore_state
+     524 00000010       ||$C$L2||:    
+     525                      .dwcfi  remember_state
+     526                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 96,column 13
+     527              $C$DW$35        .dwtag  DW_TAG_TI_branch
+     528                      .dwattr $C$DW$35, DW_AT_low_pc(0x00)
+     529                      .dwattr $C$DW$35, DW_AT_name("sm_request_stop")
+     530                      .dwattr $C$DW$35, DW_AT_TI_call
+     531              
+     532 00000010 7640!         LCR       #||sm_request_stop||  ; [CPU_ALU] |96| 
+         00000011 0000 
+     533                      ; call occurs [#||sm_request_stop||] ; [] |96| 
+     534              $C$DW$36        .dwtag  DW_TAG_TI_branch
+     535                      .dwattr $C$DW$36, DW_AT_low_pc(0x00)
+     536                      .dwattr $C$DW$36, DW_AT_TI_return
+     537              
+     538 00000012 0006          LRETR     ; [CPU_ALU] 
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   11
+
+     539                      ; return occurs ; [] 
+     540                      .dwcfi  restore_state
+     541 00000013       ||$C$L3||:    
+     542                      .dwcfi  remember_state
+     543                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 95,column 13
+     544              $C$DW$37        .dwtag  DW_TAG_TI_branch
+     545                      .dwattr $C$DW$37, DW_AT_low_pc(0x00)
+     546                      .dwattr $C$DW$37, DW_AT_name("sm_request_run")
+     547                      .dwattr $C$DW$37, DW_AT_TI_call
+     548              
+     549 00000013 7640!         LCR       #||sm_request_run||   ; [CPU_ALU] |95| 
+         00000014 0000 
+     550                      ; call occurs [#||sm_request_run||] ; [] |95| 
+     551              $C$DW$38        .dwtag  DW_TAG_TI_branch
+     552                      .dwattr $C$DW$38, DW_AT_low_pc(0x00)
+     553                      .dwattr $C$DW$38, DW_AT_TI_return
+     554              
+     555 00000015 0006          LRETR     ; [CPU_ALU] 
+     556                      ; return occurs ; [] 
+     557                      .dwcfi  restore_state
+     558 00000016       ||$C$L4||:    
+     559                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 94,column 13
+     560              $C$DW$39        .dwtag  DW_TAG_TI_branch
+     561                      .dwattr $C$DW$39, DW_AT_low_pc(0x00)
+     562                      .dwattr $C$DW$39, DW_AT_name("sm_request_align")
+     563                      .dwattr $C$DW$39, DW_AT_TI_call
+     564              
+     565 00000016 7640!         LCR       #||sm_request_align|| ; [CPU_ALU] |94| 
+         00000017 0000 
+     566                      ; call occurs [#||sm_request_align||] ; [] |94| 
+     567              ||$C$L5||:    
+     568              $C$DW$40        .dwtag  DW_TAG_TI_branch
+     569                      .dwattr $C$DW$40, DW_AT_low_pc(0x00)
+     570                      .dwattr $C$DW$40, DW_AT_TI_return
+     571              
+     572 00000018 0006          LRETR     ; [CPU_ALU] 
+     573                      ; return occurs ; [] 
+     574                      .dwattr $C$DW$31, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machi
+     575                      .dwattr $C$DW$31, DW_AT_TI_end_line(0x64)
+     576                      .dwattr $C$DW$31, DW_AT_TI_end_column(0x01)
+     577                      .dwendentry
+     578                      .dwendtag $C$DW$31
+     579              
+     580 00000000               .sect   ".text:enter"
+     581                      .clink
+     582              
+     583              $C$DW$41        .dwtag  DW_TAG_subprogram
+     584                      .dwattr $C$DW$41, DW_AT_name("enter")
+     585                      .dwattr $C$DW$41, DW_AT_low_pc(||enter||)
+     586                      .dwattr $C$DW$41, DW_AT_high_pc(0x00)
+     587                      .dwattr $C$DW$41, DW_AT_linkage_name("enter")
+     588                      .dwattr $C$DW$41, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+     589                      .dwattr $C$DW$41, DW_AT_decl_line(0x21)
+     590                      .dwattr $C$DW$41, DW_AT_decl_column(0x0d)
+     591                      .dwattr $C$DW$41, DW_AT_TI_max_frame_size(-4)
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   12
+
+     592                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 34,column 1,
+     593              
+     594                      .dwfde $C$DW$CIE, ||enter||
+     595              $C$DW$42        .dwtag  DW_TAG_formal_parameter
+     596                      .dwattr $C$DW$42, DW_AT_name("next")
+     597                      .dwattr $C$DW$42, DW_AT_type(*$C$DW$T$22)
+     598                      .dwattr $C$DW$42, DW_AT_location[DW_OP_reg0]
+     599              
+     600              
+     601              ;***************************************************************
+     602              ;* FNAME: enter                         FR SIZE:   2           *
+     603              ;*                                                             *
+     604              ;* FUNCTION ENVIRONMENT                                        *
+     605              ;*                                                             *
+     606              ;* FUNCTION PROPERTIES                                         *
+     607              ;*                            0 Parameter,  0 Auto,  2 SOE     *
+     608              ;***************************************************************
+     609              
+     610              ||enter||:
+     611              ;* AR1   assigned to next
+     612              $C$DW$43        .dwtag  DW_TAG_variable
+     613                      .dwattr $C$DW$43, DW_AT_name("next")
+     614                      .dwattr $C$DW$43, DW_AT_type(*$C$DW$T$24)
+     615                      .dwattr $C$DW$43, DW_AT_location[DW_OP_reg6]
+     616              
+     617                      .dwcfi  cfa_offset, -2
+     618                      .dwcfi  save_reg_to_mem, 26, 0
+     619 00000000 761F!         MOVW      DP,#||s_state||       ; [CPU_ARAU] 
+         00000001 0000 
+     620 00000002 B2BD          MOVL      *SP++,XAR1            ; [CPU_ALU] 
+     621                      .dwcfi  save_reg_to_mem, 7, 2
+     622                      .dwcfi  cfa_offset, -4
+     623                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 35,column 5,
+     624 00000003 9600!         MOV       @||s_state||,AL       ; [CPU_ALU] |35| 
+     625                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 36,column 5,
+     626 00000004 BE00          MOVB      XAR6,#0               ; [CPU_ALU] |36| 
+     627                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 38,column 5,
+     628 00000005 5202          CMPB      AL,#2                 ; [CPU_ALU] |38| 
+     629 00000006 761F!         MOVW      DP,#||s_state_ticks|| ; [CPU_ARAU] 
+         00000007 0000 
+     630                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 34,column 1,
+     631 00000008 59A9          MOVZ      AR1,AL                ; [CPU_ALU] |34| 
+     632                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 36,column 5,
+     633 00000009 C200!         MOVL      @||s_state_ticks||,XAR6 ; [CPU_FPU] |36| 
+     634                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 38,column 5,
+     635 0000000a 6208          B         ||$C$L6||,GT          ; [CPU_ALU] |38| 
+     636                      ; branchcc occurs ; [] |38| 
+     637 0000000b 5202          CMPB      AL,#2                 ; [CPU_ALU] |38| 
+     638 0000000c 6115          B         ||$C$L8||,EQ          ; [CPU_ALU] |38| 
+     639                      ; branchcc occurs ; [] |38| 
+     640 0000000d 5200          CMPB      AL,#0                 ; [CPU_ALU] |38| 
+     641 0000000e 612C          B         ||$C$L10||,EQ         ; [CPU_ALU] |38| 
+     642                      ; branchcc occurs ; [] |38| 
+     643 0000000f 5201          CMPB      AL,#1                 ; [CPU_ALU] |38| 
+     644 00000010 611F          B         ||$C$L9||,EQ          ; [CPU_ALU] |38| 
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   13
+
+     645                      ; branchcc occurs ; [] |38| 
+     646 00000011 6F2D          B         ||$C$L11||,UNC        ; [CPU_ALU] |38| 
+     647                      ; branch occurs ; [] |38| 
+     648 00000012       ||$C$L6||:    
+     649 00000012 5203          CMPB      AL,#3                 ; [CPU_ALU] |38| 
+     650 00000013 6106          B         ||$C$L7||,EQ          ; [CPU_ALU] |38| 
+     651                      ; branchcc occurs ; [] |38| 
+     652 00000014 5204          CMPB      AL,#4                 ; [CPU_ALU] |38| 
+     653 00000015 6029          B         ||$C$L11||,NEQ        ; [CPU_ALU] |38| 
+     654                      ; branchcc occurs ; [] |38| 
+     655                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 61,column 9,
+     656              $C$DW$44        .dwtag  DW_TAG_TI_branch
+     657                      .dwattr $C$DW$44, DW_AT_low_pc(0x00)
+     658                      .dwattr $C$DW$44, DW_AT_name("inverter_snapshot_fault_regs")
+     659                      .dwattr $C$DW$44, DW_AT_TI_call
+     660              
+     661 00000016 7640!         LCR       #||inverter_snapshot_fault_regs|| ; [CPU_ALU] |61| 
+         00000017 0000 
+     662                      ; call occurs [#||inverter_snapshot_fault_regs||] ; [] |61| 
+     663                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 64,column 9,
+     664 00000018 6F22          B         ||$C$L10||,UNC        ; [CPU_ALU] |64| 
+     665                      ; branch occurs ; [] |64| 
+     666 00000019       ||$C$L7||:    
+     667                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 57,column 9,
+     668              $C$DW$45        .dwtag  DW_TAG_TI_branch
+     669                      .dwattr $C$DW$45, DW_AT_low_pc(0x00)
+     670                      .dwattr $C$DW$45, DW_AT_name("inverter_enable_gate")
+     671                      .dwattr $C$DW$45, DW_AT_TI_call
+     672              
+     673 00000019 7640!         LCR       #||inverter_enable_gate|| ; [CPU_ALU] |57| 
+         0000001a 0000 
+     674                      ; call occurs [#||inverter_enable_gate||] ; [] |57| 
+     675                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 58,column 9,
+     676              $C$DW$46        .dwtag  DW_TAG_TI_branch
+     677                      .dwattr $C$DW$46, DW_AT_low_pc(0x00)
+     678                      .dwattr $C$DW$46, DW_AT_name("foc_get_refs")
+     679                      .dwattr $C$DW$46, DW_AT_TI_call
+     680              
+     681 0000001b 7640!         LCR       #||foc_get_refs||     ; [CPU_ALU] |58| 
+         0000001c 0000 
+     682                      ; call occurs [#||foc_get_refs||] ; [] |58| 
+     683 0000001d E590          ZERO      R0H                   ; [CPU_FPU] |58| 
+     684 0000001e E203          MOV32     *+XAR4[0],R0H         ; [CPU_FPU] |58| 
+         0000001f 00C4 
+     685                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 59,column 9,
+     686 00000020 6F1E          B         ||$C$L11||,UNC        ; [CPU_ALU] |59| 
+     687                      ; branch occurs ; [] |59| 
+     688 00000021       ||$C$L8||:    
+     689                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 51,column 9,
+     690              $C$DW$47        .dwtag  DW_TAG_TI_branch
+     691                      .dwattr $C$DW$47, DW_AT_low_pc(0x00)
+     692                      .dwattr $C$DW$47, DW_AT_name("inverter_enable_gate")
+     693                      .dwattr $C$DW$47, DW_AT_TI_call
+     694              
+     695 00000021 7640!         LCR       #||inverter_enable_gate|| ; [CPU_ALU] |51| 
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   14
+
+         00000022 0000 
+     696                      ; call occurs [#||inverter_enable_gate||] ; [] |51| 
+     697                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 52,column 9,
+     698              $C$DW$48        .dwtag  DW_TAG_TI_branch
+     699                      .dwattr $C$DW$48, DW_AT_low_pc(0x00)
+     700                      .dwattr $C$DW$48, DW_AT_name("foc_get_refs")
+     701                      .dwattr $C$DW$48, DW_AT_TI_call
+     702              
+     703 00000023 7640!         LCR       #||foc_get_refs||     ; [CPU_ALU] |52| 
+         00000024 0000 
+     704                      ; call occurs [#||foc_get_refs||] ; [] |52| 
+     705 00000025 E801          MOVIZ     R0H,#16256            ; [CPU_FPU] |52| 
+         00000026 FC00 
+     706 00000027 E203          MOV32     *+XAR4[0],R0H         ; [CPU_FPU] |52| 
+         00000028 00C4 
+     707                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 53,column 9,
+     708              $C$DW$49        .dwtag  DW_TAG_TI_branch
+     709                      .dwattr $C$DW$49, DW_AT_low_pc(0x00)
+     710                      .dwattr $C$DW$49, DW_AT_name("foc_get_refs")
+     711                      .dwattr $C$DW$49, DW_AT_TI_call
+     712              
+     713 00000029 7640!         LCR       #||foc_get_refs||     ; [CPU_ALU] |53| 
+         0000002a 0000 
+     714                      ; call occurs [#||foc_get_refs||] ; [] |53| 
+     715 0000002b E590          ZERO      R0H                   ; [CPU_FPU] |53| 
+     716 0000002c E203          MOV32     *+XAR4[2],R0H         ; [CPU_FPU] |53| 
+         0000002d 00D4 
+     717                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 55,column 9,
+     718 0000002e 6F10          B         ||$C$L11||,UNC        ; [CPU_ALU] |55| 
+     719                      ; branch occurs ; [] |55| 
+     720 0000002f       ||$C$L9||:    
+     721                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 45,column 9,
+     722              $C$DW$50        .dwtag  DW_TAG_TI_branch
+     723                      .dwattr $C$DW$50, DW_AT_low_pc(0x00)
+     724                      .dwattr $C$DW$50, DW_AT_name("inverter_enable_gate")
+     725                      .dwattr $C$DW$50, DW_AT_TI_call
+     726              
+     727 0000002f 7640!         LCR       #||inverter_enable_gate|| ; [CPU_ALU] |45| 
+         00000030 0000 
+     728                      ; call occurs [#||inverter_enable_gate||] ; [] |45| 
+     729                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 46,column 9,
+     730              $C$DW$51        .dwtag  DW_TAG_TI_branch
+     731                      .dwattr $C$DW$51, DW_AT_low_pc(0x00)
+     732                      .dwattr $C$DW$51, DW_AT_name("inverter_clear_faults")
+     733                      .dwattr $C$DW$51, DW_AT_TI_call
+     734              
+     735 00000031 7640!         LCR       #||inverter_clear_faults|| ; [CPU_ALU] |46| 
+         00000032 0000 
+     736                      ; call occurs [#||inverter_clear_faults||] ; [] |46| 
+     737                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 47,column 9,
+     738              $C$DW$52        .dwtag  DW_TAG_TI_branch
+     739                      .dwattr $C$DW$52, DW_AT_low_pc(0x00)
+     740                      .dwattr $C$DW$52, DW_AT_name("pwm_force_safe")
+     741                      .dwattr $C$DW$52, DW_AT_TI_call
+     742              
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   15
+
+     743 00000033 7640!         LCR       #||pwm_force_safe||   ; [CPU_ALU] |47| 
+         00000034 0000 
+     744                      ; call occurs [#||pwm_force_safe||] ; [] |47| 
+     745                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 48,column 9,
+     746 00000035 28A9          MOV       AL,#2048              ; [CPU_ALU] |48| 
+         00000036 0800 
+     747              $C$DW$53        .dwtag  DW_TAG_TI_branch
+     748                      .dwattr $C$DW$53, DW_AT_low_pc(0x00)
+     749                      .dwattr $C$DW$53, DW_AT_name("adc_calibrate_offsets")
+     750                      .dwattr $C$DW$53, DW_AT_TI_call
+     751              
+     752 00000037 7640!         LCR       #||adc_calibrate_offsets|| ; [CPU_ALU] |48| 
+         00000038 0000 
+     753                      ; call occurs [#||adc_calibrate_offsets||] ; [] |48| 
+     754                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 49,column 9,
+     755 00000039 6F05          B         ||$C$L11||,UNC        ; [CPU_ALU] |49| 
+     756                      ; branch occurs ; [] |49| 
+     757 0000003a       ||$C$L10||:    
+     758                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 41,column 9,
+     759              $C$DW$54        .dwtag  DW_TAG_TI_branch
+     760                      .dwattr $C$DW$54, DW_AT_low_pc(0x00)
+     761                      .dwattr $C$DW$54, DW_AT_name("inverter_disable_gate")
+     762                      .dwattr $C$DW$54, DW_AT_TI_call
+     763              
+     764 0000003a 7640!         LCR       #||inverter_disable_gate|| ; [CPU_ALU] |41| 
+         0000003b 0000 
+     765                      ; call occurs [#||inverter_disable_gate||] ; [] |41| 
+     766                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 42,column 9,
+     767              $C$DW$55        .dwtag  DW_TAG_TI_branch
+     768                      .dwattr $C$DW$55, DW_AT_low_pc(0x00)
+     769                      .dwattr $C$DW$55, DW_AT_name("pwm_force_safe")
+     770                      .dwattr $C$DW$55, DW_AT_TI_call
+     771              
+     772 0000003c 7640!         LCR       #||pwm_force_safe||   ; [CPU_ALU] |42| 
+         0000003d 0000 
+     773                      ; call occurs [#||pwm_force_safe||] ; [] |42| 
+     774 0000003e       ||$C$L11||:    
+     775 0000003e 761F!         MOVW      DP,#||g_dbg_state||   ; [CPU_ARAU] 
+         0000003f 0000 
+     776                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 67,column 5,
+     777 00000040 7900!         MOV       @||g_dbg_state||,AR1  ; [CPU_ALU] |67| 
+     778 00000041 8BBE          MOVL      XAR1,*--SP            ; [CPU_ALU] 
+     779                      .dwcfi  cfa_offset, -2
+     780                      .dwcfi  restore_reg, 7
+     781              $C$DW$56        .dwtag  DW_TAG_TI_branch
+     782                      .dwattr $C$DW$56, DW_AT_low_pc(0x00)
+     783                      .dwattr $C$DW$56, DW_AT_TI_return
+     784              
+     785 00000042 0006          LRETR     ; [CPU_ALU] 
+     786                      ; return occurs ; [] 
+     787                      .dwattr $C$DW$41, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machi
+     788                      .dwattr $C$DW$41, DW_AT_TI_end_line(0x44)
+     789                      .dwattr $C$DW$41, DW_AT_TI_end_column(0x01)
+     790                      .dwendentry
+     791                      .dwendtag $C$DW$41
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   16
+
+     792              
+     793 00000000               .sect   ".text:sm_tick_1khz"
+     794                      .clink
+     795                      .global ||sm_tick_1khz||
+     796              
+     797              $C$DW$57        .dwtag  DW_TAG_subprogram
+     798                      .dwattr $C$DW$57, DW_AT_name("sm_tick_1khz")
+     799                      .dwattr $C$DW$57, DW_AT_low_pc(||sm_tick_1khz||)
+     800                      .dwattr $C$DW$57, DW_AT_high_pc(0x00)
+     801                      .dwattr $C$DW$57, DW_AT_linkage_name("sm_tick_1khz")
+     802                      .dwattr $C$DW$57, DW_AT_external
+     803                      .dwattr $C$DW$57, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+     804                      .dwattr $C$DW$57, DW_AT_decl_line(0x66)
+     805                      .dwattr $C$DW$57, DW_AT_decl_column(0x06)
+     806                      .dwattr $C$DW$57, DW_AT_TI_max_frame_size(-2)
+     807                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 103,column 1
+     808              
+     809                      .dwfde $C$DW$CIE, ||sm_tick_1khz||
+     810              
+     811              ;***************************************************************
+     812              ;* FNAME: sm_tick_1khz                  FR SIZE:   0           *
+     813              ;*                                                             *
+     814              ;* FUNCTION ENVIRONMENT                                        *
+     815              ;*                                                             *
+     816              ;* FUNCTION PROPERTIES                                         *
+     817              ;*                            0 Parameter,  0 Auto,  0 SOE     *
+     818              ;***************************************************************
+     819              
+     820 00000000       ||sm_tick_1khz||:
+     821                      .dwcfi  cfa_offset, -2
+     822                      .dwcfi  save_reg_to_mem, 26, 0
+     823                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 104,column 5
+     824 00000000 0201          MOVB      ACC,#1                ; [CPU_ALU] |104| 
+     825 00000001 761F!         MOVW      DP,#||s_state_ticks|| ; [CPU_ARAU] 
+         00000002 0000 
+     826 00000003 5601!         ADDL      @||s_state_ticks||,ACC ; [CPU_ALU] |104| 
+         00000004 0000 
+     827                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 105,column 5
+     828              $C$DW$58        .dwtag  DW_TAG_TI_branch
+     829                      .dwattr $C$DW$58, DW_AT_low_pc(0x00)
+     830                      .dwattr $C$DW$58, DW_AT_name("poll_debug_cmd")
+     831                      .dwattr $C$DW$58, DW_AT_TI_call
+     832              
+     833 00000005 7640!         LCR       #||poll_debug_cmd||   ; [CPU_ALU] |105| 
+         00000006 0000 
+     834                      ; call occurs [#||poll_debug_cmd||] ; [] |105| 
+     835 00000007 761F!         MOVW      DP,#||s_fault_pending|| ; [CPU_ARAU] 
+         00000008 0000 
+     836                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 107,column 5
+     837 00000009 9200!         MOV       AL,@||s_fault_pending|| ; [CPU_ALU] |107| 
+     838 0000000a 6104          B         ||$C$L12||,EQ         ; [CPU_ALU] |107| 
+     839                      ; branchcc occurs ; [] |107| 
+     840 0000000b 9200!         MOV       AL,@||s_state||       ; [CPU_ALU] |107| 
+     841 0000000c 5204          CMPB      AL,#4                 ; [CPU_ALU] |107| 
+     842 0000000d 6038          B         ||$C$L22||,NEQ        ; [CPU_ALU] |107| 
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   17
+
+     843                      ; branchcc occurs ; [] |107| 
+     844 0000000e       ||$C$L12||:    
+     845                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 114,column 5
+     846 0000000e 9200!         MOV       AL,@||s_state||       ; [CPU_ALU] |114| 
+     847 0000000f 5202          CMPB      AL,#2                 ; [CPU_ALU] |114| 
+     848 00000010 6208          B         ||$C$L13||,GT         ; [CPU_ALU] |114| 
+     849                      ; branchcc occurs ; [] |114| 
+     850 00000011 5202          CMPB      AL,#2                 ; [CPU_ALU] |114| 
+     851 00000012 6110          B         ||$C$L15||,EQ         ; [CPU_ALU] |114| 
+     852                      ; branchcc occurs ; [] |114| 
+     853 00000013 5200          CMPB      AL,#0                 ; [CPU_ALU] |114| 
+     854 00000014 6127          B         ||$C$L19||,EQ         ; [CPU_ALU] |114| 
+     855                      ; branchcc occurs ; [] |114| 
+     856 00000015 5201          CMPB      AL,#1                 ; [CPU_ALU] |114| 
+     857 00000016 612D          B         ||$C$L21||,EQ         ; [CPU_ALU] |114| 
+     858                      ; branchcc occurs ; [] |114| 
+     859                      .dwcfi  remember_state
+     860              $C$DW$59        .dwtag  DW_TAG_TI_branch
+     861                      .dwattr $C$DW$59, DW_AT_low_pc(0x00)
+     862                      .dwattr $C$DW$59, DW_AT_TI_return
+     863              
+     864 00000017 0006          LRETR     ; [CPU_ALU] 
+     865                      ; return occurs ; [] 
+     866                      .dwcfi  restore_state
+     867 00000018       ||$C$L13||:    
+     868 00000018 5203          CMPB      AL,#3                 ; [CPU_ALU] |114| 
+     869 00000019 6106          B         ||$C$L14||,EQ         ; [CPU_ALU] |114| 
+     870                      ; branchcc occurs ; [] |114| 
+     871 0000001a 5204          CMPB      AL,#4                 ; [CPU_ALU] |114| 
+     872 0000001b 6030          B         ||$C$L23||,NEQ        ; [CPU_ALU] |114| 
+     873                      ; branchcc occurs ; [] |114| 
+     874                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 153,column 9
+     875 0000001c 9200!         MOV       AL,@||s_requested||   ; [CPU_ALU] |153| 
+     876 0000001d 611A          B         ||$C$L17||,EQ         ; [CPU_ALU] |153| 
+     877                      ; branchcc occurs ; [] |153| 
+     878                      .dwcfi  remember_state
+     879              $C$DW$60        .dwtag  DW_TAG_TI_branch
+     880                      .dwattr $C$DW$60, DW_AT_low_pc(0x00)
+     881                      .dwattr $C$DW$60, DW_AT_TI_return
+     882              
+     883 0000001e 0006          LRETR     ; [CPU_ALU] 
+     884                      ; return occurs ; [] 
+     885                      .dwcfi  restore_state
+     886 0000001f       ||$C$L14||:    
+     887                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 148,column 9
+     888 0000001f 9200!         MOV       AL,@||s_requested||   ; [CPU_ALU] |148| 
+     889 00000020 602B          B         ||$C$L23||,NEQ        ; [CPU_ALU] |148| 
+     890                      ; branchcc occurs ; [] |148| 
+     891                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 149,column 1
+     892 00000021 6F16          B         ||$C$L17||,UNC        ; [CPU_ALU] |149| 
+     893                      ; branch occurs ; [] |149| 
+     894 00000022       ||$C$L15||:    
+     895                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 127,column 9
+     896 00000022 FF20          MOV       ACC,#5000             ; [CPU_ALU] |127| 
+         00000023 1388 
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   18
+
+     897 00000024 761F!         MOVW      DP,#||s_state_ticks|| ; [CPU_ARAU] 
+         00000025 0000 
+     898 00000026 0F00!         CMPL      ACC,@||s_state_ticks|| ; [CPU_ALU] |127| 
+     899 00000027 6624          B         ||$C$L23||,HI         ; [CPU_ALU] |127| 
+     900                      ; branchcc occurs ; [] |127| 
+     901                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 130,column 1
+     902              $C$DW$61        .dwtag  DW_TAG_TI_branch
+     903                      .dwattr $C$DW$61, DW_AT_low_pc(0x00)
+     904                      .dwattr $C$DW$61, DW_AT_name("sensor_capture_zero")
+     905                      .dwattr $C$DW$61, DW_AT_TI_call
+     906              
+     907 00000028 7640!         LCR       #||sensor_capture_zero|| ; [CPU_ALU] |130| 
+         00000029 0000 
+     908                      ; call occurs [#||sensor_capture_zero||] ; [] |130| 
+     909 0000002a 761F!         MOVW      DP,#||g_qep_mech_offset_cnt|| ; [CPU_ARAU] 
+         0000002b 0000 
+     910                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 133,column 1
+     911 0000002c 0600!         MOVL      ACC,@||g_qep_mech_offset_cnt|| ; [CPU_ALU] |133| 
+     912 0000002d 761F!         MOVW      DP,#||g_dbg_align_qep_cnt|| ; [CPU_ARAU] 
+         0000002e 0000 
+     913 0000002f 1E00!         MOVL      @||g_dbg_align_qep_cnt||,ACC ; [CPU_ALU] |133| 
+     914 00000030 761F!         MOVW      DP,#||s_align_only||  ; [CPU_ARAU] 
+         00000031 0000 
+     915                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 135,column 1
+     916 00000032 9200!         MOV       AL,@||s_align_only||  ; [CPU_ALU] |135| 
+     917 00000033 6003          B         ||$C$L16||,NEQ        ; [CPU_ALU] |135| 
+     918                      ; branchcc occurs ; [] |135| 
+     919                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 142,column 1
+     920 00000034 9A03          MOVB      AL,#3                 ; [CPU_ALU] |142| 
+     921 00000035 6F03          B         ||$C$L18||,UNC        ; [CPU_ALU] |142| 
+     922                      ; branch occurs ; [] |142| 
+     923 00000036       ||$C$L16||:    
+     924                      .dwcfi  remember_state
+     925                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 137,column 1
+     926 00000036 2B00!         MOV       @||s_requested||,#0   ; [CPU_ALU] |137| 
+     927 00000037       ||$C$L17||:    
+     928                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 138,column 1
+     929 00000037 9A00          MOVB      AL,#0                 ; [CPU_ALU] |138| 
+     930              ||$C$L18||:    
+     931              $C$DW$62        .dwtag  DW_TAG_TI_branch
+     932                      .dwattr $C$DW$62, DW_AT_low_pc(0x00)
+     933                      .dwattr $C$DW$62, DW_AT_name("enter")
+     934                      .dwattr $C$DW$62, DW_AT_TI_call
+     935              
+     936 00000038 7640!         LCR       #||enter||            ; [CPU_ALU] |138| 
+         00000039 0000 
+     937                      ; call occurs [#||enter||] ; [] |138| 
+     938              $C$DW$63        .dwtag  DW_TAG_TI_branch
+     939                      .dwattr $C$DW$63, DW_AT_low_pc(0x00)
+     940                      .dwattr $C$DW$63, DW_AT_TI_return
+     941              
+     942 0000003a 0006          LRETR     ; [CPU_ALU] 
+     943                      ; return occurs ; [] 
+     944                      .dwcfi  restore_state
+     945 0000003b       ||$C$L19||:    
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   19
+
+     946                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 117,column 9
+     947 0000003b 9200!         MOV       AL,@||s_requested||   ; [CPU_ALU] |117| 
+     948 0000003c 5203          CMPB      AL,#3                 ; [CPU_ALU] |117| 
+     949 0000003d 6104          B         ||$C$L20||,EQ         ; [CPU_ALU] |117| 
+     950                      ; branchcc occurs ; [] |117| 
+     951 0000003e 9200!         MOV       AL,@||s_requested||   ; [CPU_ALU] |117| 
+     952 0000003f 5202          CMPB      AL,#2                 ; [CPU_ALU] |117| 
+     953 00000040 600B          B         ||$C$L23||,NEQ        ; [CPU_ALU] |117| 
+     954                      ; branchcc occurs ; [] |117| 
+     955 00000041       ||$C$L20||:    
+     956                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 118,column 1
+     957 00000041 9A01          MOVB      AL,#1                 ; [CPU_ALU] |118| 
+     958 00000042 6FF6          B         ||$C$L18||,UNC        ; [CPU_ALU] |118| 
+     959                      ; branch occurs ; [] |118| 
+     960 00000043       ||$C$L21||:    
+     961                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 123,column 9
+     962 00000043 9A02          MOVB      AL,#2                 ; [CPU_ALU] |123| 
+     963                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 124,column 9
+     964 00000044 6FF4          B         ||$C$L18||,UNC        ; [CPU_ALU] |124| 
+     965                      ; branch occurs ; [] |124| 
+     966 00000045       ||$C$L22||:    
+     967                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 109,column 9
+     968 00000045 9A04          MOVB      AL,#4                 ; [CPU_ALU] |109| 
+     969              $C$DW$64        .dwtag  DW_TAG_TI_branch
+     970                      .dwattr $C$DW$64, DW_AT_low_pc(0x00)
+     971                      .dwattr $C$DW$64, DW_AT_name("enter")
+     972                      .dwattr $C$DW$64, DW_AT_TI_call
+     973              
+     974 00000046 7640!         LCR       #||enter||            ; [CPU_ALU] |109| 
+         00000047 0000 
+     975                      ; call occurs [#||enter||] ; [] |109| 
+     976 00000048 761F!         MOVW      DP,#||s_fault_pending|| ; [CPU_ARAU] 
+         00000049 0000 
+     977                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 110,column 9
+     978 0000004a 2B00!         MOV       @||s_fault_pending||,#0 ; [CPU_ALU] |110| 
+     979              ||$C$L23||:    
+     980              $C$DW$65        .dwtag  DW_TAG_TI_branch
+     981                      .dwattr $C$DW$65, DW_AT_low_pc(0x00)
+     982                      .dwattr $C$DW$65, DW_AT_TI_return
+     983              
+     984 0000004b 0006          LRETR     ; [CPU_ALU] 
+     985                      ; return occurs ; [] 
+     986                      .dwattr $C$DW$57, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machi
+     987                      .dwattr $C$DW$57, DW_AT_TI_end_line(0x9d)
+     988                      .dwattr $C$DW$57, DW_AT_TI_end_column(0x01)
+     989                      .dwendentry
+     990                      .dwendtag $C$DW$57
+     991              
+     992 00000000               .sect   ".text:sm_raise_fault"
+     993                      .clink
+     994                      .global ||sm_raise_fault||
+     995              
+     996              $C$DW$66        .dwtag  DW_TAG_subprogram
+     997                      .dwattr $C$DW$66, DW_AT_name("sm_raise_fault")
+     998                      .dwattr $C$DW$66, DW_AT_low_pc(||sm_raise_fault||)
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   20
+
+     999                      .dwattr $C$DW$66, DW_AT_high_pc(0x00)
+    1000                      .dwattr $C$DW$66, DW_AT_linkage_name("sm_raise_fault")
+    1001                      .dwattr $C$DW$66, DW_AT_external
+    1002                      .dwattr $C$DW$66, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+    1003                      .dwattr $C$DW$66, DW_AT_decl_line(0x54)
+    1004                      .dwattr $C$DW$66, DW_AT_decl_column(0x06)
+    1005                      .dwattr $C$DW$66, DW_AT_TI_max_frame_size(-2)
+    1006                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 84,column 36
+    1007              
+    1008                      .dwfde $C$DW$CIE, ||sm_raise_fault||
+    1009              $C$DW$67        .dwtag  DW_TAG_formal_parameter
+    1010                      .dwattr $C$DW$67, DW_AT_name("code")
+    1011                      .dwattr $C$DW$67, DW_AT_type(*$C$DW$T$36)
+    1012                      .dwattr $C$DW$67, DW_AT_location[DW_OP_reg0]
+    1013              
+    1014              
+    1015              ;***************************************************************
+    1016              ;* FNAME: sm_raise_fault                FR SIZE:   0           *
+    1017              ;*                                                             *
+    1018              ;* FUNCTION ENVIRONMENT                                        *
+    1019              ;*                                                             *
+    1020              ;* FUNCTION PROPERTIES                                         *
+    1021              ;*                            0 Parameter,  0 Auto,  0 SOE     *
+    1022              ;***************************************************************
+    1023              
+    1024 00000000       ||sm_raise_fault||:
+    1025                      .dwcfi  cfa_offset, -2
+    1026                      .dwcfi  save_reg_to_mem, 26, 0
+    1027                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 84,column 38
+    1028              $C$DW$68        .dwtag  DW_TAG_TI_branch
+    1029                      .dwattr $C$DW$68, DW_AT_low_pc(0x00)
+    1030                      .dwattr $C$DW$68, DW_AT_name("safety_latch")
+    1031                      .dwattr $C$DW$68, DW_AT_TI_call
+    1032              
+    1033 00000000 7640!         LCR       #||safety_latch||     ; [CPU_ALU] |84| 
+         00000001 0000 
+    1034                      ; call occurs [#||safety_latch||] ; [] |84| 
+    1035 00000002 761F!         MOVW      DP,#||s_fault_pending|| ; [CPU_ARAU] 
+         00000003 0000 
+    1036                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 84,column 58
+    1037 00000004 56BF!         MOVB      @||s_fault_pending||,#1,UNC ; [CPU_ALU] |84| 
+         00000005 0100 
+    1038              $C$DW$69        .dwtag  DW_TAG_TI_branch
+    1039                      .dwattr $C$DW$69, DW_AT_low_pc(0x00)
+    1040                      .dwattr $C$DW$69, DW_AT_TI_return
+    1041              
+    1042 00000006 0006          LRETR     ; [CPU_ALU] 
+    1043                      ; return occurs ; [] 
+    1044                      .dwattr $C$DW$66, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machi
+    1045                      .dwattr $C$DW$66, DW_AT_TI_end_line(0x54)
+    1046                      .dwattr $C$DW$66, DW_AT_TI_end_column(0x52)
+    1047                      .dwendentry
+    1048                      .dwendtag $C$DW$66
+    1049              
+    1050 00000000               .sect   ".text:sm_init"
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   21
+
+    1051                      .clink
+    1052                      .global ||sm_init||
+    1053              
+    1054              $C$DW$70        .dwtag  DW_TAG_subprogram
+    1055                      .dwattr $C$DW$70, DW_AT_name("sm_init")
+    1056                      .dwattr $C$DW$70, DW_AT_low_pc(||sm_init||)
+    1057                      .dwattr $C$DW$70, DW_AT_high_pc(0x00)
+    1058                      .dwattr $C$DW$70, DW_AT_linkage_name("sm_init")
+    1059                      .dwattr $C$DW$70, DW_AT_external
+    1060                      .dwattr $C$DW$70, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+    1061                      .dwattr $C$DW$70, DW_AT_decl_line(0x46)
+    1062                      .dwattr $C$DW$70, DW_AT_decl_column(0x06)
+    1063                      .dwattr $C$DW$70, DW_AT_TI_max_frame_size(-2)
+    1064                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 71,column 1,
+    1065              
+    1066                      .dwfde $C$DW$CIE, ||sm_init||
+    1067              
+    1068              ;***************************************************************
+    1069              ;* FNAME: sm_init                       FR SIZE:   0           *
+    1070              ;*                                                             *
+    1071              ;* FUNCTION ENVIRONMENT                                        *
+    1072              ;*                                                             *
+    1073              ;* FUNCTION PROPERTIES                                         *
+    1074              ;*                            0 Parameter,  0 Auto,  0 SOE     *
+    1075              ;***************************************************************
+    1076              
+    1077 00000000       ||sm_init||:
+    1078                      .dwcfi  cfa_offset, -2
+    1079                      .dwcfi  save_reg_to_mem, 26, 0
+    1080                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 72,column 5,
+    1081 00000000 9A00          MOVB      AL,#0                 ; [CPU_ALU] |72| 
+    1082              $C$DW$71        .dwtag  DW_TAG_TI_branch
+    1083                      .dwattr $C$DW$71, DW_AT_low_pc(0x00)
+    1084                      .dwattr $C$DW$71, DW_AT_name("enter")
+    1085                      .dwattr $C$DW$71, DW_AT_TI_call
+    1086              
+    1087 00000001 7640!         LCR       #||enter||            ; [CPU_ALU] |72| 
+         00000002 0000 
+    1088                      ; call occurs [#||enter||] ; [] |72| 
+    1089 00000003 761F!         MOVW      DP,#||s_requested||   ; [CPU_ARAU] 
+         00000004 0000 
+    1090                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 73,column 5,
+    1091 00000005 2B00!         MOV       @||s_requested||,#0   ; [CPU_ALU] |73| 
+    1092                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 74,column 5,
+    1093 00000006 2B00!         MOV       @||s_align_only||,#0  ; [CPU_ALU] |74| 
+    1094 00000007 761F!         MOVW      DP,#||g_dbg_sm_cmd||  ; [CPU_ARAU] 
+         00000008 0000 
+    1095                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 75,column 5,
+    1096 00000009 2B00!         MOV       @||g_dbg_sm_cmd||,#0  ; [CPU_ALU] |75| 
+    1097              $C$DW$72        .dwtag  DW_TAG_TI_branch
+    1098                      .dwattr $C$DW$72, DW_AT_low_pc(0x00)
+    1099                      .dwattr $C$DW$72, DW_AT_TI_return
+    1100              
+    1101 0000000a 0006          LRETR     ; [CPU_ALU] 
+    1102                      ; return occurs ; [] 
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   22
+
+    1103                      .dwattr $C$DW$70, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machi
+    1104                      .dwattr $C$DW$70, DW_AT_TI_end_line(0x4c)
+    1105                      .dwattr $C$DW$70, DW_AT_TI_end_column(0x01)
+    1106                      .dwendentry
+    1107                      .dwendtag $C$DW$70
+    1108              
+    1109 00000000               .sect   ".text:sm_get_state"
+    1110                      .clink
+    1111                      .global ||sm_get_state||
+    1112              
+    1113              $C$DW$73        .dwtag  DW_TAG_subprogram
+    1114                      .dwattr $C$DW$73, DW_AT_name("sm_get_state")
+    1115                      .dwattr $C$DW$73, DW_AT_low_pc(||sm_get_state||)
+    1116                      .dwattr $C$DW$73, DW_AT_high_pc(0x00)
+    1117                      .dwattr $C$DW$73, DW_AT_linkage_name("sm_get_state")
+    1118                      .dwattr $C$DW$73, DW_AT_external
+    1119                      .dwattr $C$DW$73, DW_AT_type(*$C$DW$T$22)
+    1120                      .dwattr $C$DW$73, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine
+    1121                      .dwattr $C$DW$73, DW_AT_decl_line(0x4e)
+    1122                      .dwattr $C$DW$73, DW_AT_decl_column(0x0d)
+    1123                      .dwattr $C$DW$73, DW_AT_TI_max_frame_size(-2)
+    1124                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 78,column 32
+    1125              
+    1126                      .dwfde $C$DW$CIE, ||sm_get_state||
+    1127              
+    1128              ;***************************************************************
+    1129              ;* FNAME: sm_get_state                  FR SIZE:   0           *
+    1130              ;*                                                             *
+    1131              ;* FUNCTION ENVIRONMENT                                        *
+    1132              ;*                                                             *
+    1133              ;* FUNCTION PROPERTIES                                         *
+    1134              ;*                            0 Parameter,  0 Auto,  0 SOE     *
+    1135              ;***************************************************************
+    1136              
+    1137 00000000       ||sm_get_state||:
+    1138                      .dwcfi  cfa_offset, -2
+    1139                      .dwcfi  save_reg_to_mem, 26, 0
+    1140 00000000 761F!         MOVW      DP,#||s_state||       ; [CPU_ARAU] 
+         00000001 0000 
+    1141                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c",line 78,column 34
+    1142 00000002 9200!         MOV       AL,@||s_state||       ; [CPU_ALU] |78| 
+    1143              $C$DW$74        .dwtag  DW_TAG_TI_branch
+    1144                      .dwattr $C$DW$74, DW_AT_low_pc(0x00)
+    1145                      .dwattr $C$DW$74, DW_AT_TI_return
+    1146              
+    1147 00000003 0006          LRETR     ; [CPU_ALU] 
+    1148                      ; return occurs ; [] 
+    1149                      .dwattr $C$DW$73, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machi
+    1150                      .dwattr $C$DW$73, DW_AT_TI_end_line(0x4e)
+    1151                      .dwattr $C$DW$73, DW_AT_TI_end_column(0x32)
+    1152                      .dwendentry
+    1153                      .dwendtag $C$DW$73
+    1154              
+    1155              ;**************************************************************
+    1156              ;* UNDEFINED EXTERNAL REFERENCES                              *
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   23
+
+    1157              ;**************************************************************
+    1158                      .global ||inverter_disable_gate||
+    1159                      .global ||pwm_force_safe||
+    1160                      .global ||inverter_enable_gate||
+    1161                      .global ||inverter_clear_faults||
+    1162                      .global ||adc_calibrate_offsets||
+    1163                      .global ||inverter_snapshot_fault_regs||
+    1164                      .global ||safety_clear||
+    1165                      .global ||safety_latch||
+    1166                      .global ||sensor_capture_zero||
+    1167                      .global ||g_qep_mech_offset_cnt||
+    1168                      .global ||foc_get_refs||
+    1169              
+    1170              ;***************************************************************
+    1171              ;* BUILD ATTRIBUTES                                            *
+    1172              ;***************************************************************
+    1173                      .battr "c28xabi", Tag_File, 1, Tag_float_args(0)
+    1174                      .battr "c28xabi", Tag_File, 1, Tag_double_args(0)
+    1175                      .dwattr $C$DW$CU, DW_AT_language(DW_LANG_C)
+    1176              
+    1177              ;***************************************************************
+    1178              ;* DWARF CIE ENTRIES                                           *
+    1179              ;***************************************************************
+    1180              
+    1181              $C$DW$CIE       .dwcie 26
+    1182                      .dwcfi  cfa_register, 20
+    1183                      .dwcfi  cfa_offset, 0
+    1184                      .dwcfi  same_value, 28
+    1185                      .dwcfi  same_value, 6
+    1186                      .dwcfi  same_value, 7
+    1187                      .dwcfi  same_value, 8
+    1188                      .dwcfi  same_value, 9
+    1189                      .dwcfi  same_value, 10
+    1190                      .dwcfi  same_value, 11
+    1191                      .dwcfi  same_value, 59
+    1192                      .dwcfi  same_value, 63
+    1193                      .dwcfi  same_value, 67
+    1194                      .dwcfi  same_value, 71
+    1195                      .dwendentry
+    1196                      .dwendtag $C$DW$CU
+    1197              
+    1198              
+    1199              ;***************************************************************
+    1200              ;* TYPE INFORMATION                                            *
+    1201              ;***************************************************************
+    1202              
+    1203              $C$DW$TU$21     .dwtag  DW_TAG_type_unit
+    1204                      .dwmtype  $C$DW$T$21
+    1205              
+    1206              $C$DW$T$21      .dwtag  DW_TAG_enumeration_type
+    1207                      .dwattr $C$DW$T$21, DW_AT_byte_size(0x01)
+    1208              $C$DW$75        .dwtag  DW_TAG_enumerator
+    1209                      .dwattr $C$DW$75, DW_AT_name("FOC_IDLE")
+    1210                      .dwattr $C$DW$75, DW_AT_const_value(0x00)
+    1211                      .dwattr $C$DW$75, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_mac
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   24
+
+    1212                      .dwattr $C$DW$75, DW_AT_decl_line(0x0e)
+    1213                      .dwattr $C$DW$75, DW_AT_decl_column(0x05)
+    1214              
+    1215              $C$DW$76        .dwtag  DW_TAG_enumerator
+    1216                      .dwattr $C$DW$76, DW_AT_name("FOC_CALIBRATE_OFFSETS")
+    1217                      .dwattr $C$DW$76, DW_AT_const_value(0x01)
+    1218                      .dwattr $C$DW$76, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_mac
+    1219                      .dwattr $C$DW$76, DW_AT_decl_line(0x0f)
+    1220                      .dwattr $C$DW$76, DW_AT_decl_column(0x05)
+    1221              
+    1222              $C$DW$77        .dwtag  DW_TAG_enumerator
+    1223                      .dwattr $C$DW$77, DW_AT_name("FOC_ALIGN_ROTOR")
+    1224                      .dwattr $C$DW$77, DW_AT_const_value(0x02)
+    1225                      .dwattr $C$DW$77, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_mac
+    1226                      .dwattr $C$DW$77, DW_AT_decl_line(0x10)
+    1227                      .dwattr $C$DW$77, DW_AT_decl_column(0x05)
+    1228              
+    1229              $C$DW$78        .dwtag  DW_TAG_enumerator
+    1230                      .dwattr $C$DW$78, DW_AT_name("FOC_RUN")
+    1231                      .dwattr $C$DW$78, DW_AT_const_value(0x03)
+    1232                      .dwattr $C$DW$78, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_mac
+    1233                      .dwattr $C$DW$78, DW_AT_decl_line(0x11)
+    1234                      .dwattr $C$DW$78, DW_AT_decl_column(0x05)
+    1235              
+    1236              $C$DW$79        .dwtag  DW_TAG_enumerator
+    1237                      .dwattr $C$DW$79, DW_AT_name("FOC_FAULT")
+    1238                      .dwattr $C$DW$79, DW_AT_const_value(0x04)
+    1239                      .dwattr $C$DW$79, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_mac
+    1240                      .dwattr $C$DW$79, DW_AT_decl_line(0x12)
+    1241                      .dwattr $C$DW$79, DW_AT_decl_column(0x05)
+    1242              
+    1243                      .dwattr $C$DW$T$21, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_m
+    1244                      .dwattr $C$DW$T$21, DW_AT_decl_line(0x0d)
+    1245                      .dwattr $C$DW$T$21, DW_AT_decl_column(0x0e)
+    1246                      .dwendtag $C$DW$T$21
+    1247              
+    1248                      .dwendtag $C$DW$TU$21
+    1249              
+    1250              
+    1251              $C$DW$TU$22     .dwtag  DW_TAG_type_unit
+    1252                      .dwmtype  $C$DW$T$22
+    1253              $C$DW$T$22      .dwtag  DW_TAG_typedef
+    1254                      .dwattr $C$DW$T$22, DW_AT_name("FOC_State_t")
+    1255                      .dwattr $C$DW$T$22, DW_AT_type(*$C$DW$T$21)
+    1256                      .dwattr $C$DW$T$22, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_m
+    1257                      .dwattr $C$DW$T$22, DW_AT_decl_line(0x13)
+    1258                      .dwattr $C$DW$T$22, DW_AT_decl_column(0x03)
+    1259              
+    1260                      .dwendtag $C$DW$TU$22
+    1261              
+    1262              
+    1263              $C$DW$TU$23     .dwtag  DW_TAG_type_unit
+    1264                      .dwmtype  $C$DW$T$23
+    1265              $C$DW$80        .dwtag  DW_TAG_TI_far_type
+    1266                      .dwattr $C$DW$80, DW_AT_type(*$C$DW$T$22)
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   25
+
+    1267              
+    1268              $C$DW$T$23      .dwtag  DW_TAG_volatile_type
+    1269                      .dwattr $C$DW$T$23, DW_AT_type(*$C$DW$80)
+    1270              
+    1271                      .dwendtag $C$DW$TU$23
+    1272              
+    1273              
+    1274              $C$DW$TU$24     .dwtag  DW_TAG_type_unit
+    1275                      .dwmtype  $C$DW$T$24
+    1276              $C$DW$81        .dwtag  DW_TAG_TI_far_type
+    1277                      .dwattr $C$DW$81, DW_AT_type(*$C$DW$T$22)
+    1278              
+    1279              $C$DW$T$24      .dwtag  DW_TAG_const_type
+    1280                      .dwattr $C$DW$T$24, DW_AT_type(*$C$DW$81)
+    1281              
+    1282                      .dwendtag $C$DW$TU$24
+    1283              
+    1284              
+    1285              $C$DW$TU$20     .dwtag  DW_TAG_type_unit
+    1286                      .dwmtype  $C$DW$T$20
+    1287              
+    1288              $C$DW$T$20      .dwtag  DW_TAG_structure_type
+    1289                      .dwattr $C$DW$T$20, DW_AT_byte_size(0x08)
+    1290              $C$DW$82        .dwtag  DW_TAG_member
+    1291                      .dwattr $C$DW$82, DW_AT_type(*$C$DW$T$19)
+    1292                      .dwattr $C$DW$82, DW_AT_name("id_ref")
+    1293                      .dwattr $C$DW$82, DW_AT_accessibility(DW_ACCESS_public)
+    1294                      .dwattr $C$DW$82, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+    1295                      .dwattr $C$DW$82, DW_AT_decl_line(0x14)
+    1296                      .dwattr $C$DW$82, DW_AT_decl_column(0x0f)
+    1297              
+    1298              $C$DW$83        .dwtag  DW_TAG_member
+    1299                      .dwattr $C$DW$83, DW_AT_type(*$C$DW$T$19)
+    1300                      .dwattr $C$DW$83, DW_AT_name("iq_ref")
+    1301                      .dwattr $C$DW$83, DW_AT_data_member_location[DW_OP_plus_uconst 0x2]
+    1302                      .dwattr $C$DW$83, DW_AT_accessibility(DW_ACCESS_public)
+    1303                      .dwattr $C$DW$83, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+    1304                      .dwattr $C$DW$83, DW_AT_decl_line(0x15)
+    1305                      .dwattr $C$DW$83, DW_AT_decl_column(0x0f)
+    1306              
+    1307              $C$DW$84        .dwtag  DW_TAG_member
+    1308                      .dwattr $C$DW$84, DW_AT_type(*$C$DW$T$19)
+    1309                      .dwattr $C$DW$84, DW_AT_name("speed_ref")
+    1310                      .dwattr $C$DW$84, DW_AT_data_member_location[DW_OP_plus_uconst 0x4]
+    1311                      .dwattr $C$DW$84, DW_AT_accessibility(DW_ACCESS_public)
+    1312                      .dwattr $C$DW$84, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+    1313                      .dwattr $C$DW$84, DW_AT_decl_line(0x16)
+    1314                      .dwattr $C$DW$84, DW_AT_decl_column(0x0f)
+    1315              
+    1316              $C$DW$85        .dwtag  DW_TAG_member
+    1317                      .dwattr $C$DW$85, DW_AT_type(*$C$DW$T$19)
+    1318                      .dwattr $C$DW$85, DW_AT_name("vbus")
+    1319                      .dwattr $C$DW$85, DW_AT_data_member_location[DW_OP_plus_uconst 0x6]
+    1320                      .dwattr $C$DW$85, DW_AT_accessibility(DW_ACCESS_public)
+    1321                      .dwattr $C$DW$85, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   26
+
+    1322                      .dwattr $C$DW$85, DW_AT_decl_line(0x17)
+    1323                      .dwattr $C$DW$85, DW_AT_decl_column(0x0f)
+    1324              
+    1325                      .dwattr $C$DW$T$20, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+    1326                      .dwattr $C$DW$T$20, DW_AT_decl_line(0x13)
+    1327                      .dwattr $C$DW$T$20, DW_AT_decl_column(0x10)
+    1328                      .dwendtag $C$DW$T$20
+    1329              
+    1330                      .dwendtag $C$DW$TU$20
+    1331              
+    1332              
+    1333              $C$DW$TU$27     .dwtag  DW_TAG_type_unit
+    1334                      .dwmtype  $C$DW$T$27
+    1335              $C$DW$T$27      .dwtag  DW_TAG_typedef
+    1336                      .dwattr $C$DW$T$27, DW_AT_name("FOC_Refs_t")
+    1337                      .dwattr $C$DW$T$27, DW_AT_type(*$C$DW$T$20)
+    1338                      .dwattr $C$DW$T$27, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+    1339                      .dwattr $C$DW$T$27, DW_AT_decl_line(0x18)
+    1340                      .dwattr $C$DW$T$27, DW_AT_decl_column(0x03)
+    1341              
+    1342                      .dwendtag $C$DW$TU$27
+    1343              
+    1344              
+    1345              $C$DW$TU$28     .dwtag  DW_TAG_type_unit
+    1346                      .dwmtype  $C$DW$T$28
+    1347              $C$DW$T$28      .dwtag  DW_TAG_pointer_type
+    1348                      .dwattr $C$DW$T$28, DW_AT_type(*$C$DW$T$27)
+    1349                      .dwattr $C$DW$T$28, DW_AT_address_class(0x20)
+    1350              
+    1351                      .dwendtag $C$DW$TU$28
+    1352              
+    1353              
+    1354              $C$DW$TU$2      .dwtag  DW_TAG_type_unit
+    1355                      .dwmtype  $C$DW$T$2
+    1356              $C$DW$T$2       .dwtag  DW_TAG_unspecified_type
+    1357                      .dwattr $C$DW$T$2, DW_AT_name("void")
+    1358              
+    1359                      .dwendtag $C$DW$TU$2
+    1360              
+    1361              
+    1362              $C$DW$TU$4      .dwtag  DW_TAG_type_unit
+    1363                      .dwmtype  $C$DW$T$4
+    1364              $C$DW$T$4       .dwtag  DW_TAG_base_type
+    1365                      .dwattr $C$DW$T$4, DW_AT_encoding(DW_ATE_boolean)
+    1366                      .dwattr $C$DW$T$4, DW_AT_name("bool")
+    1367                      .dwattr $C$DW$T$4, DW_AT_byte_size(0x01)
+    1368              
+    1369                      .dwendtag $C$DW$TU$4
+    1370              
+    1371              
+    1372              $C$DW$TU$5      .dwtag  DW_TAG_type_unit
+    1373                      .dwmtype  $C$DW$T$5
+    1374              $C$DW$T$5       .dwtag  DW_TAG_base_type
+    1375                      .dwattr $C$DW$T$5, DW_AT_encoding(DW_ATE_signed_char)
+    1376                      .dwattr $C$DW$T$5, DW_AT_name("signed char")
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   27
+
+    1377                      .dwattr $C$DW$T$5, DW_AT_byte_size(0x01)
+    1378              
+    1379                      .dwendtag $C$DW$TU$5
+    1380              
+    1381              
+    1382              $C$DW$TU$6      .dwtag  DW_TAG_type_unit
+    1383                      .dwmtype  $C$DW$T$6
+    1384              $C$DW$T$6       .dwtag  DW_TAG_base_type
+    1385                      .dwattr $C$DW$T$6, DW_AT_encoding(DW_ATE_unsigned_char)
+    1386                      .dwattr $C$DW$T$6, DW_AT_name("unsigned char")
+    1387                      .dwattr $C$DW$T$6, DW_AT_byte_size(0x01)
+    1388              
+    1389                      .dwendtag $C$DW$TU$6
+    1390              
+    1391              
+    1392              $C$DW$TU$7      .dwtag  DW_TAG_type_unit
+    1393                      .dwmtype  $C$DW$T$7
+    1394              $C$DW$T$7       .dwtag  DW_TAG_base_type
+    1395                      .dwattr $C$DW$T$7, DW_AT_encoding(DW_ATE_signed_char)
+    1396                      .dwattr $C$DW$T$7, DW_AT_name("wchar_t")
+    1397                      .dwattr $C$DW$T$7, DW_AT_byte_size(0x02)
+    1398              
+    1399                      .dwendtag $C$DW$TU$7
+    1400              
+    1401              
+    1402              $C$DW$TU$8      .dwtag  DW_TAG_type_unit
+    1403                      .dwmtype  $C$DW$T$8
+    1404              $C$DW$T$8       .dwtag  DW_TAG_base_type
+    1405                      .dwattr $C$DW$T$8, DW_AT_encoding(DW_ATE_signed)
+    1406                      .dwattr $C$DW$T$8, DW_AT_name("short")
+    1407                      .dwattr $C$DW$T$8, DW_AT_byte_size(0x01)
+    1408              
+    1409                      .dwendtag $C$DW$TU$8
+    1410              
+    1411              
+    1412              $C$DW$TU$9      .dwtag  DW_TAG_type_unit
+    1413                      .dwmtype  $C$DW$T$9
+    1414              $C$DW$T$9       .dwtag  DW_TAG_base_type
+    1415                      .dwattr $C$DW$T$9, DW_AT_encoding(DW_ATE_unsigned)
+    1416                      .dwattr $C$DW$T$9, DW_AT_name("unsigned short")
+    1417                      .dwattr $C$DW$T$9, DW_AT_byte_size(0x01)
+    1418              
+    1419                      .dwendtag $C$DW$TU$9
+    1420              
+    1421              
+    1422              $C$DW$TU$35     .dwtag  DW_TAG_type_unit
+    1423                      .dwmtype  $C$DW$T$35
+    1424              $C$DW$T$35      .dwtag  DW_TAG_typedef
+    1425                      .dwattr $C$DW$T$35, DW_AT_name("__uint16_t")
+    1426                      .dwattr $C$DW$T$35, DW_AT_type(*$C$DW$T$9)
+    1427                      .dwattr $C$DW$T$35, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LT
+    1428                      .dwattr $C$DW$T$35, DW_AT_decl_line(0x41)
+    1429                      .dwattr $C$DW$T$35, DW_AT_decl_column(0x1c)
+    1430              
+    1431                      .dwendtag $C$DW$TU$35
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   28
+
+    1432              
+    1433              
+    1434              $C$DW$TU$36     .dwtag  DW_TAG_type_unit
+    1435                      .dwmtype  $C$DW$T$36
+    1436              $C$DW$T$36      .dwtag  DW_TAG_typedef
+    1437                      .dwattr $C$DW$T$36, DW_AT_name("uint16_t")
+    1438                      .dwattr $C$DW$T$36, DW_AT_type(*$C$DW$T$35)
+    1439                      .dwattr $C$DW$T$36, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LT
+    1440                      .dwattr $C$DW$T$36, DW_AT_decl_line(0x41)
+    1441                      .dwattr $C$DW$T$36, DW_AT_decl_column(0x15)
+    1442              
+    1443                      .dwendtag $C$DW$TU$36
+    1444              
+    1445              
+    1446              $C$DW$TU$41     .dwtag  DW_TAG_type_unit
+    1447                      .dwmtype  $C$DW$T$41
+    1448              $C$DW$86        .dwtag  DW_TAG_TI_far_type
+    1449                      .dwattr $C$DW$86, DW_AT_type(*$C$DW$T$36)
+    1450              
+    1451              $C$DW$T$41      .dwtag  DW_TAG_volatile_type
+    1452                      .dwattr $C$DW$T$41, DW_AT_type(*$C$DW$86)
+    1453              
+    1454                      .dwendtag $C$DW$TU$41
+    1455              
+    1456              
+    1457              $C$DW$TU$10     .dwtag  DW_TAG_type_unit
+    1458                      .dwmtype  $C$DW$T$10
+    1459              $C$DW$T$10      .dwtag  DW_TAG_base_type
+    1460                      .dwattr $C$DW$T$10, DW_AT_encoding(DW_ATE_signed)
+    1461                      .dwattr $C$DW$T$10, DW_AT_name("int")
+    1462                      .dwattr $C$DW$T$10, DW_AT_byte_size(0x01)
+    1463              
+    1464                      .dwendtag $C$DW$TU$10
+    1465              
+    1466              
+    1467              $C$DW$TU$11     .dwtag  DW_TAG_type_unit
+    1468                      .dwmtype  $C$DW$T$11
+    1469              $C$DW$T$11      .dwtag  DW_TAG_base_type
+    1470                      .dwattr $C$DW$T$11, DW_AT_encoding(DW_ATE_unsigned)
+    1471                      .dwattr $C$DW$T$11, DW_AT_name("unsigned int")
+    1472                      .dwattr $C$DW$T$11, DW_AT_byte_size(0x01)
+    1473              
+    1474                      .dwendtag $C$DW$TU$11
+    1475              
+    1476              
+    1477              $C$DW$TU$12     .dwtag  DW_TAG_type_unit
+    1478                      .dwmtype  $C$DW$T$12
+    1479              $C$DW$T$12      .dwtag  DW_TAG_base_type
+    1480                      .dwattr $C$DW$T$12, DW_AT_encoding(DW_ATE_signed)
+    1481                      .dwattr $C$DW$T$12, DW_AT_name("long")
+    1482                      .dwattr $C$DW$T$12, DW_AT_byte_size(0x02)
+    1483              
+    1484                      .dwendtag $C$DW$TU$12
+    1485              
+    1486              
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   29
+
+    1487              $C$DW$TU$46     .dwtag  DW_TAG_type_unit
+    1488                      .dwmtype  $C$DW$T$46
+    1489              $C$DW$T$46      .dwtag  DW_TAG_typedef
+    1490                      .dwattr $C$DW$T$46, DW_AT_name("__int32_t")
+    1491                      .dwattr $C$DW$T$46, DW_AT_type(*$C$DW$T$12)
+    1492                      .dwattr $C$DW$T$46, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LT
+    1493                      .dwattr $C$DW$T$46, DW_AT_decl_line(0x42)
+    1494                      .dwattr $C$DW$T$46, DW_AT_decl_column(0x1d)
+    1495              
+    1496                      .dwendtag $C$DW$TU$46
+    1497              
+    1498              
+    1499              $C$DW$TU$47     .dwtag  DW_TAG_type_unit
+    1500                      .dwmtype  $C$DW$T$47
+    1501              $C$DW$T$47      .dwtag  DW_TAG_typedef
+    1502                      .dwattr $C$DW$T$47, DW_AT_name("int32_t")
+    1503                      .dwattr $C$DW$T$47, DW_AT_type(*$C$DW$T$46)
+    1504                      .dwattr $C$DW$T$47, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LT
+    1505                      .dwattr $C$DW$T$47, DW_AT_decl_line(0x30)
+    1506                      .dwattr $C$DW$T$47, DW_AT_decl_column(0x14)
+    1507              
+    1508                      .dwendtag $C$DW$TU$47
+    1509              
+    1510              
+    1511              $C$DW$TU$48     .dwtag  DW_TAG_type_unit
+    1512                      .dwmtype  $C$DW$T$48
+    1513              $C$DW$87        .dwtag  DW_TAG_TI_far_type
+    1514                      .dwattr $C$DW$87, DW_AT_type(*$C$DW$T$47)
+    1515              
+    1516              $C$DW$T$48      .dwtag  DW_TAG_volatile_type
+    1517                      .dwattr $C$DW$T$48, DW_AT_type(*$C$DW$87)
+    1518              
+    1519                      .dwendtag $C$DW$TU$48
+    1520              
+    1521              
+    1522              $C$DW$TU$13     .dwtag  DW_TAG_type_unit
+    1523                      .dwmtype  $C$DW$T$13
+    1524              $C$DW$T$13      .dwtag  DW_TAG_base_type
+    1525                      .dwattr $C$DW$T$13, DW_AT_encoding(DW_ATE_unsigned)
+    1526                      .dwattr $C$DW$T$13, DW_AT_name("unsigned long")
+    1527                      .dwattr $C$DW$T$13, DW_AT_byte_size(0x02)
+    1528              
+    1529                      .dwendtag $C$DW$TU$13
+    1530              
+    1531              
+    1532              $C$DW$TU$49     .dwtag  DW_TAG_type_unit
+    1533                      .dwmtype  $C$DW$T$49
+    1534              $C$DW$T$49      .dwtag  DW_TAG_typedef
+    1535                      .dwattr $C$DW$T$49, DW_AT_name("__uint32_t")
+    1536                      .dwattr $C$DW$T$49, DW_AT_type(*$C$DW$T$13)
+    1537                      .dwattr $C$DW$T$49, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LT
+    1538                      .dwattr $C$DW$T$49, DW_AT_decl_line(0x43)
+    1539                      .dwattr $C$DW$T$49, DW_AT_decl_column(0x1c)
+    1540              
+    1541                      .dwendtag $C$DW$TU$49
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   30
+
+    1542              
+    1543              
+    1544              $C$DW$TU$50     .dwtag  DW_TAG_type_unit
+    1545                      .dwmtype  $C$DW$T$50
+    1546              $C$DW$T$50      .dwtag  DW_TAG_typedef
+    1547                      .dwattr $C$DW$T$50, DW_AT_name("uint32_t")
+    1548                      .dwattr $C$DW$T$50, DW_AT_type(*$C$DW$T$49)
+    1549                      .dwattr $C$DW$T$50, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LT
+    1550                      .dwattr $C$DW$T$50, DW_AT_decl_line(0x46)
+    1551                      .dwattr $C$DW$T$50, DW_AT_decl_column(0x15)
+    1552              
+    1553                      .dwendtag $C$DW$TU$50
+    1554              
+    1555              
+    1556              $C$DW$TU$14     .dwtag  DW_TAG_type_unit
+    1557                      .dwmtype  $C$DW$T$14
+    1558              $C$DW$T$14      .dwtag  DW_TAG_base_type
+    1559                      .dwattr $C$DW$T$14, DW_AT_encoding(DW_ATE_signed)
+    1560                      .dwattr $C$DW$T$14, DW_AT_name("long long")
+    1561                      .dwattr $C$DW$T$14, DW_AT_byte_size(0x04)
+    1562              
+    1563                      .dwendtag $C$DW$TU$14
+    1564              
+    1565              
+    1566              $C$DW$TU$15     .dwtag  DW_TAG_type_unit
+    1567                      .dwmtype  $C$DW$T$15
+    1568              $C$DW$T$15      .dwtag  DW_TAG_base_type
+    1569                      .dwattr $C$DW$T$15, DW_AT_encoding(DW_ATE_unsigned)
+    1570                      .dwattr $C$DW$T$15, DW_AT_name("unsigned long long")
+    1571                      .dwattr $C$DW$T$15, DW_AT_byte_size(0x04)
+    1572              
+    1573                      .dwendtag $C$DW$TU$15
+    1574              
+    1575              
+    1576              $C$DW$TU$16     .dwtag  DW_TAG_type_unit
+    1577                      .dwmtype  $C$DW$T$16
+    1578              $C$DW$T$16      .dwtag  DW_TAG_base_type
+    1579                      .dwattr $C$DW$T$16, DW_AT_encoding(DW_ATE_float)
+    1580                      .dwattr $C$DW$T$16, DW_AT_name("float")
+    1581                      .dwattr $C$DW$T$16, DW_AT_byte_size(0x02)
+    1582              
+    1583                      .dwendtag $C$DW$TU$16
+    1584              
+    1585              
+    1586              $C$DW$TU$19     .dwtag  DW_TAG_type_unit
+    1587                      .dwmtype  $C$DW$T$19
+    1588              $C$DW$T$19      .dwtag  DW_TAG_typedef
+    1589                      .dwattr $C$DW$T$19, DW_AT_name("float32_t")
+    1590                      .dwattr $C$DW$T$19, DW_AT_type(*$C$DW$T$16)
+    1591                      .dwattr $C$DW$T$19, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/librar
+    1592                      .dwattr $C$DW$T$19, DW_AT_decl_line(0x4b)
+    1593                      .dwattr $C$DW$T$19, DW_AT_decl_column(0x1d)
+    1594              
+    1595                      .dwendtag $C$DW$TU$19
+    1596              
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+foc_state_machine.asm                                                PAGE   31
+
+    1597              
+    1598              $C$DW$TU$17     .dwtag  DW_TAG_type_unit
+    1599                      .dwmtype  $C$DW$T$17
+    1600              $C$DW$T$17      .dwtag  DW_TAG_base_type
+    1601                      .dwattr $C$DW$T$17, DW_AT_encoding(DW_ATE_float)
+    1602                      .dwattr $C$DW$T$17, DW_AT_name("double")
+    1603                      .dwattr $C$DW$T$17, DW_AT_byte_size(0x04)
+    1604              
+    1605                      .dwendtag $C$DW$TU$17
+    1606              
+    1607              
+    1608              $C$DW$TU$18     .dwtag  DW_TAG_type_unit
+    1609                      .dwmtype  $C$DW$T$18
+    1610              $C$DW$T$18      .dwtag  DW_TAG_base_type
+    1611                      .dwattr $C$DW$T$18, DW_AT_encoding(DW_ATE_float)
+    1612                      .dwattr $C$DW$T$18, DW_AT_name("long double")
+    1613                      .dwattr $C$DW$T$18, DW_AT_byte_size(0x04)
+    1614              
+    1615                      .dwendtag $C$DW$TU$18
+    1616              
+    1617              
+    1618              $C$DW$TU$51     .dwtag  DW_TAG_type_unit
+    1619                      .dwmtype  $C$DW$T$51
+    1620              $C$DW$T$51      .dwtag  DW_TAG_base_type
+    1621                      .dwattr $C$DW$T$51, DW_AT_encoding(DW_ATE_unsigned_char)
+    1622                      .dwattr $C$DW$T$51, DW_AT_name("unsigned char")
+    1623                      .dwattr $C$DW$T$51, DW_AT_byte_size(0x01)
+    1624              
+    1625                      .dwendtag $C$DW$TU$51
+    1626              
+    1627              
+    1628              $C$DW$TU$52     .dwtag  DW_TAG_type_unit
+    1629                      .dwmtype  $C$DW$T$52
+    1630              $C$DW$88        .dwtag  DW_TAG_TI_far_type
+    1631                      .dwattr $C$DW$88, DW_AT_type(*$C$DW$T$51)
+    1632              
+    1633              $C$DW$T$52      .dwtag  DW_TAG_volatile_type
+    1634                      .dwattr $C$DW$T$52, DW_AT_type(*$C$DW$88)
+    1635              
+    1636                      .dwendtag $C$DW$TU$52
+    1637              
+
+No Assembly Errors, No Assembly Warnings

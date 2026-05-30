@@ -1,0 +1,21 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "foc_f28379d",
+      "type": "ccs-debug",
+      "request": "launch",
+      "projectInfo": {
+        "name": "foc_f28379d",
+        "resourceId": "/foc_f28379d"
+      },
+      "launchSettings": {
+        "coresToLoadForProjectLaunch": [
+          "C28xx_CPU1"
+        ]
+      }
+    }
+  ]
+}

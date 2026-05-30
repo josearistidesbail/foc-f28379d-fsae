@@ -1,0 +1,1235 @@
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE    1
+
+       1              ;***************************************************************
+       2              ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
+       3              ;* Date/Time created: Sat May 30 15:57:51 2026                 *
+       4              ;***************************************************************
+       5                      .compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --
+       6                      .asg    XAR2, FP
+       7              
+       8              $C$DW$CU        .dwtag  DW_TAG_compile_unit
+       9                      .dwattr $C$DW$CU, DW_AT_name("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+      10                      .dwattr $C$DW$CU, DW_AT_producer("TI TMS320C2000 G3 C/C++ Codegen Unix v25.11.0.LTS Copyright (c) 199
+      11                      .dwattr $C$DW$CU, DW_AT_TI_version(0x01)
+      12                      .dwattr $C$DW$CU, DW_AT_comp_dir("/home/jose/workspace_ccstheia/foc_f28379d/Debug_BOOSTXL_Teknic_QEP"
+      13 00000000               .data
+      14                      .align  1
+      15                      .elfsym ||s_iu_offset||,SYM_SIZE(1),SYM_BLOCKED(1)
+      16 00000000       ||s_iu_offset||:
+      17 00000000 0800          .bits           0x800,16
+      18                                      ; s_iu_offset @ 0
+      19              
+      20              $C$DW$1 .dwtag  DW_TAG_variable
+      21                      .dwattr $C$DW$1, DW_AT_name("s_iu_offset")
+      22                      .dwattr $C$DW$1, DW_AT_linkage_name("s_iu_offset")
+      23                      .dwattr $C$DW$1, DW_AT_type(*$C$DW$T$41)
+      24                      .dwattr $C$DW$1, DW_AT_location[DW_OP_addr ||s_iu_offset||]
+      25                      .dwattr $C$DW$1, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+      26                      .dwattr $C$DW$1, DW_AT_decl_line(0x0d)
+      27                      .dwattr $C$DW$1, DW_AT_decl_column(0x1a)
+      28              
+      29 00000001               .data
+      30                      .align  1
+      31                      .elfsym ||s_iv_offset||,SYM_SIZE(1),SYM_BLOCKED(1)
+      32 00000001       ||s_iv_offset||:
+      33 00000001 0800          .bits           0x800,16
+      34                                      ; s_iv_offset @ 0
+      35              
+      36              $C$DW$2 .dwtag  DW_TAG_variable
+      37                      .dwattr $C$DW$2, DW_AT_name("s_iv_offset")
+      38                      .dwattr $C$DW$2, DW_AT_linkage_name("s_iv_offset")
+      39                      .dwattr $C$DW$2, DW_AT_type(*$C$DW$T$41)
+      40                      .dwattr $C$DW$2, DW_AT_location[DW_OP_addr ||s_iv_offset||]
+      41                      .dwattr $C$DW$2, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+      42                      .dwattr $C$DW$2, DW_AT_decl_line(0x0e)
+      43                      .dwattr $C$DW$2, DW_AT_decl_column(0x1a)
+      44              
+      45 00000002               .data
+      46                      .align  1
+      47                      .elfsym ||s_iw_offset||,SYM_SIZE(1),SYM_BLOCKED(1)
+      48 00000002       ||s_iw_offset||:
+      49 00000002 0800          .bits           0x800,16
+      50                                      ; s_iw_offset @ 0
+      51              
+      52              $C$DW$3 .dwtag  DW_TAG_variable
+      53                      .dwattr $C$DW$3, DW_AT_name("s_iw_offset")
+      54                      .dwattr $C$DW$3, DW_AT_linkage_name("s_iw_offset")
+      55                      .dwattr $C$DW$3, DW_AT_type(*$C$DW$T$41)
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE    2
+
+      56                      .dwattr $C$DW$3, DW_AT_location[DW_OP_addr ||s_iw_offset||]
+      57                      .dwattr $C$DW$3, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+      58                      .dwattr $C$DW$3, DW_AT_decl_line(0x0f)
+      59                      .dwattr $C$DW$3, DW_AT_decl_column(0x1a)
+      60              
+      61                      .global ||g_dbg_iu_raw||
+      62 00000000               .bss    ||g_dbg_iu_raw||,1,1,0
+      63              $C$DW$4 .dwtag  DW_TAG_variable
+      64                      .dwattr $C$DW$4, DW_AT_name("g_dbg_iu_raw")
+      65                      .dwattr $C$DW$4, DW_AT_linkage_name("g_dbg_iu_raw")
+      66                      .dwattr $C$DW$4, DW_AT_location[DW_OP_addr ||g_dbg_iu_raw||]
+      67                      .dwattr $C$DW$4, DW_AT_type(*$C$DW$T$41)
+      68                      .dwattr $C$DW$4, DW_AT_external
+      69                      .dwattr $C$DW$4, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+      70                      .dwattr $C$DW$4, DW_AT_decl_line(0x12)
+      71                      .dwattr $C$DW$4, DW_AT_decl_column(0x13)
+      72              
+      73                      .global ||g_dbg_iv_raw||
+      74 00000001               .bss    ||g_dbg_iv_raw||,1,1,0
+      75              $C$DW$5 .dwtag  DW_TAG_variable
+      76                      .dwattr $C$DW$5, DW_AT_name("g_dbg_iv_raw")
+      77                      .dwattr $C$DW$5, DW_AT_linkage_name("g_dbg_iv_raw")
+      78                      .dwattr $C$DW$5, DW_AT_location[DW_OP_addr ||g_dbg_iv_raw||]
+      79                      .dwattr $C$DW$5, DW_AT_type(*$C$DW$T$41)
+      80                      .dwattr $C$DW$5, DW_AT_external
+      81                      .dwattr $C$DW$5, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+      82                      .dwattr $C$DW$5, DW_AT_decl_line(0x13)
+      83                      .dwattr $C$DW$5, DW_AT_decl_column(0x13)
+      84              
+      85                      .global ||g_dbg_iw_raw||
+      86 00000002               .bss    ||g_dbg_iw_raw||,1,1,0
+      87              $C$DW$6 .dwtag  DW_TAG_variable
+      88                      .dwattr $C$DW$6, DW_AT_name("g_dbg_iw_raw")
+      89                      .dwattr $C$DW$6, DW_AT_linkage_name("g_dbg_iw_raw")
+      90                      .dwattr $C$DW$6, DW_AT_location[DW_OP_addr ||g_dbg_iw_raw||]
+      91                      .dwattr $C$DW$6, DW_AT_type(*$C$DW$T$41)
+      92                      .dwattr $C$DW$6, DW_AT_external
+      93                      .dwattr $C$DW$6, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+      94                      .dwattr $C$DW$6, DW_AT_decl_line(0x14)
+      95                      .dwattr $C$DW$6, DW_AT_decl_column(0x13)
+      96              
+      97                      .global ||g_dbg_vbus_raw||
+      98 00000003               .bss    ||g_dbg_vbus_raw||,1,1,0
+      99              $C$DW$7 .dwtag  DW_TAG_variable
+     100                      .dwattr $C$DW$7, DW_AT_name("g_dbg_vbus_raw")
+     101                      .dwattr $C$DW$7, DW_AT_linkage_name("g_dbg_vbus_raw")
+     102                      .dwattr $C$DW$7, DW_AT_location[DW_OP_addr ||g_dbg_vbus_raw||]
+     103                      .dwattr $C$DW$7, DW_AT_type(*$C$DW$T$41)
+     104                      .dwattr $C$DW$7, DW_AT_external
+     105                      .dwattr $C$DW$7, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     106                      .dwattr $C$DW$7, DW_AT_decl_line(0x15)
+     107                      .dwattr $C$DW$7, DW_AT_decl_column(0x13)
+     108              
+     109                      .sblock ".bss"
+     110                      .sblock ".data"
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE    3
+
+     111              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI25WerWb7B /tmp/T
+     112              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI25WJmQLrq 
+     113 00000000               .sect   ".text:adc_read_vbus"
+     114                      .clink
+     115                      .global ||adc_read_vbus||
+     116              
+     117              $C$DW$8 .dwtag  DW_TAG_subprogram
+     118                      .dwattr $C$DW$8, DW_AT_name("adc_read_vbus")
+     119                      .dwattr $C$DW$8, DW_AT_low_pc(||adc_read_vbus||)
+     120                      .dwattr $C$DW$8, DW_AT_high_pc(0x00)
+     121                      .dwattr $C$DW$8, DW_AT_linkage_name("adc_read_vbus")
+     122                      .dwattr $C$DW$8, DW_AT_external
+     123                      .dwattr $C$DW$8, DW_AT_type(*$C$DW$T$16)
+     124                      .dwattr $C$DW$8, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     125                      .dwattr $C$DW$8, DW_AT_decl_line(0x3f)
+     126                      .dwattr $C$DW$8, DW_AT_decl_column(0x07)
+     127                      .dwattr $C$DW$8, DW_AT_TI_max_frame_size(-2)
+     128                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 64,column 1,is_stmt,
+     129              
+     130                      .dwfde $C$DW$CIE, ||adc_read_vbus||
+     131              
+     132              ;***************************************************************
+     133              ;* FNAME: adc_read_vbus                 FR SIZE:   0           *
+     134              ;*                                                             *
+     135              ;* FUNCTION ENVIRONMENT                                        *
+     136              ;*                                                             *
+     137              ;* FUNCTION PROPERTIES                                         *
+     138              ;*                            0 Parameter,  0 Auto,  0 SOE     *
+     139              ;***************************************************************
+     140              
+     141              ||adc_read_vbus||:
+     142              ;* AL    assigned to c
+     143              $C$DW$9 .dwtag  DW_TAG_variable
+     144                      .dwattr $C$DW$9, DW_AT_name("c")
+     145                      .dwattr $C$DW$9, DW_AT_type(*$C$DW$T$38)
+     146                      .dwattr $C$DW$9, DW_AT_location[DW_OP_reg0]
+     147              
+     148                      .dwcfi  cfa_offset, -2
+     149                      .dwcfi  save_reg_to_mem, 26, 0
+     150                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/adc.h",line 923,c
+     151 00000000 F5A9          MOV       AL,*(0:0x0b03)        ; [CPU_ALU] |923| 
+         00000001 0B03 
+     152                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 67,column 5,is_stmt,
+     153 00000002 88A9          MOVZ      AR6,AL                ; [CPU_ALU] |67| 
+     154 00000003 BDA6          MOV32     R1H,XAR6              ; [CPU_FPU] |67| 
+         00000004 0F16 
+     155 00000005 7700          NOP       ; [CPU_ALU] 
+     156 00000006 7700          NOP       ; [CPU_ALU] 
+     157 00000007 E801          MOVIZ     R0H,#15389            ; [CPU_FPU] |67| 
+         00000008 E0E8 
+     158 00000009 761F!         MOVW      DP,#||g_dbg_vbus_raw|| ; [CPU_ARAU] 
+         0000000a 0000 
+     159 0000000b E68B          UI32TOF32 R1H,R1H               ; [CPU_FPU] |67| 
+         0000000c 0009 
+     160 0000000d E80C          MOVXI     R0H,#36700            ; [CPU_FPU] |67| 
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE    4
+
+         0000000e 7AE0 
+     161 0000000f E700          MPYF32    R0H,R0H,R1H           ; [CPU_FPU] |67| 
+         00000010 0040 
+     162                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 66,column 5,is_stmt,
+     163 00000011 9600!         MOV       @||g_dbg_vbus_raw||,AL ; [CPU_ALU] |66| 
+     164              $C$DW$10        .dwtag  DW_TAG_TI_branch
+     165                      .dwattr $C$DW$10, DW_AT_low_pc(0x00)
+     166                      .dwattr $C$DW$10, DW_AT_TI_return
+     167              
+     168 00000012 0006          LRETR     ; [CPU_ALU] 
+     169                      ; return occurs ; [] 
+     170                      .dwattr $C$DW$8, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     171                      .dwattr $C$DW$8, DW_AT_TI_end_line(0x44)
+     172                      .dwattr $C$DW$8, DW_AT_TI_end_column(0x01)
+     173                      .dwendentry
+     174                      .dwendtag $C$DW$8
+     175              
+     176 00000000               .sect   ".text:adc_read_phase_currents"
+     177                      .clink
+     178                      .global ||adc_read_phase_currents||
+     179              
+     180              $C$DW$11        .dwtag  DW_TAG_subprogram
+     181                      .dwattr $C$DW$11, DW_AT_name("adc_read_phase_currents")
+     182                      .dwattr $C$DW$11, DW_AT_low_pc(||adc_read_phase_currents||)
+     183                      .dwattr $C$DW$11, DW_AT_high_pc(0x00)
+     184                      .dwattr $C$DW$11, DW_AT_linkage_name("adc_read_phase_currents")
+     185                      .dwattr $C$DW$11, DW_AT_external
+     186                      .dwattr $C$DW$11, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     187                      .dwattr $C$DW$11, DW_AT_decl_line(0x2c)
+     188                      .dwattr $C$DW$11, DW_AT_decl_column(0x06)
+     189                      .dwattr $C$DW$11, DW_AT_TI_max_frame_size(-2)
+     190                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 45,column 1,is_stmt,
+     191              
+     192                      .dwfde $C$DW$CIE, ||adc_read_phase_currents||
+     193              $C$DW$12        .dwtag  DW_TAG_formal_parameter
+     194                      .dwattr $C$DW$12, DW_AT_name("out")
+     195                      .dwattr $C$DW$12, DW_AT_type(*$C$DW$T$28)
+     196                      .dwattr $C$DW$12, DW_AT_location[DW_OP_reg12]
+     197              
+     198              
+     199              ;***************************************************************
+     200              ;* FNAME: adc_read_phase_currents       FR SIZE:   0           *
+     201              ;*                                                             *
+     202              ;* FUNCTION ENVIRONMENT                                        *
+     203              ;*                                                             *
+     204              ;* FUNCTION PROPERTIES                                         *
+     205              ;*                            0 Parameter,  0 Auto,  0 SOE     *
+     206              ;***************************************************************
+     207              
+     208              ||adc_read_phase_currents||:
+     209              ;* R3    assigned to $O$C4
+     210              ;* R0    assigned to $O$C5
+     211              ;* AR4   assigned to out
+     212              $C$DW$13        .dwtag  DW_TAG_variable
+     213                      .dwattr $C$DW$13, DW_AT_name("out")
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE    5
+
+     214                      .dwattr $C$DW$13, DW_AT_type(*$C$DW$T$29)
+     215                      .dwattr $C$DW$13, DW_AT_location[DW_OP_reg12]
+     216              
+     217              ;* AH    assigned to cu
+     218              $C$DW$14        .dwtag  DW_TAG_variable
+     219                      .dwattr $C$DW$14, DW_AT_name("cu")
+     220                      .dwattr $C$DW$14, DW_AT_type(*$C$DW$T$38)
+     221                      .dwattr $C$DW$14, DW_AT_location[DW_OP_reg1]
+     222              
+     223              ;* AL    assigned to cv
+     224              $C$DW$15        .dwtag  DW_TAG_variable
+     225                      .dwattr $C$DW$15, DW_AT_name("cv")
+     226                      .dwattr $C$DW$15, DW_AT_type(*$C$DW$T$38)
+     227                      .dwattr $C$DW$15, DW_AT_location[DW_OP_reg0]
+     228              
+     229              ;* AR6   assigned to cw
+     230              $C$DW$16        .dwtag  DW_TAG_variable
+     231                      .dwattr $C$DW$16, DW_AT_name("cw")
+     232                      .dwattr $C$DW$16, DW_AT_type(*$C$DW$T$38)
+     233                      .dwattr $C$DW$16, DW_AT_location[DW_OP_reg16]
+     234              
+     235              ;* AR7   assigned to offset
+     236              $C$DW$17        .dwtag  DW_TAG_variable
+     237                      .dwattr $C$DW$17, DW_AT_name("offset")
+     238                      .dwattr $C$DW$17, DW_AT_type(*$C$DW$T$38)
+     239                      .dwattr $C$DW$17, DW_AT_location[DW_OP_reg18]
+     240              
+     241              ;* AR7   assigned to offset
+     242              $C$DW$18        .dwtag  DW_TAG_variable
+     243                      .dwattr $C$DW$18, DW_AT_name("offset")
+     244                      .dwattr $C$DW$18, DW_AT_type(*$C$DW$T$38)
+     245                      .dwattr $C$DW$18, DW_AT_location[DW_OP_reg18]
+     246              
+     247                      .dwcfi  cfa_offset, -2
+     248                      .dwcfi  save_reg_to_mem, 26, 0
+     249                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/adc.h",line 923,c
+     250 00000000 F5A8          MOV       AH,*(0:0x0b40)        ; [CPU_ALU] |923| 
+         00000001 0B40 
+     251 00000002 F5A9          MOV       AL,*(0:0x0b21)        ; [CPU_ALU] |923| 
+         00000003 0B21 
+     252 00000004 F5A6          MOV       AR6,*(0:0x0b02)       ; [CPU_ALU] |923| 
+         00000005 0B02 
+     253 00000006 761F!         MOVW      DP,#||g_dbg_iu_raw||  ; [CPU_ARAU] 
+         00000007 0000 
+     254                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 50,column 5,is_stmt,
+     255 00000008 9700!         MOV       @||g_dbg_iu_raw||,AH  ; [CPU_ALU] |50| 
+     256                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 51,column 5,is_stmt,
+     257 00000009 9600!         MOV       @||g_dbg_iv_raw||,AL  ; [CPU_ALU] |51| 
+     258                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 52,column 5,is_stmt,
+     259 0000000a 7E00!         MOV       @||g_dbg_iw_raw||,AR6 ; [CPU_ALU] |52| 
+     260 0000000b 761F!         MOVW      DP,#||s_iu_offset||   ; [CPU_ARAU] 
+         0000000c 0000 
+     261                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 40,column 1,is_stmt,
+     262 0000000d 9300!         MOV       AH,@||s_iu_offset||   ; [CPU_ALU] |40| 
+     263 0000000e 8000!         MOVZ      AR7,@||s_iv_offset||  ; [CPU_ALU] |40| 
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE    6
+
+     264                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 55,column 5,is_stmt,
+     265 0000000f 0EA9          MOVU      ACC,AL                ; [CPU_ALU] |55| 
+     266 00000010 03A7          SUBL      ACC,XAR7              ; [CPU_ALU] |55| 
+     267 00000011 BDA9          MOV32     R0H,ACC               ; [CPU_FPU] |55| 
+         00000012 0F12 
+     268 00000013 7700          NOP       ; [CPU_ALU] 
+     269                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 40,column 1,is_stmt,
+     270 00000014 8000!         MOVZ      AR7,@||s_iw_offset||  ; [CPU_ALU] |40| 
+     271                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 56,column 5,is_stmt,
+     272 00000015 0EA6          MOVU      ACC,AR6               ; [CPU_ALU] |56| 
+     273                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 55,column 5,is_stmt,
+     274 00000016 E801          MOVIZ     R1H,#15403            ; [CPU_FPU] |55| 
+         00000017 E159 
+     275 00000018 E689          I32TOF32  R0H,R0H               ; [CPU_FPU] |55| 
+         00000019 0000 
+     276                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 56,column 5,is_stmt,
+     277 0000001a 88A7          MOVZ      AR6,AR7               ; [CPU_ALU] |56| 
+     278                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 55,column 5,is_stmt,
+     279 0000001b E80B          MOVXI     R1H,#28087            ; [CPU_FPU] |55| 
+         0000001c 6DB9 
+     280 0000001d E6AF          NEGF32    R0H,R0H               ; [CPU_FPU] |55| 
+         0000001e 0000 
+     281 0000001f E700          MPYF32    R3H,R1H,R0H           ; [CPU_FPU] |55| 
+         00000020 000B 
+     282                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 56,column 5,is_stmt,
+     283 00000021 03A6          SUBL      ACC,XAR6              ; [CPU_ALU] |56| 
+     284 00000022 BDA9          MOV32     R0H,ACC               ; [CPU_FPU] |56| 
+         00000023 0F12 
+     285 00000024 7700          NOP       ; [CPU_ALU] 
+     286 00000025 7700          NOP       ; [CPU_ALU] 
+     287 00000026 E801          MOVIZ     R1H,#15403            ; [CPU_FPU] |56| 
+         00000027 E159 
+     288                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 59,column 5,is_stmt,
+     289 00000028 E6CF          MOV32     R2H,R3H               ; [CPU_FPU] |59| 
+         00000029 001A 
+     290                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 56,column 5,is_stmt,
+     291 0000002a E689          I32TOF32  R0H,R0H               ; [CPU_FPU] |56| 
+         0000002b 0000 
+     292 0000002c E80B          MOVXI     R1H,#28087            ; [CPU_FPU] |56| 
+         0000002d 6DB9 
+     293 0000002e E6AF          NEGF32    R0H,R0H               ; [CPU_FPU] |56| 
+         0000002f 0000 
+     294 00000030 E700          MPYF32    R0H,R1H,R0H           ; [CPU_FPU] |56| 
+         00000031 0008 
+     295                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 59,column 5,is_stmt,
+     296 00000032 E6AF          NEGF32    R2H,R2H               ; [CPU_FPU] |59| 
+         00000033 0012 
+     297                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 55,column 5,is_stmt,
+     298              
+     299 00000034 E020          SUBF32    R1H,R2H,R0H           ; [CPU_FPU] |59| 
+         00000035 8BD4 
+     300              ||      MOV32     *+XAR4[2],R3H         ; [CPU_FPU] |55| 
+     301              
+     302                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 56,column 5,is_stmt,
+     303 00000036 E203          MOV32     *+XAR4[4],R0H         ; [CPU_FPU] |56| 
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE    7
+
+         00000037 00E4 
+     304                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 59,column 5,is_stmt,
+     305 00000038 E203          MOV32     *+XAR4[0],R1H         ; [CPU_FPU] |59| 
+         00000039 01C4 
+     306              $C$DW$19        .dwtag  DW_TAG_TI_branch
+     307                      .dwattr $C$DW$19, DW_AT_low_pc(0x00)
+     308                      .dwattr $C$DW$19, DW_AT_TI_return
+     309              
+     310 0000003a 0006          LRETR     ; [CPU_ALU] 
+     311                      ; return occurs ; [] 
+     312                      .dwattr $C$DW$11, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     313                      .dwattr $C$DW$11, DW_AT_TI_end_line(0x3d)
+     314                      .dwattr $C$DW$11, DW_AT_TI_end_column(0x01)
+     315                      .dwendentry
+     316                      .dwendtag $C$DW$11
+     317              
+     318 00000000               .sect   ".text:adc_init"
+     319                      .clink
+     320                      .global ||adc_init||
+     321              
+     322              $C$DW$20        .dwtag  DW_TAG_subprogram
+     323                      .dwattr $C$DW$20, DW_AT_name("adc_init")
+     324                      .dwattr $C$DW$20, DW_AT_low_pc(||adc_init||)
+     325                      .dwattr $C$DW$20, DW_AT_high_pc(0x00)
+     326                      .dwattr $C$DW$20, DW_AT_linkage_name("adc_init")
+     327                      .dwattr $C$DW$20, DW_AT_external
+     328                      .dwattr $C$DW$20, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     329                      .dwattr $C$DW$20, DW_AT_decl_line(0x21)
+     330                      .dwattr $C$DW$20, DW_AT_decl_column(0x06)
+     331                      .dwattr $C$DW$20, DW_AT_TI_max_frame_size(-2)
+     332                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 34,column 1,is_stmt,
+     333              
+     334                      .dwfde $C$DW$CIE, ||adc_init||
+     335              
+     336              ;***************************************************************
+     337              ;* FNAME: adc_init                      FR SIZE:   0           *
+     338              ;*                                                             *
+     339              ;* FUNCTION ENVIRONMENT                                        *
+     340              ;*                                                             *
+     341              ;* FUNCTION PROPERTIES                                         *
+     342              ;*                            0 Parameter,  0 Auto,  0 SOE     *
+     343              ;***************************************************************
+     344              
+     345 00000000       ||adc_init||:
+     346                      .dwcfi  cfa_offset, -2
+     347                      .dwcfi  save_reg_to_mem, 26, 0
+     348              $C$DW$21        .dwtag  DW_TAG_TI_branch
+     349                      .dwattr $C$DW$21, DW_AT_low_pc(0x00)
+     350                      .dwattr $C$DW$21, DW_AT_TI_return
+     351              
+     352 00000000 0006          LRETR     ; [CPU_ALU] 
+     353                      ; return occurs ; [] 
+     354                      .dwattr $C$DW$20, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     355                      .dwattr $C$DW$20, DW_AT_TI_end_line(0x25)
+     356                      .dwattr $C$DW$20, DW_AT_TI_end_column(0x01)
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE    8
+
+     357                      .dwendentry
+     358                      .dwendtag $C$DW$20
+     359              
+     360 00000000               .sect   ".text:adc_calibrate_offsets"
+     361                      .clink
+     362                      .global ||adc_calibrate_offsets||
+     363              
+     364              $C$DW$22        .dwtag  DW_TAG_subprogram
+     365                      .dwattr $C$DW$22, DW_AT_name("adc_calibrate_offsets")
+     366                      .dwattr $C$DW$22, DW_AT_low_pc(||adc_calibrate_offsets||)
+     367                      .dwattr $C$DW$22, DW_AT_high_pc(0x00)
+     368                      .dwattr $C$DW$22, DW_AT_linkage_name("adc_calibrate_offsets")
+     369                      .dwattr $C$DW$22, DW_AT_external
+     370                      .dwattr $C$DW$22, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     371                      .dwattr $C$DW$22, DW_AT_decl_line(0x53)
+     372                      .dwattr $C$DW$22, DW_AT_decl_column(0x06)
+     373                      .dwattr $C$DW$22, DW_AT_TI_max_frame_size(-4)
+     374                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 84,column 1,is_stmt,
+     375              
+     376                      .dwfde $C$DW$CIE, ||adc_calibrate_offsets||
+     377              $C$DW$23        .dwtag  DW_TAG_formal_parameter
+     378                      .dwattr $C$DW$23, DW_AT_name("n")
+     379                      .dwattr $C$DW$23, DW_AT_type(*$C$DW$T$38)
+     380                      .dwattr $C$DW$23, DW_AT_location[DW_OP_reg0]
+     381              
+     382              
+     383              ;***************************************************************
+     384              ;* FNAME: adc_calibrate_offsets         FR SIZE:   2           *
+     385              ;*                                                             *
+     386              ;* FUNCTION ENVIRONMENT                                        *
+     387              ;*                                                             *
+     388              ;* FUNCTION PROPERTIES                                         *
+     389              ;*                            0 Parameter,  0 Auto,  2 SOE     *
+     390              ;***************************************************************
+     391              
+     392              ||adc_calibrate_offsets||:
+     393              ;* AR2   assigned to $O$R2
+     394              ;* T     assigned to $O$R3
+     395              ;* AR5   assigned to $O$R4
+     396              ;* AR0   assigned to n
+     397              $C$DW$24        .dwtag  DW_TAG_variable
+     398                      .dwattr $C$DW$24, DW_AT_name("n")
+     399                      .dwattr $C$DW$24, DW_AT_type(*$C$DW$T$42)
+     400                      .dwattr $C$DW$24, DW_AT_location[DW_OP_reg4]
+     401              
+     402              ;* PL    assigned to su
+     403              $C$DW$25        .dwtag  DW_TAG_variable
+     404                      .dwattr $C$DW$25, DW_AT_name("su")
+     405                      .dwattr $C$DW$25, DW_AT_type(*$C$DW$T$33)
+     406                      .dwattr $C$DW$25, DW_AT_location[DW_OP_reg2]
+     407              
+     408              ;* AR7   assigned to sv
+     409              $C$DW$26        .dwtag  DW_TAG_variable
+     410                      .dwattr $C$DW$26, DW_AT_name("sv")
+     411                      .dwattr $C$DW$26, DW_AT_type(*$C$DW$T$33)
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE    9
+
+     412                      .dwattr $C$DW$26, DW_AT_location[DW_OP_reg18]
+     413              
+     414              ;* AR4   assigned to sw
+     415              $C$DW$27        .dwtag  DW_TAG_variable
+     416                      .dwattr $C$DW$27, DW_AT_name("sw")
+     417                      .dwattr $C$DW$27, DW_AT_type(*$C$DW$T$33)
+     418                      .dwattr $C$DW$27, DW_AT_location[DW_OP_reg12]
+     419              
+     420                      .dwcfi  cfa_offset, -2
+     421                      .dwcfi  save_reg_to_mem, 26, 0
+     422                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 85,column 17,is_stmt
+     423 00000000 3100          MOV       P,#0                  ; [CPU_ALU] |85| 
+     424                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 87,column 16,is_stmt
+     425 00000001 5200          CMPB      AL,#0                 ; [CPU_ALU] |87| 
+     426 00000002 AABD          MOVL      *SP++,XAR2            ; [CPU_ALU] 
+     427                      .dwcfi  save_reg_to_mem, 9, 2
+     428                      .dwcfi  cfa_offset, -4
+     429                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 84,column 1,is_stmt,
+     430 00000003 58A9          MOVZ      AR0,AL                ; [CPU_ALU] |84| 
+     431                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 85,column 17,is_stmt
+     432 00000004 A9A7          MOVL      XAR7,P                ; [CPU_FPU] |85| 
+     433 00000005 A9A4          MOVL      XAR4,P                ; [CPU_FPU] |85| 
+     434                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 87,column 16,is_stmt
+     435 00000006 611B          B         ||$C$L2||,EQ          ; [CPU_ALU] |87| 
+     436                      ; branchcc occurs ; [] |87| 
+     437 00000007 88A0          MOVZ      AR6,AR0               ; [CPU_ALU] 
+     438 00000008 DE81          SUBB      XAR6,#1               ; [CPU_ARAU] 
+     439 00000009       ||$C$L1||:    
+     440                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/adc.h",line 787,c
+     441 00000009 F5A9          MOV       AL,*(0:0x7403)        ; [CPU_ALU] |787| 
+         0000000a 7403 
+     442 0000000b 40A9          TBIT      AL,#0                 ; [CPU_ALU] |787| 
+     443 0000000c 6CFD          B         ||$C$L1||,NTC         ; [CPU_ALU] |787| 
+     444                      ; branchcc occurs ; [] |787| 
+     445                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/adc.h",line 819,c
+     446 0000000d 9A01          MOVB      AL,#1                 ; [CPU_ALU] |819| 
+     447 0000000e F4A9          MOV       *(0:0x7404),AL        ; [CPU_ALU] |819| 
+         0000000f 7404 
+     448                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/adc.h",line 923,c
+     449 00000010 F5A2          MOV       AR2,*(0:0x0b40)       ; [CPU_ALU] |923| 
+         00000011 0B40 
+     450 00000012 A9A9          MOVL      ACC,P                 ; [CPU_ALU] |923| 
+     451 00000013 F5AC          MOV       T,*(0:0x0b21)         ; [CPU_ALU] |923| 
+         00000014 0B21 
+     452                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 94,column 9,is_stmt,
+     453 00000015 0DA2          ADDU      ACC,AR2               ; [CPU_ALU] |94| 
+     454                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/adc.h",line 923,c
+     455 00000016 F5A5          MOV       AR5,*(0:0x0b02)       ; [CPU_FPU] |923| 
+         00000017 0B02 
+     456                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 94,column 9,is_stmt,
+     457 00000018 FF5A          MOVL      P,ACC                 ; [CPU_ALU] |94| 
+     458                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 87,column 16,is_stmt
+     459 00000019 06A7          MOVL      ACC,XAR7              ; [CPU_ALU] |87| 
+     460                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 95,column 9,is_stmt,
+     461 0000001a 0DAC          ADDU      ACC,T                 ; [CPU_ALU] |95| 
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE   10
+
+     462 0000001b 1EA7          MOVL      XAR7,ACC              ; [CPU_ALU] |95| 
+     463 0000001c A8A9          MOVL      ACC,XAR4              ; [CPU_ALU] |95| 
+     464                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 96,column 9,is_stmt,
+     465 0000001d 0DA5          ADDU      ACC,AR5               ; [CPU_ALU] |96| 
+     466 0000001e 8AA9          MOVL      XAR4,ACC              ; [CPU_ALU] |96| 
+     467                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 87,column 16,is_stmt
+     468 0000001f 000E          BANZ      ||$C$L1||,AR6--       ; [CPU_ALU] |87| 
+         00000020 FFEA 
+     469                      ; branchcc occurs ; [] |87| 
+     470 00000021       ||$C$L2||:    
+     471                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 98,column 5,is_stmt,
+     472 00000021 88A0          MOVZ      AR6,AR0               ; [CPU_ALU] |98| 
+     473 00000022 0200          MOVB      ACC,#0                ; [CPU_ALU] |98| 
+     474 00000023 761F!         MOVW      DP,#||s_iu_offset||   ; [CPU_ARAU] 
+         00000024 0000 
+     475 00000025 F61F          RPT       #31
+     476 00000026 5617  ||     SUBCUL    ACC,XAR6              ; [CPU_ALU] |98| 
+         00000027 00A6 
+     477                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 99,column 5,is_stmt,
+     478 00000028 88A0          MOVZ      AR6,AR0               ; [CPU_ALU] |99| 
+     479                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 98,column 5,is_stmt,
+     480 00000029 3F00!         MOV       @||s_iu_offset||,P    ; [CPU_ALU] |98| 
+     481                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 99,column 5,is_stmt,
+     482 0000002a 0200          MOVB      ACC,#0                ; [CPU_ALU] |99| 
+     483                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 98,column 5,is_stmt,
+     484 0000002b A3A7          MOVL      P,XAR7                ; [CPU_ALU] |98| 
+     485                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 99,column 5,is_stmt,
+     486 0000002c F61F          RPT       #31
+     487 0000002d 5617  ||     SUBCUL    ACC,XAR6              ; [CPU_ALU] |99| 
+         0000002e 00A6 
+     488 0000002f 3F00!         MOV       @||s_iv_offset||,P    ; [CPU_ALU] |99| 
+     489                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 100,column 5,is_stmt
+     490 00000030 88A0          MOVZ      AR6,AR0               ; [CPU_ALU] |100| 
+     491 00000031 86BE          MOVL      XAR2,*--SP            ; [CPU_ALU] 
+     492                      .dwcfi  cfa_offset, -2
+     493                      .dwcfi  restore_reg, 9
+     494 00000032 0200          MOVB      ACC,#0                ; [CPU_ALU] |100| 
+     495                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 99,column 5,is_stmt,
+     496 00000033 A8AB          MOVL      P,XAR4                ; [CPU_ALU] |99| 
+     497                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 100,column 5,is_stmt
+     498 00000034 F61F          RPT       #31
+     499 00000035 5617  ||     SUBCUL    ACC,XAR6              ; [CPU_ALU] |100| 
+         00000036 00A6 
+     500 00000037 3F00!         MOV       @||s_iw_offset||,P    ; [CPU_ALU] |100| 
+     501              $C$DW$28        .dwtag  DW_TAG_TI_branch
+     502                      .dwattr $C$DW$28, DW_AT_low_pc(0x00)
+     503                      .dwattr $C$DW$28, DW_AT_TI_return
+     504              
+     505 00000038 0006          LRETR     ; [CPU_ALU] 
+     506                      ; return occurs ; [] 
+     507                      .dwattr $C$DW$22, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     508                      .dwattr $C$DW$22, DW_AT_TI_end_line(0x65)
+     509                      .dwattr $C$DW$22, DW_AT_TI_end_column(0x01)
+     510                      .dwendentry
+     511                      .dwendtag $C$DW$22
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE   11
+
+     512              
+     513              
+     514              ;***************************************************************
+     515              ;* BUILD ATTRIBUTES                                            *
+     516              ;***************************************************************
+     517                      .battr "c28xabi", Tag_File, 1, Tag_float_args(1)
+     518                      .battr "c28xabi", Tag_File, 1, Tag_double_args(0)
+     519                      .dwattr $C$DW$CU, DW_AT_language(DW_LANG_C)
+     520              
+     521              ;***************************************************************
+     522              ;* DWARF CIE ENTRIES                                           *
+     523              ;***************************************************************
+     524              
+     525              $C$DW$CIE       .dwcie 26
+     526                      .dwcfi  cfa_register, 20
+     527                      .dwcfi  cfa_offset, 0
+     528                      .dwcfi  same_value, 28
+     529                      .dwcfi  same_value, 6
+     530                      .dwcfi  same_value, 7
+     531                      .dwcfi  same_value, 8
+     532                      .dwcfi  same_value, 9
+     533                      .dwcfi  same_value, 10
+     534                      .dwcfi  same_value, 11
+     535                      .dwcfi  same_value, 59
+     536                      .dwcfi  same_value, 63
+     537                      .dwcfi  same_value, 67
+     538                      .dwcfi  same_value, 71
+     539                      .dwendentry
+     540                      .dwendtag $C$DW$CU
+     541              
+     542              
+     543              ;***************************************************************
+     544              ;* TYPE INFORMATION                                            *
+     545              ;***************************************************************
+     546              
+     547              $C$DW$TU$22     .dwtag  DW_TAG_type_unit
+     548                      .dwmtype  $C$DW$T$22
+     549              
+     550              $C$DW$T$22      .dwtag  DW_TAG_enumeration_type
+     551                      .dwattr $C$DW$T$22, DW_AT_byte_size(0x01)
+     552              $C$DW$29        .dwtag  DW_TAG_enumerator
+     553                      .dwattr $C$DW$29, DW_AT_name("ADC_INT_NUMBER1")
+     554                      .dwattr $C$DW$29, DW_AT_const_value(0x00)
+     555                      .dwattr $C$DW$29, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     556                      .dwattr $C$DW$29, DW_AT_decl_line(0x126)
+     557                      .dwattr $C$DW$29, DW_AT_decl_column(0x05)
+     558              
+     559              $C$DW$30        .dwtag  DW_TAG_enumerator
+     560                      .dwattr $C$DW$30, DW_AT_name("ADC_INT_NUMBER2")
+     561                      .dwattr $C$DW$30, DW_AT_const_value(0x01)
+     562                      .dwattr $C$DW$30, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     563                      .dwattr $C$DW$30, DW_AT_decl_line(0x127)
+     564                      .dwattr $C$DW$30, DW_AT_decl_column(0x05)
+     565              
+     566              $C$DW$31        .dwtag  DW_TAG_enumerator
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE   12
+
+     567                      .dwattr $C$DW$31, DW_AT_name("ADC_INT_NUMBER3")
+     568                      .dwattr $C$DW$31, DW_AT_const_value(0x02)
+     569                      .dwattr $C$DW$31, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     570                      .dwattr $C$DW$31, DW_AT_decl_line(0x128)
+     571                      .dwattr $C$DW$31, DW_AT_decl_column(0x05)
+     572              
+     573              $C$DW$32        .dwtag  DW_TAG_enumerator
+     574                      .dwattr $C$DW$32, DW_AT_name("ADC_INT_NUMBER4")
+     575                      .dwattr $C$DW$32, DW_AT_const_value(0x03)
+     576                      .dwattr $C$DW$32, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     577                      .dwattr $C$DW$32, DW_AT_decl_line(0x129)
+     578                      .dwattr $C$DW$32, DW_AT_decl_column(0x05)
+     579              
+     580                      .dwattr $C$DW$T$22, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driv
+     581                      .dwattr $C$DW$T$22, DW_AT_decl_line(0x125)
+     582                      .dwattr $C$DW$T$22, DW_AT_decl_column(0x01)
+     583                      .dwendtag $C$DW$T$22
+     584              
+     585                      .dwendtag $C$DW$TU$22
+     586              
+     587              
+     588              $C$DW$TU$23     .dwtag  DW_TAG_type_unit
+     589                      .dwmtype  $C$DW$T$23
+     590              $C$DW$T$23      .dwtag  DW_TAG_typedef
+     591                      .dwattr $C$DW$T$23, DW_AT_name("ADC_IntNumber")
+     592                      .dwattr $C$DW$T$23, DW_AT_type(*$C$DW$T$22)
+     593                      .dwattr $C$DW$T$23, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driv
+     594                      .dwattr $C$DW$T$23, DW_AT_decl_line(0x12a)
+     595                      .dwattr $C$DW$T$23, DW_AT_decl_column(0x03)
+     596              
+     597                      .dwendtag $C$DW$TU$23
+     598              
+     599              
+     600              $C$DW$TU$24     .dwtag  DW_TAG_type_unit
+     601                      .dwmtype  $C$DW$T$24
+     602              
+     603              $C$DW$T$24      .dwtag  DW_TAG_enumeration_type
+     604                      .dwattr $C$DW$T$24, DW_AT_byte_size(0x01)
+     605              $C$DW$33        .dwtag  DW_TAG_enumerator
+     606                      .dwattr $C$DW$33, DW_AT_name("ADC_SOC_NUMBER0")
+     607                      .dwattr $C$DW$33, DW_AT_const_value(0x00)
+     608                      .dwattr $C$DW$33, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     609                      .dwattr $C$DW$33, DW_AT_decl_line(0x145)
+     610                      .dwattr $C$DW$33, DW_AT_decl_column(0x05)
+     611              
+     612              $C$DW$34        .dwtag  DW_TAG_enumerator
+     613                      .dwattr $C$DW$34, DW_AT_name("ADC_SOC_NUMBER1")
+     614                      .dwattr $C$DW$34, DW_AT_const_value(0x01)
+     615                      .dwattr $C$DW$34, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     616                      .dwattr $C$DW$34, DW_AT_decl_line(0x146)
+     617                      .dwattr $C$DW$34, DW_AT_decl_column(0x05)
+     618              
+     619              $C$DW$35        .dwtag  DW_TAG_enumerator
+     620                      .dwattr $C$DW$35, DW_AT_name("ADC_SOC_NUMBER2")
+     621                      .dwattr $C$DW$35, DW_AT_const_value(0x02)
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE   13
+
+     622                      .dwattr $C$DW$35, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     623                      .dwattr $C$DW$35, DW_AT_decl_line(0x147)
+     624                      .dwattr $C$DW$35, DW_AT_decl_column(0x05)
+     625              
+     626              $C$DW$36        .dwtag  DW_TAG_enumerator
+     627                      .dwattr $C$DW$36, DW_AT_name("ADC_SOC_NUMBER3")
+     628                      .dwattr $C$DW$36, DW_AT_const_value(0x03)
+     629                      .dwattr $C$DW$36, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     630                      .dwattr $C$DW$36, DW_AT_decl_line(0x148)
+     631                      .dwattr $C$DW$36, DW_AT_decl_column(0x05)
+     632              
+     633              $C$DW$37        .dwtag  DW_TAG_enumerator
+     634                      .dwattr $C$DW$37, DW_AT_name("ADC_SOC_NUMBER4")
+     635                      .dwattr $C$DW$37, DW_AT_const_value(0x04)
+     636                      .dwattr $C$DW$37, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     637                      .dwattr $C$DW$37, DW_AT_decl_line(0x149)
+     638                      .dwattr $C$DW$37, DW_AT_decl_column(0x05)
+     639              
+     640              $C$DW$38        .dwtag  DW_TAG_enumerator
+     641                      .dwattr $C$DW$38, DW_AT_name("ADC_SOC_NUMBER5")
+     642                      .dwattr $C$DW$38, DW_AT_const_value(0x05)
+     643                      .dwattr $C$DW$38, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     644                      .dwattr $C$DW$38, DW_AT_decl_line(0x14a)
+     645                      .dwattr $C$DW$38, DW_AT_decl_column(0x05)
+     646              
+     647              $C$DW$39        .dwtag  DW_TAG_enumerator
+     648                      .dwattr $C$DW$39, DW_AT_name("ADC_SOC_NUMBER6")
+     649                      .dwattr $C$DW$39, DW_AT_const_value(0x06)
+     650                      .dwattr $C$DW$39, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     651                      .dwattr $C$DW$39, DW_AT_decl_line(0x14b)
+     652                      .dwattr $C$DW$39, DW_AT_decl_column(0x05)
+     653              
+     654              $C$DW$40        .dwtag  DW_TAG_enumerator
+     655                      .dwattr $C$DW$40, DW_AT_name("ADC_SOC_NUMBER7")
+     656                      .dwattr $C$DW$40, DW_AT_const_value(0x07)
+     657                      .dwattr $C$DW$40, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     658                      .dwattr $C$DW$40, DW_AT_decl_line(0x14c)
+     659                      .dwattr $C$DW$40, DW_AT_decl_column(0x05)
+     660              
+     661              $C$DW$41        .dwtag  DW_TAG_enumerator
+     662                      .dwattr $C$DW$41, DW_AT_name("ADC_SOC_NUMBER8")
+     663                      .dwattr $C$DW$41, DW_AT_const_value(0x08)
+     664                      .dwattr $C$DW$41, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     665                      .dwattr $C$DW$41, DW_AT_decl_line(0x14d)
+     666                      .dwattr $C$DW$41, DW_AT_decl_column(0x05)
+     667              
+     668              $C$DW$42        .dwtag  DW_TAG_enumerator
+     669                      .dwattr $C$DW$42, DW_AT_name("ADC_SOC_NUMBER9")
+     670                      .dwattr $C$DW$42, DW_AT_const_value(0x09)
+     671                      .dwattr $C$DW$42, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     672                      .dwattr $C$DW$42, DW_AT_decl_line(0x14e)
+     673                      .dwattr $C$DW$42, DW_AT_decl_column(0x05)
+     674              
+     675              $C$DW$43        .dwtag  DW_TAG_enumerator
+     676                      .dwattr $C$DW$43, DW_AT_name("ADC_SOC_NUMBER10")
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE   14
+
+     677                      .dwattr $C$DW$43, DW_AT_const_value(0x0a)
+     678                      .dwattr $C$DW$43, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     679                      .dwattr $C$DW$43, DW_AT_decl_line(0x14f)
+     680                      .dwattr $C$DW$43, DW_AT_decl_column(0x05)
+     681              
+     682              $C$DW$44        .dwtag  DW_TAG_enumerator
+     683                      .dwattr $C$DW$44, DW_AT_name("ADC_SOC_NUMBER11")
+     684                      .dwattr $C$DW$44, DW_AT_const_value(0x0b)
+     685                      .dwattr $C$DW$44, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     686                      .dwattr $C$DW$44, DW_AT_decl_line(0x150)
+     687                      .dwattr $C$DW$44, DW_AT_decl_column(0x05)
+     688              
+     689              $C$DW$45        .dwtag  DW_TAG_enumerator
+     690                      .dwattr $C$DW$45, DW_AT_name("ADC_SOC_NUMBER12")
+     691                      .dwattr $C$DW$45, DW_AT_const_value(0x0c)
+     692                      .dwattr $C$DW$45, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     693                      .dwattr $C$DW$45, DW_AT_decl_line(0x151)
+     694                      .dwattr $C$DW$45, DW_AT_decl_column(0x05)
+     695              
+     696              $C$DW$46        .dwtag  DW_TAG_enumerator
+     697                      .dwattr $C$DW$46, DW_AT_name("ADC_SOC_NUMBER13")
+     698                      .dwattr $C$DW$46, DW_AT_const_value(0x0d)
+     699                      .dwattr $C$DW$46, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     700                      .dwattr $C$DW$46, DW_AT_decl_line(0x152)
+     701                      .dwattr $C$DW$46, DW_AT_decl_column(0x05)
+     702              
+     703              $C$DW$47        .dwtag  DW_TAG_enumerator
+     704                      .dwattr $C$DW$47, DW_AT_name("ADC_SOC_NUMBER14")
+     705                      .dwattr $C$DW$47, DW_AT_const_value(0x0e)
+     706                      .dwattr $C$DW$47, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     707                      .dwattr $C$DW$47, DW_AT_decl_line(0x153)
+     708                      .dwattr $C$DW$47, DW_AT_decl_column(0x05)
+     709              
+     710              $C$DW$48        .dwtag  DW_TAG_enumerator
+     711                      .dwattr $C$DW$48, DW_AT_name("ADC_SOC_NUMBER15")
+     712                      .dwattr $C$DW$48, DW_AT_const_value(0x0f)
+     713                      .dwattr $C$DW$48, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
+     714                      .dwattr $C$DW$48, DW_AT_decl_line(0x154)
+     715                      .dwattr $C$DW$48, DW_AT_decl_column(0x05)
+     716              
+     717                      .dwattr $C$DW$T$24, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driv
+     718                      .dwattr $C$DW$T$24, DW_AT_decl_line(0x144)
+     719                      .dwattr $C$DW$T$24, DW_AT_decl_column(0x01)
+     720                      .dwendtag $C$DW$T$24
+     721              
+     722                      .dwendtag $C$DW$TU$24
+     723              
+     724              
+     725              $C$DW$TU$25     .dwtag  DW_TAG_type_unit
+     726                      .dwmtype  $C$DW$T$25
+     727              $C$DW$T$25      .dwtag  DW_TAG_typedef
+     728                      .dwattr $C$DW$T$25, DW_AT_name("ADC_SOCNumber")
+     729                      .dwattr $C$DW$T$25, DW_AT_type(*$C$DW$T$24)
+     730                      .dwattr $C$DW$T$25, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driv
+     731                      .dwattr $C$DW$T$25, DW_AT_decl_line(0x155)
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE   15
+
+     732                      .dwattr $C$DW$T$25, DW_AT_decl_column(0x03)
+     733              
+     734                      .dwendtag $C$DW$TU$25
+     735              
+     736              
+     737              $C$DW$TU$21     .dwtag  DW_TAG_type_unit
+     738                      .dwmtype  $C$DW$T$21
+     739              
+     740              $C$DW$T$21      .dwtag  DW_TAG_structure_type
+     741                      .dwattr $C$DW$T$21, DW_AT_name("_MATH_Vec3_")
+     742                      .dwattr $C$DW$T$21, DW_AT_byte_size(0x06)
+     743              $C$DW$49        .dwtag  DW_TAG_member
+     744                      .dwattr $C$DW$49, DW_AT_type(*$C$DW$T$20)
+     745                      .dwattr $C$DW$49, DW_AT_name("value")
+     746                      .dwattr $C$DW$49, DW_AT_accessibility(DW_ACCESS_public)
+     747                      .dwattr $C$DW$49, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/librarie
+     748                      .dwattr $C$DW$49, DW_AT_decl_line(0xe5)
+     749                      .dwattr $C$DW$49, DW_AT_decl_column(0x0f)
+     750              
+     751                      .dwattr $C$DW$T$21, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/librar
+     752                      .dwattr $C$DW$T$21, DW_AT_decl_line(0xe3)
+     753                      .dwattr $C$DW$T$21, DW_AT_decl_column(0x10)
+     754                      .dwendtag $C$DW$T$21
+     755              
+     756                      .dwendtag $C$DW$TU$21
+     757              
+     758              
+     759              $C$DW$TU$26     .dwtag  DW_TAG_type_unit
+     760                      .dwmtype  $C$DW$T$26
+     761              $C$DW$T$26      .dwtag  DW_TAG_typedef
+     762                      .dwattr $C$DW$T$26, DW_AT_name("MATH_Vec3")
+     763                      .dwattr $C$DW$T$26, DW_AT_type(*$C$DW$T$21)
+     764                      .dwattr $C$DW$T$26, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/librar
+     765                      .dwattr $C$DW$T$26, DW_AT_decl_line(0xe6)
+     766                      .dwattr $C$DW$T$26, DW_AT_decl_column(0x03)
+     767              
+     768                      .dwendtag $C$DW$TU$26
+     769              
+     770              
+     771              $C$DW$TU$27     .dwtag  DW_TAG_type_unit
+     772                      .dwmtype  $C$DW$T$27
+     773              $C$DW$T$27      .dwtag  DW_TAG_typedef
+     774                      .dwattr $C$DW$T$27, DW_AT_name("FOC_Iabc_t")
+     775                      .dwattr $C$DW$T$27, DW_AT_type(*$C$DW$T$26)
+     776                      .dwattr $C$DW$T$27, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     777                      .dwattr $C$DW$T$27, DW_AT_decl_line(0x0c)
+     778                      .dwattr $C$DW$T$27, DW_AT_decl_column(0x13)
+     779              
+     780                      .dwendtag $C$DW$TU$27
+     781              
+     782              
+     783              $C$DW$TU$28     .dwtag  DW_TAG_type_unit
+     784                      .dwmtype  $C$DW$T$28
+     785              $C$DW$T$28      .dwtag  DW_TAG_pointer_type
+     786                      .dwattr $C$DW$T$28, DW_AT_type(*$C$DW$T$27)
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE   16
+
+     787                      .dwattr $C$DW$T$28, DW_AT_address_class(0x20)
+     788              
+     789                      .dwendtag $C$DW$TU$28
+     790              
+     791              
+     792              $C$DW$TU$29     .dwtag  DW_TAG_type_unit
+     793                      .dwmtype  $C$DW$T$29
+     794              $C$DW$50        .dwtag  DW_TAG_TI_far_type
+     795                      .dwattr $C$DW$50, DW_AT_type(*$C$DW$T$28)
+     796              
+     797              $C$DW$T$29      .dwtag  DW_TAG_const_type
+     798                      .dwattr $C$DW$T$29, DW_AT_type(*$C$DW$50)
+     799              
+     800                      .dwendtag $C$DW$TU$29
+     801              
+     802              
+     803              $C$DW$TU$2      .dwtag  DW_TAG_type_unit
+     804                      .dwmtype  $C$DW$T$2
+     805              $C$DW$T$2       .dwtag  DW_TAG_unspecified_type
+     806                      .dwattr $C$DW$T$2, DW_AT_name("void")
+     807              
+     808                      .dwendtag $C$DW$TU$2
+     809              
+     810              
+     811              $C$DW$TU$4      .dwtag  DW_TAG_type_unit
+     812                      .dwmtype  $C$DW$T$4
+     813              $C$DW$T$4       .dwtag  DW_TAG_base_type
+     814                      .dwattr $C$DW$T$4, DW_AT_encoding(DW_ATE_boolean)
+     815                      .dwattr $C$DW$T$4, DW_AT_name("bool")
+     816                      .dwattr $C$DW$T$4, DW_AT_byte_size(0x01)
+     817              
+     818                      .dwendtag $C$DW$TU$4
+     819              
+     820              
+     821              $C$DW$TU$5      .dwtag  DW_TAG_type_unit
+     822                      .dwmtype  $C$DW$T$5
+     823              $C$DW$T$5       .dwtag  DW_TAG_base_type
+     824                      .dwattr $C$DW$T$5, DW_AT_encoding(DW_ATE_signed_char)
+     825                      .dwattr $C$DW$T$5, DW_AT_name("signed char")
+     826                      .dwattr $C$DW$T$5, DW_AT_byte_size(0x01)
+     827              
+     828                      .dwendtag $C$DW$TU$5
+     829              
+     830              
+     831              $C$DW$TU$6      .dwtag  DW_TAG_type_unit
+     832                      .dwmtype  $C$DW$T$6
+     833              $C$DW$T$6       .dwtag  DW_TAG_base_type
+     834                      .dwattr $C$DW$T$6, DW_AT_encoding(DW_ATE_unsigned_char)
+     835                      .dwattr $C$DW$T$6, DW_AT_name("unsigned char")
+     836                      .dwattr $C$DW$T$6, DW_AT_byte_size(0x01)
+     837              
+     838                      .dwendtag $C$DW$TU$6
+     839              
+     840              
+     841              $C$DW$TU$7      .dwtag  DW_TAG_type_unit
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE   17
+
+     842                      .dwmtype  $C$DW$T$7
+     843              $C$DW$T$7       .dwtag  DW_TAG_base_type
+     844                      .dwattr $C$DW$T$7, DW_AT_encoding(DW_ATE_signed_char)
+     845                      .dwattr $C$DW$T$7, DW_AT_name("wchar_t")
+     846                      .dwattr $C$DW$T$7, DW_AT_byte_size(0x02)
+     847              
+     848                      .dwendtag $C$DW$TU$7
+     849              
+     850              
+     851              $C$DW$TU$8      .dwtag  DW_TAG_type_unit
+     852                      .dwmtype  $C$DW$T$8
+     853              $C$DW$T$8       .dwtag  DW_TAG_base_type
+     854                      .dwattr $C$DW$T$8, DW_AT_encoding(DW_ATE_signed)
+     855                      .dwattr $C$DW$T$8, DW_AT_name("short")
+     856                      .dwattr $C$DW$T$8, DW_AT_byte_size(0x01)
+     857              
+     858                      .dwendtag $C$DW$TU$8
+     859              
+     860              
+     861              $C$DW$TU$9      .dwtag  DW_TAG_type_unit
+     862                      .dwmtype  $C$DW$T$9
+     863              $C$DW$T$9       .dwtag  DW_TAG_base_type
+     864                      .dwattr $C$DW$T$9, DW_AT_encoding(DW_ATE_unsigned)
+     865                      .dwattr $C$DW$T$9, DW_AT_name("unsigned short")
+     866                      .dwattr $C$DW$T$9, DW_AT_byte_size(0x01)
+     867              
+     868                      .dwendtag $C$DW$TU$9
+     869              
+     870              
+     871              $C$DW$TU$37     .dwtag  DW_TAG_type_unit
+     872                      .dwmtype  $C$DW$T$37
+     873              $C$DW$T$37      .dwtag  DW_TAG_typedef
+     874                      .dwattr $C$DW$T$37, DW_AT_name("__uint16_t")
+     875                      .dwattr $C$DW$T$37, DW_AT_type(*$C$DW$T$9)
+     876                      .dwattr $C$DW$T$37, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LT
+     877                      .dwattr $C$DW$T$37, DW_AT_decl_line(0x41)
+     878                      .dwattr $C$DW$T$37, DW_AT_decl_column(0x1c)
+     879              
+     880                      .dwendtag $C$DW$TU$37
+     881              
+     882              
+     883              $C$DW$TU$38     .dwtag  DW_TAG_type_unit
+     884                      .dwmtype  $C$DW$T$38
+     885              $C$DW$T$38      .dwtag  DW_TAG_typedef
+     886                      .dwattr $C$DW$T$38, DW_AT_name("uint16_t")
+     887                      .dwattr $C$DW$T$38, DW_AT_type(*$C$DW$T$37)
+     888                      .dwattr $C$DW$T$38, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LT
+     889                      .dwattr $C$DW$T$38, DW_AT_decl_line(0x41)
+     890                      .dwattr $C$DW$T$38, DW_AT_decl_column(0x15)
+     891              
+     892                      .dwendtag $C$DW$TU$38
+     893              
+     894              
+     895              $C$DW$TU$41     .dwtag  DW_TAG_type_unit
+     896                      .dwmtype  $C$DW$T$41
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE   18
+
+     897              $C$DW$51        .dwtag  DW_TAG_TI_far_type
+     898                      .dwattr $C$DW$51, DW_AT_type(*$C$DW$T$38)
+     899              
+     900              $C$DW$T$41      .dwtag  DW_TAG_volatile_type
+     901                      .dwattr $C$DW$T$41, DW_AT_type(*$C$DW$51)
+     902              
+     903                      .dwendtag $C$DW$TU$41
+     904              
+     905              
+     906              $C$DW$TU$42     .dwtag  DW_TAG_type_unit
+     907                      .dwmtype  $C$DW$T$42
+     908              $C$DW$52        .dwtag  DW_TAG_TI_far_type
+     909                      .dwattr $C$DW$52, DW_AT_type(*$C$DW$T$38)
+     910              
+     911              $C$DW$T$42      .dwtag  DW_TAG_const_type
+     912                      .dwattr $C$DW$T$42, DW_AT_type(*$C$DW$52)
+     913              
+     914                      .dwendtag $C$DW$TU$42
+     915              
+     916              
+     917              $C$DW$TU$10     .dwtag  DW_TAG_type_unit
+     918                      .dwmtype  $C$DW$T$10
+     919              $C$DW$T$10      .dwtag  DW_TAG_base_type
+     920                      .dwattr $C$DW$T$10, DW_AT_encoding(DW_ATE_signed)
+     921                      .dwattr $C$DW$T$10, DW_AT_name("int")
+     922                      .dwattr $C$DW$T$10, DW_AT_byte_size(0x01)
+     923              
+     924                      .dwendtag $C$DW$TU$10
+     925              
+     926              
+     927              $C$DW$TU$11     .dwtag  DW_TAG_type_unit
+     928                      .dwmtype  $C$DW$T$11
+     929              $C$DW$T$11      .dwtag  DW_TAG_base_type
+     930                      .dwattr $C$DW$T$11, DW_AT_encoding(DW_ATE_unsigned)
+     931                      .dwattr $C$DW$T$11, DW_AT_name("unsigned int")
+     932                      .dwattr $C$DW$T$11, DW_AT_byte_size(0x01)
+     933              
+     934                      .dwendtag $C$DW$TU$11
+     935              
+     936              
+     937              $C$DW$TU$12     .dwtag  DW_TAG_type_unit
+     938                      .dwmtype  $C$DW$T$12
+     939              $C$DW$T$12      .dwtag  DW_TAG_base_type
+     940                      .dwattr $C$DW$T$12, DW_AT_encoding(DW_ATE_signed)
+     941                      .dwattr $C$DW$T$12, DW_AT_name("long")
+     942                      .dwattr $C$DW$T$12, DW_AT_byte_size(0x02)
+     943              
+     944                      .dwendtag $C$DW$TU$12
+     945              
+     946              
+     947              $C$DW$TU$46     .dwtag  DW_TAG_type_unit
+     948                      .dwmtype  $C$DW$T$46
+     949              $C$DW$T$46      .dwtag  DW_TAG_typedef
+     950                      .dwattr $C$DW$T$46, DW_AT_name("__int32_t")
+     951                      .dwattr $C$DW$T$46, DW_AT_type(*$C$DW$T$12)
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE   19
+
+     952                      .dwattr $C$DW$T$46, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LT
+     953                      .dwattr $C$DW$T$46, DW_AT_decl_line(0x42)
+     954                      .dwattr $C$DW$T$46, DW_AT_decl_column(0x1d)
+     955              
+     956                      .dwendtag $C$DW$TU$46
+     957              
+     958              
+     959              $C$DW$TU$47     .dwtag  DW_TAG_type_unit
+     960                      .dwmtype  $C$DW$T$47
+     961              $C$DW$T$47      .dwtag  DW_TAG_typedef
+     962                      .dwattr $C$DW$T$47, DW_AT_name("int32_t")
+     963                      .dwattr $C$DW$T$47, DW_AT_type(*$C$DW$T$46)
+     964                      .dwattr $C$DW$T$47, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LT
+     965                      .dwattr $C$DW$T$47, DW_AT_decl_line(0x30)
+     966                      .dwattr $C$DW$T$47, DW_AT_decl_column(0x14)
+     967              
+     968                      .dwendtag $C$DW$TU$47
+     969              
+     970              
+     971              $C$DW$TU$13     .dwtag  DW_TAG_type_unit
+     972                      .dwmtype  $C$DW$T$13
+     973              $C$DW$T$13      .dwtag  DW_TAG_base_type
+     974                      .dwattr $C$DW$T$13, DW_AT_encoding(DW_ATE_unsigned)
+     975                      .dwattr $C$DW$T$13, DW_AT_name("unsigned long")
+     976                      .dwattr $C$DW$T$13, DW_AT_byte_size(0x02)
+     977              
+     978                      .dwendtag $C$DW$TU$13
+     979              
+     980              
+     981              $C$DW$TU$32     .dwtag  DW_TAG_type_unit
+     982                      .dwmtype  $C$DW$T$32
+     983              $C$DW$T$32      .dwtag  DW_TAG_typedef
+     984                      .dwattr $C$DW$T$32, DW_AT_name("__uint32_t")
+     985                      .dwattr $C$DW$T$32, DW_AT_type(*$C$DW$T$13)
+     986                      .dwattr $C$DW$T$32, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LT
+     987                      .dwattr $C$DW$T$32, DW_AT_decl_line(0x43)
+     988                      .dwattr $C$DW$T$32, DW_AT_decl_column(0x1c)
+     989              
+     990                      .dwendtag $C$DW$TU$32
+     991              
+     992              
+     993              $C$DW$TU$33     .dwtag  DW_TAG_type_unit
+     994                      .dwmtype  $C$DW$T$33
+     995              $C$DW$T$33      .dwtag  DW_TAG_typedef
+     996                      .dwattr $C$DW$T$33, DW_AT_name("uint32_t")
+     997                      .dwattr $C$DW$T$33, DW_AT_type(*$C$DW$T$32)
+     998                      .dwattr $C$DW$T$33, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LT
+     999                      .dwattr $C$DW$T$33, DW_AT_decl_line(0x46)
+    1000                      .dwattr $C$DW$T$33, DW_AT_decl_column(0x15)
+    1001              
+    1002                      .dwendtag $C$DW$TU$33
+    1003              
+    1004              
+    1005              $C$DW$TU$14     .dwtag  DW_TAG_type_unit
+    1006                      .dwmtype  $C$DW$T$14
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE   20
+
+    1007              $C$DW$T$14      .dwtag  DW_TAG_base_type
+    1008                      .dwattr $C$DW$T$14, DW_AT_encoding(DW_ATE_signed)
+    1009                      .dwattr $C$DW$T$14, DW_AT_name("long long")
+    1010                      .dwattr $C$DW$T$14, DW_AT_byte_size(0x04)
+    1011              
+    1012                      .dwendtag $C$DW$TU$14
+    1013              
+    1014              
+    1015              $C$DW$TU$15     .dwtag  DW_TAG_type_unit
+    1016                      .dwmtype  $C$DW$T$15
+    1017              $C$DW$T$15      .dwtag  DW_TAG_base_type
+    1018                      .dwattr $C$DW$T$15, DW_AT_encoding(DW_ATE_unsigned)
+    1019                      .dwattr $C$DW$T$15, DW_AT_name("unsigned long long")
+    1020                      .dwattr $C$DW$T$15, DW_AT_byte_size(0x04)
+    1021              
+    1022                      .dwendtag $C$DW$TU$15
+    1023              
+    1024              
+    1025              $C$DW$TU$16     .dwtag  DW_TAG_type_unit
+    1026                      .dwmtype  $C$DW$T$16
+    1027              $C$DW$T$16      .dwtag  DW_TAG_base_type
+    1028                      .dwattr $C$DW$T$16, DW_AT_encoding(DW_ATE_float)
+    1029                      .dwattr $C$DW$T$16, DW_AT_name("float")
+    1030                      .dwattr $C$DW$T$16, DW_AT_byte_size(0x02)
+    1031              
+    1032                      .dwendtag $C$DW$TU$16
+    1033              
+    1034              
+    1035              $C$DW$TU$19     .dwtag  DW_TAG_type_unit
+    1036                      .dwmtype  $C$DW$T$19
+    1037              $C$DW$T$19      .dwtag  DW_TAG_typedef
+    1038                      .dwattr $C$DW$T$19, DW_AT_name("float32_t")
+    1039                      .dwattr $C$DW$T$19, DW_AT_type(*$C$DW$T$16)
+    1040                      .dwattr $C$DW$T$19, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driv
+    1041                      .dwattr $C$DW$T$19, DW_AT_decl_line(0x66)
+    1042                      .dwattr $C$DW$T$19, DW_AT_decl_column(0x17)
+    1043              
+    1044                      .dwendtag $C$DW$TU$19
+    1045              
+    1046              
+    1047              $C$DW$TU$20     .dwtag  DW_TAG_type_unit
+    1048                      .dwmtype  $C$DW$T$20
+    1049              
+    1050              $C$DW$T$20      .dwtag  DW_TAG_array_type
+    1051                      .dwattr $C$DW$T$20, DW_AT_type(*$C$DW$T$19)
+    1052                      .dwattr $C$DW$T$20, DW_AT_byte_size(0x06)
+    1053              $C$DW$53        .dwtag  DW_TAG_subrange_type
+    1054                      .dwattr $C$DW$53, DW_AT_upper_bound(0x02)
+    1055              
+    1056                      .dwendtag $C$DW$T$20
+    1057              
+    1058                      .dwendtag $C$DW$TU$20
+    1059              
+    1060              
+    1061              $C$DW$TU$17     .dwtag  DW_TAG_type_unit
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+
+Copyright (c) 1996-2018 Texas Instruments Incorporated
+adc_iface.asm                                                        PAGE   21
+
+    1062                      .dwmtype  $C$DW$T$17
+    1063              $C$DW$T$17      .dwtag  DW_TAG_base_type
+    1064                      .dwattr $C$DW$T$17, DW_AT_encoding(DW_ATE_float)
+    1065                      .dwattr $C$DW$T$17, DW_AT_name("double")
+    1066                      .dwattr $C$DW$T$17, DW_AT_byte_size(0x04)
+    1067              
+    1068                      .dwendtag $C$DW$TU$17
+    1069              
+    1070              
+    1071              $C$DW$TU$18     .dwtag  DW_TAG_type_unit
+    1072                      .dwmtype  $C$DW$T$18
+    1073              $C$DW$T$18      .dwtag  DW_TAG_base_type
+    1074                      .dwattr $C$DW$T$18, DW_AT_encoding(DW_ATE_float)
+    1075                      .dwattr $C$DW$T$18, DW_AT_name("long double")
+    1076                      .dwattr $C$DW$T$18, DW_AT_byte_size(0x04)
+    1077              
+    1078                      .dwendtag $C$DW$TU$18
+    1079              
+    1080              
+    1081              $C$DW$TU$52     .dwtag  DW_TAG_type_unit
+    1082                      .dwmtype  $C$DW$T$52
+    1083              $C$DW$T$52      .dwtag  DW_TAG_base_type
+    1084                      .dwattr $C$DW$T$52, DW_AT_encoding(DW_ATE_unsigned_char)
+    1085                      .dwattr $C$DW$T$52, DW_AT_name("unsigned char")
+    1086                      .dwattr $C$DW$T$52, DW_AT_byte_size(0x01)
+    1087              
+    1088                      .dwendtag $C$DW$TU$52
+    1089              
+
+No Assembly Errors, No Assembly Warnings

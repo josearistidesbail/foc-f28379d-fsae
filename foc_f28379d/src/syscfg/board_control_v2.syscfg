@@ -1,0 +1,15 @@
+/**
+ * board_control_v2.syscfg
+ *
+ * SysConfig for the Production variant: Custom Control_Board_v2 + EMRAX 208.
+ * Open this file in CCS (double-click) to use the SysConfig GUI.
+ *
+ * Modules you need to add and configure (see README "SysConfig setup"):
+ *   - ePWM1/2/3 phase U/V/W, 10-20 kHz, deadband 1500 ns, SOC at period
+ *   - ADC: phase currents (LEM/shunt), VBUS, RM44AC SIN, RM44AC COS
+ *     (RM44AC outputs already-demodulated sin/cos -- no excitation needed)
+ *   - CMPSS for HV overcurrent -> ePWM TZ
+ *   - GPIO: gate-driver EN, nFAULT, status LED, scope pin
+ *
+ * @cliArgs --device "F2837xD" --package "337ZWT" --part "F2837xD_337ZWT"
+ */
