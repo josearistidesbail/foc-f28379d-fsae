@@ -1,6 +1,6 @@
 # FIXED
 
-src/debug_iface.obj: /home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c
+src/debug_iface.obj: ../src/debug_iface.c
 src/debug_iface.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/driverlib.h
 src/debug_iface.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/inc/hw_memmap.h
 src/debug_iface.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/adc.h
@@ -91,9 +91,8 @@ src/debug_iface.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2
 src/debug_iface.obj: /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/stddef.h
 src/debug_iface.obj: syscfg/board.h
 src/debug_iface.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/device.h
-src/debug_iface.obj: /home/jose/Documents/source/foc-f28379d-fsae/include/debug_iface.h
 
-/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c:
+../src/debug_iface.c:
 
 /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/driverlib.h:
 
@@ -274,6 +273,4 @@ src/debug_iface.obj: /home/jose/Documents/source/foc-f28379d-fsae/include/debug_
 syscfg/board.h:
 
 /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/device.h:
-
-/home/jose/Documents/source/foc-f28379d-fsae/include/debug_iface.h:
 

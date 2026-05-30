@@ -4,19 +4,19 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c \
-/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c \
-/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c \
-/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c \
-/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c \
-/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_custom_v2.c \
-/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c \
-/home/jose/Documents/source/foc-f28379d-fsae/src/isr.c \
-/home/jose/Documents/source/foc-f28379d-fsae/src/main.c \
-/home/jose/Documents/source/foc-f28379d-fsae/src/pwm_iface.c \
-/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c \
-/home/jose/Documents/source/foc-f28379d-fsae/src/sensor_qep.c \
-/home/jose/Documents/source/foc-f28379d-fsae/src/sensor_rm44ac.c 
+../src/adc_iface.c \
+../src/debug_hooks.c \
+../src/debug_iface.c \
+../src/foc_pipeline.c \
+../src/foc_state_machine.c \
+../src/inverter_custom_v2.c \
+../src/inverter_drv8305.c \
+../src/isr.c \
+../src/main.c \
+../src/pwm_iface.c \
+../src/safety.c \
+../src/sensor_qep.c \
+../src/sensor_rm44ac.c 
 
 C_DEPS += \
 ./src/adc_iface.d \
@@ -79,18 +79,18 @@ C_DEPS__QUOTED += \
 "src/sensor_rm44ac.d" 
 
 C_SRCS__QUOTED += \
-"/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c" \
-"/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c" \
-"/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c" \
-"/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c" \
-"/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c" \
-"/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_custom_v2.c" \
-"/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c" \
-"/home/jose/Documents/source/foc-f28379d-fsae/src/isr.c" \
-"/home/jose/Documents/source/foc-f28379d-fsae/src/main.c" \
-"/home/jose/Documents/source/foc-f28379d-fsae/src/pwm_iface.c" \
-"/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c" \
-"/home/jose/Documents/source/foc-f28379d-fsae/src/sensor_qep.c" \
-"/home/jose/Documents/source/foc-f28379d-fsae/src/sensor_rm44ac.c" 
+"../src/adc_iface.c" \
+"../src/debug_hooks.c" \
+"../src/debug_iface.c" \
+"../src/foc_pipeline.c" \
+"../src/foc_state_machine.c" \
+"../src/inverter_custom_v2.c" \
+"../src/inverter_drv8305.c" \
+"../src/isr.c" \
+"../src/main.c" \
+"../src/pwm_iface.c" \
+"../src/safety.c" \
+"../src/sensor_qep.c" \
+"../src/sensor_rm44ac.c" 
 
 

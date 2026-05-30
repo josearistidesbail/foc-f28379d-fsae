@@ -1,6 +1,6 @@
 # FIXED
 
-src/debug_hooks.obj: /home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c
+src/debug_hooks.obj: ../src/debug_hooks.c
 src/debug_hooks.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/driverlib.h
 src/debug_hooks.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/inc/hw_memmap.h
 src/debug_hooks.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/adc.h
@@ -89,21 +89,8 @@ src/debug_hooks.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd
 src/debug_hooks.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/driver_inclusive_terminology_mapping.h
 src/debug_hooks.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/device.h
 src/debug_hooks.obj: /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/stddef.h
-src/debug_hooks.obj: /home/jose/Documents/source/foc-f28379d-fsae/include/build_config.h
-src/debug_hooks.obj: /home/jose/Documents/source/foc-f28379d-fsae/config/hw/hw_boostxl_drv8305.h
-src/debug_hooks.obj: /home/jose/Documents/source/foc-f28379d-fsae/config/motor/motor_teknic_m2310p.h
-src/debug_hooks.obj: /home/jose/Documents/source/foc-f28379d-fsae/config/gains/gains_teknic.h
-src/debug_hooks.obj: /home/jose/Documents/source/foc-f28379d-fsae/include/build_config.h
-src/debug_hooks.obj: /home/jose/Documents/source/foc-f28379d-fsae/config/sensor/sensor_qep.h
-src/debug_hooks.obj: /home/jose/Documents/source/foc-f28379d-fsae/include/debug_hooks.h
-src/debug_hooks.obj: /home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
-src/debug_hooks.obj: /home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/math/include/math.h
-src/debug_hooks.obj: /home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/math/include/math.h
-src/debug_hooks.obj: /home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/utilities/types/include/types.h
-src/debug_hooks.obj: /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/string.h
-src/debug_hooks.obj: /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/xlocale/_string.h
 
-/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c:
+../src/debug_hooks.c:
 
 /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/driverlib.h:
 
@@ -280,30 +267,4 @@ src/debug_hooks.obj: /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11
 /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/device.h:
 
 /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/stddef.h:
-
-/home/jose/Documents/source/foc-f28379d-fsae/include/build_config.h:
-
-/home/jose/Documents/source/foc-f28379d-fsae/config/hw/hw_boostxl_drv8305.h:
-
-/home/jose/Documents/source/foc-f28379d-fsae/config/motor/motor_teknic_m2310p.h:
-
-/home/jose/Documents/source/foc-f28379d-fsae/config/gains/gains_teknic.h:
-
-/home/jose/Documents/source/foc-f28379d-fsae/include/build_config.h:
-
-/home/jose/Documents/source/foc-f28379d-fsae/config/sensor/sensor_qep.h:
-
-/home/jose/Documents/source/foc-f28379d-fsae/include/debug_hooks.h:
-
-/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h:
-
-/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/math/include/math.h:
-
-/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/math/include/math.h:
-
-/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/utilities/types/include/types.h:
-
-/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/string.h:
-
-/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/xlocale/_string.h:
 

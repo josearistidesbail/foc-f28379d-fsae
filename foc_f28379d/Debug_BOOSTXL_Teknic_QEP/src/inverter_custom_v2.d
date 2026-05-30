@@ -1,6 +1,6 @@
 # FIXED
 
-src/inverter_custom_v2.obj: /home/jose/Documents/source/foc-f28379d-fsae/src/inverter_custom_v2.c
+src/inverter_custom_v2.obj: ../src/inverter_custom_v2.c
 src/inverter_custom_v2.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/driverlib.h
 src/inverter_custom_v2.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/inc/hw_memmap.h
 src/inverter_custom_v2.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/adc.h
@@ -89,14 +89,8 @@ src/inverter_custom_v2.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/
 src/inverter_custom_v2.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/driver_inclusive_terminology_mapping.h
 src/inverter_custom_v2.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/device.h
 src/inverter_custom_v2.obj: /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/stddef.h
-src/inverter_custom_v2.obj: /home/jose/Documents/source/foc-f28379d-fsae/include/build_config.h
-src/inverter_custom_v2.obj: /home/jose/Documents/source/foc-f28379d-fsae/config/hw/hw_boostxl_drv8305.h
-src/inverter_custom_v2.obj: /home/jose/Documents/source/foc-f28379d-fsae/config/motor/motor_teknic_m2310p.h
-src/inverter_custom_v2.obj: /home/jose/Documents/source/foc-f28379d-fsae/config/gains/gains_teknic.h
-src/inverter_custom_v2.obj: /home/jose/Documents/source/foc-f28379d-fsae/include/build_config.h
-src/inverter_custom_v2.obj: /home/jose/Documents/source/foc-f28379d-fsae/config/sensor/sensor_qep.h
 
-/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_custom_v2.c:
+../src/inverter_custom_v2.c:
 
 /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/driverlib.h:
 
@@ -273,16 +267,4 @@ src/inverter_custom_v2.obj: /home/jose/Documents/source/foc-f28379d-fsae/config/
 /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/device.h:
 
 /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/stddef.h:
-
-/home/jose/Documents/source/foc-f28379d-fsae/include/build_config.h:
-
-/home/jose/Documents/source/foc-f28379d-fsae/config/hw/hw_boostxl_drv8305.h:
-
-/home/jose/Documents/source/foc-f28379d-fsae/config/motor/motor_teknic_m2310p.h:
-
-/home/jose/Documents/source/foc-f28379d-fsae/config/gains/gains_teknic.h:
-
-/home/jose/Documents/source/foc-f28379d-fsae/include/build_config.h:
-
-/home/jose/Documents/source/foc-f28379d-fsae/config/sensor/sensor_qep.h:
 

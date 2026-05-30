@@ -24,11 +24,6 @@
 			<locationURI>C2000WARE_DEVICE_SUPPORT_ROOT/common/targetConfigs/TMS320F28379D.ccxml</locationURI>
 		</link>
 		<link>
-			<name>board_boostxl_drv8305.syscfg</name>
-			<type>1</type>
-			<location>/home/jose/Documents/source/foc-f28379d-fsae/syscfg/board_boostxl_drv8305.syscfg</location>
-		</link>
-		<link>
 			<name>board_control_v2.syscfg</name>
 			<type>1</type>
 			<location>/home/jose/Documents/source/foc-f28379d-fsae/syscfg/board_control_v2.syscfg</location>
@@ -37,71 +32,6 @@
 			<name>driverlib.lib</name>
 			<type>1</type>
 			<locationURI>C2000WARE_DLIB_ROOT/ccs/Release/driverlib.lib</locationURI>
-		</link>
-		<link>
-			<name>src/adc_iface.c</name>
-			<type>1</type>
-			<location>/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c</location>
-		</link>
-		<link>
-			<name>src/debug_hooks.c</name>
-			<type>1</type>
-			<location>/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c</location>
-		</link>
-		<link>
-			<name>src/debug_iface.c</name>
-			<type>1</type>
-			<location>/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c</location>
-		</link>
-		<link>
-			<name>src/foc_pipeline.c</name>
-			<type>1</type>
-			<location>/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c</location>
-		</link>
-		<link>
-			<name>src/foc_state_machine.c</name>
-			<type>1</type>
-			<location>/home/jose/Documents/source/foc-f28379d-fsae/src/foc_state_machine.c</location>
-		</link>
-		<link>
-			<name>src/inverter_custom_v2.c</name>
-			<type>1</type>
-			<location>/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_custom_v2.c</location>
-		</link>
-		<link>
-			<name>src/inverter_drv8305.c</name>
-			<type>1</type>
-			<location>/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c</location>
-		</link>
-		<link>
-			<name>src/isr.c</name>
-			<type>1</type>
-			<location>/home/jose/Documents/source/foc-f28379d-fsae/src/isr.c</location>
-		</link>
-		<link>
-			<name>src/main.c</name>
-			<type>1</type>
-			<location>/home/jose/Documents/source/foc-f28379d-fsae/src/main.c</location>
-		</link>
-		<link>
-			<name>src/pwm_iface.c</name>
-			<type>1</type>
-			<location>/home/jose/Documents/source/foc-f28379d-fsae/src/pwm_iface.c</location>
-		</link>
-		<link>
-			<name>src/safety.c</name>
-			<type>1</type>
-			<location>/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c</location>
-		</link>
-		<link>
-			<name>src/sensor_qep.c</name>
-			<type>1</type>
-			<location>/home/jose/Documents/source/foc-f28379d-fsae/src/sensor_qep.c</location>
-		</link>
-		<link>
-			<name>src/sensor_rm44ac.c</name>
-			<type>1</type>
-			<location>/home/jose/Documents/source/foc-f28379d-fsae/src/sensor_rm44ac.c</location>
 		</link>
 		<link>
 			<name>src_device/2837xD_FLASH_lnk_cpu1.cmd</name>

@@ -8,8 +8,15 @@ GEN_OPTS__FLAG := --cmd_file="syscfg/board.opt" --cmd_file="syscfg/c2000ware_lib
 GEN_CMDS__FLAG := 
 
 ORDERED_OBJS += \
-"./syscfg/board.obj" \
-"./syscfg/c2000ware_libraries.obj" \
+"./imported/app/main.obj" \
+"./imported/app/motor_control.obj" \
+"./imported/foc/foc.obj" \
+"./imported/hal/drv8305.obj" \
+"./imported/hal/hal_adc.obj" \
+"./imported/hal/hal_board.obj" \
+"./imported/hal/hal_pwm.obj" \
+"./imported/hal/hal_qep.obj" \
+"./libraries/transforms/clarke/source/clarke.obj" \
 "./src/adc_iface.obj" \
 "./src/debug_hooks.obj" \
 "./src/debug_iface.obj" \
@@ -26,11 +33,14 @@ ORDERED_OBJS += \
 "./src_device/F2837xD_CodeStartBranch.obj" \
 "./src_device/F2837xD_GlobalVariableDefs.obj" \
 "./src_device/device.obj" \
+"./syscfg/board.obj" \
+"./syscfg/c2000ware_libraries.obj" \
 "./ti_lib/clarke.obj" \
 "./ti_lib/ipark.obj" \
 "./ti_lib/park.obj" \
 "./ti_lib/pi.obj" \
 "./ti_lib/svgen.obj" \
+"../2837x_FLASH_lnk_cpu1.cmd" \
 "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/ccs/Release/driverlib.lib" \
 "/home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/cmd/2837xD_FLASH_lnk_cpu1.cmd" \
 $(GEN_CMDS__FLAG) \
@@ -44,12 +54,22 @@ RMDIR := rm -rf
 # All of the sources participating in the build are defined here
 -include sources.mk
 -include subdir_vars.mk
+-include imported/app/subdir_vars.mk
+-include imported/foc/subdir_vars.mk
+-include imported/hal/subdir_vars.mk
+-include libraries/transforms/clarke/source/subdir_vars.mk
 -include src/subdir_vars.mk
 -include src_device/subdir_vars.mk
+-include syscfg/subdir_vars.mk
 -include ti_lib/subdir_vars.mk
 -include subdir_rules.mk
+-include imported/app/subdir_rules.mk
+-include imported/foc/subdir_rules.mk
+-include imported/hal/subdir_rules.mk
+-include libraries/transforms/clarke/source/subdir_rules.mk
 -include src/subdir_rules.mk
 -include src_device/subdir_rules.mk
+-include syscfg/subdir_rules.mk
 -include ti_lib/subdir_rules.mk
 -include objects.mk
 
@@ -161,10 +181,10 @@ foc_f28379d.out: $(OBJS) $(CMD_SRCS) $(LIB_SRCS) $(GEN_CMDS)
 # Other Targets
 clean:
 	-$(RM) $(GEN_MISC_FILES__QUOTED)$(GEN_FILES__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "syscfg/board.lst" "syscfg/c2000ware_libraries.lst" "src/adc_iface.lst" "src/debug_hooks.lst" "src/debug_iface.lst" "src/foc_pipeline.lst" "src/foc_state_machine.lst" "src/inverter_custom_v2.lst" "src/inverter_drv8305.lst" "src/isr.lst" "src/main.lst" "src/pwm_iface.lst" "src/safety.lst" "src/sensor_qep.lst" "src/sensor_rm44ac.lst" "src_device/F2837xD_CodeStartBranch.lst" "src_device/F2837xD_GlobalVariableDefs.lst" "src_device/device.lst" "ti_lib/clarke.lst" "ti_lib/ipark.lst" "ti_lib/park.lst" "ti_lib/pi.lst" "ti_lib/svgen.lst" 
-	-$(RM) "syscfg/board.obj" "syscfg/c2000ware_libraries.obj" "src/adc_iface.obj" "src/debug_hooks.obj" "src/debug_iface.obj" "src/foc_pipeline.obj" "src/foc_state_machine.obj" "src/inverter_custom_v2.obj" "src/inverter_drv8305.obj" "src/isr.obj" "src/main.obj" "src/pwm_iface.obj" "src/safety.obj" "src/sensor_qep.obj" "src/sensor_rm44ac.obj" "src_device/F2837xD_CodeStartBranch.obj" "src_device/F2837xD_GlobalVariableDefs.obj" "src_device/device.obj" "ti_lib/clarke.obj" "ti_lib/ipark.obj" "ti_lib/park.obj" "ti_lib/pi.obj" "ti_lib/svgen.obj" 
-	-$(RM) "syscfg/board.d" "syscfg/c2000ware_libraries.d" "src/adc_iface.d" "src/debug_hooks.d" "src/debug_iface.d" "src/foc_pipeline.d" "src/foc_state_machine.d" "src/inverter_custom_v2.d" "src/inverter_drv8305.d" "src/isr.d" "src/main.d" "src/pwm_iface.d" "src/safety.d" "src/sensor_qep.d" "src/sensor_rm44ac.d" "src_device/F2837xD_GlobalVariableDefs.d" "src_device/device.d" "ti_lib/clarke.d" "ti_lib/ipark.d" "ti_lib/park.d" "ti_lib/pi.d" "ti_lib/svgen.d" 
-	-$(RM) "syscfg/board.asm" "syscfg/c2000ware_libraries.asm" "src/adc_iface.asm" "src/debug_hooks.asm" "src/debug_iface.asm" "src/foc_pipeline.asm" "src/foc_state_machine.asm" "src/inverter_custom_v2.asm" "src/inverter_drv8305.asm" "src/isr.asm" "src/main.asm" "src/pwm_iface.asm" "src/safety.asm" "src/sensor_qep.asm" "src/sensor_rm44ac.asm" "src_device/F2837xD_CodeStartBranch.asm" "src_device/F2837xD_GlobalVariableDefs.asm" "src_device/device.asm" "ti_lib/clarke.asm" "ti_lib/ipark.asm" "ti_lib/park.asm" "ti_lib/pi.asm" "ti_lib/svgen.asm" 
+	-$(RM) "imported/app/main.lst" "imported/app/motor_control.lst" "imported/foc/foc.lst" "imported/hal/drv8305.lst" "imported/hal/hal_adc.lst" "imported/hal/hal_board.lst" "imported/hal/hal_pwm.lst" "imported/hal/hal_qep.lst" "libraries/transforms/clarke/source/clarke.lst" "src/adc_iface.lst" "src/debug_hooks.lst" "src/debug_iface.lst" "src/foc_pipeline.lst" "src/foc_state_machine.lst" "src/inverter_custom_v2.lst" "src/inverter_drv8305.lst" "src/isr.lst" "src/main.lst" "src/pwm_iface.lst" "src/safety.lst" "src/sensor_qep.lst" "src/sensor_rm44ac.lst" "src_device/F2837xD_CodeStartBranch.lst" "src_device/F2837xD_GlobalVariableDefs.lst" "src_device/device.lst" "syscfg/board.lst" "syscfg/c2000ware_libraries.lst" "ti_lib/clarke.lst" "ti_lib/ipark.lst" "ti_lib/park.lst" "ti_lib/pi.lst" "ti_lib/svgen.lst" 
+	-$(RM) "imported/app/main.obj" "imported/app/motor_control.obj" "imported/foc/foc.obj" "imported/hal/drv8305.obj" "imported/hal/hal_adc.obj" "imported/hal/hal_board.obj" "imported/hal/hal_pwm.obj" "imported/hal/hal_qep.obj" "libraries/transforms/clarke/source/clarke.obj" "src/adc_iface.obj" "src/debug_hooks.obj" "src/debug_iface.obj" "src/foc_pipeline.obj" "src/foc_state_machine.obj" "src/inverter_custom_v2.obj" "src/inverter_drv8305.obj" "src/isr.obj" "src/main.obj" "src/pwm_iface.obj" "src/safety.obj" "src/sensor_qep.obj" "src/sensor_rm44ac.obj" "src_device/F2837xD_CodeStartBranch.obj" "src_device/F2837xD_GlobalVariableDefs.obj" "src_device/device.obj" "syscfg/board.obj" "syscfg/c2000ware_libraries.obj" "ti_lib/clarke.obj" "ti_lib/ipark.obj" "ti_lib/park.obj" "ti_lib/pi.obj" "ti_lib/svgen.obj" 
+	-$(RM) "imported/app/main.d" "imported/app/motor_control.d" "imported/foc/foc.d" "imported/hal/drv8305.d" "imported/hal/hal_adc.d" "imported/hal/hal_board.d" "imported/hal/hal_pwm.d" "imported/hal/hal_qep.d" "libraries/transforms/clarke/source/clarke.d" "src/adc_iface.d" "src/debug_hooks.d" "src/debug_iface.d" "src/foc_pipeline.d" "src/foc_state_machine.d" "src/inverter_custom_v2.d" "src/inverter_drv8305.d" "src/isr.d" "src/main.d" "src/pwm_iface.d" "src/safety.d" "src/sensor_qep.d" "src/sensor_rm44ac.d" "src_device/F2837xD_GlobalVariableDefs.d" "src_device/device.d" "syscfg/board.d" "syscfg/c2000ware_libraries.d" "syscfg/board.d" "syscfg/c2000ware_libraries.d" "ti_lib/clarke.d" "ti_lib/ipark.d" "ti_lib/park.d" "ti_lib/pi.d" "ti_lib/svgen.d" 
+	-$(RM) "imported/app/main.asm" "imported/app/motor_control.asm" "imported/foc/foc.asm" "imported/hal/drv8305.asm" "imported/hal/hal_adc.asm" "imported/hal/hal_board.asm" "imported/hal/hal_pwm.asm" "imported/hal/hal_qep.asm" "libraries/transforms/clarke/source/clarke.asm" "src/adc_iface.asm" "src/debug_hooks.asm" "src/debug_iface.asm" "src/foc_pipeline.asm" "src/foc_state_machine.asm" "src/inverter_custom_v2.asm" "src/inverter_drv8305.asm" "src/isr.asm" "src/main.asm" "src/pwm_iface.asm" "src/safety.asm" "src/sensor_qep.asm" "src/sensor_rm44ac.asm" "src_device/F2837xD_CodeStartBranch.asm" "src_device/F2837xD_GlobalVariableDefs.asm" "src_device/device.asm" "syscfg/board.asm" "syscfg/c2000ware_libraries.asm" "ti_lib/clarke.asm" "ti_lib/ipark.asm" "ti_lib/park.asm" "ti_lib/pi.asm" "ti_lib/svgen.asm" 
 	-$(RM) "src_device/F2837xD_CodeStartBranch.d" 
 	-$(RMDIR) $(GEN_MISC_DIRS__QUOTED)
 	-@echo ' '

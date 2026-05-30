@@ -119,7 +119,12 @@ GEN_OPTS__QUOTED :=
 # Every subdirectory with source files must be described here
 SUBDIRS := \
 . \
+imported/app \
+imported/foc \
+imported/hal \
+libraries/transforms/clarke/source \
 src \
 src_device \
+syscfg \
 ti_lib \
 

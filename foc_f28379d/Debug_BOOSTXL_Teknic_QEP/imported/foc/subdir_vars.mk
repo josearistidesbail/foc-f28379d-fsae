@@ -3,10 +3,22 @@
 ################################################################################
 
 # Add inputs and outputs from these tool invocations to the build variables 
-CMD_SRCS += \
-../2837x_FLASH_lnk_cpu1.cmd 
+C_SRCS += \
+../imported/foc/foc.c 
 
-LIB_SRCS += \
-/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/ccs/Release/driverlib.lib 
+C_DEPS += \
+./imported/foc/foc.d 
+
+OBJS += \
+./imported/foc/foc.obj 
+
+OBJS__QUOTED += \
+"imported/foc/foc.obj" 
+
+C_DEPS__QUOTED += \
+"imported/foc/foc.d" 
+
+C_SRCS__QUOTED += \
+"../imported/foc/foc.c" 
 
 
