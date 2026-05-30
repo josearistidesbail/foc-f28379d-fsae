@@ -69,6 +69,10 @@ imported/hal/hal_adc.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_suppo
 imported/hal/hal_adc.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/F2837xD_Upp_defines.h
 imported/hal/hal_adc.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/F2837xD_defaultisr.h
 imported/hal/hal_adc.obj: ../imported/hal/hal_adc.h
+imported/hal/hal_adc.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/foc/pmsm_types.h
+imported/hal/hal_adc.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/config/board_config.h
+imported/hal/hal_adc.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/config/control_config.h
+imported/hal/hal_adc.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/config/motor_config.h
 
 ../imported/hal/hal_adc.c:
 
@@ -207,4 +211,12 @@ imported/hal/hal_adc.obj: ../imported/hal/hal_adc.h
 /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/F2837xD_defaultisr.h:
 
 ../imported/hal/hal_adc.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/foc/pmsm_types.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/config/board_config.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/config/control_config.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/config/motor_config.h:
 

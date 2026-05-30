@@ -1,17 +1,17 @@
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    1
 
        1              ;***************************************************************
        2              ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
-       3              ;* Date/Time created: Sat May 30 15:57:51 2026                 *
+       3              ;* Date/Time created: Sat May 30 20:22:51 2026                 *
        4              ;***************************************************************
        5                      .compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --
        6                      .asg    XAR2, FP
        7              
        8              $C$DW$CU        .dwtag  DW_TAG_compile_unit
-       9                      .dwattr $C$DW$CU, DW_AT_name("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c")
+       9                      .dwattr $C$DW$CU, DW_AT_name("../src/inverter_drv8305.c")
       10                      .dwattr $C$DW$CU, DW_AT_producer("TI TMS320C2000 G3 C/C++ Codegen Unix v25.11.0.LTS Copyright (c) 199
       11                      .dwattr $C$DW$CU, DW_AT_TI_version(0x01)
       12                      .dwattr $C$DW$CU, DW_AT_comp_dir("/home/jose/workspace_ccstheia/foc_f28379d/Debug_BOOSTXL_Teknic_QEP"
@@ -58,7 +58,7 @@ inverter_drv8305.asm                                                 PAGE    1
       53              $C$DW$7 .dwtag  DW_TAG_formal_parameter
       54                      .dwattr $C$DW$7, DW_AT_type(*$C$DW$T$24)
       55              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    2
@@ -74,7 +74,7 @@ inverter_drv8305.asm                                                 PAGE    2
       64                      .dwattr $C$DW$9, DW_AT_linkage_name("pwm_force_safe")
       65                      .dwattr $C$DW$9, DW_AT_declaration
       66                      .dwattr $C$DW$9, DW_AT_external
-      67                      .dwattr $C$DW$9, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/pwm_iface.h")
+      67                      .dwattr $C$DW$9, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/pwm_iface.h")
       68                      .dwattr $C$DW$9, DW_AT_decl_line(0x0b)
       69                      .dwattr $C$DW$9, DW_AT_decl_column(0x0d)
       70                      .dwendtag $C$DW$9
@@ -91,7 +91,7 @@ inverter_drv8305.asm                                                 PAGE    2
       81                      .dwattr $C$DW$10, DW_AT_linkage_name("s_last_fault_status")
       82                      .dwattr $C$DW$10, DW_AT_type(*$C$DW$T$36)
       83                      .dwattr $C$DW$10, DW_AT_location[DW_OP_addr ||s_last_fault_status||]
-      84                      .dwattr $C$DW$10, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+      84                      .dwattr $C$DW$10, DW_AT_decl_file("../src/inverter_drv8305.c")
       85                      .dwattr $C$DW$10, DW_AT_decl_line(0x21)
       86                      .dwattr $C$DW$10, DW_AT_decl_column(0x11)
       87              
@@ -103,7 +103,7 @@ inverter_drv8305.asm                                                 PAGE    2
       93                      .dwattr $C$DW$11, DW_AT_location[DW_OP_addr ||g_dbg_en_gate||]
       94                      .dwattr $C$DW$11, DW_AT_type(*$C$DW$T$43)
       95                      .dwattr $C$DW$11, DW_AT_external
-      96                      .dwattr $C$DW$11, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+      96                      .dwattr $C$DW$11, DW_AT_decl_file("../src/inverter_drv8305.c")
       97                      .dwattr $C$DW$11, DW_AT_decl_line(0x24)
       98                      .dwattr $C$DW$11, DW_AT_decl_column(0x13)
       99              
@@ -115,10 +115,10 @@ inverter_drv8305.asm                                                 PAGE    2
      105                      .dwattr $C$DW$12, DW_AT_location[DW_OP_addr ||g_dbg_nfault||]
      106                      .dwattr $C$DW$12, DW_AT_type(*$C$DW$T$43)
      107                      .dwattr $C$DW$12, DW_AT_external
-     108                      .dwattr $C$DW$12, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     108                      .dwattr $C$DW$12, DW_AT_decl_file("../src/inverter_drv8305.c")
      109                      .dwattr $C$DW$12, DW_AT_decl_line(0x25)
      110                      .dwattr $C$DW$12, DW_AT_decl_column(0x13)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    3
@@ -132,7 +132,7 @@ inverter_drv8305.asm                                                 PAGE    3
      117                      .dwattr $C$DW$13, DW_AT_location[DW_OP_addr ||g_dbg_spi_wr_shunt||]
      118                      .dwattr $C$DW$13, DW_AT_type(*$C$DW$T$43)
      119                      .dwattr $C$DW$13, DW_AT_external
-     120                      .dwattr $C$DW$13, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     120                      .dwattr $C$DW$13, DW_AT_decl_file("../src/inverter_drv8305.c")
      121                      .dwattr $C$DW$13, DW_AT_decl_line(0x26)
      122                      .dwattr $C$DW$13, DW_AT_decl_column(0x13)
      123              
@@ -144,7 +144,7 @@ inverter_drv8305.asm                                                 PAGE    3
      129                      .dwattr $C$DW$14, DW_AT_location[DW_OP_addr ||g_dbg_spi_rd_shunt||]
      130                      .dwattr $C$DW$14, DW_AT_type(*$C$DW$T$43)
      131                      .dwattr $C$DW$14, DW_AT_external
-     132                      .dwattr $C$DW$14, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     132                      .dwattr $C$DW$14, DW_AT_decl_file("../src/inverter_drv8305.c")
      133                      .dwattr $C$DW$14, DW_AT_decl_line(0x27)
      134                      .dwattr $C$DW$14, DW_AT_decl_column(0x13)
      135              
@@ -156,7 +156,7 @@ inverter_drv8305.asm                                                 PAGE    3
      141                      .dwattr $C$DW$15, DW_AT_location[DW_OP_addr ||g_dbg_spi_warn||]
      142                      .dwattr $C$DW$15, DW_AT_type(*$C$DW$T$43)
      143                      .dwattr $C$DW$15, DW_AT_external
-     144                      .dwattr $C$DW$15, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     144                      .dwattr $C$DW$15, DW_AT_decl_file("../src/inverter_drv8305.c")
      145                      .dwattr $C$DW$15, DW_AT_decl_line(0x28)
      146                      .dwattr $C$DW$15, DW_AT_decl_column(0x13)
      147              
@@ -168,7 +168,7 @@ inverter_drv8305.asm                                                 PAGE    3
      153                      .dwattr $C$DW$16, DW_AT_location[DW_OP_addr ||g_dbg_spi_ovvds||]
      154                      .dwattr $C$DW$16, DW_AT_type(*$C$DW$T$43)
      155                      .dwattr $C$DW$16, DW_AT_external
-     156                      .dwattr $C$DW$16, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     156                      .dwattr $C$DW$16, DW_AT_decl_file("../src/inverter_drv8305.c")
      157                      .dwattr $C$DW$16, DW_AT_decl_line(0x29)
      158                      .dwattr $C$DW$16, DW_AT_decl_column(0x13)
      159              
@@ -178,14 +178,14 @@ inverter_drv8305.asm                                                 PAGE    3
      163                      .dwattr $C$DW$17, DW_AT_name("g_dbg_spi_icflt")
      164                      .dwattr $C$DW$17, DW_AT_linkage_name("g_dbg_spi_icflt")
      165                      .dwattr $C$DW$17, DW_AT_location[DW_OP_addr ||g_dbg_spi_icflt||]
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    4
 
      166                      .dwattr $C$DW$17, DW_AT_type(*$C$DW$T$43)
      167                      .dwattr $C$DW$17, DW_AT_external
-     168                      .dwattr $C$DW$17, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     168                      .dwattr $C$DW$17, DW_AT_decl_file("../src/inverter_drv8305.c")
      169                      .dwattr $C$DW$17, DW_AT_decl_line(0x2a)
      170                      .dwattr $C$DW$17, DW_AT_decl_column(0x13)
      171              
@@ -197,7 +197,7 @@ inverter_drv8305.asm                                                 PAGE    4
      177                      .dwattr $C$DW$18, DW_AT_location[DW_OP_addr ||g_dbg_spi_vgsflt||]
      178                      .dwattr $C$DW$18, DW_AT_type(*$C$DW$T$43)
      179                      .dwattr $C$DW$18, DW_AT_external
-     180                      .dwattr $C$DW$18, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     180                      .dwattr $C$DW$18, DW_AT_decl_file("../src/inverter_drv8305.c")
      181                      .dwattr $C$DW$18, DW_AT_decl_line(0x2b)
      182                      .dwattr $C$DW$18, DW_AT_decl_column(0x13)
      183              
@@ -209,7 +209,7 @@ inverter_drv8305.asm                                                 PAGE    4
      189                      .dwattr $C$DW$19, DW_AT_location[DW_OP_addr ||g_dbg_fault_warn||]
      190                      .dwattr $C$DW$19, DW_AT_type(*$C$DW$T$43)
      191                      .dwattr $C$DW$19, DW_AT_external
-     192                      .dwattr $C$DW$19, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     192                      .dwattr $C$DW$19, DW_AT_decl_file("../src/inverter_drv8305.c")
      193                      .dwattr $C$DW$19, DW_AT_decl_line(0x30)
      194                      .dwattr $C$DW$19, DW_AT_decl_column(0x13)
      195              
@@ -221,7 +221,7 @@ inverter_drv8305.asm                                                 PAGE    4
      201                      .dwattr $C$DW$20, DW_AT_location[DW_OP_addr ||g_dbg_fault_ovvds||]
      202                      .dwattr $C$DW$20, DW_AT_type(*$C$DW$T$43)
      203                      .dwattr $C$DW$20, DW_AT_external
-     204                      .dwattr $C$DW$20, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     204                      .dwattr $C$DW$20, DW_AT_decl_file("../src/inverter_drv8305.c")
      205                      .dwattr $C$DW$20, DW_AT_decl_line(0x31)
      206                      .dwattr $C$DW$20, DW_AT_decl_column(0x13)
      207              
@@ -233,12 +233,12 @@ inverter_drv8305.asm                                                 PAGE    4
      213                      .dwattr $C$DW$21, DW_AT_location[DW_OP_addr ||g_dbg_fault_icflt||]
      214                      .dwattr $C$DW$21, DW_AT_type(*$C$DW$T$43)
      215                      .dwattr $C$DW$21, DW_AT_external
-     216                      .dwattr $C$DW$21, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     216                      .dwattr $C$DW$21, DW_AT_decl_file("../src/inverter_drv8305.c")
      217                      .dwattr $C$DW$21, DW_AT_decl_line(0x32)
      218                      .dwattr $C$DW$21, DW_AT_decl_column(0x13)
      219              
      220                      .global ||g_dbg_fault_vgsflt||
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    5
@@ -250,7 +250,7 @@ inverter_drv8305.asm                                                 PAGE    5
      225                      .dwattr $C$DW$22, DW_AT_location[DW_OP_addr ||g_dbg_fault_vgsflt||]
      226                      .dwattr $C$DW$22, DW_AT_type(*$C$DW$T$43)
      227                      .dwattr $C$DW$22, DW_AT_external
-     228                      .dwattr $C$DW$22, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     228                      .dwattr $C$DW$22, DW_AT_decl_file("../src/inverter_drv8305.c")
      229                      .dwattr $C$DW$22, DW_AT_decl_line(0x33)
      230                      .dwattr $C$DW$22, DW_AT_decl_column(0x13)
      231              
@@ -262,7 +262,7 @@ inverter_drv8305.asm                                                 PAGE    5
      237                      .dwattr $C$DW$23, DW_AT_location[DW_OP_addr ||g_dbg_spi_sts||]
      238                      .dwattr $C$DW$23, DW_AT_type(*$C$DW$T$43)
      239                      .dwattr $C$DW$23, DW_AT_external
-     240                      .dwattr $C$DW$23, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     240                      .dwattr $C$DW$23, DW_AT_decl_file("../src/inverter_drv8305.c")
      241                      .dwattr $C$DW$23, DW_AT_decl_line(0x3e)
      242                      .dwattr $C$DW$23, DW_AT_decl_column(0x13)
      243              
@@ -274,7 +274,7 @@ inverter_drv8305.asm                                                 PAGE    5
      249                      .dwattr $C$DW$24, DW_AT_location[DW_OP_addr ||g_dbg_spi_fftx_level||]
      250                      .dwattr $C$DW$24, DW_AT_type(*$C$DW$T$43)
      251                      .dwattr $C$DW$24, DW_AT_external
-     252                      .dwattr $C$DW$24, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     252                      .dwattr $C$DW$24, DW_AT_decl_file("../src/inverter_drv8305.c")
      253                      .dwattr $C$DW$24, DW_AT_decl_line(0x3f)
      254                      .dwattr $C$DW$24, DW_AT_decl_column(0x13)
      255              
@@ -286,7 +286,7 @@ inverter_drv8305.asm                                                 PAGE    5
      261                      .dwattr $C$DW$25, DW_AT_location[DW_OP_addr ||g_dbg_spi_ffrx_level||]
      262                      .dwattr $C$DW$25, DW_AT_type(*$C$DW$T$43)
      263                      .dwattr $C$DW$25, DW_AT_external
-     264                      .dwattr $C$DW$25, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     264                      .dwattr $C$DW$25, DW_AT_decl_file("../src/inverter_drv8305.c")
      265                      .dwattr $C$DW$25, DW_AT_decl_line(0x40)
      266                      .dwattr $C$DW$25, DW_AT_decl_column(0x13)
      267              
@@ -298,12 +298,12 @@ inverter_drv8305.asm                                                 PAGE    5
      273                      .dwattr $C$DW$26, DW_AT_location[DW_OP_addr ||g_dbg_spi_rx_raw||]
      274                      .dwattr $C$DW$26, DW_AT_type(*$C$DW$T$43)
      275                      .dwattr $C$DW$26, DW_AT_external
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    6
 
-     276                      .dwattr $C$DW$26, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     276                      .dwattr $C$DW$26, DW_AT_decl_file("../src/inverter_drv8305.c")
      277                      .dwattr $C$DW$26, DW_AT_decl_line(0x41)
      278                      .dwattr $C$DW$26, DW_AT_decl_column(0x13)
      279              
@@ -315,14 +315,14 @@ inverter_drv8305.asm                                                 PAGE    6
      285                      .dwattr $C$DW$27, DW_AT_location[DW_OP_addr ||g_dbg_spi_hs_default||]
      286                      .dwattr $C$DW$27, DW_AT_type(*$C$DW$T$43)
      287                      .dwattr $C$DW$27, DW_AT_external
-     288                      .dwattr $C$DW$27, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     288                      .dwattr $C$DW$27, DW_AT_decl_file("../src/inverter_drv8305.c")
      289                      .dwattr $C$DW$27, DW_AT_decl_line(0x42)
      290                      .dwattr $C$DW$27, DW_AT_decl_column(0x13)
      291              
      292                      .sblock ".bss"
      293                      .sblock ".data"
-     294              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI26dGrj6z3 /tmp/T
-     295              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI26dcwotBS 
+     294              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI6XCqgHUwa /tmp/T
+     295              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI6XCWB53K8 
      296 00000000               .sect   ".text:drv8305_xfer"
      297                      .clink
      298              
@@ -332,11 +332,11 @@ inverter_drv8305.asm                                                 PAGE    6
      302                      .dwattr $C$DW$28, DW_AT_high_pc(0x00)
      303                      .dwattr $C$DW$28, DW_AT_linkage_name("drv8305_xfer")
      304                      .dwattr $C$DW$28, DW_AT_type(*$C$DW$T$36)
-     305                      .dwattr $C$DW$28, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     305                      .dwattr $C$DW$28, DW_AT_decl_file("../src/inverter_drv8305.c")
      306                      .dwattr $C$DW$28, DW_AT_decl_line(0x4a)
      307                      .dwattr $C$DW$28, DW_AT_decl_column(0x11)
      308                      .dwattr $C$DW$28, DW_AT_TI_max_frame_size(-8)
-     309                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 75,column 1,i
+     309                      .dwpsn  file "../src/inverter_drv8305.c",line 75,column 1,is_stmt,address ||drv8305_xfer||,isa 0
      310              
      311                      .dwfde $C$DW$CIE, ||drv8305_xfer||
      312              $C$DW$29        .dwtag  DW_TAG_formal_parameter
@@ -358,7 +358,7 @@ inverter_drv8305.asm                                                 PAGE    6
      328              ;***************************************************************
      329              ;* FNAME: drv8305_xfer                  FR SIZE:   6           *
      330              ;*                                                             *
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    7
@@ -418,13 +418,13 @@ inverter_drv8305.asm                                                 PAGE    7
          00000009 610B 
      380 0000000a AABD          MOVL      *SP++,XAR2            ; [CPU_ALU] 
      381                      .dwcfi  save_reg_to_mem, 9, 4
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    8
 
      382                      .dwcfi  cfa_offset, -6
-     383                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 75,column 1,i
+     383                      .dwpsn  file "../src/inverter_drv8305.c",line 75,column 1,is_stmt,isa 0
      384 0000000b 5AA8          MOVZ      AR2,AH                ; [CPU_ALU] |75| 
      385                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/spi.h",line 629,c
      386 0000000c 1AA6          OR        AR6,#0x2000           ; [CPU_ALU] |629| 
@@ -435,7 +435,7 @@ inverter_drv8305.asm                                                 PAGE    8
      390                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/gpio.h",line 469,
      391 0000000f FF2F          MOV       ACC,#16384 << 15      ; [CPU_ALU] |469| 
          00000010 4000 
-     392                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 75,column 1,i
+     392                      .dwpsn  file "../src/inverter_drv8305.c",line 75,column 1,is_stmt,isa 0
      393 00000011 5BA4          MOVZ      AR3,AR4               ; [CPU_ALU] |75| 
      394                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/spi.h",line 629,c
      395 00000012 F4A6          MOV       *(0:0x610b),AR6       ; [CPU_ALU] |629| 
@@ -443,7 +443,7 @@ inverter_drv8305.asm                                                 PAGE    8
      396                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/gpio.h",line 469,
      397 00000014 BDA9          MOV32     *(0:0x7f0c),ACC       ; [CPU_FPU] |469| 
          00000015 7F0C 
-     398                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 81,column 5,i
+     398                      .dwpsn  file "../src/inverter_drv8305.c",line 81,column 5,is_stmt,isa 0
      399 00000016 0226          MOVB      ACC,#38               ; [CPU_ALU] |81| 
      400              $C$DW$37        .dwtag  DW_TAG_TI_branch
      401                      .dwattr $C$DW$37, DW_AT_low_pc(0x00)
@@ -478,7 +478,7 @@ inverter_drv8305.asm                                                 PAGE    8
          0000002a 6108 
      425 0000002b       ||$C$L2||:    
      426                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/spi.h",line 758,c
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    9
@@ -494,11 +494,11 @@ inverter_drv8305.asm                                                 PAGE    9
          00000031 6107 
      434 00000032 761F!         MOVW      DP,#||g_dbg_spi_rx_raw|| ; [CPU_ARAU] 
          00000033 0000 
-     435                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 87,column 5,i
+     435                      .dwpsn  file "../src/inverter_drv8305.c",line 87,column 5,is_stmt,isa 0
      436 00000034 0226          MOVB      ACC,#38               ; [CPU_ALU] |87| 
-     437                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 85,column 5,i
+     437                      .dwpsn  file "../src/inverter_drv8305.c",line 85,column 5,is_stmt,isa 0
      438 00000035 7900!         MOV       @||g_dbg_spi_rx_raw||,AR1 ; [CPU_ALU] |85| 
-     439                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 87,column 5,i
+     439                      .dwpsn  file "../src/inverter_drv8305.c",line 87,column 5,is_stmt,isa 0
      440              $C$DW$38        .dwtag  DW_TAG_TI_branch
      441                      .dwattr $C$DW$38, DW_AT_low_pc(0x00)
      442                      .dwattr $C$DW$38, DW_AT_name("SysCtl_delay")
@@ -512,7 +512,7 @@ inverter_drv8305.asm                                                 PAGE    9
          00000039 4000 
      449 0000003a BDA9          MOV32     *(0:0x7f0a),ACC       ; [CPU_FPU] |473| 
          0000003b 7F0A 
-     450                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 89,column 5,i
+     450                      .dwpsn  file "../src/inverter_drv8305.c",line 89,column 5,is_stmt,isa 0
      451 0000003c 0226          MOVB      ACC,#38               ; [CPU_ALU] |89| 
      452              $C$DW$39        .dwtag  DW_TAG_TI_branch
      453                      .dwattr $C$DW$39, DW_AT_low_pc(0x00)
@@ -525,7 +525,7 @@ inverter_drv8305.asm                                                 PAGE    9
      459 0000003f 82BE          MOVL      XAR3,*--SP            ; [CPU_ALU] 
      460                      .dwcfi  cfa_offset, -6
      461                      .dwcfi  restore_reg, 11
-     462                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 90,column 5,i
+     462                      .dwpsn  file "../src/inverter_drv8305.c",line 90,column 5,is_stmt,isa 0
      463 00000040 CCA1          AND       AL,AR1,#0x07ff        ; [CPU_ALU] |90| 
          00000041 07FF 
      464 00000042 86BE          MOVL      XAR2,*--SP            ; [CPU_ALU] 
@@ -538,14 +538,14 @@ inverter_drv8305.asm                                                 PAGE    9
      471                      .dwattr $C$DW$40, DW_AT_low_pc(0x00)
      472                      .dwattr $C$DW$40, DW_AT_TI_return
      473              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   10
 
      474 00000044 0006          LRETR     ; [CPU_ALU] 
      475                      ; return occurs ; [] 
-     476                      .dwattr $C$DW$28, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv830
+     476                      .dwattr $C$DW$28, DW_AT_TI_end_file("../src/inverter_drv8305.c")
      477                      .dwattr $C$DW$28, DW_AT_TI_end_line(0x5b)
      478                      .dwattr $C$DW$28, DW_AT_TI_end_column(0x01)
      479                      .dwendentry
@@ -561,11 +561,11 @@ inverter_drv8305.asm                                                 PAGE   10
      489                      .dwattr $C$DW$41, DW_AT_high_pc(0x00)
      490                      .dwattr $C$DW$41, DW_AT_linkage_name("inverter_snapshot_fault_regs")
      491                      .dwattr $C$DW$41, DW_AT_external
-     492                      .dwattr $C$DW$41, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     492                      .dwattr $C$DW$41, DW_AT_decl_file("../src/inverter_drv8305.c")
      493                      .dwattr $C$DW$41, DW_AT_decl_line(0x6c)
      494                      .dwattr $C$DW$41, DW_AT_decl_column(0x06)
      495                      .dwattr $C$DW$41, DW_AT_TI_max_frame_size(-2)
-     496                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 109,column 1,
+     496                      .dwpsn  file "../src/inverter_drv8305.c",line 109,column 1,is_stmt,address ||inverter_snapshot_fault_
      497              
      498                      .dwfde $C$DW$CIE, ||inverter_snapshot_fault_regs||
      499              
@@ -581,7 +581,7 @@ inverter_drv8305.asm                                                 PAGE   10
      509 00000000       ||inverter_snapshot_fault_regs||:
      510                      .dwcfi  cfa_offset, -2
      511                      .dwcfi  save_reg_to_mem, 26, 0
-     512                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 111,column 5,
+     512                      .dwpsn  file "../src/inverter_drv8305.c",line 111,column 5,is_stmt,isa 0
      513 00000000 9A01          MOVB      AL,#1                 ; [CPU_ALU] |111| 
      514 00000001 D400          MOVB      XAR4,#0               ; [CPU_ALU] |111| 
      515 00000002 9B01          MOVB      AH,#1                 ; [CPU_ALU] |111| 
@@ -595,17 +595,17 @@ inverter_drv8305.asm                                                 PAGE   10
      522                      ; call occurs [#||drv8305_xfer||] ; [] |111| 
      523 00000005 761F!         MOVW      DP,#||g_dbg_fault_warn|| ; [CPU_ARAU] 
          00000006 0000 
-     524                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 112,column 5,
+     524                      .dwpsn  file "../src/inverter_drv8305.c",line 112,column 5,is_stmt,isa 0
      525 00000007 D400          MOVB      XAR4,#0               ; [CPU_ALU] |112| 
      526 00000008 9B02          MOVB      AH,#2                 ; [CPU_ALU] |112| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   11
 
-     527                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 111,column 5,
+     527                      .dwpsn  file "../src/inverter_drv8305.c",line 111,column 5,is_stmt,isa 0
      528 00000009 9600!         MOV       @||g_dbg_fault_warn||,AL ; [CPU_ALU] |111| 
-     529                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 112,column 5,
+     529                      .dwpsn  file "../src/inverter_drv8305.c",line 112,column 5,is_stmt,isa 0
      530 0000000a 9A01          MOVB      AL,#1                 ; [CPU_ALU] |112| 
      531              $C$DW$43        .dwtag  DW_TAG_TI_branch
      532                      .dwattr $C$DW$43, DW_AT_low_pc(0x00)
@@ -617,12 +617,12 @@ inverter_drv8305.asm                                                 PAGE   11
      537                      ; call occurs [#||drv8305_xfer||] ; [] |112| 
      538 0000000d 761F!         MOVW      DP,#||g_dbg_fault_ovvds|| ; [CPU_ARAU] 
          0000000e 0000 
-     539                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 113,column 5,
+     539                      .dwpsn  file "../src/inverter_drv8305.c",line 113,column 5,is_stmt,isa 0
      540 0000000f D400          MOVB      XAR4,#0               ; [CPU_ALU] |113| 
      541 00000010 9B03          MOVB      AH,#3                 ; [CPU_ALU] |113| 
-     542                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 112,column 5,
+     542                      .dwpsn  file "../src/inverter_drv8305.c",line 112,column 5,is_stmt,isa 0
      543 00000011 9600!         MOV       @||g_dbg_fault_ovvds||,AL ; [CPU_ALU] |112| 
-     544                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 113,column 5,
+     544                      .dwpsn  file "../src/inverter_drv8305.c",line 113,column 5,is_stmt,isa 0
      545 00000012 9A01          MOVB      AL,#1                 ; [CPU_ALU] |113| 
      546              $C$DW$44        .dwtag  DW_TAG_TI_branch
      547                      .dwattr $C$DW$44, DW_AT_low_pc(0x00)
@@ -634,12 +634,12 @@ inverter_drv8305.asm                                                 PAGE   11
      552                      ; call occurs [#||drv8305_xfer||] ; [] |113| 
      553 00000015 761F!         MOVW      DP,#||g_dbg_fault_icflt|| ; [CPU_ARAU] 
          00000016 0000 
-     554                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 114,column 5,
+     554                      .dwpsn  file "../src/inverter_drv8305.c",line 114,column 5,is_stmt,isa 0
      555 00000017 D400          MOVB      XAR4,#0               ; [CPU_ALU] |114| 
      556 00000018 9B04          MOVB      AH,#4                 ; [CPU_ALU] |114| 
-     557                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 113,column 5,
+     557                      .dwpsn  file "../src/inverter_drv8305.c",line 113,column 5,is_stmt,isa 0
      558 00000019 9600!         MOV       @||g_dbg_fault_icflt||,AL ; [CPU_ALU] |113| 
-     559                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 114,column 5,
+     559                      .dwpsn  file "../src/inverter_drv8305.c",line 114,column 5,is_stmt,isa 0
      560 0000001a 9A01          MOVB      AL,#1                 ; [CPU_ALU] |114| 
      561              $C$DW$45        .dwtag  DW_TAG_TI_branch
      562                      .dwattr $C$DW$45, DW_AT_low_pc(0x00)
@@ -658,12 +658,12 @@ inverter_drv8305.asm                                                 PAGE   11
      573              
      574 00000020 0006          LRETR     ; [CPU_ALU] 
      575                      ; return occurs ; [] 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   12
 
-     576                      .dwattr $C$DW$41, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv830
+     576                      .dwattr $C$DW$41, DW_AT_TI_end_file("../src/inverter_drv8305.c")
      577                      .dwattr $C$DW$41, DW_AT_TI_end_line(0x73)
      578                      .dwattr $C$DW$41, DW_AT_TI_end_column(0x01)
      579                      .dwendentry
@@ -680,11 +680,11 @@ inverter_drv8305.asm                                                 PAGE   12
      590                      .dwattr $C$DW$47, DW_AT_linkage_name("inverter_is_faulted")
      591                      .dwattr $C$DW$47, DW_AT_external
      592                      .dwattr $C$DW$47, DW_AT_type(*$C$DW$T$55)
-     593                      .dwattr $C$DW$47, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     593                      .dwattr $C$DW$47, DW_AT_decl_file("../src/inverter_drv8305.c")
      594                      .dwattr $C$DW$47, DW_AT_decl_line(0xbd)
      595                      .dwattr $C$DW$47, DW_AT_decl_column(0x06)
      596                      .dwattr $C$DW$47, DW_AT_TI_max_frame_size(-2)
-     597                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 190,column 1,
+     597                      .dwpsn  file "../src/inverter_drv8305.c",line 190,column 1,is_stmt,address ||inverter_is_faulted||,is
      598              
      599                      .dwfde $C$DW$CIE, ||inverter_is_faulted||
      600              
@@ -706,19 +706,19 @@ inverter_drv8305.asm                                                 PAGE   12
          00000001 7F00 
      616 00000002 28AC          MOV       T,#19                 ; [CPU_ALU] |431| 
          00000003 0013 
-     617                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 191,column 5,
+     617                      .dwpsn  file "../src/inverter_drv8305.c",line 191,column 5,is_stmt,isa 0
      618 00000004 BE00          MOVB      XAR6,#0               ; [CPU_ALU] |191| 
      619                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/gpio.h",line 431,
      620 00000005 5622          LSRL      ACC,T                 ; [CPU_ALU] |431| 
      621 00000006 9B00          MOVB      AH,#0                 ; [CPU_ALU] |431| 
      622 00000007 9001          ANDB      AL,#0x01              ; [CPU_ALU] |431| 
-     623                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 191,column 5,
+     623                      .dwpsn  file "../src/inverter_drv8305.c",line 191,column 5,is_stmt,isa 0
      624 00000008 FF58          TEST      ACC                   ; [CPU_ALU] |191| 
      625 00000009 56B1          MOVB      XAR6,#1,EQ            ; [CPU_ALU] |191| 
          0000000a 01A6 
      626 0000000b 92A6          MOV       AL,AR6                ; [CPU_ALU] |191| 
      627              $C$DW$48        .dwtag  DW_TAG_TI_branch
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   13
@@ -728,7 +728,7 @@ inverter_drv8305.asm                                                 PAGE   13
      630              
      631 0000000c 0006          LRETR     ; [CPU_ALU] 
      632                      ; return occurs ; [] 
-     633                      .dwattr $C$DW$47, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv830
+     633                      .dwattr $C$DW$47, DW_AT_TI_end_file("../src/inverter_drv8305.c")
      634                      .dwattr $C$DW$47, DW_AT_TI_end_line(0xc0)
      635                      .dwattr $C$DW$47, DW_AT_TI_end_column(0x01)
      636                      .dwendentry
@@ -744,11 +744,11 @@ inverter_drv8305.asm                                                 PAGE   13
      646                      .dwattr $C$DW$49, DW_AT_high_pc(0x00)
      647                      .dwattr $C$DW$49, DW_AT_linkage_name("inverter_clear_faults")
      648                      .dwattr $C$DW$49, DW_AT_external
-     649                      .dwattr $C$DW$49, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     649                      .dwattr $C$DW$49, DW_AT_decl_file("../src/inverter_drv8305.c")
      650                      .dwattr $C$DW$49, DW_AT_decl_line(0x5d)
      651                      .dwattr $C$DW$49, DW_AT_decl_column(0x06)
      652                      .dwattr $C$DW$49, DW_AT_TI_max_frame_size(-2)
-     653                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 94,column 1,i
+     653                      .dwpsn  file "../src/inverter_drv8305.c",line 94,column 1,is_stmt,address ||inverter_clear_faults||,i
      654              
      655                      .dwfde $C$DW$CIE, ||inverter_clear_faults||
      656              
@@ -764,7 +764,7 @@ inverter_drv8305.asm                                                 PAGE   13
      666 00000000       ||inverter_clear_faults||:
      667                      .dwcfi  cfa_offset, -2
      668                      .dwcfi  save_reg_to_mem, 26, 0
-     669                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 103,column 5,
+     669                      .dwpsn  file "../src/inverter_drv8305.c",line 103,column 5,is_stmt,isa 0
      670 00000000 8F01          MOVL      XAR4,#79998           ; [CPU_ARAU] |103| 
          00000001 387E 
      671 00000002 A8A9          MOVL      ACC,XAR4              ; [CPU_ALU] |103| 
@@ -776,9 +776,9 @@ inverter_drv8305.asm                                                 PAGE   13
      677 00000003 7640!         LCR       #||SysCtl_delay||     ; [CPU_ALU] |103| 
          00000004 0000 
      678                      ; call occurs [#||SysCtl_delay||] ; [] |103| 
-     679                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 104,column 5,
+     679                      .dwpsn  file "../src/inverter_drv8305.c",line 104,column 5,is_stmt,isa 0
      680 00000005 9A00          MOVB      AL,#0                 ; [CPU_ALU] |104| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   14
@@ -793,7 +793,7 @@ inverter_drv8305.asm                                                 PAGE   14
      688 00000008 7640!         LCR       #||drv8305_xfer||     ; [CPU_ALU] |104| 
          00000009 0000 
      689                      ; call occurs [#||drv8305_xfer||] ; [] |104| 
-     690                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 105,column 5,
+     690                      .dwpsn  file "../src/inverter_drv8305.c",line 105,column 5,is_stmt,isa 0
      691 0000000a FF20          MOV       ACC,#3998             ; [CPU_ALU] |105| 
          0000000b 0F9E 
      692              $C$DW$52        .dwtag  DW_TAG_TI_branch
@@ -810,7 +810,7 @@ inverter_drv8305.asm                                                 PAGE   14
      702              
      703 0000000e 0006          LRETR     ; [CPU_ALU] 
      704                      ; return occurs ; [] 
-     705                      .dwattr $C$DW$49, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv830
+     705                      .dwattr $C$DW$49, DW_AT_TI_end_file("../src/inverter_drv8305.c")
      706                      .dwattr $C$DW$49, DW_AT_TI_end_line(0x6a)
      707                      .dwattr $C$DW$49, DW_AT_TI_end_column(0x01)
      708                      .dwendentry
@@ -826,11 +826,11 @@ inverter_drv8305.asm                                                 PAGE   14
      718                      .dwattr $C$DW$54, DW_AT_high_pc(0x00)
      719                      .dwattr $C$DW$54, DW_AT_linkage_name("inverter_init")
      720                      .dwattr $C$DW$54, DW_AT_external
-     721                      .dwattr $C$DW$54, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     721                      .dwattr $C$DW$54, DW_AT_decl_file("../src/inverter_drv8305.c")
      722                      .dwattr $C$DW$54, DW_AT_decl_line(0x75)
      723                      .dwattr $C$DW$54, DW_AT_decl_column(0x06)
      724                      .dwattr $C$DW$54, DW_AT_TI_max_frame_size(-4)
-     725                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 118,column 1,
+     725                      .dwpsn  file "../src/inverter_drv8305.c",line 118,column 1,is_stmt,address ||inverter_init||,isa 0
      726              
      727                      .dwfde $C$DW$CIE, ||inverter_init||
      728              
@@ -838,7 +838,7 @@ inverter_drv8305.asm                                                 PAGE   14
      730              ;* FNAME: inverter_init                 FR SIZE:   2           *
      731              ;*                                                             *
      732              ;* FUNCTION ENVIRONMENT                                        *
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   15
@@ -853,7 +853,7 @@ inverter_drv8305.asm                                                 PAGE   15
      740                      .dwcfi  save_reg_to_mem, 26, 0
      741 00000000 FE02          ADDB      SP,#2                 ; [CPU_ARAU] 
      742                      .dwcfi  cfa_offset, -4
-     743                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 121,column 5,
+     743                      .dwpsn  file "../src/inverter_drv8305.c",line 121,column 5,is_stmt,isa 0
      744 00000001 0201          MOVB      ACC,#1                ; [CPU_ALU] |121| 
      745 00000002 1E42          MOVL      *-SP[2],ACC           ; [CPU_ALU] |121| 
      746 00000003 0213          MOVB      ACC,#19               ; [CPU_ALU] |121| 
@@ -865,7 +865,7 @@ inverter_drv8305.asm                                                 PAGE   15
      752 00000004 7640!         LCR       #||GPIO_setPadConfig|| ; [CPU_ALU] |121| 
          00000005 0000 
      753                      ; call occurs [#||GPIO_setPadConfig||] ; [] |121| 
-     754                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 122,column 5,
+     754                      .dwpsn  file "../src/inverter_drv8305.c",line 122,column 5,is_stmt,isa 0
      755 00000006 D400          MOVB      XAR4,#0               ; [CPU_ALU] |122| 
      756 00000007 0213          MOVB      ACC,#19               ; [CPU_ALU] |122| 
      757              $C$DW$56        .dwtag  DW_TAG_TI_branch
@@ -876,7 +876,7 @@ inverter_drv8305.asm                                                 PAGE   15
      762 00000008 7640!         LCR       #||GPIO_setDirectionMode|| ; [CPU_ALU] |122| 
          00000009 0000 
      763                      ; call occurs [#||GPIO_setDirectionMode||] ; [] |122| 
-     764                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 128,column 5,
+     764                      .dwpsn  file "../src/inverter_drv8305.c",line 128,column 5,is_stmt,isa 0
      765              $C$DW$57        .dwtag  DW_TAG_TI_branch
      766                      .dwattr $C$DW$57, DW_AT_low_pc(0x00)
      767                      .dwattr $C$DW$57, DW_AT_name("pwm_force_safe")
@@ -888,17 +888,17 @@ inverter_drv8305.asm                                                 PAGE   15
      772                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/gpio.h",line 469,
      773 0000000c FF2F          MOV       ACC,#8192 << 15       ; [CPU_ALU] |469| 
          0000000d 2000 
-     774                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 133,column 5,
+     774                      .dwpsn  file "../src/inverter_drv8305.c",line 133,column 5,is_stmt,isa 0
      775 0000000e 8F01          MOVL      XAR4,#79998           ; [CPU_ARAU] |133| 
          0000000f 387E 
      776                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/gpio.h",line 469,
      777 00000010 BDA9          MOV32     *(0:0x7f1c),ACC       ; [CPU_FPU] |469| 
          00000011 7F1C 
-     778                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 133,column 5,
+     778                      .dwpsn  file "../src/inverter_drv8305.c",line 133,column 5,is_stmt,isa 0
      779 00000012 A8A9          MOVL      ACC,XAR4              ; [CPU_ALU] |133| 
      780              $C$DW$58        .dwtag  DW_TAG_TI_branch
      781                      .dwattr $C$DW$58, DW_AT_low_pc(0x00)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   16
@@ -912,13 +912,13 @@ inverter_drv8305.asm                                                 PAGE   16
      787                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/gpio.h",line 473,
      788 00000015 FF2F          MOV       ACC,#8192 << 15       ; [CPU_ALU] |473| 
          00000016 2000 
-     789                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 135,column 5,
+     789                      .dwpsn  file "../src/inverter_drv8305.c",line 135,column 5,is_stmt,isa 0
      790 00000017 8F01          MOVL      XAR4,#79998           ; [CPU_ARAU] |135| 
          00000018 387E 
      791                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/gpio.h",line 473,
      792 00000019 BDA9          MOV32     *(0:0x7f1a),ACC       ; [CPU_FPU] |473| 
          0000001a 7F1A 
-     793                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 135,column 5,
+     793                      .dwpsn  file "../src/inverter_drv8305.c",line 135,column 5,is_stmt,isa 0
      794 0000001b A8A9          MOVL      ACC,XAR4              ; [CPU_ALU] |135| 
      795              $C$DW$59        .dwtag  DW_TAG_TI_branch
      796                      .dwattr $C$DW$59, DW_AT_low_pc(0x00)
@@ -928,7 +928,7 @@ inverter_drv8305.asm                                                 PAGE   16
      800 0000001c 7640!         LCR       #||SysCtl_delay||     ; [CPU_ALU] |135| 
          0000001d 0000 
      801                      ; call occurs [#||SysCtl_delay||] ; [] |135| 
-     802                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 143,column 5,
+     802                      .dwpsn  file "../src/inverter_drv8305.c",line 143,column 5,is_stmt,isa 0
      803 0000001e 9A00          MOVB      AL,#0                 ; [CPU_ALU] |143| 
      804 0000001f 8F00          MOVL      XAR4,#656             ; [CPU_ALU] |143| 
          00000020 0290 
@@ -941,7 +941,7 @@ inverter_drv8305.asm                                                 PAGE   16
      811 00000022 7640!         LCR       #||drv8305_xfer||     ; [CPU_ALU] |143| 
          00000023 0000 
      812                      ; call occurs [#||drv8305_xfer||] ; [] |143| 
-     813                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 148,column 5,
+     813                      .dwpsn  file "../src/inverter_drv8305.c",line 148,column 5,is_stmt,isa 0
      814 00000024 9A00          MOVB      AL,#0                 ; [CPU_ALU] |148| 
      815 00000025 D480          MOVB      XAR4,#128             ; [CPU_ALU] |148| 
      816 00000026 9B0C          MOVB      AH,#12                ; [CPU_ALU] |148| 
@@ -953,12 +953,12 @@ inverter_drv8305.asm                                                 PAGE   16
      822 00000027 7640!         LCR       #||drv8305_xfer||     ; [CPU_ALU] |148| 
          00000028 0000 
      823                      ; call occurs [#||drv8305_xfer||] ; [] |148| 
-     824                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 154,column 5,
+     824                      .dwpsn  file "../src/inverter_drv8305.c",line 154,column 5,is_stmt,isa 0
      825 00000029 9A00          MOVB      AL,#0                 ; [CPU_ALU] |154| 
      826 0000002a 8F00          MOVL      XAR4,#534             ; [CPU_ALU] |154| 
          0000002b 0216 
      827 0000002c 9B07          MOVB      AH,#7                 ; [CPU_ALU] |154| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   17
@@ -971,7 +971,7 @@ inverter_drv8305.asm                                                 PAGE   17
      833 0000002d 7640!         LCR       #||drv8305_xfer||     ; [CPU_ALU] |154| 
          0000002e 0000 
      834                      ; call occurs [#||drv8305_xfer||] ; [] |154| 
-     835                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 156,column 5,
+     835                      .dwpsn  file "../src/inverter_drv8305.c",line 156,column 5,is_stmt,isa 0
      836 0000002f FF20          MOV       ACC,#19998            ; [CPU_ALU] |156| 
          00000030 4E1E 
      837              $C$DW$63        .dwtag  DW_TAG_TI_branch
@@ -982,7 +982,7 @@ inverter_drv8305.asm                                                 PAGE   17
      842 00000031 7640!         LCR       #||SysCtl_delay||     ; [CPU_ALU] |156| 
          00000032 0000 
      843                      ; call occurs [#||SysCtl_delay||] ; [] |156| 
-     844                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 160,column 5,
+     844                      .dwpsn  file "../src/inverter_drv8305.c",line 160,column 5,is_stmt,isa 0
      845              $C$DW$64        .dwtag  DW_TAG_TI_branch
      846                      .dwattr $C$DW$64, DW_AT_low_pc(0x00)
      847                      .dwattr $C$DW$64, DW_AT_name("inverter_clear_faults")
@@ -993,14 +993,14 @@ inverter_drv8305.asm                                                 PAGE   17
      851                      ; call occurs [#||inverter_clear_faults||] ; [] |160| 
      852 00000035 761F!         MOVW      DP,#||g_dbg_spi_wr_shunt|| ; [CPU_ARAU] 
          00000036 0000 
-     853                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 165,column 5,
+     853                      .dwpsn  file "../src/inverter_drv8305.c",line 165,column 5,is_stmt,isa 0
      854 00000037 9A01          MOVB      AL,#1                 ; [CPU_ALU] |165| 
      855 00000038 D400          MOVB      XAR4,#0               ; [CPU_ALU] |165| 
      856 00000039 9B0A          MOVB      AH,#10                ; [CPU_ALU] |165| 
-     857                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 164,column 5,
+     857                      .dwpsn  file "../src/inverter_drv8305.c",line 164,column 5,is_stmt,isa 0
      858 0000003a 2800!         MOV       @||g_dbg_spi_wr_shunt||,#656 ; [CPU_ALU] |164| 
          0000003b 0290 
-     859                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 165,column 5,
+     859                      .dwpsn  file "../src/inverter_drv8305.c",line 165,column 5,is_stmt,isa 0
      860              $C$DW$65        .dwtag  DW_TAG_TI_branch
      861                      .dwattr $C$DW$65, DW_AT_low_pc(0x00)
      862                      .dwattr $C$DW$65, DW_AT_name("drv8305_xfer")
@@ -1012,30 +1012,30 @@ inverter_drv8305.asm                                                 PAGE   17
      867 0000003e 761F!         MOVW      DP,#||g_dbg_spi_rd_shunt|| ; [CPU_ARAU] 
          0000003f 0000 
      868 00000040 9600!         MOV       @||g_dbg_spi_rd_shunt||,AL ; [CPU_ALU] |165| 
-     869                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 176,column 5,
+     869                      .dwpsn  file "../src/inverter_drv8305.c",line 176,column 5,is_stmt,isa 0
      870 00000041 D400          MOVB      XAR4,#0               ; [CPU_ALU] |176| 
      871 00000042 9B05          MOVB      AH,#5                 ; [CPU_ALU] |176| 
-     872                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 169,column 5,
+     872                      .dwpsn  file "../src/inverter_drv8305.c",line 169,column 5,is_stmt,isa 0
      873 00000043 F500!         MOV       @||g_dbg_spi_sts||,*(0:0x6102) ; [CPU_ALU] |169| 
          00000044 6102 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   18
 
-     874                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 170,column 5,
+     874                      .dwpsn  file "../src/inverter_drv8305.c",line 170,column 5,is_stmt,isa 0
      875 00000045 F5A9          MOV       AL,*(0:0x610a)        ; [CPU_ALU] |170| 
          00000046 610A 
      876 00000047 18A9          AND       AL,#0x1f00            ; [CPU_ALU] |170| 
          00000048 1F00 
      877 00000049 9600!         MOV       @||g_dbg_spi_fftx_level||,AL ; [CPU_ALU] |170| 
-     878                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 171,column 5,
+     878                      .dwpsn  file "../src/inverter_drv8305.c",line 171,column 5,is_stmt,isa 0
      879 0000004a F5A9          MOV       AL,*(0:0x610b)        ; [CPU_ALU] |171| 
          0000004b 610B 
      880 0000004c 18A9          AND       AL,#0x1f00            ; [CPU_ALU] |171| 
          0000004d 1F00 
      881 0000004e 9600!         MOV       @||g_dbg_spi_ffrx_level||,AL ; [CPU_ALU] |171| 
-     882                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 176,column 5,
+     882                      .dwpsn  file "../src/inverter_drv8305.c",line 176,column 5,is_stmt,isa 0
      883 0000004f 9A01          MOVB      AL,#1                 ; [CPU_ALU] |176| 
      884              $C$DW$66        .dwtag  DW_TAG_TI_branch
      885                      .dwattr $C$DW$66, DW_AT_low_pc(0x00)
@@ -1047,12 +1047,12 @@ inverter_drv8305.asm                                                 PAGE   18
      890                      ; call occurs [#||drv8305_xfer||] ; [] |176| 
      891 00000052 761F!         MOVW      DP,#||g_dbg_spi_hs_default|| ; [CPU_ARAU] 
          00000053 0000 
-     892                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 180,column 5,
+     892                      .dwpsn  file "../src/inverter_drv8305.c",line 180,column 5,is_stmt,isa 0
      893 00000054 D400          MOVB      XAR4,#0               ; [CPU_ALU] |180| 
      894 00000055 9B01          MOVB      AH,#1                 ; [CPU_ALU] |180| 
-     895                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 176,column 5,
+     895                      .dwpsn  file "../src/inverter_drv8305.c",line 176,column 5,is_stmt,isa 0
      896 00000056 9600!         MOV       @||g_dbg_spi_hs_default||,AL ; [CPU_ALU] |176| 
-     897                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 180,column 5,
+     897                      .dwpsn  file "../src/inverter_drv8305.c",line 180,column 5,is_stmt,isa 0
      898 00000057 9A01          MOVB      AL,#1                 ; [CPU_ALU] |180| 
      899              $C$DW$67        .dwtag  DW_TAG_TI_branch
      900                      .dwattr $C$DW$67, DW_AT_low_pc(0x00)
@@ -1064,12 +1064,12 @@ inverter_drv8305.asm                                                 PAGE   18
      905                      ; call occurs [#||drv8305_xfer||] ; [] |180| 
      906 0000005a 761F!         MOVW      DP,#||g_dbg_spi_warn|| ; [CPU_ARAU] 
          0000005b 0000 
-     907                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 181,column 5,
+     907                      .dwpsn  file "../src/inverter_drv8305.c",line 181,column 5,is_stmt,isa 0
      908 0000005c D400          MOVB      XAR4,#0               ; [CPU_ALU] |181| 
      909 0000005d 9B02          MOVB      AH,#2                 ; [CPU_ALU] |181| 
-     910                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 180,column 5,
+     910                      .dwpsn  file "../src/inverter_drv8305.c",line 180,column 5,is_stmt,isa 0
      911 0000005e 9600!         MOV       @||g_dbg_spi_warn||,AL ; [CPU_ALU] |180| 
-     912                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 181,column 5,
+     912                      .dwpsn  file "../src/inverter_drv8305.c",line 181,column 5,is_stmt,isa 0
      913 0000005f 9A01          MOVB      AL,#1                 ; [CPU_ALU] |181| 
      914              $C$DW$68        .dwtag  DW_TAG_TI_branch
      915                      .dwattr $C$DW$68, DW_AT_low_pc(0x00)
@@ -1078,7 +1078,7 @@ inverter_drv8305.asm                                                 PAGE   18
      918              
      919 00000060 7640!         LCR       #||drv8305_xfer||     ; [CPU_ALU] |181| 
          00000061 0000 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   19
@@ -1086,12 +1086,12 @@ inverter_drv8305.asm                                                 PAGE   19
      920                      ; call occurs [#||drv8305_xfer||] ; [] |181| 
      921 00000062 761F!         MOVW      DP,#||g_dbg_spi_ovvds|| ; [CPU_ARAU] 
          00000063 0000 
-     922                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 182,column 5,
+     922                      .dwpsn  file "../src/inverter_drv8305.c",line 182,column 5,is_stmt,isa 0
      923 00000064 D400          MOVB      XAR4,#0               ; [CPU_ALU] |182| 
      924 00000065 9B03          MOVB      AH,#3                 ; [CPU_ALU] |182| 
-     925                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 181,column 5,
+     925                      .dwpsn  file "../src/inverter_drv8305.c",line 181,column 5,is_stmt,isa 0
      926 00000066 9600!         MOV       @||g_dbg_spi_ovvds||,AL ; [CPU_ALU] |181| 
-     927                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 182,column 5,
+     927                      .dwpsn  file "../src/inverter_drv8305.c",line 182,column 5,is_stmt,isa 0
      928 00000067 9A01          MOVB      AL,#1                 ; [CPU_ALU] |182| 
      929              $C$DW$69        .dwtag  DW_TAG_TI_branch
      930                      .dwattr $C$DW$69, DW_AT_low_pc(0x00)
@@ -1103,12 +1103,12 @@ inverter_drv8305.asm                                                 PAGE   19
      935                      ; call occurs [#||drv8305_xfer||] ; [] |182| 
      936 0000006a 761F!         MOVW      DP,#||g_dbg_spi_icflt|| ; [CPU_ARAU] 
          0000006b 0000 
-     937                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 183,column 5,
+     937                      .dwpsn  file "../src/inverter_drv8305.c",line 183,column 5,is_stmt,isa 0
      938 0000006c D400          MOVB      XAR4,#0               ; [CPU_ALU] |183| 
      939 0000006d 9B04          MOVB      AH,#4                 ; [CPU_ALU] |183| 
-     940                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 182,column 5,
+     940                      .dwpsn  file "../src/inverter_drv8305.c",line 182,column 5,is_stmt,isa 0
      941 0000006e 9600!         MOV       @||g_dbg_spi_icflt||,AL ; [CPU_ALU] |182| 
-     942                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 183,column 5,
+     942                      .dwpsn  file "../src/inverter_drv8305.c",line 183,column 5,is_stmt,isa 0
      943 0000006f 9A01          MOVB      AL,#1                 ; [CPU_ALU] |183| 
      944              $C$DW$70        .dwtag  DW_TAG_TI_branch
      945                      .dwattr $C$DW$70, DW_AT_low_pc(0x00)
@@ -1129,7 +1129,7 @@ inverter_drv8305.asm                                                 PAGE   19
      958              
      959 00000076 0006          LRETR     ; [CPU_ALU] 
      960                      ; return occurs ; [] 
-     961                      .dwattr $C$DW$54, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv830
+     961                      .dwattr $C$DW$54, DW_AT_TI_end_file("../src/inverter_drv8305.c")
      962                      .dwattr $C$DW$54, DW_AT_TI_end_line(0xb8)
      963                      .dwattr $C$DW$54, DW_AT_TI_end_column(0x01)
      964                      .dwendentry
@@ -1138,7 +1138,7 @@ inverter_drv8305.asm                                                 PAGE   19
      967 00000000               .sect   ".text:inverter_fault_status"
      968                      .clink
      969                      .global ||inverter_fault_status||
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   20
@@ -1151,11 +1151,11 @@ inverter_drv8305.asm                                                 PAGE   20
      975                      .dwattr $C$DW$72, DW_AT_linkage_name("inverter_fault_status")
      976                      .dwattr $C$DW$72, DW_AT_external
      977                      .dwattr $C$DW$72, DW_AT_type(*$C$DW$T$36)
-     978                      .dwattr $C$DW$72, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+     978                      .dwattr $C$DW$72, DW_AT_decl_file("../src/inverter_drv8305.c")
      979                      .dwattr $C$DW$72, DW_AT_decl_line(0xc2)
      980                      .dwattr $C$DW$72, DW_AT_decl_column(0x0a)
      981                      .dwattr $C$DW$72, DW_AT_TI_max_frame_size(-2)
-     982                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 195,column 1,
+     982                      .dwpsn  file "../src/inverter_drv8305.c",line 195,column 1,is_stmt,address ||inverter_fault_status||,
      983              
      984                      .dwfde $C$DW$CIE, ||inverter_fault_status||
      985              
@@ -1171,7 +1171,7 @@ inverter_drv8305.asm                                                 PAGE   20
      995 00000000       ||inverter_fault_status||:
      996                      .dwcfi  cfa_offset, -2
      997                      .dwcfi  save_reg_to_mem, 26, 0
-     998                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 196,column 5,
+     998                      .dwpsn  file "../src/inverter_drv8305.c",line 196,column 5,is_stmt,isa 0
      999 00000000 9A01          MOVB      AL,#1                 ; [CPU_ALU] |196| 
     1000 00000001 D400          MOVB      XAR4,#0               ; [CPU_ALU] |196| 
     1001 00000002 9B01          MOVB      AH,#1                 ; [CPU_ALU] |196| 
@@ -1192,13 +1192,13 @@ inverter_drv8305.asm                                                 PAGE   20
     1014              
     1015 00000008 0006          LRETR     ; [CPU_ALU] 
     1016                      ; return occurs ; [] 
-    1017                      .dwattr $C$DW$72, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv830
+    1017                      .dwattr $C$DW$72, DW_AT_TI_end_file("../src/inverter_drv8305.c")
     1018                      .dwattr $C$DW$72, DW_AT_TI_end_line(0xc6)
     1019                      .dwattr $C$DW$72, DW_AT_TI_end_column(0x01)
     1020                      .dwendentry
     1021                      .dwendtag $C$DW$72
     1022              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   21
@@ -1213,11 +1213,11 @@ inverter_drv8305.asm                                                 PAGE   21
     1030                      .dwattr $C$DW$75, DW_AT_high_pc(0x00)
     1031                      .dwattr $C$DW$75, DW_AT_linkage_name("inverter_enable_gate")
     1032                      .dwattr $C$DW$75, DW_AT_external
-    1033                      .dwattr $C$DW$75, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+    1033                      .dwattr $C$DW$75, DW_AT_decl_file("../src/inverter_drv8305.c")
     1034                      .dwattr $C$DW$75, DW_AT_decl_line(0xba)
     1035                      .dwattr $C$DW$75, DW_AT_decl_column(0x06)
     1036                      .dwattr $C$DW$75, DW_AT_TI_max_frame_size(-2)
-    1037                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 186,column 33
+    1037                      .dwpsn  file "../src/inverter_drv8305.c",line 186,column 33,is_stmt,address ||inverter_enable_gate||,
     1038              
     1039                      .dwfde $C$DW$CIE, ||inverter_enable_gate||
     1040              
@@ -1244,7 +1244,7 @@ inverter_drv8305.asm                                                 PAGE   21
     1059              
     1060 00000004 0006          LRETR     ; [CPU_ALU] 
     1061                      ; return occurs ; [] 
-    1062                      .dwattr $C$DW$75, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv830
+    1062                      .dwattr $C$DW$75, DW_AT_TI_end_file("../src/inverter_drv8305.c")
     1063                      .dwattr $C$DW$75, DW_AT_TI_end_line(0xba)
     1064                      .dwattr $C$DW$75, DW_AT_TI_end_column(0x4b)
     1065                      .dwendentry
@@ -1258,18 +1258,18 @@ inverter_drv8305.asm                                                 PAGE   21
     1073                      .dwattr $C$DW$77, DW_AT_name("inverter_disable_gate")
     1074                      .dwattr $C$DW$77, DW_AT_low_pc(||inverter_disable_gate||)
     1075                      .dwattr $C$DW$77, DW_AT_high_pc(0x00)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   22
 
     1076                      .dwattr $C$DW$77, DW_AT_linkage_name("inverter_disable_gate")
     1077                      .dwattr $C$DW$77, DW_AT_external
-    1078                      .dwattr $C$DW$77, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.
+    1078                      .dwattr $C$DW$77, DW_AT_decl_file("../src/inverter_drv8305.c")
     1079                      .dwattr $C$DW$77, DW_AT_decl_line(0xbb)
     1080                      .dwattr $C$DW$77, DW_AT_decl_column(0x06)
     1081                      .dwattr $C$DW$77, DW_AT_TI_max_frame_size(-2)
-    1082                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv8305.c",line 187,column 33
+    1082                      .dwpsn  file "../src/inverter_drv8305.c",line 187,column 33,is_stmt,address ||inverter_disable_gate||
     1083              
     1084                      .dwfde $C$DW$CIE, ||inverter_disable_gate||
     1085              
@@ -1296,7 +1296,7 @@ inverter_drv8305.asm                                                 PAGE   22
     1104              
     1105 00000004 0006          LRETR     ; [CPU_ALU] 
     1106                      ; return occurs ; [] 
-    1107                      .dwattr $C$DW$77, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/inverter_drv830
+    1107                      .dwattr $C$DW$77, DW_AT_TI_end_file("../src/inverter_drv8305.c")
     1108                      .dwattr $C$DW$77, DW_AT_TI_end_line(0xbb)
     1109                      .dwattr $C$DW$77, DW_AT_TI_end_column(0x4b)
     1110                      .dwendentry
@@ -1318,7 +1318,7 @@ inverter_drv8305.asm                                                 PAGE   22
     1126                      .dwattr $C$DW$CU, DW_AT_language(DW_LANG_C)
     1127              
     1128              ;***************************************************************
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   23
@@ -1378,7 +1378,7 @@ inverter_drv8305.asm                                                 PAGE   23
     1181              $C$DW$TU$20     .dwtag  DW_TAG_type_unit
     1182                      .dwmtype  $C$DW$T$20
     1183              $C$DW$T$20      .dwtag  DW_TAG_typedef
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   24
@@ -1438,7 +1438,7 @@ inverter_drv8305.asm                                                 PAGE   24
     1236                      .dwattr $C$DW$86, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
     1237                      .dwattr $C$DW$86, DW_AT_decl_line(0x146)
     1238                      .dwattr $C$DW$86, DW_AT_decl_column(0x05)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   25
@@ -1498,7 +1498,7 @@ inverter_drv8305.asm                                                 PAGE   25
     1291                      .dwattr $C$DW$94, DW_AT_const_value(0x0c)
     1292                      .dwattr $C$DW$94, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
     1293                      .dwattr $C$DW$94, DW_AT_decl_line(0x14e)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   26
@@ -1558,7 +1558,7 @@ inverter_drv8305.asm                                                 PAGE   26
     1346                      .dwattr $C$DW$T$22, DW_AT_decl_column(0x03)
     1347              
     1348                      .dwendtag $C$DW$TU$22
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   27
@@ -1618,7 +1618,7 @@ inverter_drv8305.asm                                                 PAGE   27
     1401                      .dwattr $C$DW$106, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/drive
     1402                      .dwattr $C$DW$106, DW_AT_decl_line(0x165)
     1403                      .dwattr $C$DW$106, DW_AT_decl_column(0x05)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   28
@@ -1678,7 +1678,7 @@ inverter_drv8305.asm                                                 PAGE   28
     1456                      .dwattr $C$DW$114, DW_AT_const_value(0x0d)
     1457                      .dwattr $C$DW$114, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/drive
     1458                      .dwattr $C$DW$114, DW_AT_decl_line(0x16d)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   29
@@ -1738,7 +1738,7 @@ inverter_drv8305.asm                                                 PAGE   29
     1511                      .dwattr $C$DW$T$27, DW_AT_decl_column(0x03)
     1512              
     1513                      .dwendtag $C$DW$TU$27
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   30
@@ -1798,7 +1798,7 @@ inverter_drv8305.asm                                                 PAGE   30
     1566              $C$DW$T$8       .dwtag  DW_TAG_base_type
     1567                      .dwattr $C$DW$T$8, DW_AT_encoding(DW_ATE_signed)
     1568                      .dwattr $C$DW$T$8, DW_AT_name("short")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   31
@@ -1858,7 +1858,7 @@ inverter_drv8305.asm                                                 PAGE   31
     1621              $C$DW$121       .dwtag  DW_TAG_TI_far_type
     1622                      .dwattr $C$DW$121, DW_AT_type(*$C$DW$T$36)
     1623              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   32
@@ -1918,7 +1918,7 @@ inverter_drv8305.asm                                                 PAGE   32
     1676                      .dwattr $C$DW$T$23, DW_AT_decl_line(0x43)
     1677                      .dwattr $C$DW$T$23, DW_AT_decl_column(0x1c)
     1678              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   33
@@ -1978,7 +1978,7 @@ inverter_drv8305.asm                                                 PAGE   33
     1731                      .dwendtag $C$DW$TU$17
     1732              
     1733              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   34

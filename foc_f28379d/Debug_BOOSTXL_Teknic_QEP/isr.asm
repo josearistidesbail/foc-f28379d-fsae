@@ -1,12 +1,12 @@
 ;***************************************************************
 ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
-;* Date/Time created: Sat May 30 15:57:51 2026                 *
+;* Date/Time created: Sat May 30 20:22:51 2026                 *
 ;***************************************************************
 	.compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --mem_model:code=flat --mem_model:data=large --object_format=elf --quiet --silicon_errata_fpu1_workaround=off --silicon_version=28 --symdebug:dwarf --symdebug:dwarf_version=4 --tmu_support=tmu0 --vcu_support=vcu2 
 	.asg	XAR2, FP
 
 $C$DW$CU	.dwtag  DW_TAG_compile_unit
-	.dwattr $C$DW$CU, DW_AT_name("/home/jose/Documents/source/foc-f28379d-fsae/src/isr.c")
+	.dwattr $C$DW$CU, DW_AT_name("../src/isr.c")
 	.dwattr $C$DW$CU, DW_AT_producer("TI TMS320C2000 G3 C/C++ Codegen Unix v25.11.0.LTS Copyright (c) 1996-2018 Texas Instruments Incorporated")
 	.dwattr $C$DW$CU, DW_AT_TI_version(0x01)
 	.dwattr $C$DW$CU, DW_AT_comp_dir("/home/jose/workspace_ccstheia/foc_f28379d/Debug_BOOSTXL_Teknic_QEP")
@@ -16,7 +16,7 @@ $C$DW$1	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$1, DW_AT_linkage_name("foc_current_loop_isr")
 	.dwattr $C$DW$1, DW_AT_declaration
 	.dwattr $C$DW$1, DW_AT_external
-	.dwattr $C$DW$1, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_pipeline.h")
+	.dwattr $C$DW$1, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_pipeline.h")
 	.dwattr $C$DW$1, DW_AT_decl_line(0x15)
 	.dwattr $C$DW$1, DW_AT_decl_column(0x0d)
 	.dwendtag $C$DW$1
@@ -35,13 +35,13 @@ $C$DW$2	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$2, DW_AT_location[DW_OP_addr ||g_isr_count||]
 	.dwattr $C$DW$2, DW_AT_type(*$C$DW$T$32)
 	.dwattr $C$DW$2, DW_AT_external
-	.dwattr $C$DW$2, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/isr.c")
+	.dwattr $C$DW$2, DW_AT_decl_file("../src/isr.c")
 	.dwattr $C$DW$2, DW_AT_decl_line(0x0e)
 	.dwattr $C$DW$2, DW_AT_decl_column(0x13)
 
 	.sblock	".data"
-;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI26gfsT9xu /tmp/TI26gNIEDEL --advice:performance=stdout 
-;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI26gpk2SSI 
+;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI6XITVYc8f /tmp/TI6XInlO3eb --advice:performance=stdout 
+;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI6XI3TlEHy 
 	.sect	".text:epwm_tz_isr"
 	.retain
 	.retainrefs
@@ -53,12 +53,12 @@ $C$DW$3	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$3, DW_AT_high_pc(0x00)
 	.dwattr $C$DW$3, DW_AT_linkage_name("epwm_tz_isr")
 	.dwattr $C$DW$3, DW_AT_external
-	.dwattr $C$DW$3, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/isr.c")
+	.dwattr $C$DW$3, DW_AT_decl_file("../src/isr.c")
 	.dwattr $C$DW$3, DW_AT_decl_line(0x1f)
 	.dwattr $C$DW$3, DW_AT_decl_column(0x12)
 	.dwattr $C$DW$3, DW_AT_TI_interrupt
 	.dwattr $C$DW$3, DW_AT_TI_max_frame_size(-6)
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/isr.c",line 32,column 1,is_stmt,address ||epwm_tz_isr||,isa 0
+	.dwpsn	file "../src/isr.c",line 32,column 1,is_stmt,address ||epwm_tz_isr||,isa 0
 
 	.dwfde $C$DW$CIE, ||epwm_tz_isr||
 
@@ -100,7 +100,7 @@ $C$DW$4	.dwtag  DW_TAG_TI_branch
 
         IRET      ; [CPU_ALU] 
         ; return occurs ; [] 
-	.dwattr $C$DW$3, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/isr.c")
+	.dwattr $C$DW$3, DW_AT_TI_end_file("../src/isr.c")
 	.dwattr $C$DW$3, DW_AT_TI_end_line(0x22)
 	.dwattr $C$DW$3, DW_AT_TI_end_column(0x01)
 	.dwendentry
@@ -117,12 +117,12 @@ $C$DW$5	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$5, DW_AT_high_pc(0x00)
 	.dwattr $C$DW$5, DW_AT_linkage_name("adcA1_isr")
 	.dwattr $C$DW$5, DW_AT_external
-	.dwattr $C$DW$5, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/isr.c")
+	.dwattr $C$DW$5, DW_AT_decl_file("../src/isr.c")
 	.dwattr $C$DW$5, DW_AT_decl_line(0x12)
 	.dwattr $C$DW$5, DW_AT_decl_column(0x12)
 	.dwattr $C$DW$5, DW_AT_TI_interrupt
 	.dwattr $C$DW$5, DW_AT_TI_max_frame_size(-26)
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/isr.c",line 19,column 1,is_stmt,address ||adcA1_isr||,isa 0
+	.dwpsn	file "../src/isr.c",line 19,column 1,is_stmt,address ||adcA1_isr||,isa 0
 
 	.dwfde $C$DW$CIE, ||adcA1_isr||
 
@@ -185,11 +185,11 @@ $C$DW$5	.dwtag  DW_TAG_subprogram
         SPM       0                     ; [CPU_ALU] 
         CLRC      PAGE0,OVM             ; [CPU_ALU] 
         CLRC      AMODE                 ; [CPU_ALU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/isr.c",line 20,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/isr.c",line 20,column 5,is_stmt,isa 0
         MOVB      ACC,#1                ; [CPU_ALU] |20| 
         MOVW      DP,#||g_isr_count||   ; [CPU_ARAU] 
         ADDL      @||g_isr_count||,ACC  ; [CPU_ALU] |20| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/isr.c",line 21,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/isr.c",line 21,column 5,is_stmt,isa 0
 $C$DW$6	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$6, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$6, DW_AT_name("foc_current_loop_isr")
@@ -251,7 +251,7 @@ $C$DW$7	.dwtag  DW_TAG_TI_branch
 
         IRET      ; [CPU_ALU] 
         ; return occurs ; [] 
-	.dwattr $C$DW$5, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/isr.c")
+	.dwattr $C$DW$5, DW_AT_TI_end_file("../src/isr.c")
 	.dwattr $C$DW$5, DW_AT_TI_end_line(0x1a)
 	.dwattr $C$DW$5, DW_AT_TI_end_column(0x01)
 	.dwendentry

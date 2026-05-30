@@ -1,17 +1,17 @@
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE    1
 
        1              ;***************************************************************
        2              ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
-       3              ;* Date/Time created: Sat May 30 15:57:52 2026                 *
+       3              ;* Date/Time created: Sat May 30 20:22:51 2026                 *
        4              ;***************************************************************
        5                      .compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --
        6                      .asg    XAR2, FP
        7              
        8              $C$DW$CU        .dwtag  DW_TAG_compile_unit
-       9                      .dwattr $C$DW$CU, DW_AT_name("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c")
+       9                      .dwattr $C$DW$CU, DW_AT_name("../src/debug_hooks.c")
       10                      .dwattr $C$DW$CU, DW_AT_producer("TI TMS320C2000 G3 C/C++ Codegen Unix v25.11.0.LTS Copyright (c) 199
       11                      .dwattr $C$DW$CU, DW_AT_TI_version(0x01)
       12                      .dwattr $C$DW$CU, DW_AT_comp_dir("/home/jose/workspace_ccstheia/foc_f28379d/Debug_BOOSTXL_Teknic_QEP"
@@ -23,7 +23,7 @@ debug_hooks.asm                                                      PAGE    1
       18                      .dwattr $C$DW$1, DW_AT_location[DW_OP_addr ||g_datalog_idx||]
       19                      .dwattr $C$DW$1, DW_AT_type(*$C$DW$T$50)
       20                      .dwattr $C$DW$1, DW_AT_external
-      21                      .dwattr $C$DW$1, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c")
+      21                      .dwattr $C$DW$1, DW_AT_decl_file("../src/debug_hooks.c")
       22                      .dwattr $C$DW$1, DW_AT_decl_line(0x0d)
       23                      .dwattr $C$DW$1, DW_AT_decl_column(0x13)
       24              
@@ -35,13 +35,13 @@ debug_hooks.asm                                                      PAGE    1
       30                      .dwattr $C$DW$2, DW_AT_location[DW_OP_addr ||g_datalog||]
       31                      .dwattr $C$DW$2, DW_AT_type(*$C$DW$T$62)
       32                      .dwattr $C$DW$2, DW_AT_external
-      33                      .dwattr $C$DW$2, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c")
+      33                      .dwattr $C$DW$2, DW_AT_decl_file("../src/debug_hooks.c")
       34                      .dwattr $C$DW$2, DW_AT_decl_line(0x0c)
       35                      .dwattr $C$DW$2, DW_AT_decl_column(0x10)
       36              
       37                      .sblock ".bss"
-      38              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI25ZPBbrX6 /tmp/T
-      39              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI25ZiZrBw9 
+      38              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI6XiD8EEhb /tmp/T
+      39              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI6XiUYCIFB 
       40 00000000               .sect   ".text:debug_isr_scope_low"
       41                      .clink
       42                      .global ||debug_isr_scope_low||
@@ -52,13 +52,13 @@ debug_hooks.asm                                                      PAGE    1
       47                      .dwattr $C$DW$3, DW_AT_high_pc(0x00)
       48                      .dwattr $C$DW$3, DW_AT_linkage_name("debug_isr_scope_low")
       49                      .dwattr $C$DW$3, DW_AT_external
-      50                      .dwattr $C$DW$3, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c")
+      50                      .dwattr $C$DW$3, DW_AT_decl_file("../src/debug_hooks.c")
       51                      .dwattr $C$DW$3, DW_AT_decl_line(0x2e)
       52                      .dwattr $C$DW$3, DW_AT_decl_column(0x06)
       53                      .dwattr $C$DW$3, DW_AT_TI_max_frame_size(-2)
-      54                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 46,column 33,is_st
+      54                      .dwpsn  file "../src/debug_hooks.c",line 46,column 33,is_stmt,address ||debug_isr_scope_low||,isa 0
       55              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE    2
@@ -87,7 +87,7 @@ debug_hooks.asm                                                      PAGE    2
       76              
       77 00000003 0006          LRETR     ; [CPU_ALU] 
       78                      ; return occurs ; [] 
-      79                      .dwattr $C$DW$3, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c")
+      79                      .dwattr $C$DW$3, DW_AT_TI_end_file("../src/debug_hooks.c")
       80                      .dwattr $C$DW$3, DW_AT_TI_end_line(0x2e)
       81                      .dwattr $C$DW$3, DW_AT_TI_end_column(0x49)
       82                      .dwendentry
@@ -103,11 +103,11 @@ debug_hooks.asm                                                      PAGE    2
       92                      .dwattr $C$DW$5, DW_AT_high_pc(0x00)
       93                      .dwattr $C$DW$5, DW_AT_linkage_name("debug_isr_scope_high")
       94                      .dwattr $C$DW$5, DW_AT_external
-      95                      .dwattr $C$DW$5, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c")
+      95                      .dwattr $C$DW$5, DW_AT_decl_file("../src/debug_hooks.c")
       96                      .dwattr $C$DW$5, DW_AT_decl_line(0x2d)
       97                      .dwattr $C$DW$5, DW_AT_decl_column(0x06)
       98                      .dwattr $C$DW$5, DW_AT_TI_max_frame_size(-2)
-      99                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 45,column 33,is_st
+      99                      .dwpsn  file "../src/debug_hooks.c",line 45,column 33,is_stmt,address ||debug_isr_scope_high||,isa 0
      100              
      101                      .dwfde $C$DW$CIE, ||debug_isr_scope_high||
      102              
@@ -118,7 +118,7 @@ debug_hooks.asm                                                      PAGE    2
      107              ;*                                                             *
      108              ;* FUNCTION PROPERTIES                                         *
      109              ;*                            0 Parameter,  0 Auto,  0 SOE     *
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE    3
@@ -138,7 +138,7 @@ debug_hooks.asm                                                      PAGE    3
      121              
      122 00000003 0006          LRETR     ; [CPU_ALU] 
      123                      ; return occurs ; [] 
-     124                      .dwattr $C$DW$5, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c")
+     124                      .dwattr $C$DW$5, DW_AT_TI_end_file("../src/debug_hooks.c")
      125                      .dwattr $C$DW$5, DW_AT_TI_end_line(0x2d)
      126                      .dwattr $C$DW$5, DW_AT_TI_end_column(0x49)
      127                      .dwendentry
@@ -154,11 +154,11 @@ debug_hooks.asm                                                      PAGE    3
      137                      .dwattr $C$DW$7, DW_AT_high_pc(0x00)
      138                      .dwattr $C$DW$7, DW_AT_linkage_name("debug_init")
      139                      .dwattr $C$DW$7, DW_AT_external
-     140                      .dwattr $C$DW$7, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c")
+     140                      .dwattr $C$DW$7, DW_AT_decl_file("../src/debug_hooks.c")
      141                      .dwattr $C$DW$7, DW_AT_decl_line(0x0f)
      142                      .dwattr $C$DW$7, DW_AT_decl_column(0x06)
      143                      .dwattr $C$DW$7, DW_AT_TI_max_frame_size(-2)
-     144                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 16,column 1,is_stm
+     144                      .dwpsn  file "../src/debug_hooks.c",line 16,column 1,is_stmt,address ||debug_init||,isa 0
      145              
      146                      .dwfde $C$DW$CIE, ||debug_init||
      147              
@@ -178,14 +178,14 @@ debug_hooks.asm                                                      PAGE    3
          00000001 0000 
      161                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/gpio.h",line 469,
      162 00000002 9A00          MOVB      AL,#0                 ; [CPU_ALU] |469| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE    4
 
      163 00000003 28A8          MOV       AH,#32768             ; [CPU_ALU] |469| 
          00000004 8000 
-     164                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 17,column 5,is_stm
+     164                      .dwpsn  file "../src/debug_hooks.c",line 17,column 5,is_stmt,isa 0
      165 00000005 2B00!         MOV       @||g_datalog_idx||,#0 ; [CPU_ALU] |17| 
      166                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/gpio.h",line 469,
      167 00000006 BDA9          MOV32     *(0:0x7f04),ACC       ; [CPU_FPU] |469| 
@@ -196,7 +196,7 @@ debug_hooks.asm                                                      PAGE    4
      171              
      172 00000008 0006          LRETR     ; [CPU_ALU] 
      173                      ; return occurs ; [] 
-     174                      .dwattr $C$DW$7, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c")
+     174                      .dwattr $C$DW$7, DW_AT_TI_end_file("../src/debug_hooks.c")
      175                      .dwattr $C$DW$7, DW_AT_TI_end_line(0x14)
      176                      .dwattr $C$DW$7, DW_AT_TI_end_column(0x01)
      177                      .dwendentry
@@ -212,11 +212,11 @@ debug_hooks.asm                                                      PAGE    4
      187                      .dwattr $C$DW$9, DW_AT_high_pc(0x00)
      188                      .dwattr $C$DW$9, DW_AT_linkage_name("debug_datalog_push")
      189                      .dwattr $C$DW$9, DW_AT_external
-     190                      .dwattr $C$DW$9, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c")
+     190                      .dwattr $C$DW$9, DW_AT_decl_file("../src/debug_hooks.c")
      191                      .dwattr $C$DW$9, DW_AT_decl_line(0x16)
      192                      .dwattr $C$DW$9, DW_AT_decl_column(0x06)
      193                      .dwattr $C$DW$9, DW_AT_TI_max_frame_size(-6)
-     194                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 23,column 1,is_stm
+     194                      .dwpsn  file "../src/debug_hooks.c",line 23,column 1,is_stmt,address ||debug_datalog_push||,isa 0
      195              
      196                      .dwfde $C$DW$CIE, ||debug_datalog_push||
      197              $C$DW$10        .dwtag  DW_TAG_formal_parameter
@@ -238,7 +238,7 @@ debug_hooks.asm                                                      PAGE    4
      213              ;* FUNCTION PROPERTIES                                         *
      214              ;*                            0 Parameter,  0 Auto,  4 SOE     *
      215              ;***************************************************************
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE    5
@@ -266,76 +266,76 @@ debug_hooks.asm                                                      PAGE    5
      235 00000003 B2BD          MOVL      *SP++,XAR1            ; [CPU_ALU] 
      236                      .dwcfi  save_reg_to_mem, 7, 2
      237                      .dwcfi  cfa_offset, -4
-     238                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 26,column 5,is_stm
+     238                      .dwpsn  file "../src/debug_hooks.c",line 26,column 5,is_stmt,isa 0
      239 00000004 D00A          MOVB      XAR0,#10              ; [CPU_ALU] |26| 
-     240                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 25,column 5,is_stm
+     240                      .dwpsn  file "../src/debug_hooks.c",line 25,column 5,is_stmt,isa 0
      241 00000005 9A0E          MOVB      AL,#14                ; [CPU_ALU] |25| 
-     242                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 24,column 16,is_st
+     242                      .dwpsn  file "../src/debug_hooks.c",line 24,column 16,is_stmt,isa 0
      243 00000006 2D00!         MOV       T,@||g_datalog_idx||  ; [CPU_ALU] |24| 
-     244                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 25,column 5,is_stm
+     244                      .dwpsn  file "../src/debug_hooks.c",line 25,column 5,is_stmt,isa 0
      245 00000007 8F40!         MOVL      XAR5,#||g_datalog||   ; [CPU_ARAU] |25| 
          00000008 0000 
      246 00000009 AABD          MOVL      *SP++,XAR2            ; [CPU_ALU] 
      247                      .dwcfi  save_reg_to_mem, 9, 4
      248                      .dwcfi  cfa_offset, -6
      249 0000000a 36A9          MPYU      ACC,T,AL              ; [CPU_ALU] |25| 
-     250                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 26,column 5,is_stm
+     250                      .dwpsn  file "../src/debug_hooks.c",line 26,column 5,is_stmt,isa 0
      251 0000000b A394          MOVL      P,*+XAR4[AR0]         ; [CPU_ALU] |26| 
-     252                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 29,column 5,is_stm
+     252                      .dwpsn  file "../src/debug_hooks.c",line 29,column 5,is_stmt,isa 0
      253 0000000c D010          MOVB      XAR0,#16              ; [CPU_ALU] |29| 
      254 0000000d C594          MOVL      XAR7,*+XAR4[AR0]      ; [CPU_ALU] |29| 
-     255                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 25,column 5,is_stm
+     255                      .dwpsn  file "../src/debug_hooks.c",line 25,column 5,is_stmt,isa 0
      256 0000000e 5601          ADDL      XAR5,ACC              ; [CPU_ALU] |25| 
          0000000f 00A5 
-     257                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 31,column 5,is_stm
+     257                      .dwpsn  file "../src/debug_hooks.c",line 31,column 5,is_stmt,isa 0
      258 00000010 BDA6          MOV32     R0H,XAR6              ; [CPU_FPU] |31| 
          00000011 0F12 
-     259                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 25,column 5,is_stm
+     259                      .dwpsn  file "../src/debug_hooks.c",line 25,column 5,is_stmt,isa 0
      260 00000012 D01C          MOVB      XAR0,#28              ; [CPU_ALU] |25| 
      261 00000013 8694          MOVL      XAR2,*+XAR4[AR0]      ; [CPU_ALU] |25| 
-     262                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 27,column 5,is_stm
+     262                      .dwpsn  file "../src/debug_hooks.c",line 27,column 5,is_stmt,isa 0
      263 00000014 D00C          MOVB      XAR0,#12              ; [CPU_ALU] |27| 
      264 00000015 0694          MOVL      ACC,*+XAR4[AR0]       ; [CPU_ALU] |27| 
-     265                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 28,column 5,is_stm
+     265                      .dwpsn  file "../src/debug_hooks.c",line 28,column 5,is_stmt,isa 0
      266 00000016 D00E          MOVB      XAR0,#14              ; [CPU_ALU] |28| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE    6
 
-     267                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 25,column 5,is_stm
+     267                      .dwpsn  file "../src/debug_hooks.c",line 25,column 5,is_stmt,isa 0
      268 00000017 AAC5          MOVL      *+XAR5[0],XAR2        ; [CPU_ALU] |25| 
-     269                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 28,column 5,is_stm
+     269                      .dwpsn  file "../src/debug_hooks.c",line 28,column 5,is_stmt,isa 0
      270 00000018 8E94          MOVL      XAR0,*+XAR4[AR0]      ; [CPU_ALU] |28| 
-     271                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 26,column 5,is_stm
+     271                      .dwpsn  file "../src/debug_hooks.c",line 26,column 5,is_stmt,isa 0
      272 00000019 A9D5          MOVL      *+XAR5[2],P           ; [CPU_ALU] |26| 
-     273                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 27,column 5,is_stm
+     273                      .dwpsn  file "../src/debug_hooks.c",line 27,column 5,is_stmt,isa 0
      274 0000001a 1EE5          MOVL      *+XAR5[4],ACC         ; [CPU_ALU] |27| 
-     275                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 32,column 5,is_stm
+     275                      .dwpsn  file "../src/debug_hooks.c",line 32,column 5,is_stmt,isa 0
      276 0000001b 9B01          MOVB      AH,#1                 ; [CPU_ALU] |32| 
      277 0000001c 95AC          ADD       AH,T                  ; [CPU_ALU] |32| 
      278 0000001d 91FF          ANDB      AH,#0xff              ; [CPU_ALU] |32| 
-     279                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 28,column 5,is_stm
+     279                      .dwpsn  file "../src/debug_hooks.c",line 28,column 5,is_stmt,isa 0
      280 0000001e 3AF5          MOVL      *+XAR5[6],XAR0        ; [CPU_ALU] |28| 
-     281                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 29,column 5,is_stm
+     281                      .dwpsn  file "../src/debug_hooks.c",line 29,column 5,is_stmt,isa 0
      282 0000001f D008          MOVB      XAR0,#8               ; [CPU_FPU] |29| 
      283 00000020 C395          MOVL      *+XAR5[AR0],XAR7      ; [CPU_FPU] |29| 
-     284                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 30,column 5,is_stm
+     284                      .dwpsn  file "../src/debug_hooks.c",line 30,column 5,is_stmt,isa 0
      285 00000021 D01E          MOVB      XAR0,#30              ; [CPU_FPU] |30| 
      286 00000022 C594          MOVL      XAR7,*+XAR4[AR0]      ; [CPU_FPU] |30| 
-     287                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 31,column 5,is_stm
+     287                      .dwpsn  file "../src/debug_hooks.c",line 31,column 5,is_stmt,isa 0
      288 00000023 E68B          UI32TOF32 R0H,R0H               ; [CPU_FPU] |31| 
          00000024 0000 
-     289                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 30,column 5,is_stm
+     289                      .dwpsn  file "../src/debug_hooks.c",line 30,column 5,is_stmt,isa 0
      290 00000025 D10A          MOVB      XAR1,#10              ; [CPU_ALU] |30| 
-     291                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 31,column 5,is_stm
+     291                      .dwpsn  file "../src/debug_hooks.c",line 31,column 5,is_stmt,isa 0
      292 00000026 D00C          MOVB      XAR0,#12              ; [CPU_ALU] |31| 
-     293                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 30,column 5,is_stm
+     293                      .dwpsn  file "../src/debug_hooks.c",line 30,column 5,is_stmt,isa 0
      294 00000027 C39D          MOVL      *+XAR5[AR1],XAR7      ; [CPU_FPU] |30| 
-     295                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 31,column 5,is_stm
+     295                      .dwpsn  file "../src/debug_hooks.c",line 31,column 5,is_stmt,isa 0
      296 00000028 E203          MOV32     *+XAR5[AR0],R0H       ; [CPU_FPU] |31| 
          00000029 0095 
-     297                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 32,column 5,is_stm
+     297                      .dwpsn  file "../src/debug_hooks.c",line 32,column 5,is_stmt,isa 0
      298 0000002a 9700!         MOV       @||g_datalog_idx||,AH ; [CPU_ALU] |32| 
      299 0000002b 86BE          MOVL      XAR2,*--SP            ; [CPU_ALU] 
      300                      .dwcfi  cfa_offset, -4
@@ -349,7 +349,7 @@ debug_hooks.asm                                                      PAGE    6
      308              
      309 0000002d 0006          LRETR     ; [CPU_ALU] 
      310                      ; return occurs ; [] 
-     311                      .dwattr $C$DW$9, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c")
+     311                      .dwattr $C$DW$9, DW_AT_TI_end_file("../src/debug_hooks.c")
      312                      .dwattr $C$DW$9, DW_AT_TI_end_line(0x21)
      313                      .dwattr $C$DW$9, DW_AT_TI_end_column(0x01)
      314                      .dwendentry
@@ -358,7 +358,7 @@ debug_hooks.asm                                                      PAGE    6
      317 00000000               .sect   ".text:debug_dac_set"
      318                      .clink
      319                      .global ||debug_dac_set||
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE    7
@@ -370,11 +370,11 @@ debug_hooks.asm                                                      PAGE    7
      324                      .dwattr $C$DW$15, DW_AT_high_pc(0x00)
      325                      .dwattr $C$DW$15, DW_AT_linkage_name("debug_dac_set")
      326                      .dwattr $C$DW$15, DW_AT_external
-     327                      .dwattr $C$DW$15, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c")
+     327                      .dwattr $C$DW$15, DW_AT_decl_file("../src/debug_hooks.c")
      328                      .dwattr $C$DW$15, DW_AT_decl_line(0x23)
      329                      .dwattr $C$DW$15, DW_AT_decl_column(0x06)
      330                      .dwattr $C$DW$15, DW_AT_TI_max_frame_size(-2)
-     331                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 36,column 1,is_stm
+     331                      .dwpsn  file "../src/debug_hooks.c",line 36,column 1,is_stmt,address ||debug_dac_set||,isa 0
      332              
      333                      .dwfde $C$DW$CIE, ||debug_dac_set||
      334              $C$DW$16        .dwtag  DW_TAG_formal_parameter
@@ -418,7 +418,7 @@ debug_hooks.asm                                                      PAGE    7
      372              
      373              ;* R2    assigned to scale01
      374              $C$DW$21        .dwtag  DW_TAG_variable
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE    8
@@ -441,44 +441,44 @@ debug_hooks.asm                                                      PAGE    8
      390              
      391                      .dwcfi  cfa_offset, -2
      392                      .dwcfi  save_reg_to_mem, 26, 0
-     393                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 37,column 15,is_st
+     393                      .dwpsn  file "../src/debug_hooks.c",line 37,column 15,is_stmt,isa 0
      394 00000000 E802          MOVIZ     R3H,#17791            ; [CPU_FPU] |37| 
          00000001 2BFB 
      395 00000002 E700          MPYF32    R0H,R2H,R0H           ; [CPU_FPU] |37| 
          00000003 0010 
-     396                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 38,column 15,is_st
+     396                      .dwpsn  file "../src/debug_hooks.c",line 38,column 15,is_stmt,isa 0
      397 00000004 E700          MPYF32    R1H,R2H,R1H           ; [CPU_FPU] |38| 
          00000005 0051 
-     398                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 37,column 15,is_st
+     398                      .dwpsn  file "../src/debug_hooks.c",line 37,column 15,is_stmt,isa 0
      399 00000006 E80F          MOVXI     R3H,#61440            ; [CPU_FPU] |37| 
          00000007 8003 
      400 00000008 E88F          ADDF32    R0H,R0H,#16128        ; [CPU_FPU] |37| 
          00000009 C000 
-     401                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 38,column 15,is_st
+     401                      .dwpsn  file "../src/debug_hooks.c",line 38,column 15,is_stmt,isa 0
      402 0000000a E88F          ADDF32    R1H,R1H,#16128        ; [CPU_FPU] |38| 
          0000000b C009 
-     403                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 37,column 15,is_st
+     403                      .dwpsn  file "../src/debug_hooks.c",line 37,column 15,is_stmt,isa 0
      404 0000000c E700          MPYF32    R2H,R3H,R0H           ; [CPU_FPU] |37| 
          0000000d 001A 
-     405                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 38,column 15,is_st
+     405                      .dwpsn  file "../src/debug_hooks.c",line 38,column 15,is_stmt,isa 0
      406 0000000e E802          MOVIZ     R0H,#17791            ; [CPU_FPU] |38| 
          0000000f 2BF8 
      407 00000010 E80F          MOVXI     R0H,#61440            ; [CPU_FPU] |38| 
          00000011 8000 
      408 00000012 E700          MPYF32    R0H,R0H,R1H           ; [CPU_FPU] |38| 
          00000013 0040 
-     409                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 37,column 15,is_st
+     409                      .dwpsn  file "../src/debug_hooks.c",line 37,column 15,is_stmt,isa 0
      410 00000014 E688          F32TOI32  R1H,R2H               ; [CPU_FPU] |37| 
          00000015 0011 
      411 00000016 7700          NOP       ; [CPU_ALU] 
      412 00000017 7700          NOP       ; [CPU_ALU] 
      413 00000018 BFA6          MOV32     XAR6,R1H              ; [CPU_FPU] |37| 
          00000019 0F16 
-     414                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 38,column 15,is_st
+     414                      .dwpsn  file "../src/debug_hooks.c",line 38,column 15,is_stmt,isa 0
      415 0000001a E688          F32TOI32  R0H,R0H               ; [CPU_FPU] |38| 
          0000001b 0000 
-     416                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 39,column 15,is_st
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+     416                      .dwpsn  file "../src/debug_hooks.c",line 39,column 15,is_stmt,isa 0
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE    9
@@ -488,21 +488,21 @@ debug_hooks.asm                                                      PAGE    9
      419 0000001e 5661          MAXL      ACC,XAR7              ; [CPU_ALU] |39| 
          0000001f 00A7 
      420 00000020 1EA6          MOVL      XAR6,ACC              ; [CPU_ALU] |39| 
-     421                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 38,column 15,is_st
+     421                      .dwpsn  file "../src/debug_hooks.c",line 38,column 15,is_stmt,isa 0
      422 00000021 BFA4          MOV32     XAR4,R0H              ; [CPU_FPU] |38| 
          00000022 0F12 
-     423                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 39,column 22,is_st
+     423                      .dwpsn  file "../src/debug_hooks.c",line 39,column 22,is_stmt,isa 0
      424 00000023 FF20          MOV       ACC,#4096             ; [CPU_ALU] |39| 
          00000024 1000 
      425 00000025 0FA6          CMPL      ACC,XAR6              ; [CPU_ALU] |39| 
      426 00000026 6204          B         ||$C$L1||,GT          ; [CPU_ALU] |39| 
      427                      ; branchcc occurs ; [] |39| 
-     428                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 39,column 35,is_st
+     428                      .dwpsn  file "../src/debug_hooks.c",line 39,column 35,is_stmt,isa 0
      429 00000027 8F40          MOVL      XAR5,#4095            ; [CPU_ARAU] |39| 
          00000028 0FFF 
      430 00000029 C4A5          MOVL      XAR6,XAR5             ; [CPU_ALU] |39| 
      431 0000002a       ||$C$L1||:    
-     432                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 40,column 15,is_st
+     432                      .dwpsn  file "../src/debug_hooks.c",line 40,column 15,is_stmt,isa 0
      433 0000002a A8A9          MOVL      ACC,XAR4              ; [CPU_ALU] |40| 
      434 0000002b 5661          MAXL      ACC,XAR7              ; [CPU_ALU] |40| 
          0000002c 00A7 
@@ -512,7 +512,7 @@ debug_hooks.asm                                                      PAGE    9
      437 00000030 0FA4          CMPL      ACC,XAR4              ; [CPU_ALU] |40| 
      438 00000031 6203          B         ||$C$L2||,GT          ; [CPU_ALU] |40| 
      439                      ; branchcc occurs ; [] |40| 
-     440                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c",line 40,column 35,is_st
+     440                      .dwpsn  file "../src/debug_hooks.c",line 40,column 35,is_stmt,isa 0
      441 00000032 8F00          MOVL      XAR4,#4095            ; [CPU_ARAU] |40| 
          00000033 0FFF 
      442 00000034       ||$C$L2||:    
@@ -538,7 +538,7 @@ debug_hooks.asm                                                      PAGE    9
      455 00000046 F4A9          MOV       *(0:0x5c13),AL        ; [CPU_ALU] |330| 
          00000047 5C13 
      456              $C$DW$24        .dwtag  DW_TAG_TI_branch
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE   10
@@ -548,7 +548,7 @@ debug_hooks.asm                                                      PAGE   10
      459              
      460 00000048 0006          LRETR     ; [CPU_ALU] 
      461                      ; return occurs ; [] 
-     462                      .dwattr $C$DW$15, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_hooks.c")
+     462                      .dwattr $C$DW$15, DW_AT_TI_end_file("../src/debug_hooks.c")
      463                      .dwattr $C$DW$15, DW_AT_TI_end_line(0x2b)
      464                      .dwattr $C$DW$15, DW_AT_TI_end_column(0x01)
      465                      .dwendentry
@@ -597,8 +597,8 @@ debug_hooks.asm                                                      PAGE   10
      508                      .dwattr $C$DW$25, DW_AT_type(*$C$DW$T$20)
      509                      .dwattr $C$DW$25, DW_AT_name("Iabc")
      510                      .dwattr $C$DW$25, DW_AT_accessibility(DW_ACCESS_public)
-     511                      .dwattr $C$DW$25, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+     511                      .dwattr $C$DW$25, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE   11
@@ -611,7 +611,7 @@ debug_hooks.asm                                                      PAGE   11
      517                      .dwattr $C$DW$26, DW_AT_name("Iab")
      518                      .dwattr $C$DW$26, DW_AT_data_member_location[DW_OP_plus_uconst 0x6]
      519                      .dwattr $C$DW$26, DW_AT_accessibility(DW_ACCESS_public)
-     520                      .dwattr $C$DW$26, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     520                      .dwattr $C$DW$26, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      521                      .dwattr $C$DW$26, DW_AT_decl_line(0x1c)
      522                      .dwattr $C$DW$26, DW_AT_decl_column(0x11)
      523              
@@ -620,7 +620,7 @@ debug_hooks.asm                                                      PAGE   11
      526                      .dwattr $C$DW$27, DW_AT_name("Idq")
      527                      .dwattr $C$DW$27, DW_AT_data_member_location[DW_OP_plus_uconst 0xa]
      528                      .dwattr $C$DW$27, DW_AT_accessibility(DW_ACCESS_public)
-     529                      .dwattr $C$DW$27, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     529                      .dwattr $C$DW$27, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      530                      .dwattr $C$DW$27, DW_AT_decl_line(0x1d)
      531                      .dwattr $C$DW$27, DW_AT_decl_column(0x11)
      532              
@@ -629,7 +629,7 @@ debug_hooks.asm                                                      PAGE   11
      535                      .dwattr $C$DW$28, DW_AT_name("Vdq")
      536                      .dwattr $C$DW$28, DW_AT_data_member_location[DW_OP_plus_uconst 0xe]
      537                      .dwattr $C$DW$28, DW_AT_accessibility(DW_ACCESS_public)
-     538                      .dwattr $C$DW$28, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     538                      .dwattr $C$DW$28, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      539                      .dwattr $C$DW$28, DW_AT_decl_line(0x1e)
      540                      .dwattr $C$DW$28, DW_AT_decl_column(0x11)
      541              
@@ -638,7 +638,7 @@ debug_hooks.asm                                                      PAGE   11
      544                      .dwattr $C$DW$29, DW_AT_name("Vab")
      545                      .dwattr $C$DW$29, DW_AT_data_member_location[DW_OP_plus_uconst 0x12]
      546                      .dwattr $C$DW$29, DW_AT_accessibility(DW_ACCESS_public)
-     547                      .dwattr $C$DW$29, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     547                      .dwattr $C$DW$29, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      548                      .dwattr $C$DW$29, DW_AT_decl_line(0x1f)
      549                      .dwattr $C$DW$29, DW_AT_decl_column(0x11)
      550              
@@ -647,7 +647,7 @@ debug_hooks.asm                                                      PAGE   11
      553                      .dwattr $C$DW$30, DW_AT_name("duty")
      554                      .dwattr $C$DW$30, DW_AT_data_member_location[DW_OP_plus_uconst 0x16]
      555                      .dwattr $C$DW$30, DW_AT_accessibility(DW_ACCESS_public)
-     556                      .dwattr $C$DW$30, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     556                      .dwattr $C$DW$30, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      557                      .dwattr $C$DW$30, DW_AT_decl_line(0x20)
      558                      .dwattr $C$DW$30, DW_AT_decl_column(0x11)
      559              
@@ -656,9 +656,9 @@ debug_hooks.asm                                                      PAGE   11
      562                      .dwattr $C$DW$31, DW_AT_name("theta_elec")
      563                      .dwattr $C$DW$31, DW_AT_data_member_location[DW_OP_plus_uconst 0x1c]
      564                      .dwattr $C$DW$31, DW_AT_accessibility(DW_ACCESS_public)
-     565                      .dwattr $C$DW$31, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     565                      .dwattr $C$DW$31, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      566                      .dwattr $C$DW$31, DW_AT_decl_line(0x21)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE   12
@@ -670,11 +670,11 @@ debug_hooks.asm                                                      PAGE   12
      571                      .dwattr $C$DW$32, DW_AT_name("omega_elec")
      572                      .dwattr $C$DW$32, DW_AT_data_member_location[DW_OP_plus_uconst 0x1e]
      573                      .dwattr $C$DW$32, DW_AT_accessibility(DW_ACCESS_public)
-     574                      .dwattr $C$DW$32, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     574                      .dwattr $C$DW$32, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      575                      .dwattr $C$DW$32, DW_AT_decl_line(0x22)
      576                      .dwattr $C$DW$32, DW_AT_decl_column(0x11)
      577              
-     578                      .dwattr $C$DW$T$28, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     578                      .dwattr $C$DW$T$28, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      579                      .dwattr $C$DW$T$28, DW_AT_decl_line(0x1a)
      580                      .dwattr $C$DW$T$28, DW_AT_decl_column(0x10)
      581                      .dwendtag $C$DW$T$28
@@ -687,7 +687,7 @@ debug_hooks.asm                                                      PAGE   12
      588              $C$DW$T$36      .dwtag  DW_TAG_typedef
      589                      .dwattr $C$DW$T$36, DW_AT_name("FOC_Signals_t")
      590                      .dwattr $C$DW$T$36, DW_AT_type(*$C$DW$T$28)
-     591                      .dwattr $C$DW$T$36, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     591                      .dwattr $C$DW$T$36, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      592                      .dwattr $C$DW$T$36, DW_AT_decl_line(0x23)
      593                      .dwattr $C$DW$T$36, DW_AT_decl_column(0x03)
      594              
@@ -718,7 +718,7 @@ debug_hooks.asm                                                      PAGE   12
      619                      .dwmtype  $C$DW$T$39
      620              $C$DW$34        .dwtag  DW_TAG_TI_far_type
      621                      .dwattr $C$DW$34, DW_AT_type(*$C$DW$T$38)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE   13
@@ -769,7 +769,7 @@ debug_hooks.asm                                                      PAGE   13
      665              $C$DW$T$22      .dwtag  DW_TAG_typedef
      666                      .dwattr $C$DW$T$22, DW_AT_name("FOC_Iab_t")
      667                      .dwattr $C$DW$T$22, DW_AT_type(*$C$DW$T$21)
-     668                      .dwattr $C$DW$T$22, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     668                      .dwattr $C$DW$T$22, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      669                      .dwattr $C$DW$T$22, DW_AT_decl_line(0x0d)
      670                      .dwattr $C$DW$T$22, DW_AT_decl_column(0x13)
      671              
@@ -778,7 +778,7 @@ debug_hooks.asm                                                      PAGE   13
      674              
      675              $C$DW$TU$23     .dwtag  DW_TAG_type_unit
      676                      .dwmtype  $C$DW$T$23
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE   14
@@ -786,7 +786,7 @@ debug_hooks.asm                                                      PAGE   14
      677              $C$DW$T$23      .dwtag  DW_TAG_typedef
      678                      .dwattr $C$DW$T$23, DW_AT_name("FOC_Idq_t")
      679                      .dwattr $C$DW$T$23, DW_AT_type(*$C$DW$T$21)
-     680                      .dwattr $C$DW$T$23, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     680                      .dwattr $C$DW$T$23, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      681                      .dwattr $C$DW$T$23, DW_AT_decl_line(0x0e)
      682                      .dwattr $C$DW$T$23, DW_AT_decl_column(0x13)
      683              
@@ -798,7 +798,7 @@ debug_hooks.asm                                                      PAGE   14
      689              $C$DW$T$25      .dwtag  DW_TAG_typedef
      690                      .dwattr $C$DW$T$25, DW_AT_name("FOC_Vab_t")
      691                      .dwattr $C$DW$T$25, DW_AT_type(*$C$DW$T$21)
-     692                      .dwattr $C$DW$T$25, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     692                      .dwattr $C$DW$T$25, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      693                      .dwattr $C$DW$T$25, DW_AT_decl_line(0x0f)
      694                      .dwattr $C$DW$T$25, DW_AT_decl_column(0x13)
      695              
@@ -810,7 +810,7 @@ debug_hooks.asm                                                      PAGE   14
      701              $C$DW$T$24      .dwtag  DW_TAG_typedef
      702                      .dwattr $C$DW$T$24, DW_AT_name("FOC_Vdq_t")
      703                      .dwattr $C$DW$T$24, DW_AT_type(*$C$DW$T$21)
-     704                      .dwattr $C$DW$T$24, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     704                      .dwattr $C$DW$T$24, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      705                      .dwattr $C$DW$T$24, DW_AT_decl_line(0x10)
      706                      .dwattr $C$DW$T$24, DW_AT_decl_column(0x13)
      707              
@@ -838,7 +838,7 @@ debug_hooks.asm                                                      PAGE   14
      729              
      730                      .dwendtag $C$DW$TU$32
      731              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE   15
@@ -861,7 +861,7 @@ debug_hooks.asm                                                      PAGE   15
      747              $C$DW$T$26      .dwtag  DW_TAG_typedef
      748                      .dwattr $C$DW$T$26, DW_AT_name("FOC_Duty_t")
      749                      .dwattr $C$DW$T$26, DW_AT_type(*$C$DW$T$19)
-     750                      .dwattr $C$DW$T$26, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     750                      .dwattr $C$DW$T$26, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      751                      .dwattr $C$DW$T$26, DW_AT_decl_line(0x11)
      752                      .dwattr $C$DW$T$26, DW_AT_decl_column(0x13)
      753              
@@ -873,7 +873,7 @@ debug_hooks.asm                                                      PAGE   15
      759              $C$DW$T$20      .dwtag  DW_TAG_typedef
      760                      .dwattr $C$DW$T$20, DW_AT_name("FOC_Iabc_t")
      761                      .dwattr $C$DW$T$20, DW_AT_type(*$C$DW$T$19)
-     762                      .dwattr $C$DW$T$20, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     762                      .dwattr $C$DW$T$20, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      763                      .dwattr $C$DW$T$20, DW_AT_decl_line(0x0c)
      764                      .dwattr $C$DW$T$20, DW_AT_decl_column(0x13)
      765              
@@ -898,7 +898,7 @@ debug_hooks.asm                                                      PAGE   15
      784                      .dwendtag $C$DW$TU$4
      785              
      786              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE   16
@@ -958,7 +958,7 @@ debug_hooks.asm                                                      PAGE   16
      839              $C$DW$T$43      .dwtag  DW_TAG_typedef
      840                      .dwattr $C$DW$T$43, DW_AT_name("__uint16_t")
      841                      .dwattr $C$DW$T$43, DW_AT_type(*$C$DW$T$9)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE   17
@@ -1018,7 +1018,7 @@ debug_hooks.asm                                                      PAGE   17
      894              $C$DW$T$12      .dwtag  DW_TAG_base_type
      895                      .dwattr $C$DW$T$12, DW_AT_encoding(DW_ATE_signed)
      896                      .dwattr $C$DW$T$12, DW_AT_name("long")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE   18
@@ -1078,7 +1078,7 @@ debug_hooks.asm                                                      PAGE   18
      949                      .dwmtype  $C$DW$T$42
      950              $C$DW$T$42      .dwtag  DW_TAG_typedef
      951                      .dwattr $C$DW$T$42, DW_AT_name("uint32_t")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE   19
@@ -1138,7 +1138,7 @@ debug_hooks.asm                                                      PAGE   19
     1004              $C$DW$T$61      .dwtag  DW_TAG_array_type
     1005                      .dwattr $C$DW$T$61, DW_AT_type(*$C$DW$T$60)
     1006                      .dwattr $C$DW$T$61, DW_AT_byte_size(0x0e)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE   20
@@ -1198,7 +1198,7 @@ debug_hooks.asm                                                      PAGE   20
     1059                      .dwattr $C$DW$T$29, DW_AT_type(*$C$DW$T$27)
     1060                      .dwattr $C$DW$T$29, DW_AT_byte_size(0x04)
     1061              $C$DW$43        .dwtag  DW_TAG_subrange_type
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 debug_hooks.asm                                                      PAGE   21

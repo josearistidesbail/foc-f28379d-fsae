@@ -1,17 +1,17 @@
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE    1
 
        1              ;***************************************************************
        2              ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
-       3              ;* Date/Time created: Sat May 30 15:57:51 2026                 *
+       3              ;* Date/Time created: Sat May 30 20:22:51 2026                 *
        4              ;***************************************************************
        5                      .compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --
        6                      .asg    XAR2, FP
        7              
        8              $C$DW$CU        .dwtag  DW_TAG_compile_unit
-       9                      .dwattr $C$DW$CU, DW_AT_name("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+       9                      .dwattr $C$DW$CU, DW_AT_name("../src/adc_iface.c")
       10                      .dwattr $C$DW$CU, DW_AT_producer("TI TMS320C2000 G3 C/C++ Codegen Unix v25.11.0.LTS Copyright (c) 199
       11                      .dwattr $C$DW$CU, DW_AT_TI_version(0x01)
       12                      .dwattr $C$DW$CU, DW_AT_comp_dir("/home/jose/workspace_ccstheia/foc_f28379d/Debug_BOOSTXL_Teknic_QEP"
@@ -27,7 +27,7 @@ adc_iface.asm                                                        PAGE    1
       22                      .dwattr $C$DW$1, DW_AT_linkage_name("s_iu_offset")
       23                      .dwattr $C$DW$1, DW_AT_type(*$C$DW$T$41)
       24                      .dwattr $C$DW$1, DW_AT_location[DW_OP_addr ||s_iu_offset||]
-      25                      .dwattr $C$DW$1, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+      25                      .dwattr $C$DW$1, DW_AT_decl_file("../src/adc_iface.c")
       26                      .dwattr $C$DW$1, DW_AT_decl_line(0x0d)
       27                      .dwattr $C$DW$1, DW_AT_decl_column(0x1a)
       28              
@@ -43,7 +43,7 @@ adc_iface.asm                                                        PAGE    1
       38                      .dwattr $C$DW$2, DW_AT_linkage_name("s_iv_offset")
       39                      .dwattr $C$DW$2, DW_AT_type(*$C$DW$T$41)
       40                      .dwattr $C$DW$2, DW_AT_location[DW_OP_addr ||s_iv_offset||]
-      41                      .dwattr $C$DW$2, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+      41                      .dwattr $C$DW$2, DW_AT_decl_file("../src/adc_iface.c")
       42                      .dwattr $C$DW$2, DW_AT_decl_line(0x0e)
       43                      .dwattr $C$DW$2, DW_AT_decl_column(0x1a)
       44              
@@ -58,13 +58,13 @@ adc_iface.asm                                                        PAGE    1
       53                      .dwattr $C$DW$3, DW_AT_name("s_iw_offset")
       54                      .dwattr $C$DW$3, DW_AT_linkage_name("s_iw_offset")
       55                      .dwattr $C$DW$3, DW_AT_type(*$C$DW$T$41)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE    2
 
       56                      .dwattr $C$DW$3, DW_AT_location[DW_OP_addr ||s_iw_offset||]
-      57                      .dwattr $C$DW$3, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+      57                      .dwattr $C$DW$3, DW_AT_decl_file("../src/adc_iface.c")
       58                      .dwattr $C$DW$3, DW_AT_decl_line(0x0f)
       59                      .dwattr $C$DW$3, DW_AT_decl_column(0x1a)
       60              
@@ -76,7 +76,7 @@ adc_iface.asm                                                        PAGE    2
       66                      .dwattr $C$DW$4, DW_AT_location[DW_OP_addr ||g_dbg_iu_raw||]
       67                      .dwattr $C$DW$4, DW_AT_type(*$C$DW$T$41)
       68                      .dwattr $C$DW$4, DW_AT_external
-      69                      .dwattr $C$DW$4, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+      69                      .dwattr $C$DW$4, DW_AT_decl_file("../src/adc_iface.c")
       70                      .dwattr $C$DW$4, DW_AT_decl_line(0x12)
       71                      .dwattr $C$DW$4, DW_AT_decl_column(0x13)
       72              
@@ -88,7 +88,7 @@ adc_iface.asm                                                        PAGE    2
       78                      .dwattr $C$DW$5, DW_AT_location[DW_OP_addr ||g_dbg_iv_raw||]
       79                      .dwattr $C$DW$5, DW_AT_type(*$C$DW$T$41)
       80                      .dwattr $C$DW$5, DW_AT_external
-      81                      .dwattr $C$DW$5, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+      81                      .dwattr $C$DW$5, DW_AT_decl_file("../src/adc_iface.c")
       82                      .dwattr $C$DW$5, DW_AT_decl_line(0x13)
       83                      .dwattr $C$DW$5, DW_AT_decl_column(0x13)
       84              
@@ -100,7 +100,7 @@ adc_iface.asm                                                        PAGE    2
       90                      .dwattr $C$DW$6, DW_AT_location[DW_OP_addr ||g_dbg_iw_raw||]
       91                      .dwattr $C$DW$6, DW_AT_type(*$C$DW$T$41)
       92                      .dwattr $C$DW$6, DW_AT_external
-      93                      .dwattr $C$DW$6, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+      93                      .dwattr $C$DW$6, DW_AT_decl_file("../src/adc_iface.c")
       94                      .dwattr $C$DW$6, DW_AT_decl_line(0x14)
       95                      .dwattr $C$DW$6, DW_AT_decl_column(0x13)
       96              
@@ -112,19 +112,19 @@ adc_iface.asm                                                        PAGE    2
      102                      .dwattr $C$DW$7, DW_AT_location[DW_OP_addr ||g_dbg_vbus_raw||]
      103                      .dwattr $C$DW$7, DW_AT_type(*$C$DW$T$41)
      104                      .dwattr $C$DW$7, DW_AT_external
-     105                      .dwattr $C$DW$7, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     105                      .dwattr $C$DW$7, DW_AT_decl_file("../src/adc_iface.c")
      106                      .dwattr $C$DW$7, DW_AT_decl_line(0x15)
      107                      .dwattr $C$DW$7, DW_AT_decl_column(0x13)
      108              
      109                      .sblock ".bss"
      110                      .sblock ".data"
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE    3
 
-     111              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI25WerWb7B /tmp/T
-     112              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI25WJmQLrq 
+     111              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI6XcXW5gH6 /tmp/T
+     112              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI6XciH93jy 
      113 00000000               .sect   ".text:adc_read_vbus"
      114                      .clink
      115                      .global ||adc_read_vbus||
@@ -136,11 +136,11 @@ adc_iface.asm                                                        PAGE    3
      121                      .dwattr $C$DW$8, DW_AT_linkage_name("adc_read_vbus")
      122                      .dwattr $C$DW$8, DW_AT_external
      123                      .dwattr $C$DW$8, DW_AT_type(*$C$DW$T$16)
-     124                      .dwattr $C$DW$8, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     124                      .dwattr $C$DW$8, DW_AT_decl_file("../src/adc_iface.c")
      125                      .dwattr $C$DW$8, DW_AT_decl_line(0x3f)
      126                      .dwattr $C$DW$8, DW_AT_decl_column(0x07)
      127                      .dwattr $C$DW$8, DW_AT_TI_max_frame_size(-2)
-     128                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 64,column 1,is_stmt,
+     128                      .dwpsn  file "../src/adc_iface.c",line 64,column 1,is_stmt,address ||adc_read_vbus||,isa 0
      129              
      130                      .dwfde $C$DW$CIE, ||adc_read_vbus||
      131              
@@ -165,7 +165,7 @@ adc_iface.asm                                                        PAGE    3
      150                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/adc.h",line 923,c
      151 00000000 F5A9          MOV       AL,*(0:0x0b03)        ; [CPU_ALU] |923| 
          00000001 0B03 
-     152                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 67,column 5,is_stmt,
+     152                      .dwpsn  file "../src/adc_iface.c",line 67,column 5,is_stmt,isa 0
      153 00000002 88A9          MOVZ      AR6,AL                ; [CPU_ALU] |67| 
      154 00000003 BDA6          MOV32     R1H,XAR6              ; [CPU_FPU] |67| 
          00000004 0F16 
@@ -178,7 +178,7 @@ adc_iface.asm                                                        PAGE    3
      159 0000000b E68B          UI32TOF32 R1H,R1H               ; [CPU_FPU] |67| 
          0000000c 0009 
      160 0000000d E80C          MOVXI     R0H,#36700            ; [CPU_FPU] |67| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE    4
@@ -186,7 +186,7 @@ adc_iface.asm                                                        PAGE    4
          0000000e 7AE0 
      161 0000000f E700          MPYF32    R0H,R0H,R1H           ; [CPU_FPU] |67| 
          00000010 0040 
-     162                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 66,column 5,is_stmt,
+     162                      .dwpsn  file "../src/adc_iface.c",line 66,column 5,is_stmt,isa 0
      163 00000011 9600!         MOV       @||g_dbg_vbus_raw||,AL ; [CPU_ALU] |66| 
      164              $C$DW$10        .dwtag  DW_TAG_TI_branch
      165                      .dwattr $C$DW$10, DW_AT_low_pc(0x00)
@@ -194,7 +194,7 @@ adc_iface.asm                                                        PAGE    4
      167              
      168 00000012 0006          LRETR     ; [CPU_ALU] 
      169                      ; return occurs ; [] 
-     170                      .dwattr $C$DW$8, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     170                      .dwattr $C$DW$8, DW_AT_TI_end_file("../src/adc_iface.c")
      171                      .dwattr $C$DW$8, DW_AT_TI_end_line(0x44)
      172                      .dwattr $C$DW$8, DW_AT_TI_end_column(0x01)
      173                      .dwendentry
@@ -210,11 +210,11 @@ adc_iface.asm                                                        PAGE    4
      183                      .dwattr $C$DW$11, DW_AT_high_pc(0x00)
      184                      .dwattr $C$DW$11, DW_AT_linkage_name("adc_read_phase_currents")
      185                      .dwattr $C$DW$11, DW_AT_external
-     186                      .dwattr $C$DW$11, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     186                      .dwattr $C$DW$11, DW_AT_decl_file("../src/adc_iface.c")
      187                      .dwattr $C$DW$11, DW_AT_decl_line(0x2c)
      188                      .dwattr $C$DW$11, DW_AT_decl_column(0x06)
      189                      .dwattr $C$DW$11, DW_AT_TI_max_frame_size(-2)
-     190                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 45,column 1,is_stmt,
+     190                      .dwpsn  file "../src/adc_iface.c",line 45,column 1,is_stmt,address ||adc_read_phase_currents||,isa 0
      191              
      192                      .dwfde $C$DW$CIE, ||adc_read_phase_currents||
      193              $C$DW$12        .dwtag  DW_TAG_formal_parameter
@@ -238,7 +238,7 @@ adc_iface.asm                                                        PAGE    4
      211              ;* AR4   assigned to out
      212              $C$DW$13        .dwtag  DW_TAG_variable
      213                      .dwattr $C$DW$13, DW_AT_name("out")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE    5
@@ -287,47 +287,47 @@ adc_iface.asm                                                        PAGE    5
          00000005 0B02 
      253 00000006 761F!         MOVW      DP,#||g_dbg_iu_raw||  ; [CPU_ARAU] 
          00000007 0000 
-     254                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 50,column 5,is_stmt,
+     254                      .dwpsn  file "../src/adc_iface.c",line 50,column 5,is_stmt,isa 0
      255 00000008 9700!         MOV       @||g_dbg_iu_raw||,AH  ; [CPU_ALU] |50| 
-     256                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 51,column 5,is_stmt,
+     256                      .dwpsn  file "../src/adc_iface.c",line 51,column 5,is_stmt,isa 0
      257 00000009 9600!         MOV       @||g_dbg_iv_raw||,AL  ; [CPU_ALU] |51| 
-     258                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 52,column 5,is_stmt,
+     258                      .dwpsn  file "../src/adc_iface.c",line 52,column 5,is_stmt,isa 0
      259 0000000a 7E00!         MOV       @||g_dbg_iw_raw||,AR6 ; [CPU_ALU] |52| 
      260 0000000b 761F!         MOVW      DP,#||s_iu_offset||   ; [CPU_ARAU] 
          0000000c 0000 
-     261                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 40,column 1,is_stmt,
+     261                      .dwpsn  file "../src/adc_iface.c",line 40,column 1,is_stmt,isa 0
      262 0000000d 9300!         MOV       AH,@||s_iu_offset||   ; [CPU_ALU] |40| 
      263 0000000e 8000!         MOVZ      AR7,@||s_iv_offset||  ; [CPU_ALU] |40| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE    6
 
-     264                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 55,column 5,is_stmt,
+     264                      .dwpsn  file "../src/adc_iface.c",line 55,column 5,is_stmt,isa 0
      265 0000000f 0EA9          MOVU      ACC,AL                ; [CPU_ALU] |55| 
      266 00000010 03A7          SUBL      ACC,XAR7              ; [CPU_ALU] |55| 
      267 00000011 BDA9          MOV32     R0H,ACC               ; [CPU_FPU] |55| 
          00000012 0F12 
      268 00000013 7700          NOP       ; [CPU_ALU] 
-     269                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 40,column 1,is_stmt,
+     269                      .dwpsn  file "../src/adc_iface.c",line 40,column 1,is_stmt,isa 0
      270 00000014 8000!         MOVZ      AR7,@||s_iw_offset||  ; [CPU_ALU] |40| 
-     271                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 56,column 5,is_stmt,
+     271                      .dwpsn  file "../src/adc_iface.c",line 56,column 5,is_stmt,isa 0
      272 00000015 0EA6          MOVU      ACC,AR6               ; [CPU_ALU] |56| 
-     273                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 55,column 5,is_stmt,
+     273                      .dwpsn  file "../src/adc_iface.c",line 55,column 5,is_stmt,isa 0
      274 00000016 E801          MOVIZ     R1H,#15403            ; [CPU_FPU] |55| 
          00000017 E159 
      275 00000018 E689          I32TOF32  R0H,R0H               ; [CPU_FPU] |55| 
          00000019 0000 
-     276                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 56,column 5,is_stmt,
+     276                      .dwpsn  file "../src/adc_iface.c",line 56,column 5,is_stmt,isa 0
      277 0000001a 88A7          MOVZ      AR6,AR7               ; [CPU_ALU] |56| 
-     278                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 55,column 5,is_stmt,
+     278                      .dwpsn  file "../src/adc_iface.c",line 55,column 5,is_stmt,isa 0
      279 0000001b E80B          MOVXI     R1H,#28087            ; [CPU_FPU] |55| 
          0000001c 6DB9 
      280 0000001d E6AF          NEGF32    R0H,R0H               ; [CPU_FPU] |55| 
          0000001e 0000 
      281 0000001f E700          MPYF32    R3H,R1H,R0H           ; [CPU_FPU] |55| 
          00000020 000B 
-     282                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 56,column 5,is_stmt,
+     282                      .dwpsn  file "../src/adc_iface.c",line 56,column 5,is_stmt,isa 0
      283 00000021 03A6          SUBL      ACC,XAR6              ; [CPU_ALU] |56| 
      284 00000022 BDA9          MOV32     R0H,ACC               ; [CPU_FPU] |56| 
          00000023 0F12 
@@ -335,10 +335,10 @@ adc_iface.asm                                                        PAGE    6
      286 00000025 7700          NOP       ; [CPU_ALU] 
      287 00000026 E801          MOVIZ     R1H,#15403            ; [CPU_FPU] |56| 
          00000027 E159 
-     288                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 59,column 5,is_stmt,
+     288                      .dwpsn  file "../src/adc_iface.c",line 59,column 5,is_stmt,isa 0
      289 00000028 E6CF          MOV32     R2H,R3H               ; [CPU_FPU] |59| 
          00000029 001A 
-     290                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 56,column 5,is_stmt,
+     290                      .dwpsn  file "../src/adc_iface.c",line 56,column 5,is_stmt,isa 0
      291 0000002a E689          I32TOF32  R0H,R0H               ; [CPU_FPU] |56| 
          0000002b 0000 
      292 0000002c E80B          MOVXI     R1H,#28087            ; [CPU_FPU] |56| 
@@ -347,24 +347,24 @@ adc_iface.asm                                                        PAGE    6
          0000002f 0000 
      294 00000030 E700          MPYF32    R0H,R1H,R0H           ; [CPU_FPU] |56| 
          00000031 0008 
-     295                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 59,column 5,is_stmt,
+     295                      .dwpsn  file "../src/adc_iface.c",line 59,column 5,is_stmt,isa 0
      296 00000032 E6AF          NEGF32    R2H,R2H               ; [CPU_FPU] |59| 
          00000033 0012 
-     297                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 55,column 5,is_stmt,
+     297                      .dwpsn  file "../src/adc_iface.c",line 55,column 5,is_stmt,isa 0
      298              
      299 00000034 E020          SUBF32    R1H,R2H,R0H           ; [CPU_FPU] |59| 
          00000035 8BD4 
      300              ||      MOV32     *+XAR4[2],R3H         ; [CPU_FPU] |55| 
      301              
-     302                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 56,column 5,is_stmt,
+     302                      .dwpsn  file "../src/adc_iface.c",line 56,column 5,is_stmt,isa 0
      303 00000036 E203          MOV32     *+XAR4[4],R0H         ; [CPU_FPU] |56| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE    7
 
          00000037 00E4 
-     304                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 59,column 5,is_stmt,
+     304                      .dwpsn  file "../src/adc_iface.c",line 59,column 5,is_stmt,isa 0
      305 00000038 E203          MOV32     *+XAR4[0],R1H         ; [CPU_FPU] |59| 
          00000039 01C4 
      306              $C$DW$19        .dwtag  DW_TAG_TI_branch
@@ -373,7 +373,7 @@ adc_iface.asm                                                        PAGE    7
      309              
      310 0000003a 0006          LRETR     ; [CPU_ALU] 
      311                      ; return occurs ; [] 
-     312                      .dwattr $C$DW$11, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     312                      .dwattr $C$DW$11, DW_AT_TI_end_file("../src/adc_iface.c")
      313                      .dwattr $C$DW$11, DW_AT_TI_end_line(0x3d)
      314                      .dwattr $C$DW$11, DW_AT_TI_end_column(0x01)
      315                      .dwendentry
@@ -389,11 +389,11 @@ adc_iface.asm                                                        PAGE    7
      325                      .dwattr $C$DW$20, DW_AT_high_pc(0x00)
      326                      .dwattr $C$DW$20, DW_AT_linkage_name("adc_init")
      327                      .dwattr $C$DW$20, DW_AT_external
-     328                      .dwattr $C$DW$20, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     328                      .dwattr $C$DW$20, DW_AT_decl_file("../src/adc_iface.c")
      329                      .dwattr $C$DW$20, DW_AT_decl_line(0x21)
      330                      .dwattr $C$DW$20, DW_AT_decl_column(0x06)
      331                      .dwattr $C$DW$20, DW_AT_TI_max_frame_size(-2)
-     332                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 34,column 1,is_stmt,
+     332                      .dwpsn  file "../src/adc_iface.c",line 34,column 1,is_stmt,address ||adc_init||,isa 0
      333              
      334                      .dwfde $C$DW$CIE, ||adc_init||
      335              
@@ -415,10 +415,10 @@ adc_iface.asm                                                        PAGE    7
      351              
      352 00000000 0006          LRETR     ; [CPU_ALU] 
      353                      ; return occurs ; [] 
-     354                      .dwattr $C$DW$20, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     354                      .dwattr $C$DW$20, DW_AT_TI_end_file("../src/adc_iface.c")
      355                      .dwattr $C$DW$20, DW_AT_TI_end_line(0x25)
      356                      .dwattr $C$DW$20, DW_AT_TI_end_column(0x01)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE    8
@@ -436,11 +436,11 @@ adc_iface.asm                                                        PAGE    8
      367                      .dwattr $C$DW$22, DW_AT_high_pc(0x00)
      368                      .dwattr $C$DW$22, DW_AT_linkage_name("adc_calibrate_offsets")
      369                      .dwattr $C$DW$22, DW_AT_external
-     370                      .dwattr $C$DW$22, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     370                      .dwattr $C$DW$22, DW_AT_decl_file("../src/adc_iface.c")
      371                      .dwattr $C$DW$22, DW_AT_decl_line(0x53)
      372                      .dwattr $C$DW$22, DW_AT_decl_column(0x06)
      373                      .dwattr $C$DW$22, DW_AT_TI_max_frame_size(-4)
-     374                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 84,column 1,is_stmt,
+     374                      .dwpsn  file "../src/adc_iface.c",line 84,column 1,is_stmt,address ||adc_calibrate_offsets||,isa 0
      375              
      376                      .dwfde $C$DW$CIE, ||adc_calibrate_offsets||
      377              $C$DW$23        .dwtag  DW_TAG_formal_parameter
@@ -478,7 +478,7 @@ adc_iface.asm                                                        PAGE    8
      409              $C$DW$26        .dwtag  DW_TAG_variable
      410                      .dwattr $C$DW$26, DW_AT_name("sv")
      411                      .dwattr $C$DW$26, DW_AT_type(*$C$DW$T$33)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE    9
@@ -493,19 +493,19 @@ adc_iface.asm                                                        PAGE    9
      419              
      420                      .dwcfi  cfa_offset, -2
      421                      .dwcfi  save_reg_to_mem, 26, 0
-     422                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 85,column 17,is_stmt
+     422                      .dwpsn  file "../src/adc_iface.c",line 85,column 17,is_stmt,isa 0
      423 00000000 3100          MOV       P,#0                  ; [CPU_ALU] |85| 
-     424                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 87,column 16,is_stmt
+     424                      .dwpsn  file "../src/adc_iface.c",line 87,column 16,is_stmt,isa 0
      425 00000001 5200          CMPB      AL,#0                 ; [CPU_ALU] |87| 
      426 00000002 AABD          MOVL      *SP++,XAR2            ; [CPU_ALU] 
      427                      .dwcfi  save_reg_to_mem, 9, 2
      428                      .dwcfi  cfa_offset, -4
-     429                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 84,column 1,is_stmt,
+     429                      .dwpsn  file "../src/adc_iface.c",line 84,column 1,is_stmt,isa 0
      430 00000003 58A9          MOVZ      AR0,AL                ; [CPU_ALU] |84| 
-     431                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 85,column 17,is_stmt
+     431                      .dwpsn  file "../src/adc_iface.c",line 85,column 17,is_stmt,isa 0
      432 00000004 A9A7          MOVL      XAR7,P                ; [CPU_FPU] |85| 
      433 00000005 A9A4          MOVL      XAR4,P                ; [CPU_FPU] |85| 
-     434                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 87,column 16,is_stmt
+     434                      .dwpsn  file "../src/adc_iface.c",line 87,column 16,is_stmt,isa 0
      435 00000006 611B          B         ||$C$L2||,EQ          ; [CPU_ALU] |87| 
      436                      ; branchcc occurs ; [] |87| 
      437 00000007 88A0          MOVZ      AR6,AR0               ; [CPU_ALU] 
@@ -527,33 +527,33 @@ adc_iface.asm                                                        PAGE    9
      450 00000012 A9A9          MOVL      ACC,P                 ; [CPU_ALU] |923| 
      451 00000013 F5AC          MOV       T,*(0:0x0b21)         ; [CPU_ALU] |923| 
          00000014 0B21 
-     452                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 94,column 9,is_stmt,
+     452                      .dwpsn  file "../src/adc_iface.c",line 94,column 9,is_stmt,isa 0
      453 00000015 0DA2          ADDU      ACC,AR2               ; [CPU_ALU] |94| 
      454                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/adc.h",line 923,c
      455 00000016 F5A5          MOV       AR5,*(0:0x0b02)       ; [CPU_FPU] |923| 
          00000017 0B02 
-     456                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 94,column 9,is_stmt,
+     456                      .dwpsn  file "../src/adc_iface.c",line 94,column 9,is_stmt,isa 0
      457 00000018 FF5A          MOVL      P,ACC                 ; [CPU_ALU] |94| 
-     458                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 87,column 16,is_stmt
+     458                      .dwpsn  file "../src/adc_iface.c",line 87,column 16,is_stmt,isa 0
      459 00000019 06A7          MOVL      ACC,XAR7              ; [CPU_ALU] |87| 
-     460                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 95,column 9,is_stmt,
+     460                      .dwpsn  file "../src/adc_iface.c",line 95,column 9,is_stmt,isa 0
      461 0000001a 0DAC          ADDU      ACC,T                 ; [CPU_ALU] |95| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE   10
 
      462 0000001b 1EA7          MOVL      XAR7,ACC              ; [CPU_ALU] |95| 
      463 0000001c A8A9          MOVL      ACC,XAR4              ; [CPU_ALU] |95| 
-     464                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 96,column 9,is_stmt,
+     464                      .dwpsn  file "../src/adc_iface.c",line 96,column 9,is_stmt,isa 0
      465 0000001d 0DA5          ADDU      ACC,AR5               ; [CPU_ALU] |96| 
      466 0000001e 8AA9          MOVL      XAR4,ACC              ; [CPU_ALU] |96| 
-     467                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 87,column 16,is_stmt
+     467                      .dwpsn  file "../src/adc_iface.c",line 87,column 16,is_stmt,isa 0
      468 0000001f 000E          BANZ      ||$C$L1||,AR6--       ; [CPU_ALU] |87| 
          00000020 FFEA 
      469                      ; branchcc occurs ; [] |87| 
      470 00000021       ||$C$L2||:    
-     471                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 98,column 5,is_stmt,
+     471                      .dwpsn  file "../src/adc_iface.c",line 98,column 5,is_stmt,isa 0
      472 00000021 88A0          MOVZ      AR6,AR0               ; [CPU_ALU] |98| 
      473 00000022 0200          MOVB      ACC,#0                ; [CPU_ALU] |98| 
      474 00000023 761F!         MOVW      DP,#||s_iu_offset||   ; [CPU_ARAU] 
@@ -561,28 +561,28 @@ adc_iface.asm                                                        PAGE   10
      475 00000025 F61F          RPT       #31
      476 00000026 5617  ||     SUBCUL    ACC,XAR6              ; [CPU_ALU] |98| 
          00000027 00A6 
-     477                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 99,column 5,is_stmt,
+     477                      .dwpsn  file "../src/adc_iface.c",line 99,column 5,is_stmt,isa 0
      478 00000028 88A0          MOVZ      AR6,AR0               ; [CPU_ALU] |99| 
-     479                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 98,column 5,is_stmt,
+     479                      .dwpsn  file "../src/adc_iface.c",line 98,column 5,is_stmt,isa 0
      480 00000029 3F00!         MOV       @||s_iu_offset||,P    ; [CPU_ALU] |98| 
-     481                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 99,column 5,is_stmt,
+     481                      .dwpsn  file "../src/adc_iface.c",line 99,column 5,is_stmt,isa 0
      482 0000002a 0200          MOVB      ACC,#0                ; [CPU_ALU] |99| 
-     483                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 98,column 5,is_stmt,
+     483                      .dwpsn  file "../src/adc_iface.c",line 98,column 5,is_stmt,isa 0
      484 0000002b A3A7          MOVL      P,XAR7                ; [CPU_ALU] |98| 
-     485                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 99,column 5,is_stmt,
+     485                      .dwpsn  file "../src/adc_iface.c",line 99,column 5,is_stmt,isa 0
      486 0000002c F61F          RPT       #31
      487 0000002d 5617  ||     SUBCUL    ACC,XAR6              ; [CPU_ALU] |99| 
          0000002e 00A6 
      488 0000002f 3F00!         MOV       @||s_iv_offset||,P    ; [CPU_ALU] |99| 
-     489                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 100,column 5,is_stmt
+     489                      .dwpsn  file "../src/adc_iface.c",line 100,column 5,is_stmt,isa 0
      490 00000030 88A0          MOVZ      AR6,AR0               ; [CPU_ALU] |100| 
      491 00000031 86BE          MOVL      XAR2,*--SP            ; [CPU_ALU] 
      492                      .dwcfi  cfa_offset, -2
      493                      .dwcfi  restore_reg, 9
      494 00000032 0200          MOVB      ACC,#0                ; [CPU_ALU] |100| 
-     495                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 99,column 5,is_stmt,
+     495                      .dwpsn  file "../src/adc_iface.c",line 99,column 5,is_stmt,isa 0
      496 00000033 A8AB          MOVL      P,XAR4                ; [CPU_ALU] |99| 
-     497                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c",line 100,column 5,is_stmt
+     497                      .dwpsn  file "../src/adc_iface.c",line 100,column 5,is_stmt,isa 0
      498 00000034 F61F          RPT       #31
      499 00000035 5617  ||     SUBCUL    ACC,XAR6              ; [CPU_ALU] |100| 
          00000036 00A6 
@@ -593,12 +593,12 @@ adc_iface.asm                                                        PAGE   10
      504              
      505 00000038 0006          LRETR     ; [CPU_ALU] 
      506                      ; return occurs ; [] 
-     507                      .dwattr $C$DW$22, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/adc_iface.c")
+     507                      .dwattr $C$DW$22, DW_AT_TI_end_file("../src/adc_iface.c")
      508                      .dwattr $C$DW$22, DW_AT_TI_end_line(0x65)
      509                      .dwattr $C$DW$22, DW_AT_TI_end_column(0x01)
      510                      .dwendentry
      511                      .dwendtag $C$DW$22
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE   11
@@ -658,7 +658,7 @@ adc_iface.asm                                                        PAGE   11
      564                      .dwattr $C$DW$30, DW_AT_decl_column(0x05)
      565              
      566              $C$DW$31        .dwtag  DW_TAG_enumerator
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE   12
@@ -718,7 +718,7 @@ adc_iface.asm                                                        PAGE   12
      619              $C$DW$35        .dwtag  DW_TAG_enumerator
      620                      .dwattr $C$DW$35, DW_AT_name("ADC_SOC_NUMBER2")
      621                      .dwattr $C$DW$35, DW_AT_const_value(0x02)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE   13
@@ -778,7 +778,7 @@ adc_iface.asm                                                        PAGE   13
      674              
      675              $C$DW$43        .dwtag  DW_TAG_enumerator
      676                      .dwattr $C$DW$43, DW_AT_name("ADC_SOC_NUMBER10")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE   14
@@ -838,7 +838,7 @@ adc_iface.asm                                                        PAGE   14
      729                      .dwattr $C$DW$T$25, DW_AT_type(*$C$DW$T$24)
      730                      .dwattr $C$DW$T$25, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driv
      731                      .dwattr $C$DW$T$25, DW_AT_decl_line(0x155)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE   15
@@ -887,7 +887,7 @@ adc_iface.asm                                                        PAGE   15
      773              $C$DW$T$27      .dwtag  DW_TAG_typedef
      774                      .dwattr $C$DW$T$27, DW_AT_name("FOC_Iabc_t")
      775                      .dwattr $C$DW$T$27, DW_AT_type(*$C$DW$T$26)
-     776                      .dwattr $C$DW$T$27, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     776                      .dwattr $C$DW$T$27, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      777                      .dwattr $C$DW$T$27, DW_AT_decl_line(0x0c)
      778                      .dwattr $C$DW$T$27, DW_AT_decl_column(0x13)
      779              
@@ -898,7 +898,7 @@ adc_iface.asm                                                        PAGE   15
      784                      .dwmtype  $C$DW$T$28
      785              $C$DW$T$28      .dwtag  DW_TAG_pointer_type
      786                      .dwattr $C$DW$T$28, DW_AT_type(*$C$DW$T$27)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE   16
@@ -958,7 +958,7 @@ adc_iface.asm                                                        PAGE   16
      839              
      840              
      841              $C$DW$TU$7      .dwtag  DW_TAG_type_unit
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE   17
@@ -1018,7 +1018,7 @@ adc_iface.asm                                                        PAGE   17
      894              
      895              $C$DW$TU$41     .dwtag  DW_TAG_type_unit
      896                      .dwmtype  $C$DW$T$41
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE   18
@@ -1078,7 +1078,7 @@ adc_iface.asm                                                        PAGE   18
      949              $C$DW$T$46      .dwtag  DW_TAG_typedef
      950                      .dwattr $C$DW$T$46, DW_AT_name("__int32_t")
      951                      .dwattr $C$DW$T$46, DW_AT_type(*$C$DW$T$12)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE   19
@@ -1138,7 +1138,7 @@ adc_iface.asm                                                        PAGE   19
     1004              
     1005              $C$DW$TU$14     .dwtag  DW_TAG_type_unit
     1006                      .dwmtype  $C$DW$T$14
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE   20
@@ -1198,7 +1198,7 @@ adc_iface.asm                                                        PAGE   20
     1059              
     1060              
     1061              $C$DW$TU$17     .dwtag  DW_TAG_type_unit
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 adc_iface.asm                                                        PAGE   21

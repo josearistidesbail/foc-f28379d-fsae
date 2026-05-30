@@ -89,6 +89,19 @@ src/sensor_qep.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/
 src/sensor_qep.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/driver_inclusive_terminology_mapping.h
 src/sensor_qep.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/device.h
 src/sensor_qep.obj: /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/stddef.h
+src/sensor_qep.obj: /home/jose/workspace_ccstheia/foc_f28379d/include/build_config.h
+src/sensor_qep.obj: /home/jose/workspace_ccstheia/foc_f28379d/config/hw/hw_boostxl_drv8305.h
+src/sensor_qep.obj: /home/jose/workspace_ccstheia/foc_f28379d/config/motor/motor_teknic_m2310p.h
+src/sensor_qep.obj: /home/jose/workspace_ccstheia/foc_f28379d/config/gains/gains_teknic.h
+src/sensor_qep.obj: /home/jose/workspace_ccstheia/foc_f28379d/include/build_config.h
+src/sensor_qep.obj: /home/jose/workspace_ccstheia/foc_f28379d/config/sensor/sensor_qep.h
+src/sensor_qep.obj: /home/jose/workspace_ccstheia/foc_f28379d/include/sensor_iface.h
+src/sensor_qep.obj: /home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/math/include/math.h
+src/sensor_qep.obj: /home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/math/include/math.h
+src/sensor_qep.obj: /home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/utilities/types/include/types.h
+src/sensor_qep.obj: /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/string.h
+src/sensor_qep.obj: /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/xlocale/_string.h
+src/sensor_qep.obj: /home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h
 
 ../src/sensor_qep.c:
 
@@ -267,4 +280,30 @@ src/sensor_qep.obj: /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.
 /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/device.h:
 
 /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/stddef.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/include/build_config.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/config/hw/hw_boostxl_drv8305.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/config/motor/motor_teknic_m2310p.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/config/gains/gains_teknic.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/include/build_config.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/config/sensor/sensor_qep.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_iface.h:
+
+/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/math/include/math.h:
+
+/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/math/include/math.h:
+
+/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/utilities/types/include/types.h:
+
+/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/string.h:
+
+/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/xlocale/_string.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h:
 

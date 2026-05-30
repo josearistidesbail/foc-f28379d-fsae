@@ -68,6 +68,20 @@ imported/app/main.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/
 imported/app/main.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/F2837xD_SysCtrl_defines.h
 imported/app/main.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/F2837xD_Upp_defines.h
 imported/app/main.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/F2837xD_defaultisr.h
+imported/app/main.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/app/motor_control.h
+imported/app/main.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/foc/pmsm_types.h
+imported/app/main.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/foc/foc.h
+imported/app/main.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/foc/pi.h
+imported/app/main.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/foc/speed_loop.h
+imported/app/main.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/config/control_config.h
+imported/app/main.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/config/motor_config.h
+imported/app/main.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/config/board_config.h
+imported/app/main.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/foc/encoder.h
+imported/app/main.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/hal/hal_board.h
+imported/app/main.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/hal/hal_pwm.h
+imported/app/main.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/hal/hal_adc.h
+imported/app/main.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/hal/hal_qep.h
+imported/app/main.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/hal/drv8305.h
 
 ../imported/app/main.c:
 
@@ -204,4 +218,32 @@ imported/app/main.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/
 /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/F2837xD_Upp_defines.h:
 
 /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/F2837xD_defaultisr.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/app/motor_control.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/foc/pmsm_types.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/foc/foc.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/foc/pi.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/foc/speed_loop.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/config/control_config.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/config/motor_config.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/config/board_config.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/foc/encoder.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/hal/hal_board.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/hal/hal_pwm.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/hal/hal_adc.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/hal/hal_qep.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/hal/drv8305.h:
 

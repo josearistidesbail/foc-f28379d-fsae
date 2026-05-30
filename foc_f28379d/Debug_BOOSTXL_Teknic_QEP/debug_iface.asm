@@ -1,12 +1,12 @@
 ;***************************************************************
 ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
-;* Date/Time created: Sun May 24 12:42:00 2026                 *
+;* Date/Time created: Sat May 30 20:22:51 2026                 *
 ;***************************************************************
 	.compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --mem_model:code=flat --mem_model:data=large --object_format=elf --quiet --silicon_errata_fpu1_workaround=off --silicon_version=28 --symdebug:dwarf --symdebug:dwarf_version=4 --tmu_support=tmu0 --vcu_support=vcu2 
 	.asg	XAR2, FP
 
 $C$DW$CU	.dwtag  DW_TAG_compile_unit
-	.dwattr $C$DW$CU, DW_AT_name("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c")
+	.dwattr $C$DW$CU, DW_AT_name("../src/debug_iface.c")
 	.dwattr $C$DW$CU, DW_AT_producer("TI TMS320C2000 G3 C/C++ Codegen Unix v25.11.0.LTS Copyright (c) 1996-2018 Texas Instruments Incorporated")
 	.dwattr $C$DW$CU, DW_AT_TI_version(0x01)
 	.dwattr $C$DW$CU, DW_AT_comp_dir("/home/jose/workspace_ccstheia/foc_f28379d/Debug_BOOSTXL_Teknic_QEP")
@@ -33,7 +33,7 @@ $C$DW$4	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$4, DW_AT_linkage_name("s_rx_head")
 	.dwattr $C$DW$4, DW_AT_type(*$C$DW$T$36)
 	.dwattr $C$DW$4, DW_AT_location[DW_OP_addr ||s_rx_head||]
-	.dwattr $C$DW$4, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c")
+	.dwattr $C$DW$4, DW_AT_decl_file("../src/debug_iface.c")
 	.dwattr $C$DW$4, DW_AT_decl_line(0x12)
 	.dwattr $C$DW$4, DW_AT_decl_column(0x1a)
 
@@ -43,7 +43,7 @@ $C$DW$5	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$5, DW_AT_linkage_name("s_rx_tail")
 	.dwattr $C$DW$5, DW_AT_type(*$C$DW$T$36)
 	.dwattr $C$DW$5, DW_AT_location[DW_OP_addr ||s_rx_tail||]
-	.dwattr $C$DW$5, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c")
+	.dwattr $C$DW$5, DW_AT_decl_file("../src/debug_iface.c")
 	.dwattr $C$DW$5, DW_AT_decl_line(0x13)
 	.dwattr $C$DW$5, DW_AT_decl_column(0x1a)
 
@@ -53,13 +53,13 @@ $C$DW$6	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$6, DW_AT_linkage_name("s_rx_ring")
 	.dwattr $C$DW$6, DW_AT_type(*$C$DW$T$37)
 	.dwattr $C$DW$6, DW_AT_location[DW_OP_addr ||s_rx_ring||]
-	.dwattr $C$DW$6, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c")
+	.dwattr $C$DW$6, DW_AT_decl_file("../src/debug_iface.c")
 	.dwattr $C$DW$6, DW_AT_decl_line(0x11)
 	.dwattr $C$DW$6, DW_AT_decl_column(0x1a)
 
 	.sblock	".bss"
-;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TIbxnzDErrF /tmp/TIbxnOD1hz4 --advice:performance=stdout 
-;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TIbxn0OzB0E 
+;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI6XmcMSuTE /tmp/TI6Xmf0rU8h --advice:performance=stdout 
+;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI6XmMlXai8 
 	.sect	".text:sciA_rx_isr"
 	.retain
 	.retainrefs
@@ -71,12 +71,12 @@ $C$DW$7	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$7, DW_AT_high_pc(0x00)
 	.dwattr $C$DW$7, DW_AT_linkage_name("sciA_rx_isr")
 	.dwattr $C$DW$7, DW_AT_external
-	.dwattr $C$DW$7, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c")
+	.dwattr $C$DW$7, DW_AT_decl_file("../src/debug_iface.c")
 	.dwattr $C$DW$7, DW_AT_decl_line(0x2e)
 	.dwattr $C$DW$7, DW_AT_decl_column(0x12)
 	.dwattr $C$DW$7, DW_AT_TI_interrupt
 	.dwattr $C$DW$7, DW_AT_TI_max_frame_size(-28)
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 47,column 1,is_stmt,address ||sciA_rx_isr||,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 47,column 1,is_stmt,address ||sciA_rx_isr||,isa 0
 
 	.dwfde $C$DW$CIE, ||sciA_rx_isr||
 
@@ -153,11 +153,11 @@ $C$DW$9	.dwtag  DW_TAG_variable
         SPM       0                     ; [CPU_ALU] 
         CLRC      PAGE0,OVM             ; [CPU_ALU] 
         CLRC      AMODE                 ; [CPU_ALU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 56,column 13,is_stmt,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 56,column 13,is_stmt,isa 0
         MOVL      XAR4,#||s_rx_ring||   ; [CPU_ARAU] |56| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 54,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 54,column 9,is_stmt,isa 0
         MOV       PH,#0                 ; [CPU_ALU] |54| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 50,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 50,column 5,is_stmt,isa 0
         B         ||$C$L2||,UNC         ; [CPU_ALU] |50| 
         ; branch occurs ; [] |50| 
 ||$C$L1||:    
@@ -165,24 +165,24 @@ $C$DW$9	.dwtag  DW_TAG_variable
         MOV       AL,*(0:0x7207)        ; [CPU_ALU] |1285| 
         MOVW      DP,#||s_rx_head||     ; [CPU_ARAU] 
         ANDB      AL,#0xff              ; [CPU_ALU] |1285| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 52,column 20,is_stmt,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 52,column 20,is_stmt,isa 0
         ANDB      AL,#255               ; [CPU_ALU] |52| 
         MOVZ      AR7,AL                ; [CPU_ALU] |52| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 53,column 23,is_stmt,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 53,column 23,is_stmt,isa 0
         MOV       AL,@||s_rx_head||     ; [CPU_ALU] |53| 
         ADDB      AL,#1                 ; [CPU_ALU] |53| 
         ANDB      AL,#0xff              ; [CPU_ALU] |53| 
         MOVZ      AR6,AL                ; [CPU_ALU] |53| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 54,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 54,column 9,is_stmt,isa 0
         MOV       PL,AR6                ; [CPU_ALU] |54| 
         MOVU      ACC,@||s_rx_tail||    ; [CPU_ALU] |54| 
         CMPL      ACC,P                 ; [CPU_ALU] |54| 
         B         ||$C$L2||,EQ          ; [CPU_ALU] |54| 
         ; branchcc occurs ; [] |54| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 56,column 13,is_stmt,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 56,column 13,is_stmt,isa 0
         MOVZ      AR0,@||s_rx_head||    ; [CPU_ALU] |56| 
         MOV       *+XAR4[AR0],AR7       ; [CPU_ALU] |56| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 57,column 13,is_stmt,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 57,column 13,is_stmt,isa 0
         MOV       @||s_rx_head||,AR6    ; [CPU_ALU] |57| 
 ||$C$L2||:    
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/sci.h",line 986,column 5,is_stmt,isa 0
@@ -194,13 +194,13 @@ $C$DW$9	.dwtag  DW_TAG_variable
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/sci.h",line 1417,column 5,is_stmt,isa 0
         MOV       AR6,*(0:0x720b)       ; [CPU_ALU] |1417| 
         OR        AR6,#0x4000           ; [CPU_ALU] |1417| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 63,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 63,column 5,is_stmt,isa 0
         MOVB      ACC,#16               ; [CPU_ALU] |63| 
         MOVL      XAR4,#29184           ; [CPU_ARAU] |63| 
         MOVL      *-SP[2],ACC           ; [CPU_ALU] |63| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/sci.h",line 1417,column 5,is_stmt,isa 0
         MOV       *(0:0x720b),AR6       ; [CPU_ALU] |1417| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 63,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 63,column 5,is_stmt,isa 0
         MOVL      ACC,XAR4              ; [CPU_ALU] |63| 
 $C$DW$10	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$10, DW_AT_low_pc(0x00)
@@ -260,7 +260,7 @@ $C$DW$11	.dwtag  DW_TAG_TI_branch
 
         IRET      ; [CPU_ALU] 
         ; return occurs ; [] 
-	.dwattr $C$DW$7, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c")
+	.dwattr $C$DW$7, DW_AT_TI_end_file("../src/debug_iface.c")
 	.dwattr $C$DW$7, DW_AT_TI_end_line(0x41)
 	.dwattr $C$DW$7, DW_AT_TI_end_column(0x01)
 	.dwendentry
@@ -276,11 +276,11 @@ $C$DW$12	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$12, DW_AT_high_pc(0x00)
 	.dwattr $C$DW$12, DW_AT_linkage_name("debug_iface_poll")
 	.dwattr $C$DW$12, DW_AT_external
-	.dwattr $C$DW$12, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c")
+	.dwattr $C$DW$12, DW_AT_decl_file("../src/debug_iface.c")
 	.dwattr $C$DW$12, DW_AT_decl_line(0x1f)
 	.dwattr $C$DW$12, DW_AT_decl_column(0x06)
 	.dwattr $C$DW$12, DW_AT_TI_max_frame_size(-2)
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 32,column 1,is_stmt,address ||debug_iface_poll||,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 32,column 1,is_stmt,address ||debug_iface_poll||,isa 0
 
 	.dwfde $C$DW$CIE, ||debug_iface_poll||
 
@@ -304,7 +304,7 @@ $C$DW$13	.dwtag  DW_TAG_variable
 	.dwcfi	cfa_offset, -2
 	.dwcfi	save_reg_to_mem, 26, 0
         MOVW      DP,#||s_rx_head||     ; [CPU_ARAU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 33,column 12,is_stmt,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 33,column 12,is_stmt,isa 0
         MOVU      ACC,@||s_rx_head||    ; [CPU_ALU] |33| 
         MOVZ      AR6,@||s_rx_tail||    ; [CPU_ALU] |33| 
         CMPL      ACC,XAR6              ; [CPU_ALU] |33| 
@@ -319,17 +319,17 @@ $C$DW$13	.dwtag  DW_TAG_variable
         CMPB      AL,#15                ; [CPU_ALU] |957| 
         B         ||$C$L4||,HIS         ; [CPU_ALU] |957| 
         ; branchcc occurs ; [] |957| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 40,column 20,is_stmt,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 40,column 20,is_stmt,isa 0
         MOVZ      AR0,@||s_rx_tail||    ; [CPU_ALU] |40| 
         MOV       AH,*+XAR4[AR0]        ; [CPU_ALU] |40| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 41,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 41,column 9,is_stmt,isa 0
         MOV       AL,@||s_rx_tail||     ; [CPU_ALU] |41| 
         ADDB      AL,#1                 ; [CPU_ALU] |41| 
         ANDB      AL,#0xff              ; [CPU_ALU] |41| 
         MOV       @||s_rx_tail||,AL     ; [CPU_ALU] |41| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/sci.h",line 1136,column 1,is_stmt,isa 0
         MOV       *(0:0x7209),AH        ; [CPU_ALU] |1136| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 33,column 12,is_stmt,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 33,column 12,is_stmt,isa 0
         MOVU      ACC,@||s_rx_head||    ; [CPU_ALU] |33| 
         MOVZ      AR6,@||s_rx_tail||    ; [CPU_ALU] |33| 
         CMPL      ACC,XAR6              ; [CPU_ALU] |33| 
@@ -342,7 +342,7 @@ $C$DW$14	.dwtag  DW_TAG_TI_branch
 
         LRETR     ; [CPU_ALU] 
         ; return occurs ; [] 
-	.dwattr $C$DW$12, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c")
+	.dwattr $C$DW$12, DW_AT_TI_end_file("../src/debug_iface.c")
 	.dwattr $C$DW$12, DW_AT_TI_end_line(0x2c)
 	.dwattr $C$DW$12, DW_AT_TI_end_column(0x01)
 	.dwendentry
@@ -358,11 +358,11 @@ $C$DW$15	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$15, DW_AT_high_pc(0x00)
 	.dwattr $C$DW$15, DW_AT_linkage_name("debug_iface_init")
 	.dwattr $C$DW$15, DW_AT_external
-	.dwattr $C$DW$15, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c")
+	.dwattr $C$DW$15, DW_AT_decl_file("../src/debug_iface.c")
 	.dwattr $C$DW$15, DW_AT_decl_line(0x15)
 	.dwattr $C$DW$15, DW_AT_decl_column(0x06)
 	.dwattr $C$DW$15, DW_AT_TI_max_frame_size(-2)
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 22,column 1,is_stmt,address ||debug_iface_init||,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 22,column 1,is_stmt,address ||debug_iface_init||,isa 0
 
 	.dwfde $C$DW$CIE, ||debug_iface_init||
 
@@ -379,9 +379,9 @@ $C$DW$15	.dwtag  DW_TAG_subprogram
 	.dwcfi	cfa_offset, -2
 	.dwcfi	save_reg_to_mem, 26, 0
         MOVW      DP,#||s_rx_head||     ; [CPU_ARAU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 23,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 23,column 5,is_stmt,isa 0
         MOV       @||s_rx_head||,#0     ; [CPU_ALU] |23| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c",line 24,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/debug_iface.c",line 24,column 5,is_stmt,isa 0
         MOV       @||s_rx_tail||,#0     ; [CPU_ALU] |24| 
 $C$DW$16	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$16, DW_AT_low_pc(0x00)
@@ -389,7 +389,7 @@ $C$DW$16	.dwtag  DW_TAG_TI_branch
 
         LRETR     ; [CPU_ALU] 
         ; return occurs ; [] 
-	.dwattr $C$DW$15, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/debug_iface.c")
+	.dwattr $C$DW$15, DW_AT_TI_end_file("../src/debug_iface.c")
 	.dwattr $C$DW$15, DW_AT_TI_end_line(0x1d)
 	.dwattr $C$DW$15, DW_AT_TI_end_column(0x01)
 	.dwendentry

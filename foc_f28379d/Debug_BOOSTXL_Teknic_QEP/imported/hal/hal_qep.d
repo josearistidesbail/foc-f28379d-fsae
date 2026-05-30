@@ -69,6 +69,7 @@ imported/hal/hal_qep.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_suppo
 imported/hal/hal_qep.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/F2837xD_Upp_defines.h
 imported/hal/hal_qep.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/F2837xD_defaultisr.h
 imported/hal/hal_qep.obj: ../imported/hal/hal_qep.h
+imported/hal/hal_qep.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/config/board_config.h
 
 ../imported/hal/hal_qep.c:
 
@@ -207,4 +208,6 @@ imported/hal/hal_qep.obj: ../imported/hal/hal_qep.h
 /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/F2837xD_defaultisr.h:
 
 ../imported/hal/hal_qep.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/config/board_config.h:
 

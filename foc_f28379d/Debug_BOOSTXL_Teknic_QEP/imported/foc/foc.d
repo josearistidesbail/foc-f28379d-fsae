@@ -22,6 +22,9 @@ imported/foc/foc.obj: ../imported/foc/pmsm_types.h
 imported/foc/foc.obj: ../imported/foc/pi.h
 imported/foc/foc.obj: ../imported/foc/transforms.h
 imported/foc/foc.obj: ../imported/foc/svpwm.h
+imported/foc/foc.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/config/control_config.h
+imported/foc/foc.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/config/motor_config.h
+imported/foc/foc.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/config/board_config.h
 
 ../imported/foc/foc.c:
 
@@ -66,4 +69,10 @@ imported/foc/foc.obj: ../imported/foc/svpwm.h
 ../imported/foc/transforms.h:
 
 ../imported/foc/svpwm.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/config/control_config.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/config/motor_config.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/config/board_config.h:
 

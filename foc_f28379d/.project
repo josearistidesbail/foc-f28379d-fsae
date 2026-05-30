@@ -26,7 +26,7 @@
 		<link>
 			<name>board_control_v2.syscfg</name>
 			<type>1</type>
-			<location>/home/jose/Documents/source/foc-f28379d-fsae/syscfg/board_control_v2.syscfg</location>
+			<location>/home/jose/workspace_ccstheia/foc_f28379d/syscfg/board_control_v2.syscfg</location>
 		</link>
 		<link>
 			<name>driverlib.lib</name>
@@ -82,7 +82,7 @@
 	<variableList>
 		<variable>
 			<name>APP_ROOT</name>
-			<value>file:/home/jose/Documents/source/foc-f28379d-fsae</value>
+			<value>file:/home/jose/workspace_ccstheia/foc_f28379d</value>
 		</variable>
 		<variable>
 			<name>C2000WARE_DEVICE_SUPPORT_ROOT</name>

@@ -1,17 +1,17 @@
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE    1
 
        1              ;***************************************************************
        2              ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
-       3              ;* Date/Time created: Sat May 30 15:57:51 2026                 *
+       3              ;* Date/Time created: Sat May 30 20:22:51 2026                 *
        4              ;***************************************************************
        5                      .compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --
        6                      .asg    XAR2, FP
        7              
        8              $C$DW$CU        .dwtag  DW_TAG_compile_unit
-       9                      .dwattr $C$DW$CU, DW_AT_name("/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c")
+       9                      .dwattr $C$DW$CU, DW_AT_name("../src/safety.c")
       10                      .dwattr $C$DW$CU, DW_AT_producer("TI TMS320C2000 G3 C/C++ Codegen Unix v25.11.0.LTS Copyright (c) 199
       11                      .dwattr $C$DW$CU, DW_AT_TI_version(0x01)
       12                      .dwattr $C$DW$CU, DW_AT_comp_dir("/home/jose/workspace_ccstheia/foc_f28379d/Debug_BOOSTXL_Teknic_QEP"
@@ -21,7 +21,7 @@ safety.asm                                                           PAGE    1
       16                      .dwattr $C$DW$1, DW_AT_linkage_name("sm_raise_fault")
       17                      .dwattr $C$DW$1, DW_AT_declaration
       18                      .dwattr $C$DW$1, DW_AT_external
-      19                      .dwattr $C$DW$1, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_mach
+      19                      .dwattr $C$DW$1, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machine
       20                      .dwattr $C$DW$1, DW_AT_decl_line(0x22)
       21                      .dwattr $C$DW$1, DW_AT_decl_column(0x15)
       22              $C$DW$2 .dwtag  DW_TAG_formal_parameter
@@ -35,7 +35,7 @@ safety.asm                                                           PAGE    1
       30                      .dwattr $C$DW$3, DW_AT_linkage_name("s_latched")
       31                      .dwattr $C$DW$3, DW_AT_type(*$C$DW$T$59)
       32                      .dwattr $C$DW$3, DW_AT_location[DW_OP_addr ||s_latched||]
-      33                      .dwattr $C$DW$3, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c")
+      33                      .dwattr $C$DW$3, DW_AT_decl_file("../src/safety.c")
       34                      .dwattr $C$DW$3, DW_AT_decl_line(0x0f)
       35                      .dwattr $C$DW$3, DW_AT_decl_column(0x1a)
       36              
@@ -47,7 +47,7 @@ safety.asm                                                           PAGE    1
       42                      .dwattr $C$DW$4, DW_AT_location[DW_OP_addr ||g_dbg_fault_code||]
       43                      .dwattr $C$DW$4, DW_AT_type(*$C$DW$T$59)
       44                      .dwattr $C$DW$4, DW_AT_external
-      45                      .dwattr $C$DW$4, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c")
+      45                      .dwattr $C$DW$4, DW_AT_decl_file("../src/safety.c")
       46                      .dwattr $C$DW$4, DW_AT_decl_line(0x16)
       47                      .dwattr $C$DW$4, DW_AT_decl_column(0x13)
       48              
@@ -58,12 +58,12 @@ safety.asm                                                           PAGE    1
       53                      .dwattr $C$DW$5, DW_AT_type(*$C$DW$T$35)
       54                      .dwattr $C$DW$5, DW_AT_declaration
       55                      .dwattr $C$DW$5, DW_AT_external
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE    2
 
-      56                      .dwattr $C$DW$5, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_mach
+      56                      .dwattr $C$DW$5, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machine
       57                      .dwattr $C$DW$5, DW_AT_decl_line(0x16)
       58                      .dwattr $C$DW$5, DW_AT_decl_column(0x15)
       59                      .dwendtag $C$DW$5
@@ -75,7 +75,7 @@ safety.asm                                                           PAGE    2
       65                      .dwattr $C$DW$6, DW_AT_type(*$C$DW$T$67)
       66                      .dwattr $C$DW$6, DW_AT_declaration
       67                      .dwattr $C$DW$6, DW_AT_external
-      68                      .dwattr $C$DW$6, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/inverter_iface
+      68                      .dwattr $C$DW$6, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/inverter_iface.h"
       69                      .dwattr $C$DW$6, DW_AT_decl_line(0x11)
       70                      .dwattr $C$DW$6, DW_AT_decl_column(0x0d)
       71                      .dwendtag $C$DW$6
@@ -87,7 +87,7 @@ safety.asm                                                           PAGE    2
       77                      .dwattr $C$DW$7, DW_AT_type(*$C$DW$T$51)
       78                      .dwattr $C$DW$7, DW_AT_declaration
       79                      .dwattr $C$DW$7, DW_AT_external
-      80                      .dwattr $C$DW$7, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_pipeline.h
+      80                      .dwattr $C$DW$7, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_pipeline.h")
       81                      .dwattr $C$DW$7, DW_AT_decl_line(0x11)
       82                      .dwattr $C$DW$7, DW_AT_decl_column(0x1e)
       83                      .dwendtag $C$DW$7
@@ -99,14 +99,14 @@ safety.asm                                                           PAGE    2
       89                      .dwattr $C$DW$8, DW_AT_type(*$C$DW$T$40)
       90                      .dwattr $C$DW$8, DW_AT_declaration
       91                      .dwattr $C$DW$8, DW_AT_external
-      92                      .dwattr $C$DW$8, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_pipeline.h
+      92                      .dwattr $C$DW$8, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_pipeline.h")
       93                      .dwattr $C$DW$8, DW_AT_decl_line(0x0e)
       94                      .dwattr $C$DW$8, DW_AT_decl_column(0x15)
       95                      .dwendtag $C$DW$8
       96              
       97                      .sblock ".bss"
-      98              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI26xR5SnKb /tmp/T
-      99              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI26xK5QeKp 
+      98              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI6Yq0ROvR8 /tmp/T
+      99              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI6YqLRSc1K 
      100 00000000               .sect   ".text:safety_latch"
      101                      .clink
      102                      .global ||safety_latch||
@@ -117,8 +117,8 @@ safety.asm                                                           PAGE    2
      107                      .dwattr $C$DW$9, DW_AT_high_pc(0x00)
      108                      .dwattr $C$DW$9, DW_AT_linkage_name("safety_latch")
      109                      .dwattr $C$DW$9, DW_AT_external
-     110                      .dwattr $C$DW$9, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+     110                      .dwattr $C$DW$9, DW_AT_decl_file("../src/safety.c")
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE    3
@@ -126,7 +126,7 @@ safety.asm                                                           PAGE    3
      111                      .dwattr $C$DW$9, DW_AT_decl_line(0x19)
      112                      .dwattr $C$DW$9, DW_AT_decl_column(0x06)
      113                      .dwattr $C$DW$9, DW_AT_TI_max_frame_size(-2)
-     114                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 25,column 31,is_stmt,ad
+     114                      .dwpsn  file "../src/safety.c",line 25,column 31,is_stmt,address ||safety_latch||,isa 0
      115              
      116                      .dwfde $C$DW$CIE, ||safety_latch||
      117              $C$DW$10        .dwtag  DW_TAG_formal_parameter
@@ -155,7 +155,7 @@ safety.asm                                                           PAGE    3
      140                      .dwcfi  save_reg_to_mem, 26, 0
      141 00000000 761F!         MOVW      DP,#||s_latched||     ; [CPU_ARAU] 
          00000001 0000 
-     142                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 25,column 33,is_stmt,is
+     142                      .dwpsn  file "../src/safety.c",line 25,column 33,is_stmt,isa 0
      143 00000002 9800!         OR        @||s_latched||,AL     ; [CPU_ALU] |25| 
      144              $C$DW$12        .dwtag  DW_TAG_TI_branch
      145                      .dwattr $C$DW$12, DW_AT_low_pc(0x00)
@@ -163,7 +163,7 @@ safety.asm                                                           PAGE    3
      147              
      148 00000003 0006          LRETR     ; [CPU_ALU] 
      149                      ; return occurs ; [] 
-     150                      .dwattr $C$DW$9, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c")
+     150                      .dwattr $C$DW$9, DW_AT_TI_end_file("../src/safety.c")
      151                      .dwattr $C$DW$9, DW_AT_TI_end_line(0x19)
      152                      .dwattr $C$DW$9, DW_AT_TI_end_column(0x31)
      153                      .dwendentry
@@ -178,18 +178,18 @@ safety.asm                                                           PAGE    3
      162                      .dwattr $C$DW$13, DW_AT_low_pc(||safety_is_clear||)
      163                      .dwattr $C$DW$13, DW_AT_high_pc(0x00)
      164                      .dwattr $C$DW$13, DW_AT_linkage_name("safety_is_clear")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE    4
 
      165                      .dwattr $C$DW$13, DW_AT_external
      166                      .dwattr $C$DW$13, DW_AT_type(*$C$DW$T$67)
-     167                      .dwattr $C$DW$13, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c")
+     167                      .dwattr $C$DW$13, DW_AT_decl_file("../src/safety.c")
      168                      .dwattr $C$DW$13, DW_AT_decl_line(0x1a)
      169                      .dwattr $C$DW$13, DW_AT_decl_column(0x06)
      170                      .dwattr $C$DW$13, DW_AT_TI_max_frame_size(-2)
-     171                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 26,column 31,is_stmt,ad
+     171                      .dwpsn  file "../src/safety.c",line 26,column 31,is_stmt,address ||safety_is_clear||,isa 0
      172              
      173                      .dwfde $C$DW$CIE, ||safety_is_clear||
      174              
@@ -207,7 +207,7 @@ safety.asm                                                           PAGE    4
      186                      .dwcfi  save_reg_to_mem, 26, 0
      187 00000000 761F!         MOVW      DP,#||s_latched||     ; [CPU_ARAU] 
          00000001 0000 
-     188                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 26,column 33,is_stmt,is
+     188                      .dwpsn  file "../src/safety.c",line 26,column 33,is_stmt,isa 0
      189 00000002 9A00          MOVB      AL,#0                 ; [CPU_ALU] |26| 
      190 00000003 9300!         MOV       AH,@||s_latched||     ; [CPU_ALU] |26| 
      191 00000004 5300          CMPB      AH,#0                 ; [CPU_ALU] |26| 
@@ -219,7 +219,7 @@ safety.asm                                                           PAGE    4
      196              
      197 00000007 0006          LRETR     ; [CPU_ALU] 
      198                      ; return occurs ; [] 
-     199                      .dwattr $C$DW$13, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c")
+     199                      .dwattr $C$DW$13, DW_AT_TI_end_file("../src/safety.c")
      200                      .dwattr $C$DW$13, DW_AT_TI_end_line(0x1a)
      201                      .dwattr $C$DW$13, DW_AT_TI_end_column(0x38)
      202                      .dwendentry
@@ -235,16 +235,16 @@ safety.asm                                                           PAGE    4
      212                      .dwattr $C$DW$15, DW_AT_high_pc(0x00)
      213                      .dwattr $C$DW$15, DW_AT_linkage_name("safety_init")
      214                      .dwattr $C$DW$15, DW_AT_external
-     215                      .dwattr $C$DW$15, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c")
+     215                      .dwattr $C$DW$15, DW_AT_decl_file("../src/safety.c")
      216                      .dwattr $C$DW$15, DW_AT_decl_line(0x18)
      217                      .dwattr $C$DW$15, DW_AT_decl_column(0x06)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE    5
 
      218                      .dwattr $C$DW$15, DW_AT_TI_max_frame_size(-2)
-     219                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 24,column 31,is_stmt,ad
+     219                      .dwpsn  file "../src/safety.c",line 24,column 31,is_stmt,address ||safety_init||,isa 0
      220              
      221                      .dwfde $C$DW$CIE, ||safety_init||
      222              
@@ -262,7 +262,7 @@ safety.asm                                                           PAGE    5
      234                      .dwcfi  save_reg_to_mem, 26, 0
      235 00000000 761F!         MOVW      DP,#||s_latched||     ; [CPU_ARAU] 
          00000001 0000 
-     236                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 24,column 33,is_stmt,is
+     236                      .dwpsn  file "../src/safety.c",line 24,column 33,is_stmt,isa 0
      237 00000002 2B00!         MOV       @||s_latched||,#0     ; [CPU_ALU] |24| 
      238              $C$DW$16        .dwtag  DW_TAG_TI_branch
      239                      .dwattr $C$DW$16, DW_AT_low_pc(0x00)
@@ -270,7 +270,7 @@ safety.asm                                                           PAGE    5
      241              
      242 00000003 0006          LRETR     ; [CPU_ALU] 
      243                      ; return occurs ; [] 
-     244                      .dwattr $C$DW$15, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c")
+     244                      .dwattr $C$DW$15, DW_AT_TI_end_file("../src/safety.c")
      245                      .dwattr $C$DW$15, DW_AT_TI_end_line(0x18)
      246                      .dwattr $C$DW$15, DW_AT_TI_end_column(0x30)
      247                      .dwendentry
@@ -287,18 +287,18 @@ safety.asm                                                           PAGE    5
      258                      .dwattr $C$DW$17, DW_AT_linkage_name("safety_get_latched")
      259                      .dwattr $C$DW$17, DW_AT_external
      260                      .dwattr $C$DW$17, DW_AT_type(*$C$DW$T$54)
-     261                      .dwattr $C$DW$17, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c")
+     261                      .dwattr $C$DW$17, DW_AT_decl_file("../src/safety.c")
      262                      .dwattr $C$DW$17, DW_AT_decl_line(0x1b)
      263                      .dwattr $C$DW$17, DW_AT_decl_column(0x0a)
      264                      .dwattr $C$DW$17, DW_AT_TI_max_frame_size(-2)
-     265                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 27,column 35,is_stmt,ad
+     265                      .dwpsn  file "../src/safety.c",line 27,column 35,is_stmt,address ||safety_get_latched||,isa 0
      266              
      267                      .dwfde $C$DW$CIE, ||safety_get_latched||
      268              
      269              ;***************************************************************
      270              ;* FNAME: safety_get_latched            FR SIZE:   0           *
      271              ;*                                                             *
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE    6
@@ -314,7 +314,7 @@ safety.asm                                                           PAGE    6
      280                      .dwcfi  save_reg_to_mem, 26, 0
      281 00000000 761F!         MOVW      DP,#||s_latched||     ; [CPU_ARAU] 
          00000001 0000 
-     282                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 27,column 37,is_stmt,is
+     282                      .dwpsn  file "../src/safety.c",line 27,column 37,is_stmt,isa 0
      283 00000002 9200!         MOV       AL,@||s_latched||     ; [CPU_ALU] |27| 
      284              $C$DW$18        .dwtag  DW_TAG_TI_branch
      285                      .dwattr $C$DW$18, DW_AT_low_pc(0x00)
@@ -322,7 +322,7 @@ safety.asm                                                           PAGE    6
      287              
      288 00000003 0006          LRETR     ; [CPU_ALU] 
      289                      ; return occurs ; [] 
-     290                      .dwattr $C$DW$17, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c")
+     290                      .dwattr $C$DW$17, DW_AT_TI_end_file("../src/safety.c")
      291                      .dwattr $C$DW$17, DW_AT_TI_end_line(0x1b)
      292                      .dwattr $C$DW$17, DW_AT_TI_end_column(0x37)
      293                      .dwendentry
@@ -338,11 +338,11 @@ safety.asm                                                           PAGE    6
      303                      .dwattr $C$DW$19, DW_AT_high_pc(0x00)
      304                      .dwattr $C$DW$19, DW_AT_linkage_name("safety_clear")
      305                      .dwattr $C$DW$19, DW_AT_external
-     306                      .dwattr $C$DW$19, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c")
+     306                      .dwattr $C$DW$19, DW_AT_decl_file("../src/safety.c")
      307                      .dwattr $C$DW$19, DW_AT_decl_line(0x1c)
      308                      .dwattr $C$DW$19, DW_AT_decl_column(0x06)
      309                      .dwattr $C$DW$19, DW_AT_TI_max_frame_size(-2)
-     310                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 28,column 31,is_stmt,ad
+     310                      .dwpsn  file "../src/safety.c",line 28,column 31,is_stmt,address ||safety_clear||,isa 0
      311              
      312                      .dwfde $C$DW$CIE, ||safety_clear||
      313              
@@ -358,14 +358,14 @@ safety.asm                                                           PAGE    6
      323 00000000       ||safety_clear||:
      324                      .dwcfi  cfa_offset, -2
      325                      .dwcfi  save_reg_to_mem, 26, 0
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE    7
 
      326 00000000 761F!         MOVW      DP,#||s_latched||     ; [CPU_ARAU] 
          00000001 0000 
-     327                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 28,column 33,is_stmt,is
+     327                      .dwpsn  file "../src/safety.c",line 28,column 33,is_stmt,isa 0
      328 00000002 2B00!         MOV       @||s_latched||,#0     ; [CPU_ALU] |28| 
      329              $C$DW$20        .dwtag  DW_TAG_TI_branch
      330                      .dwattr $C$DW$20, DW_AT_low_pc(0x00)
@@ -373,7 +373,7 @@ safety.asm                                                           PAGE    7
      332              
      333 00000003 0006          LRETR     ; [CPU_ALU] 
      334                      ; return occurs ; [] 
-     335                      .dwattr $C$DW$19, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c")
+     335                      .dwattr $C$DW$19, DW_AT_TI_end_file("../src/safety.c")
      336                      .dwattr $C$DW$19, DW_AT_TI_end_line(0x1c)
      337                      .dwattr $C$DW$19, DW_AT_TI_end_column(0x30)
      338                      .dwendentry
@@ -389,11 +389,11 @@ safety.asm                                                           PAGE    7
      348                      .dwattr $C$DW$21, DW_AT_high_pc(0x00)
      349                      .dwattr $C$DW$21, DW_AT_linkage_name("safety_check_isr")
      350                      .dwattr $C$DW$21, DW_AT_external
-     351                      .dwattr $C$DW$21, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c")
+     351                      .dwattr $C$DW$21, DW_AT_decl_file("../src/safety.c")
      352                      .dwattr $C$DW$21, DW_AT_decl_line(0x1e)
      353                      .dwattr $C$DW$21, DW_AT_decl_column(0x06)
      354                      .dwattr $C$DW$21, DW_AT_TI_max_frame_size(-8)
-     355                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 31,column 1,is_stmt,add
+     355                      .dwpsn  file "../src/safety.c",line 31,column 1,is_stmt,address ||safety_check_isr||,isa 0
      356              
      357                      .dwfde $C$DW$CIE, ||safety_check_isr||
      358              
@@ -418,7 +418,7 @@ safety.asm                                                           PAGE    7
      377              
      378              ;* AR1   assigned to st
      379              $C$DW$23        .dwtag  DW_TAG_variable
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE    8
@@ -443,7 +443,7 @@ safety.asm                                                           PAGE    8
      397                      .dwcfi  cfa_offset, -6
      398 00000002 FE02          ADDB      SP,#2                 ; [CPU_ARAU] 
      399                      .dwcfi  cfa_offset, -8
-     400                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 32,column 28,is_stmt,is
+     400                      .dwpsn  file "../src/safety.c",line 32,column 28,is_stmt,isa 0
      401              $C$DW$25        .dwtag  DW_TAG_TI_branch
      402                      .dwattr $C$DW$25, DW_AT_low_pc(0x00)
      403                      .dwattr $C$DW$25, DW_AT_name("foc_get_signals")
@@ -453,7 +453,7 @@ safety.asm                                                           PAGE    8
          00000004 0000 
      407                      ; call occurs [#||foc_get_signals||] ; [] |32| 
      408 00000005 86A4          MOVL      XAR2,XAR4             ; [CPU_ALU] |32| 
-     409                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 33,column 20,is_stmt,is
+     409                      .dwpsn  file "../src/safety.c",line 33,column 20,is_stmt,isa 0
      410              $C$DW$26        .dwtag  DW_TAG_TI_branch
      411                      .dwattr $C$DW$26, DW_AT_low_pc(0x00)
      412                      .dwattr $C$DW$26, DW_AT_name("sm_get_state")
@@ -470,7 +470,7 @@ safety.asm                                                           PAGE    8
      422 0000000c 6037          B         ||$C$L7||,NEQ         ; [CPU_ALU] |33| 
      423                      ; branchcc occurs ; [] |33| 
      424 0000000d       ||$C$L1||:    
-     425                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 40,column 9,is_stmt,isa
+     425                      .dwpsn  file "../src/safety.c",line 40,column 9,is_stmt,isa 0
      426 0000000d E2AF          MOV32     R0H,*+XAR2[0]         ; [CPU_FPU] |40| 
          0000000e 00C2 
      427 0000000f E812          CMPF32    R0H,#16640            ; [CPU_FPU] |40| 
@@ -478,12 +478,12 @@ safety.asm                                                           PAGE    8
      428 00000011 AD14          MOVST0    ZF, NF                ; [CPU_FPU] |40| 
      429 00000012 6506          B         ||$C$L2||,LEQ         ; [CPU_ALU] |40| 
      430                      ; branchcc occurs ; [] |40| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE    9
 
-     431                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 40,column 49,is_stmt,is
+     431                      .dwpsn  file "../src/safety.c",line 40,column 49,is_stmt,isa 0
      432 00000013 9A01          MOVB      AL,#1                 ; [CPU_ALU] |40| 
      433              $C$DW$27        .dwtag  DW_TAG_TI_branch
      434                      .dwattr $C$DW$27, DW_AT_low_pc(0x00)
@@ -496,13 +496,13 @@ safety.asm                                                           PAGE    9
      440 00000016 E2AF          MOV32     R0H,*+XAR2[0]         ; [CPU_FPU] 
          00000017 00C2 
      441 00000018       ||$C$L2||:    
-     442                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 41,column 9,is_stmt,isa
+     442                      .dwpsn  file "../src/safety.c",line 41,column 9,is_stmt,isa 0
      443 00000018 E816          CMPF32    R0H,#49408            ; [CPU_FPU] |41| 
          00000019 0800 
      444 0000001a AD14          MOVST0    ZF, NF                ; [CPU_FPU] |41| 
      445 0000001b 6304          B         ||$C$L3||,GEQ         ; [CPU_ALU] |41| 
      446                      ; branchcc occurs ; [] |41| 
-     447                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 41,column 49,is_stmt,is
+     447                      .dwpsn  file "../src/safety.c",line 41,column 49,is_stmt,isa 0
      448 0000001c 9A01          MOVB      AL,#1                 ; [CPU_ALU] |41| 
      449              $C$DW$28        .dwtag  DW_TAG_TI_branch
      450                      .dwattr $C$DW$28, DW_AT_low_pc(0x00)
@@ -513,7 +513,7 @@ safety.asm                                                           PAGE    9
          0000001e 0000 
      455                      ; call occurs [#||safety_latch||] ; [] |41| 
      456 0000001f       ||$C$L3||:    
-     457                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 42,column 9,is_stmt,isa
+     457                      .dwpsn  file "../src/safety.c",line 42,column 9,is_stmt,isa 0
      458 0000001f E2AF          MOV32     R0H,*+XAR2[2]         ; [CPU_FPU] |42| 
          00000020 00D2 
      459 00000021 E812          CMPF32    R0H,#16640            ; [CPU_FPU] |42| 
@@ -521,7 +521,7 @@ safety.asm                                                           PAGE    9
      460 00000023 AD14          MOVST0    ZF, NF                ; [CPU_FPU] |42| 
      461 00000024 6506          B         ||$C$L4||,LEQ         ; [CPU_ALU] |42| 
      462                      ; branchcc occurs ; [] |42| 
-     463                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 42,column 49,is_stmt,is
+     463                      .dwpsn  file "../src/safety.c",line 42,column 49,is_stmt,isa 0
      464 00000025 9A01          MOVB      AL,#1                 ; [CPU_ALU] |42| 
      465              $C$DW$29        .dwtag  DW_TAG_TI_branch
      466                      .dwattr $C$DW$29, DW_AT_low_pc(0x00)
@@ -534,18 +534,18 @@ safety.asm                                                           PAGE    9
      472 00000028 E2AF          MOV32     R0H,*+XAR2[2]         ; [CPU_FPU] 
          00000029 00D2 
      473 0000002a       ||$C$L4||:    
-     474                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 43,column 9,is_stmt,isa
+     474                      .dwpsn  file "../src/safety.c",line 43,column 9,is_stmt,isa 0
      475 0000002a E816          CMPF32    R0H,#49408            ; [CPU_FPU] |43| 
          0000002b 0800 
      476 0000002c AD14          MOVST0    ZF, NF                ; [CPU_FPU] |43| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE   10
 
      477 0000002d 6304          B         ||$C$L5||,GEQ         ; [CPU_ALU] |43| 
      478                      ; branchcc occurs ; [] |43| 
-     479                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 43,column 49,is_stmt,is
+     479                      .dwpsn  file "../src/safety.c",line 43,column 49,is_stmt,isa 0
      480 0000002e 9A01          MOVB      AL,#1                 ; [CPU_ALU] |43| 
      481              $C$DW$30        .dwtag  DW_TAG_TI_branch
      482                      .dwattr $C$DW$30, DW_AT_low_pc(0x00)
@@ -556,7 +556,7 @@ safety.asm                                                           PAGE   10
          00000030 0000 
      487                      ; call occurs [#||safety_latch||] ; [] |43| 
      488 00000031       ||$C$L5||:    
-     489                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 44,column 9,is_stmt,isa
+     489                      .dwpsn  file "../src/safety.c",line 44,column 9,is_stmt,isa 0
      490 00000031 E2AF          MOV32     R0H,*+XAR2[4]         ; [CPU_FPU] |44| 
          00000032 00E2 
      491 00000033 E812          CMPF32    R0H,#16640            ; [CPU_FPU] |44| 
@@ -564,7 +564,7 @@ safety.asm                                                           PAGE   10
      492 00000035 AD14          MOVST0    ZF, NF                ; [CPU_FPU] |44| 
      493 00000036 6506          B         ||$C$L6||,LEQ         ; [CPU_ALU] |44| 
      494                      ; branchcc occurs ; [] |44| 
-     495                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 44,column 49,is_stmt,is
+     495                      .dwpsn  file "../src/safety.c",line 44,column 49,is_stmt,isa 0
      496 00000037 9A01          MOVB      AL,#1                 ; [CPU_ALU] |44| 
      497              $C$DW$31        .dwtag  DW_TAG_TI_branch
      498                      .dwattr $C$DW$31, DW_AT_low_pc(0x00)
@@ -577,13 +577,13 @@ safety.asm                                                           PAGE   10
      504 0000003a E2AF          MOV32     R0H,*+XAR2[4]         ; [CPU_FPU] 
          0000003b 00E2 
      505 0000003c       ||$C$L6||:    
-     506                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 45,column 9,is_stmt,isa
+     506                      .dwpsn  file "../src/safety.c",line 45,column 9,is_stmt,isa 0
      507 0000003c E816          CMPF32    R0H,#49408            ; [CPU_FPU] |45| 
          0000003d 0800 
      508 0000003e AD14          MOVST0    ZF, NF                ; [CPU_FPU] |45| 
      509 0000003f 6304          B         ||$C$L7||,GEQ         ; [CPU_ALU] |45| 
      510                      ; branchcc occurs ; [] |45| 
-     511                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 45,column 49,is_stmt,is
+     511                      .dwpsn  file "../src/safety.c",line 45,column 49,is_stmt,isa 0
      512 00000040 9A01          MOVB      AL,#1                 ; [CPU_ALU] |45| 
      513              $C$DW$32        .dwtag  DW_TAG_TI_branch
      514                      .dwattr $C$DW$32, DW_AT_low_pc(0x00)
@@ -594,11 +594,11 @@ safety.asm                                                           PAGE   10
          00000042 0000 
      519                      ; call occurs [#||safety_latch||] ; [] |45| 
      520 00000043       ||$C$L7||:    
-     521                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 48,column 16,is_stmt,is
+     521                      .dwpsn  file "../src/safety.c",line 48,column 16,is_stmt,isa 0
      522              $C$DW$33        .dwtag  DW_TAG_TI_branch
      523                      .dwattr $C$DW$33, DW_AT_low_pc(0x00)
      524                      .dwattr $C$DW$33, DW_AT_name("foc_get_refs")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE   11
@@ -610,13 +610,13 @@ safety.asm                                                           PAGE   11
      528                      ; call occurs [#||foc_get_refs||] ; [] |48| 
      529 00000045 E2AF          MOV32     R0H,*+XAR4[6]         ; [CPU_FPU] |48| 
          00000046 00F4 
-     530                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 49,column 5,is_stmt,isa
+     530                      .dwpsn  file "../src/safety.c",line 49,column 5,is_stmt,isa 0
      531 00000047 E812          CMPF32    R0H,#17008            ; [CPU_FPU] |49| 
          00000048 1380 
      532 00000049 AD14          MOVST0    ZF, NF                ; [CPU_FPU] |49| 
      533 0000004a 6504          B         ||$C$L8||,LEQ         ; [CPU_ALU] |49| 
      534                      ; branchcc occurs ; [] |49| 
-     535                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 49,column 32,is_stmt,is
+     535                      .dwpsn  file "../src/safety.c",line 49,column 32,is_stmt,isa 0
      536 0000004b 9A02          MOVB      AL,#2                 ; [CPU_ALU] |49| 
      537              $C$DW$34        .dwtag  DW_TAG_TI_branch
      538                      .dwattr $C$DW$34, DW_AT_low_pc(0x00)
@@ -627,7 +627,7 @@ safety.asm                                                           PAGE   11
          0000004d 0000 
      543                      ; call occurs [#||safety_latch||] ; [] |49| 
      544 0000004e       ||$C$L8||:    
-     545                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 50,column 5,is_stmt,isa
+     545                      .dwpsn  file "../src/safety.c",line 50,column 5,is_stmt,isa 0
      546 0000004e E812          CMPF32    R0H,#16784            ; [CPU_FPU] |50| 
          0000004f 0C80 
      547 00000050 AD14          MOVST0    ZF, NF                ; [CPU_FPU] |50| 
@@ -637,7 +637,7 @@ safety.asm                                                           PAGE   11
      551 00000053 5203          CMPB      AL,#3                 ; [CPU_ALU] |50| 
      552 00000054 6004          B         ||$C$L9||,NEQ         ; [CPU_ALU] |50| 
      553                      ; branchcc occurs ; [] |50| 
-     554                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 51,column 9,is_stmt,isa
+     554                      .dwpsn  file "../src/safety.c",line 51,column 9,is_stmt,isa 0
      555 00000055 9A04          MOVB      AL,#4                 ; [CPU_ALU] |51| 
      556              $C$DW$35        .dwtag  DW_TAG_TI_branch
      557                      .dwattr $C$DW$35, DW_AT_low_pc(0x00)
@@ -648,7 +648,7 @@ safety.asm                                                           PAGE   11
          00000057 0000 
      562                      ; call occurs [#||safety_latch||] ; [] |51| 
      563 00000058       ||$C$L9||:    
-     564                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 53,column 5,is_stmt,isa
+     564                      .dwpsn  file "../src/safety.c",line 53,column 5,is_stmt,isa 0
      565              $C$DW$36        .dwtag  DW_TAG_TI_branch
      566                      .dwattr $C$DW$36, DW_AT_low_pc(0x00)
      567                      .dwattr $C$DW$36, DW_AT_name("inverter_is_faulted")
@@ -658,14 +658,14 @@ safety.asm                                                           PAGE   11
          00000059 0000 
      571                      ; call occurs [#||inverter_is_faulted||] ; [] |53| 
      572 0000005a 5200          CMPB      AL,#0                 ; [CPU_ALU] |53| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE   12
 
      573 0000005b 6104          B         ||$C$L10||,EQ         ; [CPU_ALU] |53| 
      574                      ; branchcc occurs ; [] |53| 
-     575                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 53,column 31,is_stmt,is
+     575                      .dwpsn  file "../src/safety.c",line 53,column 31,is_stmt,isa 0
      576 0000005c 9A10          MOVB      AL,#16                ; [CPU_ALU] |53| 
      577              $C$DW$37        .dwtag  DW_TAG_TI_branch
      578                      .dwattr $C$DW$37, DW_AT_low_pc(0x00)
@@ -678,11 +678,11 @@ safety.asm                                                           PAGE   12
      584 0000005f       ||$C$L10||:    
      585 0000005f 761F!         MOVW      DP,#||s_latched||     ; [CPU_ARAU] 
          00000060 0000 
-     586                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 55,column 5,is_stmt,isa
+     586                      .dwpsn  file "../src/safety.c",line 55,column 5,is_stmt,isa 0
      587 00000061 9200!         MOV       AL,@||s_latched||     ; [CPU_ALU] |55| 
      588 00000062 6104          B         ||$C$L11||,EQ         ; [CPU_ALU] |55| 
      589                      ; branchcc occurs ; [] |55| 
-     590                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 55,column 19,is_stmt,is
+     590                      .dwpsn  file "../src/safety.c",line 55,column 19,is_stmt,isa 0
      591 00000063 9200!         MOV       AL,@||s_latched||     ; [CPU_ALU] |55| 
      592              $C$DW$38        .dwtag  DW_TAG_TI_branch
      593                      .dwattr $C$DW$38, DW_AT_low_pc(0x00)
@@ -695,7 +695,7 @@ safety.asm                                                           PAGE   12
      599 00000066       ||$C$L11||:    
      600 00000066 761F!         MOVW      DP,#||s_latched||     ; [CPU_ARAU] 
          00000067 0000 
-     601                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c",line 57,column 5,is_stmt,isa
+     601                      .dwpsn  file "../src/safety.c",line 57,column 5,is_stmt,isa 0
      602 00000068 9200!         MOV       AL,@||s_latched||     ; [CPU_ALU] |57| 
      603 00000069 FE82          SUBB      SP,#2                 ; [CPU_ARAU] 
      604                      .dwcfi  cfa_offset, -6
@@ -712,13 +712,13 @@ safety.asm                                                           PAGE   12
      615              
      616 0000006d 0006          LRETR     ; [CPU_ALU] 
      617                      ; return occurs ; [] 
-     618                      .dwattr $C$DW$21, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/safety.c")
+     618                      .dwattr $C$DW$21, DW_AT_TI_end_file("../src/safety.c")
      619                      .dwattr $C$DW$21, DW_AT_TI_end_line(0x3a)
      620                      .dwattr $C$DW$21, DW_AT_TI_end_column(0x01)
      621                      .dwendentry
      622                      .dwendtag $C$DW$21
      623              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE   13
@@ -773,44 +773,44 @@ safety.asm                                                           PAGE   13
      671              $C$DW$40        .dwtag  DW_TAG_enumerator
      672                      .dwattr $C$DW$40, DW_AT_name("FOC_IDLE")
      673                      .dwattr $C$DW$40, DW_AT_const_value(0x00)
-     674                      .dwattr $C$DW$40, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_mac
+     674                      .dwattr $C$DW$40, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machin
      675                      .dwattr $C$DW$40, DW_AT_decl_line(0x0e)
      676                      .dwattr $C$DW$40, DW_AT_decl_column(0x05)
      677              
      678              $C$DW$41        .dwtag  DW_TAG_enumerator
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE   14
 
      679                      .dwattr $C$DW$41, DW_AT_name("FOC_CALIBRATE_OFFSETS")
      680                      .dwattr $C$DW$41, DW_AT_const_value(0x01)
-     681                      .dwattr $C$DW$41, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_mac
+     681                      .dwattr $C$DW$41, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machin
      682                      .dwattr $C$DW$41, DW_AT_decl_line(0x0f)
      683                      .dwattr $C$DW$41, DW_AT_decl_column(0x05)
      684              
      685              $C$DW$42        .dwtag  DW_TAG_enumerator
      686                      .dwattr $C$DW$42, DW_AT_name("FOC_ALIGN_ROTOR")
      687                      .dwattr $C$DW$42, DW_AT_const_value(0x02)
-     688                      .dwattr $C$DW$42, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_mac
+     688                      .dwattr $C$DW$42, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machin
      689                      .dwattr $C$DW$42, DW_AT_decl_line(0x10)
      690                      .dwattr $C$DW$42, DW_AT_decl_column(0x05)
      691              
      692              $C$DW$43        .dwtag  DW_TAG_enumerator
      693                      .dwattr $C$DW$43, DW_AT_name("FOC_RUN")
      694                      .dwattr $C$DW$43, DW_AT_const_value(0x03)
-     695                      .dwattr $C$DW$43, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_mac
+     695                      .dwattr $C$DW$43, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machin
      696                      .dwattr $C$DW$43, DW_AT_decl_line(0x11)
      697                      .dwattr $C$DW$43, DW_AT_decl_column(0x05)
      698              
      699              $C$DW$44        .dwtag  DW_TAG_enumerator
      700                      .dwattr $C$DW$44, DW_AT_name("FOC_FAULT")
      701                      .dwattr $C$DW$44, DW_AT_const_value(0x04)
-     702                      .dwattr $C$DW$44, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_mac
+     702                      .dwattr $C$DW$44, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machin
      703                      .dwattr $C$DW$44, DW_AT_decl_line(0x12)
      704                      .dwattr $C$DW$44, DW_AT_decl_column(0x05)
      705              
-     706                      .dwattr $C$DW$T$34, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_m
+     706                      .dwattr $C$DW$T$34, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_mach
      707                      .dwattr $C$DW$T$34, DW_AT_decl_line(0x0d)
      708                      .dwattr $C$DW$T$34, DW_AT_decl_column(0x0e)
      709                      .dwendtag $C$DW$T$34
@@ -823,7 +823,7 @@ safety.asm                                                           PAGE   14
      716              $C$DW$T$35      .dwtag  DW_TAG_typedef
      717                      .dwattr $C$DW$T$35, DW_AT_name("FOC_State_t")
      718                      .dwattr $C$DW$T$35, DW_AT_type(*$C$DW$T$34)
-     719                      .dwattr $C$DW$T$35, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_m
+     719                      .dwattr $C$DW$T$35, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_mach
      720                      .dwattr $C$DW$T$35, DW_AT_decl_line(0x13)
      721                      .dwattr $C$DW$T$35, DW_AT_decl_column(0x03)
      722              
@@ -838,13 +838,13 @@ safety.asm                                                           PAGE   14
      731              $C$DW$45        .dwtag  DW_TAG_member
      732                      .dwattr $C$DW$45, DW_AT_type(*$C$DW$T$19)
      733                      .dwattr $C$DW$45, DW_AT_name("id_ref")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE   15
 
      734                      .dwattr $C$DW$45, DW_AT_accessibility(DW_ACCESS_public)
-     735                      .dwattr $C$DW$45, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     735                      .dwattr $C$DW$45, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      736                      .dwattr $C$DW$45, DW_AT_decl_line(0x14)
      737                      .dwattr $C$DW$45, DW_AT_decl_column(0x0f)
      738              
@@ -853,7 +853,7 @@ safety.asm                                                           PAGE   15
      741                      .dwattr $C$DW$46, DW_AT_name("iq_ref")
      742                      .dwattr $C$DW$46, DW_AT_data_member_location[DW_OP_plus_uconst 0x2]
      743                      .dwattr $C$DW$46, DW_AT_accessibility(DW_ACCESS_public)
-     744                      .dwattr $C$DW$46, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     744                      .dwattr $C$DW$46, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      745                      .dwattr $C$DW$46, DW_AT_decl_line(0x15)
      746                      .dwattr $C$DW$46, DW_AT_decl_column(0x0f)
      747              
@@ -862,7 +862,7 @@ safety.asm                                                           PAGE   15
      750                      .dwattr $C$DW$47, DW_AT_name("speed_ref")
      751                      .dwattr $C$DW$47, DW_AT_data_member_location[DW_OP_plus_uconst 0x4]
      752                      .dwattr $C$DW$47, DW_AT_accessibility(DW_ACCESS_public)
-     753                      .dwattr $C$DW$47, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     753                      .dwattr $C$DW$47, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      754                      .dwattr $C$DW$47, DW_AT_decl_line(0x16)
      755                      .dwattr $C$DW$47, DW_AT_decl_column(0x0f)
      756              
@@ -871,11 +871,11 @@ safety.asm                                                           PAGE   15
      759                      .dwattr $C$DW$48, DW_AT_name("vbus")
      760                      .dwattr $C$DW$48, DW_AT_data_member_location[DW_OP_plus_uconst 0x6]
      761                      .dwattr $C$DW$48, DW_AT_accessibility(DW_ACCESS_public)
-     762                      .dwattr $C$DW$48, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     762                      .dwattr $C$DW$48, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      763                      .dwattr $C$DW$48, DW_AT_decl_line(0x17)
      764                      .dwattr $C$DW$48, DW_AT_decl_column(0x0f)
      765              
-     766                      .dwattr $C$DW$T$20, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     766                      .dwattr $C$DW$T$20, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      767                      .dwattr $C$DW$T$20, DW_AT_decl_line(0x13)
      768                      .dwattr $C$DW$T$20, DW_AT_decl_column(0x10)
      769                      .dwendtag $C$DW$T$20
@@ -888,7 +888,7 @@ safety.asm                                                           PAGE   15
      776              $C$DW$T$39      .dwtag  DW_TAG_typedef
      777                      .dwattr $C$DW$T$39, DW_AT_name("FOC_Refs_t")
      778                      .dwattr $C$DW$T$39, DW_AT_type(*$C$DW$T$20)
-     779                      .dwattr $C$DW$T$39, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     779                      .dwattr $C$DW$T$39, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      780                      .dwattr $C$DW$T$39, DW_AT_decl_line(0x18)
      781                      .dwattr $C$DW$T$39, DW_AT_decl_column(0x03)
      782              
@@ -898,7 +898,7 @@ safety.asm                                                           PAGE   15
      786              $C$DW$TU$40     .dwtag  DW_TAG_type_unit
      787                      .dwmtype  $C$DW$T$40
      788              $C$DW$T$40      .dwtag  DW_TAG_pointer_type
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE   16
@@ -918,7 +918,7 @@ safety.asm                                                           PAGE   16
      801                      .dwattr $C$DW$49, DW_AT_type(*$C$DW$T$22)
      802                      .dwattr $C$DW$49, DW_AT_name("Iabc")
      803                      .dwattr $C$DW$49, DW_AT_accessibility(DW_ACCESS_public)
-     804                      .dwattr $C$DW$49, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     804                      .dwattr $C$DW$49, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      805                      .dwattr $C$DW$49, DW_AT_decl_line(0x1b)
      806                      .dwattr $C$DW$49, DW_AT_decl_column(0x11)
      807              
@@ -927,7 +927,7 @@ safety.asm                                                           PAGE   16
      810                      .dwattr $C$DW$50, DW_AT_name("Iab")
      811                      .dwattr $C$DW$50, DW_AT_data_member_location[DW_OP_plus_uconst 0x6]
      812                      .dwattr $C$DW$50, DW_AT_accessibility(DW_ACCESS_public)
-     813                      .dwattr $C$DW$50, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     813                      .dwattr $C$DW$50, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      814                      .dwattr $C$DW$50, DW_AT_decl_line(0x1c)
      815                      .dwattr $C$DW$50, DW_AT_decl_column(0x11)
      816              
@@ -936,7 +936,7 @@ safety.asm                                                           PAGE   16
      819                      .dwattr $C$DW$51, DW_AT_name("Idq")
      820                      .dwattr $C$DW$51, DW_AT_data_member_location[DW_OP_plus_uconst 0xa]
      821                      .dwattr $C$DW$51, DW_AT_accessibility(DW_ACCESS_public)
-     822                      .dwattr $C$DW$51, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     822                      .dwattr $C$DW$51, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      823                      .dwattr $C$DW$51, DW_AT_decl_line(0x1d)
      824                      .dwattr $C$DW$51, DW_AT_decl_column(0x11)
      825              
@@ -945,7 +945,7 @@ safety.asm                                                           PAGE   16
      828                      .dwattr $C$DW$52, DW_AT_name("Vdq")
      829                      .dwattr $C$DW$52, DW_AT_data_member_location[DW_OP_plus_uconst 0xe]
      830                      .dwattr $C$DW$52, DW_AT_accessibility(DW_ACCESS_public)
-     831                      .dwattr $C$DW$52, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     831                      .dwattr $C$DW$52, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      832                      .dwattr $C$DW$52, DW_AT_decl_line(0x1e)
      833                      .dwattr $C$DW$52, DW_AT_decl_column(0x11)
      834              
@@ -954,11 +954,11 @@ safety.asm                                                           PAGE   16
      837                      .dwattr $C$DW$53, DW_AT_name("Vab")
      838                      .dwattr $C$DW$53, DW_AT_data_member_location[DW_OP_plus_uconst 0x12]
      839                      .dwattr $C$DW$53, DW_AT_accessibility(DW_ACCESS_public)
-     840                      .dwattr $C$DW$53, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     840                      .dwattr $C$DW$53, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      841                      .dwattr $C$DW$53, DW_AT_decl_line(0x1f)
      842                      .dwattr $C$DW$53, DW_AT_decl_column(0x11)
      843              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE   17
@@ -968,7 +968,7 @@ safety.asm                                                           PAGE   17
      846                      .dwattr $C$DW$54, DW_AT_name("duty")
      847                      .dwattr $C$DW$54, DW_AT_data_member_location[DW_OP_plus_uconst 0x16]
      848                      .dwattr $C$DW$54, DW_AT_accessibility(DW_ACCESS_public)
-     849                      .dwattr $C$DW$54, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     849                      .dwattr $C$DW$54, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      850                      .dwattr $C$DW$54, DW_AT_decl_line(0x20)
      851                      .dwattr $C$DW$54, DW_AT_decl_column(0x11)
      852              
@@ -977,7 +977,7 @@ safety.asm                                                           PAGE   17
      855                      .dwattr $C$DW$55, DW_AT_name("theta_elec")
      856                      .dwattr $C$DW$55, DW_AT_data_member_location[DW_OP_plus_uconst 0x1c]
      857                      .dwattr $C$DW$55, DW_AT_accessibility(DW_ACCESS_public)
-     858                      .dwattr $C$DW$55, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     858                      .dwattr $C$DW$55, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      859                      .dwattr $C$DW$55, DW_AT_decl_line(0x21)
      860                      .dwattr $C$DW$55, DW_AT_decl_column(0x11)
      861              
@@ -986,11 +986,11 @@ safety.asm                                                           PAGE   17
      864                      .dwattr $C$DW$56, DW_AT_name("omega_elec")
      865                      .dwattr $C$DW$56, DW_AT_data_member_location[DW_OP_plus_uconst 0x1e]
      866                      .dwattr $C$DW$56, DW_AT_accessibility(DW_ACCESS_public)
-     867                      .dwattr $C$DW$56, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+     867                      .dwattr $C$DW$56, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      868                      .dwattr $C$DW$56, DW_AT_decl_line(0x22)
      869                      .dwattr $C$DW$56, DW_AT_decl_column(0x11)
      870              
-     871                      .dwattr $C$DW$T$29, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     871                      .dwattr $C$DW$T$29, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      872                      .dwattr $C$DW$T$29, DW_AT_decl_line(0x1a)
      873                      .dwattr $C$DW$T$29, DW_AT_decl_column(0x10)
      874                      .dwendtag $C$DW$T$29
@@ -1003,7 +1003,7 @@ safety.asm                                                           PAGE   17
      881              $C$DW$T$49      .dwtag  DW_TAG_typedef
      882                      .dwattr $C$DW$T$49, DW_AT_name("FOC_Signals_t")
      883                      .dwattr $C$DW$T$49, DW_AT_type(*$C$DW$T$29)
-     884                      .dwattr $C$DW$T$49, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     884                      .dwattr $C$DW$T$49, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      885                      .dwattr $C$DW$T$49, DW_AT_decl_line(0x23)
      886                      .dwattr $C$DW$T$49, DW_AT_decl_column(0x03)
      887              
@@ -1018,7 +1018,7 @@ safety.asm                                                           PAGE   17
      896              $C$DW$T$50      .dwtag  DW_TAG_const_type
      897                      .dwattr $C$DW$T$50, DW_AT_type(*$C$DW$57)
      898              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE   18
@@ -1074,11 +1074,11 @@ safety.asm                                                           PAGE   18
      947              $C$DW$T$24      .dwtag  DW_TAG_typedef
      948                      .dwattr $C$DW$T$24, DW_AT_name("FOC_Iab_t")
      949                      .dwattr $C$DW$T$24, DW_AT_type(*$C$DW$T$23)
-     950                      .dwattr $C$DW$T$24, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     950                      .dwattr $C$DW$T$24, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      951                      .dwattr $C$DW$T$24, DW_AT_decl_line(0x0d)
      952                      .dwattr $C$DW$T$24, DW_AT_decl_column(0x13)
      953              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE   19
@@ -1091,7 +1091,7 @@ safety.asm                                                           PAGE   19
      959              $C$DW$T$25      .dwtag  DW_TAG_typedef
      960                      .dwattr $C$DW$T$25, DW_AT_name("FOC_Idq_t")
      961                      .dwattr $C$DW$T$25, DW_AT_type(*$C$DW$T$23)
-     962                      .dwattr $C$DW$T$25, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     962                      .dwattr $C$DW$T$25, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      963                      .dwattr $C$DW$T$25, DW_AT_decl_line(0x0e)
      964                      .dwattr $C$DW$T$25, DW_AT_decl_column(0x13)
      965              
@@ -1103,7 +1103,7 @@ safety.asm                                                           PAGE   19
      971              $C$DW$T$27      .dwtag  DW_TAG_typedef
      972                      .dwattr $C$DW$T$27, DW_AT_name("FOC_Vab_t")
      973                      .dwattr $C$DW$T$27, DW_AT_type(*$C$DW$T$23)
-     974                      .dwattr $C$DW$T$27, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     974                      .dwattr $C$DW$T$27, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      975                      .dwattr $C$DW$T$27, DW_AT_decl_line(0x0f)
      976                      .dwattr $C$DW$T$27, DW_AT_decl_column(0x13)
      977              
@@ -1115,7 +1115,7 @@ safety.asm                                                           PAGE   19
      983              $C$DW$T$26      .dwtag  DW_TAG_typedef
      984                      .dwattr $C$DW$T$26, DW_AT_name("FOC_Vdq_t")
      985                      .dwattr $C$DW$T$26, DW_AT_type(*$C$DW$T$23)
-     986                      .dwattr $C$DW$T$26, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+     986                      .dwattr $C$DW$T$26, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
      987                      .dwattr $C$DW$T$26, DW_AT_decl_line(0x10)
      988                      .dwattr $C$DW$T$26, DW_AT_decl_column(0x13)
      989              
@@ -1138,7 +1138,7 @@ safety.asm                                                           PAGE   19
     1006              
     1007                      .dwattr $C$DW$T$33, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/librar
     1008                      .dwattr $C$DW$T$33, DW_AT_decl_line(0xe3)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE   20
@@ -1166,7 +1166,7 @@ safety.asm                                                           PAGE   20
     1029              $C$DW$T$28      .dwtag  DW_TAG_typedef
     1030                      .dwattr $C$DW$T$28, DW_AT_name("FOC_Duty_t")
     1031                      .dwattr $C$DW$T$28, DW_AT_type(*$C$DW$T$21)
-    1032                      .dwattr $C$DW$T$28, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+    1032                      .dwattr $C$DW$T$28, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     1033                      .dwattr $C$DW$T$28, DW_AT_decl_line(0x11)
     1034                      .dwattr $C$DW$T$28, DW_AT_decl_column(0x13)
     1035              
@@ -1178,7 +1178,7 @@ safety.asm                                                           PAGE   20
     1041              $C$DW$T$22      .dwtag  DW_TAG_typedef
     1042                      .dwattr $C$DW$T$22, DW_AT_name("FOC_Iabc_t")
     1043                      .dwattr $C$DW$T$22, DW_AT_type(*$C$DW$T$21)
-    1044                      .dwattr $C$DW$T$22, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+    1044                      .dwattr $C$DW$T$22, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     1045                      .dwattr $C$DW$T$22, DW_AT_decl_line(0x0c)
     1046                      .dwattr $C$DW$T$22, DW_AT_decl_column(0x13)
     1047              
@@ -1198,7 +1198,7 @@ safety.asm                                                           PAGE   20
     1061              $C$DW$T$4       .dwtag  DW_TAG_base_type
     1062                      .dwattr $C$DW$T$4, DW_AT_encoding(DW_ATE_boolean)
     1063                      .dwattr $C$DW$T$4, DW_AT_name("bool")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE   21
@@ -1258,7 +1258,7 @@ safety.asm                                                           PAGE   21
     1116                      .dwendtag $C$DW$TU$9
     1117              
     1118              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE   22
@@ -1318,7 +1318,7 @@ safety.asm                                                           PAGE   22
     1171              
     1172                      .dwendtag $C$DW$TU$10
     1173              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE   23
@@ -1378,7 +1378,7 @@ safety.asm                                                           PAGE   23
     1226                      .dwmtype  $C$DW$T$16
     1227              $C$DW$T$16      .dwtag  DW_TAG_base_type
     1228                      .dwattr $C$DW$T$16, DW_AT_encoding(DW_ATE_float)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE   24
@@ -1438,7 +1438,7 @@ safety.asm                                                           PAGE   24
     1281              
     1282                      .dwendtag $C$DW$TU$17
     1283              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 safety.asm                                                           PAGE   25

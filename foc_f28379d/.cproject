@@ -5,7 +5,7 @@
             <storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="com.ti.ccstudio.buildDefinitions.C2000.Default.1356241753" moduleId="org.eclipse.cdt.core.settings" name="Debug_BOOSTXL_Teknic_QEP">
                 <macros>
                     <stringMacro name="SDK_ROOT" type="VALUE_PATH_ANY" value="/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00"/>
-                    <stringMacro name="APP_ROOT" type="VALUE_PATH_ANY" value="/home/jose/Documents/source/foc-f28379d-fsae"/>
+                    <stringMacro name="APP_ROOT" type="VALUE_PATH_ANY" value="/home/jose/workspace_ccstheia/foc_f28379d"/>
                     <stringMacro name="C2000WARE_DLIB_ROOT" type="VALUE_PATH_ANY" value="/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib"/>
                     <stringMacro name="C2000WARE_ROOT" type="VALUE_PATH_ANY" value="/home/jose/ti/c2000/C2000Ware_26_01_00_00"/>
                     <stringMacro name="C2000WARE_DEVICE_SUPPORT_ROOT" type="VALUE_PATH_ANY" value="/home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd"/>
@@ -53,6 +53,7 @@
                                     <listOptionValue value="${APP_ROOT}"/>
                                     <listOptionValue value="${APP_ROOT}/include"/>
                                     <listOptionValue value="${APP_ROOT}/config"/>
+                                    <listOptionValue value="${APP_ROOT}/imported"/>
                                     <listOptionValue value="${C2000WARE_DEVICE_SUPPORT_ROOT}/common/include"/>
                                     <listOptionValue value="${C2000WARE_DEVICE_SUPPORT_ROOT}/headers/include"/>
                                     <listOptionValue value="${C2000WARE_DLIB_ROOT}"/>
@@ -119,7 +120,7 @@
                         </toolChain>
                     </folderInfo>
                     <sourceEntries>
-                        <entry excluding="board_control_v2.syscfg" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+                        <entry excluding="board_control_v2.syscfg|imported|2837x_FLASH_lnk_cpu1.cmd" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
                     </sourceEntries>
                 </configuration>
             </storageModule>
@@ -129,7 +130,7 @@
             <storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="com.ti.ccstudio.buildDefinitions.C2000.Default.1071578335" moduleId="org.eclipse.cdt.core.settings" name="Production_CtrlV2_EMRAX_Resolver">
                 <macros>
                     <stringMacro name="SDK_ROOT" type="VALUE_PATH_ANY" value="/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00"/>
-                    <stringMacro name="APP_ROOT" type="VALUE_PATH_ANY" value="/home/jose/Documents/source/foc-f28379d-fsae"/>
+                    <stringMacro name="APP_ROOT" type="VALUE_PATH_ANY" value="/home/jose/workspace_ccstheia/foc_f28379d"/>
                     <stringMacro name="C2000WARE_DLIB_ROOT" type="VALUE_PATH_ANY" value="/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib"/>
                     <stringMacro name="C2000WARE_ROOT" type="VALUE_PATH_ANY" value="/home/jose/ti/c2000/C2000Ware_26_01_00_00"/>
                     <stringMacro name="C2000WARE_DEVICE_SUPPORT_ROOT" type="VALUE_PATH_ANY" value="/home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd"/>
@@ -177,6 +178,7 @@
                                     <listOptionValue value="${APP_ROOT}"/>
                                     <listOptionValue value="${APP_ROOT}/include"/>
                                     <listOptionValue value="${APP_ROOT}/config"/>
+                                    <listOptionValue value="${APP_ROOT}/imported"/>
                                     <listOptionValue value="${C2000WARE_DEVICE_SUPPORT_ROOT}/common/include"/>
                                     <listOptionValue value="${C2000WARE_DEVICE_SUPPORT_ROOT}/headers/include"/>
                                     <listOptionValue value="${C2000WARE_DLIB_ROOT}"/>

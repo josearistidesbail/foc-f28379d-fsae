@@ -91,6 +91,7 @@ src/debug_iface.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2
 src/debug_iface.obj: /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/include/stddef.h
 src/debug_iface.obj: syscfg/board.h
 src/debug_iface.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/device.h
+src/debug_iface.obj: /home/jose/workspace_ccstheia/foc_f28379d/include/debug_iface.h
 
 ../src/debug_iface.c:
 
@@ -273,4 +274,6 @@ src/debug_iface.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2
 syscfg/board.h:
 
 /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/device.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/include/debug_iface.h:
 

@@ -10,7 +10,7 @@ static uint16_t s_ic_zero = ISENSE_ZERO_COUNT;
 static void configure_module_common(volatile struct ADC_REGS *adc, int adc_id)
 {
     adc->ADCCTL2.bit.PRESCALE   = 6;        /* ADCCLK = SYSCLK/4 = 50 MHz */
-    AdcSetMode(adc_id, ADC_RESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
+    AdcSetMode(adc_id, ADC_BITRESOLUTION_12BIT, ADC_SIGNALMODE_SINGLE);
     adc->ADCCTL1.bit.INTPULSEPOS = 1;       /* late pulse, after conversion */
     adc->ADCCTL1.bit.ADCPWDNZ    = 1;
     DELAY_US(1000);

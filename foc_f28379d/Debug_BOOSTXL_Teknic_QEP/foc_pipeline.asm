@@ -1,12 +1,12 @@
 ;***************************************************************
 ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
-;* Date/Time created: Sat May 30 15:57:51 2026                 *
+;* Date/Time created: Sat May 30 20:22:51 2026                 *
 ;***************************************************************
 	.compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --mem_model:code=flat --mem_model:data=large --object_format=elf --quiet --silicon_errata_fpu1_workaround=off --silicon_version=28 --symdebug:dwarf --symdebug:dwarf_version=4 --tmu_support=tmu0 --vcu_support=vcu2 
 	.asg	XAR2, FP
 
 $C$DW$CU	.dwtag  DW_TAG_compile_unit
-	.dwattr $C$DW$CU, DW_AT_name("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$CU, DW_AT_name("../src/foc_pipeline.c")
 	.dwattr $C$DW$CU, DW_AT_producer("TI TMS320C2000 G3 C/C++ Codegen Unix v25.11.0.LTS Copyright (c) 1996-2018 Texas Instruments Incorporated")
 	.dwattr $C$DW$CU, DW_AT_TI_version(0x01)
 	.dwattr $C$DW$CU, DW_AT_comp_dir("/home/jose/workspace_ccstheia/foc_f28379d/Debug_BOOSTXL_Teknic_QEP")
@@ -16,7 +16,7 @@ $C$DW$1	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$1, DW_AT_linkage_name("debug_isr_scope_high")
 	.dwattr $C$DW$1, DW_AT_declaration
 	.dwattr $C$DW$1, DW_AT_external
-	.dwattr $C$DW$1, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/debug_hooks.h")
+	.dwattr $C$DW$1, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/debug_hooks.h")
 	.dwattr $C$DW$1, DW_AT_decl_line(0x19)
 	.dwattr $C$DW$1, DW_AT_decl_column(0x0d)
 	.dwendtag $C$DW$1
@@ -27,7 +27,7 @@ $C$DW$2	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$2, DW_AT_linkage_name("adc_read_phase_currents")
 	.dwattr $C$DW$2, DW_AT_declaration
 	.dwattr $C$DW$2, DW_AT_external
-	.dwattr $C$DW$2, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/adc_iface.h")
+	.dwattr $C$DW$2, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/adc_iface.h")
 	.dwattr $C$DW$2, DW_AT_decl_line(0x11)
 	.dwattr $C$DW$2, DW_AT_decl_column(0x0e)
 $C$DW$3	.dwtag  DW_TAG_formal_parameter
@@ -41,7 +41,7 @@ $C$DW$4	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$4, DW_AT_linkage_name("pwm_set_duty")
 	.dwattr $C$DW$4, DW_AT_declaration
 	.dwattr $C$DW$4, DW_AT_external
-	.dwattr $C$DW$4, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/pwm_iface.h")
+	.dwattr $C$DW$4, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/pwm_iface.h")
 	.dwattr $C$DW$4, DW_AT_decl_line(0x0c)
 	.dwattr $C$DW$4, DW_AT_decl_column(0x0d)
 $C$DW$5	.dwtag  DW_TAG_formal_parameter
@@ -55,7 +55,7 @@ $C$DW$6	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$6, DW_AT_linkage_name("pwm_force_safe")
 	.dwattr $C$DW$6, DW_AT_declaration
 	.dwattr $C$DW$6, DW_AT_external
-	.dwattr $C$DW$6, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/pwm_iface.h")
+	.dwattr $C$DW$6, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/pwm_iface.h")
 	.dwattr $C$DW$6, DW_AT_decl_line(0x0b)
 	.dwattr $C$DW$6, DW_AT_decl_column(0x0d)
 	.dwendtag $C$DW$6
@@ -66,7 +66,7 @@ $C$DW$7	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$7, DW_AT_linkage_name("safety_check_isr")
 	.dwattr $C$DW$7, DW_AT_declaration
 	.dwattr $C$DW$7, DW_AT_external
-	.dwattr $C$DW$7, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/safety.h")
+	.dwattr $C$DW$7, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/safety.h")
 	.dwattr $C$DW$7, DW_AT_decl_line(0x19)
 	.dwattr $C$DW$7, DW_AT_decl_column(0x11)
 	.dwendtag $C$DW$7
@@ -77,7 +77,7 @@ $C$DW$8	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$8, DW_AT_linkage_name("debug_datalog_push")
 	.dwattr $C$DW$8, DW_AT_declaration
 	.dwattr $C$DW$8, DW_AT_external
-	.dwattr $C$DW$8, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/debug_hooks.h")
+	.dwattr $C$DW$8, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/debug_hooks.h")
 	.dwattr $C$DW$8, DW_AT_decl_line(0x12)
 	.dwattr $C$DW$8, DW_AT_decl_column(0x0d)
 $C$DW$9	.dwtag  DW_TAG_formal_parameter
@@ -94,7 +94,7 @@ $C$DW$11	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$11, DW_AT_linkage_name("debug_isr_scope_low")
 	.dwattr $C$DW$11, DW_AT_declaration
 	.dwattr $C$DW$11, DW_AT_external
-	.dwattr $C$DW$11, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/debug_hooks.h")
+	.dwattr $C$DW$11, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/debug_hooks.h")
 	.dwattr $C$DW$11, DW_AT_decl_line(0x1a)
 	.dwattr $C$DW$11, DW_AT_decl_column(0x0d)
 	.dwendtag $C$DW$11
@@ -105,7 +105,7 @@ $C$DW$12	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$12, DW_AT_linkage_name("sm_tick_1khz")
 	.dwattr $C$DW$12, DW_AT_declaration
 	.dwattr $C$DW$12, DW_AT_external
-	.dwattr $C$DW$12, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_machine.h")
+	.dwattr $C$DW$12, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machine.h")
 	.dwattr $C$DW$12, DW_AT_decl_line(0x19)
 	.dwattr $C$DW$12, DW_AT_decl_column(0x15)
 	.dwendtag $C$DW$12
@@ -116,7 +116,7 @@ $C$DW$13	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$13, DW_AT_type(*$C$DW$T$182)
 	.dwattr $C$DW$13, DW_AT_declaration
 	.dwattr $C$DW$13, DW_AT_external
-	.dwattr $C$DW$13, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h")
+	.dwattr $C$DW$13, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h")
 	.dwattr $C$DW$13, DW_AT_decl_line(0x17)
 	.dwattr $C$DW$13, DW_AT_decl_column(0x1a)
 
@@ -126,7 +126,7 @@ $C$DW$14	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$14, DW_AT_type(*$C$DW$T$180)
 	.dwattr $C$DW$14, DW_AT_declaration
 	.dwattr $C$DW$14, DW_AT_external
-	.dwattr $C$DW$14, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h")
+	.dwattr $C$DW$14, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h")
 	.dwattr $C$DW$14, DW_AT_decl_line(0x18)
 	.dwattr $C$DW$14, DW_AT_decl_column(0x1a)
 
@@ -136,7 +136,7 @@ $C$DW$15	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$15, DW_AT_linkage_name("s_decim")
 	.dwattr $C$DW$15, DW_AT_type(*$C$DW$T$41)
 	.dwattr $C$DW$15, DW_AT_location[DW_OP_addr ||s_decim||]
-	.dwattr $C$DW$15, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$15, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$15, DW_AT_decl_line(0x2b)
 	.dwattr $C$DW$15, DW_AT_decl_column(0x1f)
 
@@ -147,7 +147,7 @@ $C$DW$16	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$16, DW_AT_type(*$C$DW$T$49)
 	.dwattr $C$DW$16, DW_AT_declaration
 	.dwattr $C$DW$16, DW_AT_external
-	.dwattr $C$DW$16, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_machine.h")
+	.dwattr $C$DW$16, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machine.h")
 	.dwattr $C$DW$16, DW_AT_decl_line(0x16)
 	.dwattr $C$DW$16, DW_AT_decl_column(0x15)
 	.dwendtag $C$DW$16
@@ -158,7 +158,7 @@ $C$DW$17	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$17, DW_AT_type(*$C$DW$T$207)
 	.dwattr $C$DW$17, DW_AT_declaration
 	.dwattr $C$DW$17, DW_AT_external
-	.dwattr $C$DW$17, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h")
+	.dwattr $C$DW$17, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h")
 	.dwattr $C$DW$17, DW_AT_decl_line(0x10)
 	.dwattr $C$DW$17, DW_AT_decl_column(0x1b)
 
@@ -168,7 +168,7 @@ $C$DW$18	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$18, DW_AT_type(*$C$DW$T$207)
 	.dwattr $C$DW$18, DW_AT_declaration
 	.dwattr $C$DW$18, DW_AT_external
-	.dwattr $C$DW$18, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h")
+	.dwattr $C$DW$18, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h")
 	.dwattr $C$DW$18, DW_AT_decl_line(0x11)
 	.dwattr $C$DW$18, DW_AT_decl_column(0x1b)
 
@@ -178,7 +178,7 @@ $C$DW$19	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$19, DW_AT_type(*$C$DW$T$189)
 	.dwattr $C$DW$19, DW_AT_declaration
 	.dwattr $C$DW$19, DW_AT_external
-	.dwattr $C$DW$19, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h")
+	.dwattr $C$DW$19, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h")
 	.dwattr $C$DW$19, DW_AT_decl_line(0x12)
 	.dwattr $C$DW$19, DW_AT_decl_column(0x1b)
 
@@ -188,7 +188,7 @@ $C$DW$20	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$20, DW_AT_type(*$C$DW$T$193)
 	.dwattr $C$DW$20, DW_AT_declaration
 	.dwattr $C$DW$20, DW_AT_external
-	.dwattr $C$DW$20, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h")
+	.dwattr $C$DW$20, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h")
 	.dwattr $C$DW$20, DW_AT_decl_line(0x15)
 	.dwattr $C$DW$20, DW_AT_decl_column(0x1a)
 
@@ -198,7 +198,7 @@ $C$DW$21	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$21, DW_AT_type(*$C$DW$T$193)
 	.dwattr $C$DW$21, DW_AT_declaration
 	.dwattr $C$DW$21, DW_AT_external
-	.dwattr $C$DW$21, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h")
+	.dwattr $C$DW$21, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h")
 	.dwattr $C$DW$21, DW_AT_decl_line(0x16)
 	.dwattr $C$DW$21, DW_AT_decl_column(0x1a)
 
@@ -208,7 +208,7 @@ $C$DW$22	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$22, DW_AT_linkage_name("s_clarke")
 	.dwattr $C$DW$22, DW_AT_type(*$C$DW$T$73)
 	.dwattr $C$DW$22, DW_AT_location[DW_OP_addr ||s_clarke||]
-	.dwattr $C$DW$22, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$22, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$22, DW_AT_decl_line(0x20)
 	.dwattr $C$DW$22, DW_AT_decl_column(0x16)
 
@@ -218,7 +218,7 @@ $C$DW$23	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$23, DW_AT_linkage_name("s_park")
 	.dwattr $C$DW$23, DW_AT_type(*$C$DW$T$126)
 	.dwattr $C$DW$23, DW_AT_location[DW_OP_addr ||s_park||]
-	.dwattr $C$DW$23, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$23, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$23, DW_AT_decl_line(0x21)
 	.dwattr $C$DW$23, DW_AT_decl_column(0x16)
 
@@ -228,7 +228,7 @@ $C$DW$24	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$24, DW_AT_linkage_name("s_ipark")
 	.dwattr $C$DW$24, DW_AT_type(*$C$DW$T$83)
 	.dwattr $C$DW$24, DW_AT_location[DW_OP_addr ||s_ipark||]
-	.dwattr $C$DW$24, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$24, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$24, DW_AT_decl_line(0x22)
 	.dwattr $C$DW$24, DW_AT_decl_column(0x16)
 
@@ -238,7 +238,7 @@ $C$DW$25	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$25, DW_AT_linkage_name("s_svgen")
 	.dwattr $C$DW$25, DW_AT_type(*$C$DW$T$46)
 	.dwattr $C$DW$25, DW_AT_location[DW_OP_addr ||s_svgen||]
-	.dwattr $C$DW$25, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$25, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$25, DW_AT_decl_line(0x23)
 	.dwattr $C$DW$25, DW_AT_decl_column(0x16)
 
@@ -248,7 +248,7 @@ $C$DW$26	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$26, DW_AT_linkage_name("s_pi_id")
 	.dwattr $C$DW$26, DW_AT_type(*$C$DW$T$134)
 	.dwattr $C$DW$26, DW_AT_location[DW_OP_addr ||s_pi_id||]
-	.dwattr $C$DW$26, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$26, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$26, DW_AT_decl_line(0x24)
 	.dwattr $C$DW$26, DW_AT_decl_column(0x16)
 
@@ -258,7 +258,7 @@ $C$DW$27	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$27, DW_AT_linkage_name("s_pi_iq")
 	.dwattr $C$DW$27, DW_AT_type(*$C$DW$T$134)
 	.dwattr $C$DW$27, DW_AT_location[DW_OP_addr ||s_pi_iq||]
-	.dwattr $C$DW$27, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$27, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$27, DW_AT_decl_line(0x25)
 	.dwattr $C$DW$27, DW_AT_decl_column(0x16)
 
@@ -268,7 +268,7 @@ $C$DW$28	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$28, DW_AT_linkage_name("s_pi_spd")
 	.dwattr $C$DW$28, DW_AT_type(*$C$DW$T$134)
 	.dwattr $C$DW$28, DW_AT_location[DW_OP_addr ||s_pi_spd||]
-	.dwattr $C$DW$28, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$28, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$28, DW_AT_decl_line(0x26)
 	.dwattr $C$DW$28, DW_AT_decl_column(0x16)
 
@@ -280,7 +280,7 @@ $C$DW$29	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$29, DW_AT_location[DW_OP_addr ||g_dbg_align_id_meas||]
 	.dwattr $C$DW$29, DW_AT_type(*$C$DW$T$207)
 	.dwattr $C$DW$29, DW_AT_external
-	.dwattr $C$DW$29, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$29, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$29, DW_AT_decl_line(0x33)
 	.dwattr $C$DW$29, DW_AT_decl_column(0x14)
 
@@ -292,7 +292,7 @@ $C$DW$30	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$30, DW_AT_location[DW_OP_addr ||g_dbg_align_iq_meas||]
 	.dwattr $C$DW$30, DW_AT_type(*$C$DW$T$207)
 	.dwattr $C$DW$30, DW_AT_external
-	.dwattr $C$DW$30, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$30, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$30, DW_AT_decl_line(0x34)
 	.dwattr $C$DW$30, DW_AT_decl_column(0x14)
 
@@ -304,7 +304,7 @@ $C$DW$31	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$31, DW_AT_location[DW_OP_addr ||g_dbg_align_vd||]
 	.dwattr $C$DW$31, DW_AT_type(*$C$DW$T$207)
 	.dwattr $C$DW$31, DW_AT_external
-	.dwattr $C$DW$31, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$31, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$31, DW_AT_decl_line(0x35)
 	.dwattr $C$DW$31, DW_AT_decl_column(0x14)
 
@@ -316,7 +316,7 @@ $C$DW$32	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$32, DW_AT_location[DW_OP_addr ||g_dbg_openloop_vd||]
 	.dwattr $C$DW$32, DW_AT_type(*$C$DW$T$207)
 	.dwattr $C$DW$32, DW_AT_external
-	.dwattr $C$DW$32, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$32, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$32, DW_AT_decl_line(0x3e)
 	.dwattr $C$DW$32, DW_AT_decl_column(0x14)
 
@@ -328,7 +328,7 @@ $C$DW$33	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$33, DW_AT_location[DW_OP_addr ||g_dbg_openloop_vq||]
 	.dwattr $C$DW$33, DW_AT_type(*$C$DW$T$207)
 	.dwattr $C$DW$33, DW_AT_external
-	.dwattr $C$DW$33, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$33, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$33, DW_AT_decl_line(0x43)
 	.dwattr $C$DW$33, DW_AT_decl_column(0x14)
 
@@ -429,7 +429,7 @@ $C$DW$49	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$49, DW_AT_type(*$C$DW$T$16)
 	.dwattr $C$DW$49, DW_AT_declaration
 	.dwattr $C$DW$49, DW_AT_external
-	.dwattr $C$DW$49, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/adc_iface.h")
+	.dwattr $C$DW$49, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/adc_iface.h")
 	.dwattr $C$DW$49, DW_AT_decl_line(0x12)
 	.dwattr $C$DW$49, DW_AT_decl_column(0x0e)
 	.dwendtag $C$DW$49
@@ -440,7 +440,7 @@ $C$DW$50	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$50, DW_AT_linkage_name("s_park_obj")
 	.dwattr $C$DW$50, DW_AT_type(*$C$DW$T$124)
 	.dwattr $C$DW$50, DW_AT_location[DW_OP_addr ||s_park_obj||]
-	.dwattr $C$DW$50, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$50, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$50, DW_AT_decl_line(0x19)
 	.dwattr $C$DW$50, DW_AT_decl_column(0x16)
 
@@ -450,7 +450,7 @@ $C$DW$51	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$51, DW_AT_linkage_name("s_ipark_obj")
 	.dwattr $C$DW$51, DW_AT_type(*$C$DW$T$81)
 	.dwattr $C$DW$51, DW_AT_location[DW_OP_addr ||s_ipark_obj||]
-	.dwattr $C$DW$51, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$51, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$51, DW_AT_decl_line(0x1a)
 	.dwattr $C$DW$51, DW_AT_decl_column(0x16)
 
@@ -460,7 +460,7 @@ $C$DW$52	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$52, DW_AT_linkage_name("s_svgen_obj")
 	.dwattr $C$DW$52, DW_AT_type(*$C$DW$T$140)
 	.dwattr $C$DW$52, DW_AT_location[DW_OP_addr ||s_svgen_obj||]
-	.dwattr $C$DW$52, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$52, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$52, DW_AT_decl_line(0x1b)
 	.dwattr $C$DW$52, DW_AT_decl_column(0x16)
 
@@ -470,7 +470,7 @@ $C$DW$53	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$53, DW_AT_linkage_name("s_clarke_obj")
 	.dwattr $C$DW$53, DW_AT_type(*$C$DW$T$71)
 	.dwattr $C$DW$53, DW_AT_location[DW_OP_addr ||s_clarke_obj||]
-	.dwattr $C$DW$53, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$53, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$53, DW_AT_decl_line(0x18)
 	.dwattr $C$DW$53, DW_AT_decl_column(0x16)
 
@@ -480,7 +480,7 @@ $C$DW$54	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$54, DW_AT_linkage_name("s_refs")
 	.dwattr $C$DW$54, DW_AT_type(*$C$DW$T$66)
 	.dwattr $C$DW$54, DW_AT_location[DW_OP_addr ||s_refs||]
-	.dwattr $C$DW$54, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$54, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$54, DW_AT_decl_line(0x29)
 	.dwattr $C$DW$54, DW_AT_decl_column(0x1f)
 
@@ -490,7 +490,7 @@ $C$DW$55	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$55, DW_AT_linkage_name("s_pi_id_obj")
 	.dwattr $C$DW$55, DW_AT_type(*$C$DW$T$132)
 	.dwattr $C$DW$55, DW_AT_location[DW_OP_addr ||s_pi_id_obj||]
-	.dwattr $C$DW$55, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$55, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$55, DW_AT_decl_line(0x1c)
 	.dwattr $C$DW$55, DW_AT_decl_column(0x16)
 
@@ -500,7 +500,7 @@ $C$DW$56	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$56, DW_AT_linkage_name("s_pi_iq_obj")
 	.dwattr $C$DW$56, DW_AT_type(*$C$DW$T$132)
 	.dwattr $C$DW$56, DW_AT_location[DW_OP_addr ||s_pi_iq_obj||]
-	.dwattr $C$DW$56, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$56, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$56, DW_AT_decl_line(0x1d)
 	.dwattr $C$DW$56, DW_AT_decl_column(0x16)
 
@@ -510,7 +510,7 @@ $C$DW$57	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$57, DW_AT_linkage_name("s_pi_spd_obj")
 	.dwattr $C$DW$57, DW_AT_type(*$C$DW$T$132)
 	.dwattr $C$DW$57, DW_AT_location[DW_OP_addr ||s_pi_spd_obj||]
-	.dwattr $C$DW$57, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$57, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$57, DW_AT_decl_line(0x1e)
 	.dwattr $C$DW$57, DW_AT_decl_column(0x16)
 
@@ -520,13 +520,13 @@ $C$DW$58	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$58, DW_AT_linkage_name("s_sig")
 	.dwattr $C$DW$58, DW_AT_type(*$C$DW$T$62)
 	.dwattr $C$DW$58, DW_AT_location[DW_OP_addr ||s_sig||]
-	.dwattr $C$DW$58, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$58, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$58, DW_AT_decl_line(0x2a)
 	.dwattr $C$DW$58, DW_AT_decl_column(0x1f)
 
 	.sblock	".bss"
-;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI262hRVEmt /tmp/TI262YMtcr2 --advice:performance=stdout 
-;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI262ACVURg 
+;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI6XpwoVJmG /tmp/TI6Xpav2b0P --advice:performance=stdout 
+;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI6Xp3rhpQS 
 	.sect	".text:PI_run"
 	.clink
 
@@ -705,11 +705,11 @@ $C$DW$73	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$73, DW_AT_high_pc(0x00)
 	.dwattr $C$DW$73, DW_AT_linkage_name("foc_speed_loop_tick")
 	.dwattr $C$DW$73, DW_AT_external
-	.dwattr $C$DW$73, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$73, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$73, DW_AT_decl_line(0xd0)
 	.dwattr $C$DW$73, DW_AT_decl_column(0x06)
 	.dwattr $C$DW$73, DW_AT_TI_max_frame_size(-8)
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 209,column 1,is_stmt,address ||foc_speed_loop_tick||,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 209,column 1,is_stmt,address ||foc_speed_loop_tick||,isa 0
 
 	.dwfde $C$DW$CIE, ||foc_speed_loop_tick||
 
@@ -771,7 +771,7 @@ $C$DW$79	.dwtag  DW_TAG_variable
         MOV32     *SP++,R5H             ; [CPU_FPU] 
 	.dwcfi	save_reg_to_mem, 63, 6
 	.dwcfi	cfa_offset, -8
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 210,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 210,column 5,is_stmt,isa 0
 $C$DW$80	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$80, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$80, DW_AT_name("sm_get_state")
@@ -783,7 +783,7 @@ $C$DW$80	.dwtag  DW_TAG_TI_branch
         B         ||$C$L1||,NEQ         ; [CPU_ALU] |210| 
         ; branchcc occurs ; [] |210| 
         MOVW      DP,#||s_sig||+30      ; [CPU_ARAU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 213,column 26,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 213,column 26,is_stmt,isa 0
         MOV32     R0H,@||s_sig||+30     ; [CPU_FPU] |213| 
         MOVW      DP,#||s_pi_spd||      ; [CPU_ARAU] 
         MPYF32    R5H,R0H,#16000        ; [CPU_FPU] |213| 
@@ -815,28 +815,28 @@ $C$DW$80	.dwtag  DW_TAG_TI_branch
 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 311,column 5,is_stmt,isa 0
         MOVB      XAR0,#8               ; [CPU_ALU] |311| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 217,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 217,column 9,is_stmt,isa 0
         ZERO      R2H                   ; [CPU_FPU] |217| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 223,column 5,is_stmt,isa 0
         MOV32     R4H,*+XAR4[AR1]       ; [CPU_FPU] |223| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 661,column 5,is_stmt,isa 0
         MAXF32    R0H,R1H               ; [CPU_FPU] |661| 
         MINF32    R0H,R4H               ; [CPU_FPU] |661| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 216,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 216,column 9,is_stmt,isa 0
 
         ADDF32    R3H,R3H,R0H           ; [CPU_FPU] |216| 
 ||      MOV32     *+XAR4[AR0],R5H       ; [CPU_FPU] |311| 
 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 507,column 5,is_stmt,isa 0
         MOV32     *+XAR4[4],R0H         ; [CPU_FPU] |507| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 216,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 216,column 9,is_stmt,isa 0
         MAXF32    R3H,R1H               ; [CPU_FPU] |216| 
         MINF32    R3H,R4H               ; [CPU_FPU] |216| 
         MOV32     @||s_refs||+2,R3H     ; [CPU_FPU] |216| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 217,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 217,column 9,is_stmt,isa 0
         MOV32     @||s_refs||,R2H       ; [CPU_FPU] |217| 
 ||$C$L1||:    
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 220,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 220,column 5,is_stmt,isa 0
 $C$DW$81	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$81, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$81, DW_AT_name("sm_tick_1khz")
@@ -859,7 +859,7 @@ $C$DW$82	.dwtag  DW_TAG_TI_branch
 
         LRETR     ; [CPU_ALU] 
         ; return occurs ; [] 
-	.dwattr $C$DW$73, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$73, DW_AT_TI_end_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$73, DW_AT_TI_end_line(0xdd)
 	.dwattr $C$DW$73, DW_AT_TI_end_column(0x01)
 	.dwendentry
@@ -875,11 +875,11 @@ $C$DW$83	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$83, DW_AT_high_pc(0x00)
 	.dwattr $C$DW$83, DW_AT_linkage_name("foc_init")
 	.dwattr $C$DW$83, DW_AT_external
-	.dwattr $C$DW$83, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$83, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$83, DW_AT_decl_line(0x45)
 	.dwattr $C$DW$83, DW_AT_decl_column(0x06)
 	.dwattr $C$DW$83, DW_AT_TI_max_frame_size(-4)
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 70,column 1,is_stmt,address ||foc_init||,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 70,column 1,is_stmt,address ||foc_init||,isa 0
 
 	.dwfde $C$DW$CIE, ||foc_init||
 
@@ -907,7 +907,7 @@ $C$DW$83	.dwtag  DW_TAG_subprogram
         MOVL      *SP++,XAR1            ; [CPU_ALU] 
 	.dwcfi	save_reg_to_mem, 7, 2
 	.dwcfi	cfa_offset, -4
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 71,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 71,column 5,is_stmt,isa 0
         MOVB      ACC,#6                ; [CPU_ALU] |71| 
         MOVL      XAR4,#||s_clarke_obj|| ; [CPU_ARAU] |71| 
 $C$DW$84	.dwtag  DW_TAG_TI_branch
@@ -918,11 +918,11 @@ $C$DW$84	.dwtag  DW_TAG_TI_branch
         LCR       #||CLARKE_init||      ; [CPU_ALU] |71| 
         ; call occurs [#||CLARKE_init||] ; [] |71| 
         MOVW      DP,#||s_clarke||      ; [CPU_ARAU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 72,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 72,column 5,is_stmt,isa 0
         MOVB      ACC,#4                ; [CPU_ALU] |72| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 71,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 71,column 5,is_stmt,isa 0
         MOVL      @||s_clarke||,XAR4    ; [CPU_ALU] |71| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 72,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 72,column 5,is_stmt,isa 0
         MOVL      XAR4,#||s_park_obj||  ; [CPU_ARAU] |72| 
 $C$DW$85	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$85, DW_AT_low_pc(0x00)
@@ -932,11 +932,11 @@ $C$DW$85	.dwtag  DW_TAG_TI_branch
         LCR       #||PARK_init||        ; [CPU_ALU] |72| 
         ; call occurs [#||PARK_init||] ; [] |72| 
         MOVW      DP,#||s_park||        ; [CPU_ARAU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 73,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 73,column 5,is_stmt,isa 0
         MOVB      ACC,#4                ; [CPU_ALU] |73| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 72,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 72,column 5,is_stmt,isa 0
         MOVL      @||s_park||,XAR4      ; [CPU_ALU] |72| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 73,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 73,column 5,is_stmt,isa 0
         MOVL      XAR4,#||s_ipark_obj|| ; [CPU_ARAU] |73| 
 $C$DW$86	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$86, DW_AT_low_pc(0x00)
@@ -946,11 +946,11 @@ $C$DW$86	.dwtag  DW_TAG_TI_branch
         LCR       #||IPARK_init||       ; [CPU_ALU] |73| 
         ; call occurs [#||IPARK_init||] ; [] |73| 
         MOVW      DP,#||s_ipark||       ; [CPU_ARAU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 74,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 74,column 5,is_stmt,isa 0
         MOVB      ACC,#4                ; [CPU_ALU] |74| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 73,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 73,column 5,is_stmt,isa 0
         MOVL      @||s_ipark||,XAR4     ; [CPU_ALU] |73| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 74,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 74,column 5,is_stmt,isa 0
         MOVL      XAR4,#||s_svgen_obj|| ; [CPU_ARAU] |74| 
 $C$DW$87	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$87, DW_AT_low_pc(0x00)
@@ -960,11 +960,11 @@ $C$DW$87	.dwtag  DW_TAG_TI_branch
         LCR       #||SVGEN_init||       ; [CPU_ALU] |74| 
         ; call occurs [#||SVGEN_init||] ; [] |74| 
         MOVW      DP,#||s_svgen||       ; [CPU_ARAU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 75,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 75,column 5,is_stmt,isa 0
         MOVB      ACC,#16               ; [CPU_ALU] |75| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 74,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 74,column 5,is_stmt,isa 0
         MOVL      @||s_svgen||,XAR4     ; [CPU_ALU] |74| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 75,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 75,column 5,is_stmt,isa 0
         MOVL      XAR4,#||s_pi_id_obj|| ; [CPU_ARAU] |75| 
 $C$DW$88	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$88, DW_AT_low_pc(0x00)
@@ -974,11 +974,11 @@ $C$DW$88	.dwtag  DW_TAG_TI_branch
         LCR       #||PI_init||          ; [CPU_ALU] |75| 
         ; call occurs [#||PI_init||] ; [] |75| 
         MOVW      DP,#||s_pi_id||       ; [CPU_ARAU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 76,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 76,column 5,is_stmt,isa 0
         MOVB      ACC,#16               ; [CPU_ALU] |76| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 75,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 75,column 5,is_stmt,isa 0
         MOVL      @||s_pi_id||,XAR4     ; [CPU_ALU] |75| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 76,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 76,column 5,is_stmt,isa 0
         MOVL      XAR4,#||s_pi_iq_obj|| ; [CPU_ARAU] |76| 
 $C$DW$89	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$89, DW_AT_low_pc(0x00)
@@ -988,11 +988,11 @@ $C$DW$89	.dwtag  DW_TAG_TI_branch
         LCR       #||PI_init||          ; [CPU_ALU] |76| 
         ; call occurs [#||PI_init||] ; [] |76| 
         MOVW      DP,#||s_pi_iq||       ; [CPU_ARAU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 77,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 77,column 5,is_stmt,isa 0
         MOVB      ACC,#16               ; [CPU_ALU] |77| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 76,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 76,column 5,is_stmt,isa 0
         MOVL      @||s_pi_iq||,XAR4     ; [CPU_ALU] |76| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 77,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 77,column 5,is_stmt,isa 0
         MOVL      XAR4,#||s_pi_spd_obj|| ; [CPU_ARAU] |77| 
 $C$DW$90	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$90, DW_AT_low_pc(0x00)
@@ -1032,7 +1032,7 @@ $C$DW$90	.dwtag  DW_TAG_TI_branch
         MOVIZ     R1H,#49379            ; [CPU_FPU] |422| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 356,column 5,is_stmt,isa 0
         MOVIZ     R2H,#14929            ; [CPU_FPU] |356| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 97,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 97,column 5,is_stmt,isa 0
         MOVIZ     R3H,#16960            ; [CPU_FPU] |97| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 355,column 5,is_stmt,isa 0
         MOVL      XAR5,@||s_pi_id||     ; [CPU_ALU] |355| 
@@ -1042,9 +1042,9 @@ $C$DW$90	.dwtag  DW_TAG_TI_branch
         MOV       *+XAR6[3],#0          ; [CPU_ALU] |181| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 355,column 5,is_stmt,isa 0
         MOVIZ     R0H,#16076            ; [CPU_FPU] |355| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 98,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 98,column 5,is_stmt,isa 0
         MOV       @||s_decim||,#0       ; [CPU_ALU] |98| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 77,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 77,column 5,is_stmt,isa 0
         MOVL      @||s_pi_spd||,XAR4    ; [CPU_ALU] |77| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 422,column 5,is_stmt,isa 0
         MOVXI     R1H,#13107            ; [CPU_FPU] |422| 
@@ -1088,17 +1088,17 @@ $C$DW$90	.dwtag  DW_TAG_TI_branch
         MOVB      XAR0,#14              ; [CPU_ALU] |423| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 356,column 5,is_stmt,isa 0
         MOV32     *+XAR5[2],R0H         ; [CPU_FPU] |356| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 94,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 94,column 5,is_stmt,isa 0
         ZERO      R0H                   ; [CPU_FPU] |94| 
         MOV32     @||s_refs||,R0H       ; [CPU_FPU] |94| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 95,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 95,column 5,is_stmt,isa 0
         MOV32     @||s_refs||+2,R0H     ; [CPU_FPU] |95| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 96,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 96,column 5,is_stmt,isa 0
         MOV32     @||s_refs||+4,R0H     ; [CPU_FPU] |96| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 356,column 5,is_stmt,isa 0
         MOVIZ     R0H,#15733            ; [CPU_FPU] |356| 
         MOVXI     R0H,#49807            ; [CPU_FPU] |356| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 97,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 97,column 5,is_stmt,isa 0
         MOV32     @||s_refs||+6,R3H     ; [CPU_FPU] |97| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 356,column 5,is_stmt,isa 0
         MOV32     *+XAR6[2],R0H         ; [CPU_FPU] |356| 
@@ -1118,7 +1118,7 @@ $C$DW$91	.dwtag  DW_TAG_TI_branch
 
         LRETR     ; [CPU_ALU] 
         ; return occurs ; [] 
-	.dwattr $C$DW$83, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$83, DW_AT_TI_end_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$83, DW_AT_TI_end_line(0x63)
 	.dwattr $C$DW$83, DW_AT_TI_end_column(0x01)
 	.dwendentry
@@ -1135,11 +1135,11 @@ $C$DW$92	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$92, DW_AT_linkage_name("foc_get_signals")
 	.dwattr $C$DW$92, DW_AT_external
 	.dwattr $C$DW$92, DW_AT_type(*$C$DW$T$60)
-	.dwattr $C$DW$92, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$92, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$92, DW_AT_decl_line(0x66)
 	.dwattr $C$DW$92, DW_AT_decl_column(0x17)
 	.dwattr $C$DW$92, DW_AT_TI_max_frame_size(-2)
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 102,column 45,is_stmt,address ||foc_get_signals||,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 102,column 45,is_stmt,address ||foc_get_signals||,isa 0
 
 	.dwfde $C$DW$CIE, ||foc_get_signals||
 
@@ -1155,7 +1155,7 @@ $C$DW$92	.dwtag  DW_TAG_subprogram
 ||foc_get_signals||:
 	.dwcfi	cfa_offset, -2
 	.dwcfi	save_reg_to_mem, 26, 0
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 102,column 47,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 102,column 47,is_stmt,isa 0
         MOVL      XAR4,#||s_sig||       ; [CPU_ARAU] |102| 
 $C$DW$93	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$93, DW_AT_low_pc(0x00)
@@ -1163,7 +1163,7 @@ $C$DW$93	.dwtag  DW_TAG_TI_branch
 
         LRETR     ; [CPU_ALU] 
         ; return occurs ; [] 
-	.dwattr $C$DW$92, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$92, DW_AT_TI_end_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$92, DW_AT_TI_end_line(0x66)
 	.dwattr $C$DW$92, DW_AT_TI_end_column(0x55)
 	.dwendentry
@@ -1180,11 +1180,11 @@ $C$DW$94	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$94, DW_AT_linkage_name("foc_get_refs")
 	.dwattr $C$DW$94, DW_AT_external
 	.dwattr $C$DW$94, DW_AT_type(*$C$DW$T$67)
-	.dwattr $C$DW$94, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$94, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$94, DW_AT_decl_line(0x65)
 	.dwattr $C$DW$94, DW_AT_decl_column(0x0e)
 	.dwattr $C$DW$94, DW_AT_TI_max_frame_size(-2)
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 101,column 33,is_stmt,address ||foc_get_refs||,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 101,column 33,is_stmt,address ||foc_get_refs||,isa 0
 
 	.dwfde $C$DW$CIE, ||foc_get_refs||
 
@@ -1200,7 +1200,7 @@ $C$DW$94	.dwtag  DW_TAG_subprogram
 ||foc_get_refs||:
 	.dwcfi	cfa_offset, -2
 	.dwcfi	save_reg_to_mem, 26, 0
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 101,column 35,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 101,column 35,is_stmt,isa 0
         MOVL      XAR4,#||s_refs||      ; [CPU_ARAU] |101| 
 $C$DW$95	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$95, DW_AT_low_pc(0x00)
@@ -1208,7 +1208,7 @@ $C$DW$95	.dwtag  DW_TAG_TI_branch
 
         LRETR     ; [CPU_ALU] 
         ; return occurs ; [] 
-	.dwattr $C$DW$94, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$94, DW_AT_TI_end_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$94, DW_AT_TI_end_line(0x65)
 	.dwattr $C$DW$94, DW_AT_TI_end_column(0x41)
 	.dwendentry
@@ -1917,11 +1917,11 @@ $C$DW$145	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$145, DW_AT_high_pc(0x00)
 	.dwattr $C$DW$145, DW_AT_linkage_name("foc_current_loop_isr")
 	.dwattr $C$DW$145, DW_AT_external
-	.dwattr $C$DW$145, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$145, DW_AT_decl_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$145, DW_AT_decl_line(0x6c)
 	.dwattr $C$DW$145, DW_AT_decl_column(0x06)
 	.dwattr $C$DW$145, DW_AT_TI_max_frame_size(-10)
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 109,column 1,is_stmt,address ||foc_current_loop_isr||,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 109,column 1,is_stmt,address ||foc_current_loop_isr||,isa 0
 
 	.dwfde $C$DW$CIE, ||foc_current_loop_isr||
 
@@ -2017,7 +2017,7 @@ $C$DW$153	.dwtag  DW_TAG_variable
 	.dwcfi	cfa_offset, -8
         ADDB      SP,#2                 ; [CPU_ARAU] 
 	.dwcfi	cfa_offset, -10
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 110,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 110,column 5,is_stmt,isa 0
 $C$DW$154	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$154, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$154, DW_AT_name("debug_isr_scope_high")
@@ -2025,7 +2025,7 @@ $C$DW$154	.dwtag  DW_TAG_TI_branch
 
         LCR       #||debug_isr_scope_high|| ; [CPU_ALU] |110| 
         ; call occurs [#||debug_isr_scope_high||] ; [] |110| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 115,column 20,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 115,column 20,is_stmt,isa 0
 $C$DW$155	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$155, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$155, DW_AT_name("sm_get_state")
@@ -2036,20 +2036,20 @@ $C$DW$155	.dwtag  DW_TAG_TI_branch
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/eqep.h",line 489,column 5,is_stmt,isa 0
         MOV32     XAR6,*(0:0x5100)      ; [CPU_FPU] |489| 
         MOVW      DP,#||g_dbg_qep_count|| ; [CPU_ARAU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 115,column 20,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 115,column 20,is_stmt,isa 0
         MOVZ      AR3,AL                ; [CPU_ALU] |115| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 31,column 5,is_stmt,isa 0
+	.dwpsn	file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 31,column 5,is_stmt,isa 0
         MOVL      @||g_dbg_qep_count||,XAR6 ; [CPU_ALU] |31| 
         MOVW      DP,#||g_dbg_qep_index_latch|| ; [CPU_ARAU] 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/eqep.h",line 1464,column 5,is_stmt,isa 0
         MOV32     ACC,*(0:0x5108)       ; [CPU_FPU] |1464| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 32,column 5,is_stmt,isa 0
+	.dwpsn	file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 32,column 5,is_stmt,isa 0
         MOVL      @||g_dbg_qep_index_latch||,ACC ; [CPU_ALU] |32| 
         MOVW      DP,#||g_dbg_qep_status|| ; [CPU_ARAU] 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/eqep.h",line 814,column 5,is_stmt,isa 0
         MOV       AL,*(0:0x511c)        ; [CPU_ALU] |814| 
         ANDB      AL,#0xff              ; [CPU_ALU] |814| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 33,column 5,is_stmt,isa 0
+	.dwpsn	file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 33,column 5,is_stmt,isa 0
         MOV       @||g_dbg_qep_status||,AL ; [CPU_ALU] |33| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/eqep.h",line 547,column 5,is_stmt,isa 0
         MOV       AH,*(0:0x511c)        ; [CPU_ALU] |547| 
@@ -2065,31 +2065,31 @@ $C$DW$155	.dwtag  DW_TAG_TI_branch
         MOVB      XAR7,#1               ; [CPU_ALU] |549| 
 ||$C$L14||:    
         MOVW      DP,#||g_dbg_qep_direction|| ; [CPU_ARAU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 36,column 18,is_stmt,isa 0
+	.dwpsn	file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 36,column 18,is_stmt,isa 0
         MOVL      ACC,XAR6              ; [CPU_ALU] |36| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 34,column 5,is_stmt,isa 0
+	.dwpsn	file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 34,column 5,is_stmt,isa 0
         MOV       @||g_dbg_qep_direction||,AR7 ; [CPU_ALU] |34| 
         MOVW      DP,#||g_qep_mech_offset_cnt|| ; [CPU_ARAU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 36,column 18,is_stmt,isa 0
+	.dwpsn	file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 36,column 18,is_stmt,isa 0
         SUBL      ACC,@||g_qep_mech_offset_cnt|| ; [CPU_ALU] |36| 
         MOVL      XAR6,ACC              ; [CPU_ALU] |36| 
         B         ||$C$L15||,GEQ        ; [CPU_ALU] |36| 
         ; branchcc occurs ; [] |36| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 39,column 29,is_stmt,isa 0
+	.dwpsn	file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 39,column 29,is_stmt,isa 0
         ADD       ACC,#125 << 7         ; [CPU_ALU] |39| 
         MOVL      XAR6,ACC              ; [CPU_ALU] |39| 
 ||$C$L15||:    
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 40,column 5,is_stmt,isa 0
+	.dwpsn	file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 40,column 5,is_stmt,isa 0
         MOV       ACC,#16000            ; [CPU_ALU] |40| 
         CMPL      ACC,XAR6              ; [CPU_ALU] |40| 
         B         ||$C$L16||,GT         ; [CPU_ALU] |40| 
         ; branchcc occurs ; [] |40| 
         MOVL      ACC,XAR6              ; [CPU_ALU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 40,column 35,is_stmt,isa 0
+	.dwpsn	file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 40,column 35,is_stmt,isa 0
         SUB       ACC,#125 << 7         ; [CPU_ALU] |40| 
         MOVL      XAR6,ACC              ; [CPU_ALU] |40| 
 ||$C$L16||:    
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 45,column 5,is_stmt,isa 0
+	.dwpsn	file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 45,column 5,is_stmt,isa 0
         MOV32     R1H,XAR6              ; [CPU_FPU] |45| 
         NOP       ; [CPU_ALU] 
         NOP       ; [CPU_ALU] 
@@ -2108,11 +2108,11 @@ $C$DW$155	.dwtag  DW_TAG_TI_branch
         SUBF32    R1H,R1H,R2H           ; [CPU_FPU] |45| 
         MOVXI     R3H,#4059             ; [CPU_FPU] |45| 
         MPYF32    R0H,R3H,R1H           ; [CPU_FPU] |45| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 117,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 117,column 5,is_stmt,isa 0
         CMPB      AL,#2                 ; [CPU_ALU] |117| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 45,column 5,is_stmt,isa 0
+	.dwpsn	file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 45,column 5,is_stmt,isa 0
         MOV32     @||g_qep_theta_elec||,R0H ; [CPU_FPU] |45| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 117,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 117,column 5,is_stmt,isa 0
         B         ||$C$L17||,NEQ        ; [CPU_ALU] |117| 
         ; branchcc occurs ; [] |117| 
         ZERO      R0H                   ; [CPU_FPU] |117| 
@@ -2125,15 +2125,15 @@ $C$DW$155	.dwtag  DW_TAG_TI_branch
         MOVL      XAR4,XAR2             ; [CPU_ALU] |117| 
         MOVB      XAR1,#28              ; [CPU_ALU] |117| 
         MOVW      DP,#||g_qep_omega_elec|| ; [CPU_ARAU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 118,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 118,column 5,is_stmt,isa 0
         MOVB      XAR0,#30              ; [CPU_ALU] |118| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 117,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 117,column 5,is_stmt,isa 0
         MOV32     *+XAR4[AR1],R0H       ; [CPU_FPU] |117| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 52,column 55,is_stmt,isa 0
+	.dwpsn	file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 52,column 55,is_stmt,isa 0
         MOV32     R0H,@||g_qep_omega_elec|| ; [CPU_FPU] |52| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 118,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 118,column 5,is_stmt,isa 0
         MOV32     *+XAR4[AR0],R0H       ; [CPU_FPU] |118| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 121,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 121,column 5,is_stmt,isa 0
 $C$DW$156	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$156, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$156, DW_AT_name("adc_read_phase_currents")
@@ -2142,7 +2142,7 @@ $C$DW$156	.dwtag  DW_TAG_TI_branch
         LCR       #||adc_read_phase_currents|| ; [CPU_ALU] |121| 
         ; call occurs [#||adc_read_phase_currents||] ; [] |121| 
         MOVW      DP,#||s_clarke||      ; [CPU_ARAU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 122,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 122,column 5,is_stmt,isa 0
         MOVL      ACC,XAR2              ; [CPU_ALU] |122| 
         MOVL      XAR5,XAR2             ; [CPU_ALU] |122| 
         MOVL      XAR4,@||s_clarke||    ; [CPU_ALU] |122| 
@@ -2158,7 +2158,7 @@ $C$DW$157	.dwtag  DW_TAG_TI_branch
         MOVL      XAR7,XAR2             ; [CPU_ALU] |122| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/park/include/park.h",line 283,column 1,is_stmt,isa 0
         MOVB      XAR0,#28              ; [CPU_ALU] |283| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 124,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 124,column 5,is_stmt,isa 0
         MOVL      ACC,XAR2              ; [CPU_ALU] |124| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/park/include/park.h",line 283,column 1,is_stmt,isa 0
         MOV32     R0H,*+XAR7[AR0]       ; [CPU_FPU] |283| 
@@ -2171,14 +2171,14 @@ $C$DW$157	.dwtag  DW_TAG_TI_branch
         SINPUF32  R1H,R1H               ; [CPU_FPU] |290| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/park/include/park.h",line 291,column 5,is_stmt,isa 0
         COSPUF32  R0H,R0H               ; [CPU_FPU] |291| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 124,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 124,column 5,is_stmt,isa 0
         ADDB      ACC,#10               ; [CPU_ALU] |124| 
         ADDB      XAR5,#6               ; [CPU_ALU] |124| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/park/include/park.h",line 290,column 5,is_stmt,isa 0
         MOV32     *+XAR4[0],R1H         ; [CPU_FPU] |290| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/park/include/park.h",line 291,column 5,is_stmt,isa 0
         MOV32     *+XAR4[2],R0H         ; [CPU_FPU] |291| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 124,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 124,column 5,is_stmt,isa 0
         MOVL      *-SP[2],ACC           ; [CPU_FPU] |124| 
 $C$DW$158	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$158, DW_AT_low_pc(0x00)
@@ -2193,16 +2193,16 @@ $C$DW$158	.dwtag  DW_TAG_TI_branch
         MOVB      XAR0,#14              ; [CPU_ALU] |423| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 422,column 5,is_stmt,isa 0
         MOV       AL,AR3                ; [CPU_ALU] |422| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 135,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 135,column 5,is_stmt,isa 0
         CMPB      AL,#3                 ; [CPU_ALU] |135| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 130,column 24,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 130,column 24,is_stmt,isa 0
         MOVIZ     R0H,#16025            ; [CPU_FPU] |130| 
         MOV32     R1H,@||s_refs||+6     ; [CPU_FPU] |130| 
         MOVXI     R0H,#39322            ; [CPU_FPU] |130| 
         MPYF32    R0H,R0H,R1H           ; [CPU_FPU] |130| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 419,column 1,is_stmt,isa 0
         MOVL      XAR6,@||s_pi_id||     ; [CPU_ALU] |419| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 130,column 24,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 130,column 24,is_stmt,isa 0
         MPYF32    R1H,R0H,#16128        ; [CPU_FPU] |130| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 419,column 1,is_stmt,isa 0
         MOVL      XAR7,@||s_pi_iq||     ; [CPU_ALU] |419| 
@@ -2220,14 +2220,14 @@ $C$DW$158	.dwtag  DW_TAG_TI_branch
         MOV32     *+XAR7[AR1],R0H       ; [CPU_FPU] |422| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 423,column 5,is_stmt,isa 0
         MOV32     *+XAR7[AR0],R1H       ; [CPU_FPU] |423| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 135,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 135,column 5,is_stmt,isa 0
         B         ||$C$L19||,EQ         ; [CPU_ALU] |135| 
         ; branchcc occurs ; [] |135| 
         CMPB      AL,#2                 ; [CPU_ALU] |135| 
         B         ||$C$L22||,NEQ        ; [CPU_ALU] |135| 
         ; branchcc occurs ; [] |135| 
 ||$C$L19||:    
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 137,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 137,column 9,is_stmt,isa 0
         MOVB      XAR0,#10              ; [CPU_ALU] |137| 
         MOVL      XAR1,#||s_sig||       ; [CPU_ARAU] |137| 
         MOVL      XAR5,XAR2             ; [CPU_ALU] |137| 
@@ -2242,7 +2242,7 @@ $C$DW$159	.dwtag  DW_TAG_TI_branch
 
         LCR       #||PI_run||           ; [CPU_ALU] |137| 
         ; call occurs [#||PI_run||] ; [] |137| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 138,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 138,column 9,is_stmt,isa 0
         MOVL      XAR5,XAR2             ; [CPU_ALU] |138| 
         MOVB      XAR0,#12              ; [CPU_ALU] |138| 
         MOVL      XAR4,XAR7             ; [CPU_ALU] |138| 
@@ -2256,11 +2256,11 @@ $C$DW$160	.dwtag  DW_TAG_TI_branch
 
         LCR       #||PI_run||           ; [CPU_ALU] |138| 
         ; call occurs [#||PI_run||] ; [] |138| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 143,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 143,column 9,is_stmt,isa 0
         CMPB      AL,#2                 ; [CPU_ALU] |143| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 137,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 137,column 9,is_stmt,isa 0
         ADDB      XAR1,#14              ; [CPU_ALU] |137| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 143,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 143,column 9,is_stmt,isa 0
         B         ||$C$L23||,NEQ        ; [CPU_ALU] |143| 
         ; branchcc occurs ; [] |143| 
         MOV32     R0H,@||g_dbg_openloop_vd|| ; [CPU_FPU] |143| 
@@ -2277,61 +2277,61 @@ $C$DW$160	.dwtag  DW_TAG_TI_branch
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 507,column 5,is_stmt,isa 0
         ZERO      R0H                   ; [CPU_FPU] |507| 
         ZERO      R1H                   ; [CPU_FPU] |507| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 146,column 13,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 146,column 13,is_stmt,isa 0
         MOVB      XAR0,#14              ; [CPU_ALU] |146| 
         MOVL      ACC,@||g_dbg_openloop_vd|| ; [CPU_ALU] |146| 
         MOVL      XAR4,#||s_sig||       ; [CPU_ARAU] |146| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 507,column 5,is_stmt,isa 0
         MOV32     *+XAR7[4],R0H         ; [CPU_FPU] |507| 
         MOV32     *+XAR6[4],R1H         ; [CPU_FPU] |507| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 146,column 13,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 146,column 13,is_stmt,isa 0
         MOVL      *+XAR4[AR0],ACC       ; [CPU_ALU] |146| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 147,column 13,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 147,column 13,is_stmt,isa 0
         MOVB      XAR0,#16              ; [CPU_ALU] |147| 
         MOVL      ACC,@||g_dbg_openloop_vq|| ; [CPU_ALU] |147| 
         MOVL      *+XAR4[AR0],ACC       ; [CPU_ALU] |147| 
 ||$C$L21||:    
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 162,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 162,column 9,is_stmt,isa 0
         MOVB      XAR0,#10              ; [CPU_ALU] |162| 
         MOVL      XAR4,#||s_sig||       ; [CPU_ARAU] |162| 
         MOVL      ACC,*+XAR4[AR0]       ; [CPU_ALU] |162| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 163,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 163,column 9,is_stmt,isa 0
         MOVB      XAR0,#12              ; [CPU_ALU] |163| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 162,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 162,column 9,is_stmt,isa 0
         MOVL      @||g_dbg_align_id_meas||,ACC ; [CPU_ALU] |162| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 163,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 163,column 9,is_stmt,isa 0
         MOVL      ACC,*+XAR4[AR0]       ; [CPU_ALU] |163| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 164,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 164,column 9,is_stmt,isa 0
         MOVB      XAR0,#14              ; [CPU_ALU] |164| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 163,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 163,column 9,is_stmt,isa 0
         MOVL      @||g_dbg_align_iq_meas||,ACC ; [CPU_ALU] |163| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 164,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 164,column 9,is_stmt,isa 0
         MOVL      ACC,*+XAR4[AR0]       ; [CPU_ALU] |164| 
         MOVL      @||g_dbg_align_vd||,ACC ; [CPU_ALU] |164| 
         B         ||$C$L23||,UNC        ; [CPU_ALU] |164| 
         ; branch occurs ; [] |164| 
 ||$C$L22||:    
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 154,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 154,column 9,is_stmt,isa 0
         ZERO      R3H                   ; [CPU_FPU] |154| 
         MOVW      DP,#||s_sig||+14      ; [CPU_ARAU] 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 507,column 5,is_stmt,isa 0
         ZERO      R1H                   ; [CPU_FPU] |507| 
         ZERO      R0H                   ; [CPU_FPU] |507| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 155,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 155,column 9,is_stmt,isa 0
         MOVB      XAR0,#16              ; [CPU_ALU] |155| 
         ZERO      R2H                   ; [CPU_FPU] |155| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 154,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 154,column 9,is_stmt,isa 0
         MOVL      XAR1,XAR2             ; [CPU_ALU] |154| 
         MOV32     @||s_sig||+14,R3H     ; [CPU_FPU] |154| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/pi.h",line 507,column 5,is_stmt,isa 0
         MOV32     *+XAR6[4],R1H         ; [CPU_FPU] |507| 
         MOV32     *+XAR7[4],R0H         ; [CPU_FPU] |507| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 155,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 155,column 9,is_stmt,isa 0
         MOV32     *+XAR2[AR0],R2H       ; [CPU_FPU] |155| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 154,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 154,column 9,is_stmt,isa 0
         ADDB      XAR1,#14              ; [CPU_ALU] |154| 
 ||$C$L23||:    
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 175,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 175,column 5,is_stmt,isa 0
 $C$DW$161	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$161, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$161, DW_AT_name("adc_read_vbus")
@@ -2342,7 +2342,7 @@ $C$DW$161	.dwtag  DW_TAG_TI_branch
         MOVW      DP,#||s_refs||+6      ; [CPU_ARAU] 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/svgen/include/svgen.h",line 158,column 1,is_stmt,isa 0
         MOVIZ     R1H,#16256            ; [CPU_FPU] |158| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 175,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 175,column 5,is_stmt,isa 0
         MOV32     @||s_refs||+6,R0H     ; [CPU_FPU] |175| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/svgen/include/svgen.h",line 158,column 1,is_stmt,isa 0
         MOV32     R0H,@||s_refs||+6     ; [CPU_FPU] |158| 
@@ -2351,17 +2351,17 @@ $C$DW$161	.dwtag  DW_TAG_TI_branch
         MOVL      XAR6,@||s_svgen||     ; [CPU_ALU] |158| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/svgen/include/svgen.h",line 161,column 5,is_stmt,isa 0
         MOV       AL,AR3                ; [CPU_ALU] |161| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 178,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 178,column 5,is_stmt,isa 0
         CMPB      AL,#3                 ; [CPU_ALU] |178| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/svgen/include/svgen.h",line 161,column 5,is_stmt,isa 0
         MOV32     *+XAR6[0],R0H         ; [CPU_FPU] |161| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 178,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 178,column 5,is_stmt,isa 0
         B         ||$C$L24||,EQ         ; [CPU_ALU] |178| 
         ; branchcc occurs ; [] |178| 
         CMPB      AL,#2                 ; [CPU_ALU] |178| 
         B         ||$C$L24||,EQ         ; [CPU_ALU] |178| 
         ; branchcc occurs ; [] |178| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 187,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 187,column 9,is_stmt,isa 0
 $C$DW$162	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$162, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$162, DW_AT_name("pwm_force_safe")
@@ -2370,7 +2370,7 @@ $C$DW$162	.dwtag  DW_TAG_TI_branch
         LCR       #||pwm_force_safe||   ; [CPU_ALU] |187| 
         ; call occurs [#||pwm_force_safe||] ; [] |187| 
         MOVW      DP,#||s_decim||       ; [CPU_ARAU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 191,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 191,column 5,is_stmt,isa 0
         INC       @||s_decim||          ; [CPU_ALU] |191| 
         MOV       AL,@||s_decim||       ; [CPU_ALU] |191| 
         CMPB      AL,#10                ; [CPU_ALU] |191| 
@@ -2382,7 +2382,7 @@ $C$DW$162	.dwtag  DW_TAG_TI_branch
         MOVW      DP,#||s_sig||+28      ; [CPU_ARAU] 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/ipark/include/ipark.h",line 278,column 1,is_stmt,isa 0
         MOV32     R0H,@||s_sig||+28     ; [CPU_FPU] |278| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 181,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 181,column 9,is_stmt,isa 0
         MOVL      ACC,XAR2              ; [CPU_ALU] |181| 
         MOVW      DP,#||s_ipark||       ; [CPU_ARAU] 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/ipark/include/ipark.h",line 285,column 5,is_stmt,isa 0
@@ -2394,14 +2394,14 @@ $C$DW$162	.dwtag  DW_TAG_TI_branch
         SINPUF32  R1H,R1H               ; [CPU_FPU] |285| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/ipark/include/ipark.h",line 286,column 5,is_stmt,isa 0
         COSPUF32  R0H,R0H               ; [CPU_FPU] |286| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 181,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 181,column 9,is_stmt,isa 0
         MOVL      XAR5,XAR1             ; [CPU_ALU] |181| 
         ADDB      ACC,#18               ; [CPU_ALU] |181| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/ipark/include/ipark.h",line 285,column 5,is_stmt,isa 0
         MOV32     *+XAR4[0],R1H         ; [CPU_FPU] |285| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/ipark/include/ipark.h",line 286,column 5,is_stmt,isa 0
         MOV32     *+XAR4[2],R0H         ; [CPU_FPU] |286| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 181,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 181,column 9,is_stmt,isa 0
         MOVL      *-SP[2],ACC           ; [CPU_ALU] |181| 
 $C$DW$163	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$163, DW_AT_low_pc(0x00)
@@ -2410,7 +2410,7 @@ $C$DW$163	.dwtag  DW_TAG_TI_branch
 
         LCR       #||IPARK_run||        ; [CPU_ALU] |181| 
         ; call occurs [#||IPARK_run||] ; [] |181| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 182,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 182,column 9,is_stmt,isa 0
         MOVL      XAR7,XAR2             ; [CPU_ALU] |182| 
         ADDB      XAR7,#22              ; [CPU_ALU] |182| 
         MOVL      XAR4,XAR6             ; [CPU_FPU] |182| 
@@ -2423,7 +2423,7 @@ $C$DW$164	.dwtag  DW_TAG_TI_branch
 
         LCR       #||SVGEN_run||        ; [CPU_ALU] |182| 
         ; call occurs [#||SVGEN_run||] ; [] |182| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 183,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 183,column 9,is_stmt,isa 0
         MOVL      XAR4,XAR7             ; [CPU_ALU] |183| 
 $C$DW$165	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$165, DW_AT_low_pc(0x00)
@@ -2433,16 +2433,16 @@ $C$DW$165	.dwtag  DW_TAG_TI_branch
         LCR       #||pwm_set_duty||     ; [CPU_ALU] |183| 
         ; call occurs [#||pwm_set_duty||] ; [] |183| 
         MOVW      DP,#||s_decim||       ; [CPU_ARAU] 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 191,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 191,column 5,is_stmt,isa 0
         INC       @||s_decim||          ; [CPU_ALU] |191| 
         MOV       AL,@||s_decim||       ; [CPU_ALU] |191| 
         CMPB      AL,#10                ; [CPU_ALU] |191| 
         B         ||$C$L26||,LO         ; [CPU_ALU] |191| 
         ; branchcc occurs ; [] |191| 
 ||$C$L25||:    
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 193,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 193,column 9,is_stmt,isa 0
         MOV       @||s_decim||,#0       ; [CPU_ALU] |193| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 194,column 9,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 194,column 9,is_stmt,isa 0
 $C$DW$166	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$166, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$166, DW_AT_name("foc_speed_loop_tick")
@@ -2451,7 +2451,7 @@ $C$DW$166	.dwtag  DW_TAG_TI_branch
         LCR       #||foc_speed_loop_tick|| ; [CPU_ALU] |194| 
         ; call occurs [#||foc_speed_loop_tick||] ; [] |194| 
 ||$C$L26||:    
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 198,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 198,column 5,is_stmt,isa 0
 $C$DW$167	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$167, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$167, DW_AT_name("safety_check_isr")
@@ -2460,7 +2460,7 @@ $C$DW$167	.dwtag  DW_TAG_TI_branch
         LCR       #||safety_check_isr|| ; [CPU_ALU] |198| 
         ; call occurs [#||safety_check_isr||] ; [] |198| 
         MOV       AL,AR3                ; [CPU_ALU] |198| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 201,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 201,column 5,is_stmt,isa 0
         MOVL      XAR4,XAR2             ; [CPU_ALU] |201| 
 $C$DW$168	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$168, DW_AT_low_pc(0x00)
@@ -2469,7 +2469,7 @@ $C$DW$168	.dwtag  DW_TAG_TI_branch
 
         LCR       #||debug_datalog_push|| ; [CPU_ALU] |201| 
         ; call occurs [#||debug_datalog_push||] ; [] |201| 
-	.dwpsn	file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 202,column 5,is_stmt,isa 0
+	.dwpsn	file "../src/foc_pipeline.c",line 202,column 5,is_stmt,isa 0
 $C$DW$169	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$169, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$169, DW_AT_name("debug_isr_scope_low")
@@ -2494,7 +2494,7 @@ $C$DW$170	.dwtag  DW_TAG_TI_branch
 
         LRETR     ; [CPU_ALU] 
         ; return occurs ; [] 
-	.dwattr $C$DW$145, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+	.dwattr $C$DW$145, DW_AT_TI_end_file("../src/foc_pipeline.c")
 	.dwattr $C$DW$145, DW_AT_TI_end_line(0xcb)
 	.dwattr $C$DW$145, DW_AT_TI_end_column(0x01)
 	.dwendentry
@@ -2620,39 +2620,39 @@ $C$DW$T$48	.dwtag  DW_TAG_enumeration_type
 $C$DW$175	.dwtag  DW_TAG_enumerator
 	.dwattr $C$DW$175, DW_AT_name("FOC_IDLE")
 	.dwattr $C$DW$175, DW_AT_const_value(0x00)
-	.dwattr $C$DW$175, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_machine.h")
+	.dwattr $C$DW$175, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machine.h")
 	.dwattr $C$DW$175, DW_AT_decl_line(0x0e)
 	.dwattr $C$DW$175, DW_AT_decl_column(0x05)
 
 $C$DW$176	.dwtag  DW_TAG_enumerator
 	.dwattr $C$DW$176, DW_AT_name("FOC_CALIBRATE_OFFSETS")
 	.dwattr $C$DW$176, DW_AT_const_value(0x01)
-	.dwattr $C$DW$176, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_machine.h")
+	.dwattr $C$DW$176, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machine.h")
 	.dwattr $C$DW$176, DW_AT_decl_line(0x0f)
 	.dwattr $C$DW$176, DW_AT_decl_column(0x05)
 
 $C$DW$177	.dwtag  DW_TAG_enumerator
 	.dwattr $C$DW$177, DW_AT_name("FOC_ALIGN_ROTOR")
 	.dwattr $C$DW$177, DW_AT_const_value(0x02)
-	.dwattr $C$DW$177, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_machine.h")
+	.dwattr $C$DW$177, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machine.h")
 	.dwattr $C$DW$177, DW_AT_decl_line(0x10)
 	.dwattr $C$DW$177, DW_AT_decl_column(0x05)
 
 $C$DW$178	.dwtag  DW_TAG_enumerator
 	.dwattr $C$DW$178, DW_AT_name("FOC_RUN")
 	.dwattr $C$DW$178, DW_AT_const_value(0x03)
-	.dwattr $C$DW$178, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_machine.h")
+	.dwattr $C$DW$178, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machine.h")
 	.dwattr $C$DW$178, DW_AT_decl_line(0x11)
 	.dwattr $C$DW$178, DW_AT_decl_column(0x05)
 
 $C$DW$179	.dwtag  DW_TAG_enumerator
 	.dwattr $C$DW$179, DW_AT_name("FOC_FAULT")
 	.dwattr $C$DW$179, DW_AT_const_value(0x04)
-	.dwattr $C$DW$179, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_machine.h")
+	.dwattr $C$DW$179, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machine.h")
 	.dwattr $C$DW$179, DW_AT_decl_line(0x12)
 	.dwattr $C$DW$179, DW_AT_decl_column(0x05)
 
-	.dwattr $C$DW$T$48, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_machine.h")
+	.dwattr $C$DW$T$48, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machine.h")
 	.dwattr $C$DW$T$48, DW_AT_decl_line(0x0d)
 	.dwattr $C$DW$T$48, DW_AT_decl_column(0x0e)
 	.dwendtag $C$DW$T$48
@@ -2665,7 +2665,7 @@ $C$DW$TU$49	.dwtag  DW_TAG_type_unit
 $C$DW$T$49	.dwtag  DW_TAG_typedef
 	.dwattr $C$DW$T$49, DW_AT_name("FOC_State_t")
 	.dwattr $C$DW$T$49, DW_AT_type(*$C$DW$T$48)
-	.dwattr $C$DW$T$49, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_machine.h")
+	.dwattr $C$DW$T$49, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machine.h")
 	.dwattr $C$DW$T$49, DW_AT_decl_line(0x13)
 	.dwattr $C$DW$T$49, DW_AT_decl_column(0x03)
 
@@ -2681,7 +2681,7 @@ $C$DW$180	.dwtag  DW_TAG_member
 	.dwattr $C$DW$180, DW_AT_type(*$C$DW$T$20)
 	.dwattr $C$DW$180, DW_AT_name("Iabc")
 	.dwattr $C$DW$180, DW_AT_accessibility(DW_ACCESS_public)
-	.dwattr $C$DW$180, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$180, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$180, DW_AT_decl_line(0x1b)
 	.dwattr $C$DW$180, DW_AT_decl_column(0x11)
 
@@ -2690,7 +2690,7 @@ $C$DW$181	.dwtag  DW_TAG_member
 	.dwattr $C$DW$181, DW_AT_name("Iab")
 	.dwattr $C$DW$181, DW_AT_data_member_location[DW_OP_plus_uconst 0x6]
 	.dwattr $C$DW$181, DW_AT_accessibility(DW_ACCESS_public)
-	.dwattr $C$DW$181, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$181, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$181, DW_AT_decl_line(0x1c)
 	.dwattr $C$DW$181, DW_AT_decl_column(0x11)
 
@@ -2699,7 +2699,7 @@ $C$DW$182	.dwtag  DW_TAG_member
 	.dwattr $C$DW$182, DW_AT_name("Idq")
 	.dwattr $C$DW$182, DW_AT_data_member_location[DW_OP_plus_uconst 0xa]
 	.dwattr $C$DW$182, DW_AT_accessibility(DW_ACCESS_public)
-	.dwattr $C$DW$182, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$182, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$182, DW_AT_decl_line(0x1d)
 	.dwattr $C$DW$182, DW_AT_decl_column(0x11)
 
@@ -2708,7 +2708,7 @@ $C$DW$183	.dwtag  DW_TAG_member
 	.dwattr $C$DW$183, DW_AT_name("Vdq")
 	.dwattr $C$DW$183, DW_AT_data_member_location[DW_OP_plus_uconst 0xe]
 	.dwattr $C$DW$183, DW_AT_accessibility(DW_ACCESS_public)
-	.dwattr $C$DW$183, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$183, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$183, DW_AT_decl_line(0x1e)
 	.dwattr $C$DW$183, DW_AT_decl_column(0x11)
 
@@ -2717,7 +2717,7 @@ $C$DW$184	.dwtag  DW_TAG_member
 	.dwattr $C$DW$184, DW_AT_name("Vab")
 	.dwattr $C$DW$184, DW_AT_data_member_location[DW_OP_plus_uconst 0x12]
 	.dwattr $C$DW$184, DW_AT_accessibility(DW_ACCESS_public)
-	.dwattr $C$DW$184, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$184, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$184, DW_AT_decl_line(0x1f)
 	.dwattr $C$DW$184, DW_AT_decl_column(0x11)
 
@@ -2726,7 +2726,7 @@ $C$DW$185	.dwtag  DW_TAG_member
 	.dwattr $C$DW$185, DW_AT_name("duty")
 	.dwattr $C$DW$185, DW_AT_data_member_location[DW_OP_plus_uconst 0x16]
 	.dwattr $C$DW$185, DW_AT_accessibility(DW_ACCESS_public)
-	.dwattr $C$DW$185, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$185, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$185, DW_AT_decl_line(0x20)
 	.dwattr $C$DW$185, DW_AT_decl_column(0x11)
 
@@ -2735,7 +2735,7 @@ $C$DW$186	.dwtag  DW_TAG_member
 	.dwattr $C$DW$186, DW_AT_name("theta_elec")
 	.dwattr $C$DW$186, DW_AT_data_member_location[DW_OP_plus_uconst 0x1c]
 	.dwattr $C$DW$186, DW_AT_accessibility(DW_ACCESS_public)
-	.dwattr $C$DW$186, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$186, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$186, DW_AT_decl_line(0x21)
 	.dwattr $C$DW$186, DW_AT_decl_column(0x11)
 
@@ -2744,11 +2744,11 @@ $C$DW$187	.dwtag  DW_TAG_member
 	.dwattr $C$DW$187, DW_AT_name("omega_elec")
 	.dwattr $C$DW$187, DW_AT_data_member_location[DW_OP_plus_uconst 0x1e]
 	.dwattr $C$DW$187, DW_AT_accessibility(DW_ACCESS_public)
-	.dwattr $C$DW$187, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$187, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$187, DW_AT_decl_line(0x22)
 	.dwattr $C$DW$187, DW_AT_decl_column(0x11)
 
-	.dwattr $C$DW$T$28, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$T$28, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$T$28, DW_AT_decl_line(0x1a)
 	.dwattr $C$DW$T$28, DW_AT_decl_column(0x10)
 	.dwendtag $C$DW$T$28
@@ -2761,7 +2761,7 @@ $C$DW$TU$58	.dwtag  DW_TAG_type_unit
 $C$DW$T$58	.dwtag  DW_TAG_typedef
 	.dwattr $C$DW$T$58, DW_AT_name("FOC_Signals_t")
 	.dwattr $C$DW$T$58, DW_AT_type(*$C$DW$T$28)
-	.dwattr $C$DW$T$58, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$T$58, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$T$58, DW_AT_decl_line(0x23)
 	.dwattr $C$DW$T$58, DW_AT_decl_column(0x03)
 
@@ -2808,7 +2808,7 @@ $C$DW$190	.dwtag  DW_TAG_member
 	.dwattr $C$DW$190, DW_AT_type(*$C$DW$T$27)
 	.dwattr $C$DW$190, DW_AT_name("id_ref")
 	.dwattr $C$DW$190, DW_AT_accessibility(DW_ACCESS_public)
-	.dwattr $C$DW$190, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$190, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$190, DW_AT_decl_line(0x14)
 	.dwattr $C$DW$190, DW_AT_decl_column(0x0f)
 
@@ -2817,7 +2817,7 @@ $C$DW$191	.dwtag  DW_TAG_member
 	.dwattr $C$DW$191, DW_AT_name("iq_ref")
 	.dwattr $C$DW$191, DW_AT_data_member_location[DW_OP_plus_uconst 0x2]
 	.dwattr $C$DW$191, DW_AT_accessibility(DW_ACCESS_public)
-	.dwattr $C$DW$191, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$191, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$191, DW_AT_decl_line(0x15)
 	.dwattr $C$DW$191, DW_AT_decl_column(0x0f)
 
@@ -2826,7 +2826,7 @@ $C$DW$192	.dwtag  DW_TAG_member
 	.dwattr $C$DW$192, DW_AT_name("speed_ref")
 	.dwattr $C$DW$192, DW_AT_data_member_location[DW_OP_plus_uconst 0x4]
 	.dwattr $C$DW$192, DW_AT_accessibility(DW_ACCESS_public)
-	.dwattr $C$DW$192, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$192, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$192, DW_AT_decl_line(0x16)
 	.dwattr $C$DW$192, DW_AT_decl_column(0x0f)
 
@@ -2835,11 +2835,11 @@ $C$DW$193	.dwtag  DW_TAG_member
 	.dwattr $C$DW$193, DW_AT_name("vbus")
 	.dwattr $C$DW$193, DW_AT_data_member_location[DW_OP_plus_uconst 0x6]
 	.dwattr $C$DW$193, DW_AT_accessibility(DW_ACCESS_public)
-	.dwattr $C$DW$193, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$193, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$193, DW_AT_decl_line(0x17)
 	.dwattr $C$DW$193, DW_AT_decl_column(0x0f)
 
-	.dwattr $C$DW$T$29, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$T$29, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$T$29, DW_AT_decl_line(0x13)
 	.dwattr $C$DW$T$29, DW_AT_decl_column(0x10)
 	.dwendtag $C$DW$T$29
@@ -2852,7 +2852,7 @@ $C$DW$TU$65	.dwtag  DW_TAG_type_unit
 $C$DW$T$65	.dwtag  DW_TAG_typedef
 	.dwattr $C$DW$T$65, DW_AT_name("FOC_Refs_t")
 	.dwattr $C$DW$T$65, DW_AT_type(*$C$DW$T$29)
-	.dwattr $C$DW$T$65, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$T$65, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$T$65, DW_AT_decl_line(0x18)
 	.dwattr $C$DW$T$65, DW_AT_decl_column(0x03)
 
@@ -3077,7 +3077,7 @@ $C$DW$TU$22	.dwtag  DW_TAG_type_unit
 $C$DW$T$22	.dwtag  DW_TAG_typedef
 	.dwattr $C$DW$T$22, DW_AT_name("FOC_Iab_t")
 	.dwattr $C$DW$T$22, DW_AT_type(*$C$DW$T$21)
-	.dwattr $C$DW$T$22, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$T$22, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$T$22, DW_AT_decl_line(0x0d)
 	.dwattr $C$DW$T$22, DW_AT_decl_column(0x13)
 
@@ -3089,7 +3089,7 @@ $C$DW$TU$23	.dwtag  DW_TAG_type_unit
 $C$DW$T$23	.dwtag  DW_TAG_typedef
 	.dwattr $C$DW$T$23, DW_AT_name("FOC_Idq_t")
 	.dwattr $C$DW$T$23, DW_AT_type(*$C$DW$T$21)
-	.dwattr $C$DW$T$23, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$T$23, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$T$23, DW_AT_decl_line(0x0e)
 	.dwattr $C$DW$T$23, DW_AT_decl_column(0x13)
 
@@ -3101,7 +3101,7 @@ $C$DW$TU$25	.dwtag  DW_TAG_type_unit
 $C$DW$T$25	.dwtag  DW_TAG_typedef
 	.dwattr $C$DW$T$25, DW_AT_name("FOC_Vab_t")
 	.dwattr $C$DW$T$25, DW_AT_type(*$C$DW$T$21)
-	.dwattr $C$DW$T$25, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$T$25, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$T$25, DW_AT_decl_line(0x0f)
 	.dwattr $C$DW$T$25, DW_AT_decl_column(0x13)
 
@@ -3113,7 +3113,7 @@ $C$DW$TU$24	.dwtag  DW_TAG_type_unit
 $C$DW$T$24	.dwtag  DW_TAG_typedef
 	.dwattr $C$DW$T$24, DW_AT_name("FOC_Vdq_t")
 	.dwattr $C$DW$T$24, DW_AT_type(*$C$DW$T$21)
-	.dwattr $C$DW$T$24, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$T$24, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$T$24, DW_AT_decl_line(0x10)
 	.dwattr $C$DW$T$24, DW_AT_decl_column(0x13)
 
@@ -3210,7 +3210,7 @@ $C$DW$TU$26	.dwtag  DW_TAG_type_unit
 $C$DW$T$26	.dwtag  DW_TAG_typedef
 	.dwattr $C$DW$T$26, DW_AT_name("FOC_Duty_t")
 	.dwattr $C$DW$T$26, DW_AT_type(*$C$DW$T$19)
-	.dwattr $C$DW$T$26, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$T$26, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$T$26, DW_AT_decl_line(0x11)
 	.dwattr $C$DW$T$26, DW_AT_decl_column(0x13)
 
@@ -3242,7 +3242,7 @@ $C$DW$TU$20	.dwtag  DW_TAG_type_unit
 $C$DW$T$20	.dwtag  DW_TAG_typedef
 	.dwattr $C$DW$T$20, DW_AT_name("FOC_Iabc_t")
 	.dwattr $C$DW$T$20, DW_AT_type(*$C$DW$T$19)
-	.dwattr $C$DW$T$20, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h")
+	.dwattr $C$DW$T$20, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
 	.dwattr $C$DW$T$20, DW_AT_decl_line(0x0c)
 	.dwattr $C$DW$T$20, DW_AT_decl_column(0x13)
 

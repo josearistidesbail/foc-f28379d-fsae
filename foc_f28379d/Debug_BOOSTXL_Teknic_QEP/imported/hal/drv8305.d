@@ -69,6 +69,7 @@ imported/hal/drv8305.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_suppo
 imported/hal/drv8305.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/F2837xD_Upp_defines.h
 imported/hal/drv8305.obj: /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/F2837xD_defaultisr.h
 imported/hal/drv8305.obj: ../imported/hal/drv8305.h
+imported/hal/drv8305.obj: /home/jose/workspace_ccstheia/foc_f28379d/imported/config/board_config.h
 
 ../imported/hal/drv8305.c:
 
@@ -207,4 +208,6 @@ imported/hal/drv8305.obj: ../imported/hal/drv8305.h
 /home/jose/ti/c2000/C2000Ware_26_01_00_00/device_support/f2837xd/common/include/F2837xD_defaultisr.h:
 
 ../imported/hal/drv8305.h:
+
+/home/jose/workspace_ccstheia/foc_f28379d/imported/config/board_config.h:
 

@@ -1,17 +1,17 @@
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    1
 
        1              ;***************************************************************
        2              ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
-       3              ;* Date/Time created: Sat May 30 15:57:51 2026                 *
+       3              ;* Date/Time created: Sat May 30 20:22:51 2026                 *
        4              ;***************************************************************
        5                      .compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --
        6                      .asg    XAR2, FP
        7              
        8              $C$DW$CU        .dwtag  DW_TAG_compile_unit
-       9                      .dwattr $C$DW$CU, DW_AT_name("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+       9                      .dwattr $C$DW$CU, DW_AT_name("../src/foc_pipeline.c")
       10                      .dwattr $C$DW$CU, DW_AT_producer("TI TMS320C2000 G3 C/C++ Codegen Unix v25.11.0.LTS Copyright (c) 199
       11                      .dwattr $C$DW$CU, DW_AT_TI_version(0x01)
       12                      .dwattr $C$DW$CU, DW_AT_comp_dir("/home/jose/workspace_ccstheia/foc_f28379d/Debug_BOOSTXL_Teknic_QEP"
@@ -21,7 +21,7 @@ foc_pipeline.asm                                                     PAGE    1
       16                      .dwattr $C$DW$1, DW_AT_linkage_name("debug_isr_scope_high")
       17                      .dwattr $C$DW$1, DW_AT_declaration
       18                      .dwattr $C$DW$1, DW_AT_external
-      19                      .dwattr $C$DW$1, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/debug_hooks.h"
+      19                      .dwattr $C$DW$1, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/debug_hooks.h")
       20                      .dwattr $C$DW$1, DW_AT_decl_line(0x19)
       21                      .dwattr $C$DW$1, DW_AT_decl_column(0x0d)
       22                      .dwendtag $C$DW$1
@@ -32,7 +32,7 @@ foc_pipeline.asm                                                     PAGE    1
       27                      .dwattr $C$DW$2, DW_AT_linkage_name("adc_read_phase_currents")
       28                      .dwattr $C$DW$2, DW_AT_declaration
       29                      .dwattr $C$DW$2, DW_AT_external
-      30                      .dwattr $C$DW$2, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/adc_iface.h")
+      30                      .dwattr $C$DW$2, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/adc_iface.h")
       31                      .dwattr $C$DW$2, DW_AT_decl_line(0x11)
       32                      .dwattr $C$DW$2, DW_AT_decl_column(0x0e)
       33              $C$DW$3 .dwtag  DW_TAG_formal_parameter
@@ -46,7 +46,7 @@ foc_pipeline.asm                                                     PAGE    1
       41                      .dwattr $C$DW$4, DW_AT_linkage_name("pwm_set_duty")
       42                      .dwattr $C$DW$4, DW_AT_declaration
       43                      .dwattr $C$DW$4, DW_AT_external
-      44                      .dwattr $C$DW$4, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/pwm_iface.h")
+      44                      .dwattr $C$DW$4, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/pwm_iface.h")
       45                      .dwattr $C$DW$4, DW_AT_decl_line(0x0c)
       46                      .dwattr $C$DW$4, DW_AT_decl_column(0x0d)
       47              $C$DW$5 .dwtag  DW_TAG_formal_parameter
@@ -58,14 +58,14 @@ foc_pipeline.asm                                                     PAGE    1
       53              $C$DW$6 .dwtag  DW_TAG_subprogram
       54                      .dwattr $C$DW$6, DW_AT_name("pwm_force_safe")
       55                      .dwattr $C$DW$6, DW_AT_linkage_name("pwm_force_safe")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    2
 
       56                      .dwattr $C$DW$6, DW_AT_declaration
       57                      .dwattr $C$DW$6, DW_AT_external
-      58                      .dwattr $C$DW$6, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/pwm_iface.h")
+      58                      .dwattr $C$DW$6, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/pwm_iface.h")
       59                      .dwattr $C$DW$6, DW_AT_decl_line(0x0b)
       60                      .dwattr $C$DW$6, DW_AT_decl_column(0x0d)
       61                      .dwendtag $C$DW$6
@@ -76,7 +76,7 @@ foc_pipeline.asm                                                     PAGE    2
       66                      .dwattr $C$DW$7, DW_AT_linkage_name("safety_check_isr")
       67                      .dwattr $C$DW$7, DW_AT_declaration
       68                      .dwattr $C$DW$7, DW_AT_external
-      69                      .dwattr $C$DW$7, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/safety.h")
+      69                      .dwattr $C$DW$7, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/safety.h")
       70                      .dwattr $C$DW$7, DW_AT_decl_line(0x19)
       71                      .dwattr $C$DW$7, DW_AT_decl_column(0x11)
       72                      .dwendtag $C$DW$7
@@ -87,7 +87,7 @@ foc_pipeline.asm                                                     PAGE    2
       77                      .dwattr $C$DW$8, DW_AT_linkage_name("debug_datalog_push")
       78                      .dwattr $C$DW$8, DW_AT_declaration
       79                      .dwattr $C$DW$8, DW_AT_external
-      80                      .dwattr $C$DW$8, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/debug_hooks.h"
+      80                      .dwattr $C$DW$8, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/debug_hooks.h")
       81                      .dwattr $C$DW$8, DW_AT_decl_line(0x12)
       82                      .dwattr $C$DW$8, DW_AT_decl_column(0x0d)
       83              $C$DW$9 .dwtag  DW_TAG_formal_parameter
@@ -104,7 +104,7 @@ foc_pipeline.asm                                                     PAGE    2
       94                      .dwattr $C$DW$11, DW_AT_linkage_name("debug_isr_scope_low")
       95                      .dwattr $C$DW$11, DW_AT_declaration
       96                      .dwattr $C$DW$11, DW_AT_external
-      97                      .dwattr $C$DW$11, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/debug_hooks.h
+      97                      .dwattr $C$DW$11, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/debug_hooks.h")
       98                      .dwattr $C$DW$11, DW_AT_decl_line(0x1a)
       99                      .dwattr $C$DW$11, DW_AT_decl_column(0x0d)
      100                      .dwendtag $C$DW$11
@@ -115,10 +115,10 @@ foc_pipeline.asm                                                     PAGE    2
      105                      .dwattr $C$DW$12, DW_AT_linkage_name("sm_tick_1khz")
      106                      .dwattr $C$DW$12, DW_AT_declaration
      107                      .dwattr $C$DW$12, DW_AT_external
-     108                      .dwattr $C$DW$12, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_mac
+     108                      .dwattr $C$DW$12, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machin
      109                      .dwattr $C$DW$12, DW_AT_decl_line(0x19)
      110                      .dwattr $C$DW$12, DW_AT_decl_column(0x15)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    3
@@ -131,7 +131,7 @@ foc_pipeline.asm                                                     PAGE    3
      116                      .dwattr $C$DW$13, DW_AT_type(*$C$DW$T$182)
      117                      .dwattr $C$DW$13, DW_AT_declaration
      118                      .dwattr $C$DW$13, DW_AT_external
-     119                      .dwattr $C$DW$13, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_in
+     119                      .dwattr $C$DW$13, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inlin
      120                      .dwattr $C$DW$13, DW_AT_decl_line(0x17)
      121                      .dwattr $C$DW$13, DW_AT_decl_column(0x1a)
      122              
@@ -141,7 +141,7 @@ foc_pipeline.asm                                                     PAGE    3
      126                      .dwattr $C$DW$14, DW_AT_type(*$C$DW$T$180)
      127                      .dwattr $C$DW$14, DW_AT_declaration
      128                      .dwattr $C$DW$14, DW_AT_external
-     129                      .dwattr $C$DW$14, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_in
+     129                      .dwattr $C$DW$14, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inlin
      130                      .dwattr $C$DW$14, DW_AT_decl_line(0x18)
      131                      .dwattr $C$DW$14, DW_AT_decl_column(0x1a)
      132              
@@ -151,7 +151,7 @@ foc_pipeline.asm                                                     PAGE    3
      136                      .dwattr $C$DW$15, DW_AT_linkage_name("s_decim")
      137                      .dwattr $C$DW$15, DW_AT_type(*$C$DW$T$41)
      138                      .dwattr $C$DW$15, DW_AT_location[DW_OP_addr ||s_decim||]
-     139                      .dwattr $C$DW$15, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     139                      .dwattr $C$DW$15, DW_AT_decl_file("../src/foc_pipeline.c")
      140                      .dwattr $C$DW$15, DW_AT_decl_line(0x2b)
      141                      .dwattr $C$DW$15, DW_AT_decl_column(0x1f)
      142              
@@ -162,7 +162,7 @@ foc_pipeline.asm                                                     PAGE    3
      147                      .dwattr $C$DW$16, DW_AT_type(*$C$DW$T$49)
      148                      .dwattr $C$DW$16, DW_AT_declaration
      149                      .dwattr $C$DW$16, DW_AT_external
-     150                      .dwattr $C$DW$16, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_mac
+     150                      .dwattr $C$DW$16, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machin
      151                      .dwattr $C$DW$16, DW_AT_decl_line(0x16)
      152                      .dwattr $C$DW$16, DW_AT_decl_column(0x15)
      153                      .dwendtag $C$DW$16
@@ -173,12 +173,12 @@ foc_pipeline.asm                                                     PAGE    3
      158                      .dwattr $C$DW$17, DW_AT_type(*$C$DW$T$207)
      159                      .dwattr $C$DW$17, DW_AT_declaration
      160                      .dwattr $C$DW$17, DW_AT_external
-     161                      .dwattr $C$DW$17, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_in
+     161                      .dwattr $C$DW$17, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inlin
      162                      .dwattr $C$DW$17, DW_AT_decl_line(0x10)
      163                      .dwattr $C$DW$17, DW_AT_decl_column(0x1b)
      164              
      165              $C$DW$18        .dwtag  DW_TAG_variable
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    4
@@ -188,7 +188,7 @@ foc_pipeline.asm                                                     PAGE    4
      168                      .dwattr $C$DW$18, DW_AT_type(*$C$DW$T$207)
      169                      .dwattr $C$DW$18, DW_AT_declaration
      170                      .dwattr $C$DW$18, DW_AT_external
-     171                      .dwattr $C$DW$18, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_in
+     171                      .dwattr $C$DW$18, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inlin
      172                      .dwattr $C$DW$18, DW_AT_decl_line(0x11)
      173                      .dwattr $C$DW$18, DW_AT_decl_column(0x1b)
      174              
@@ -198,7 +198,7 @@ foc_pipeline.asm                                                     PAGE    4
      178                      .dwattr $C$DW$19, DW_AT_type(*$C$DW$T$189)
      179                      .dwattr $C$DW$19, DW_AT_declaration
      180                      .dwattr $C$DW$19, DW_AT_external
-     181                      .dwattr $C$DW$19, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_in
+     181                      .dwattr $C$DW$19, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inlin
      182                      .dwattr $C$DW$19, DW_AT_decl_line(0x12)
      183                      .dwattr $C$DW$19, DW_AT_decl_column(0x1b)
      184              
@@ -208,7 +208,7 @@ foc_pipeline.asm                                                     PAGE    4
      188                      .dwattr $C$DW$20, DW_AT_type(*$C$DW$T$193)
      189                      .dwattr $C$DW$20, DW_AT_declaration
      190                      .dwattr $C$DW$20, DW_AT_external
-     191                      .dwattr $C$DW$20, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_in
+     191                      .dwattr $C$DW$20, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inlin
      192                      .dwattr $C$DW$20, DW_AT_decl_line(0x15)
      193                      .dwattr $C$DW$20, DW_AT_decl_column(0x1a)
      194              
@@ -218,7 +218,7 @@ foc_pipeline.asm                                                     PAGE    4
      198                      .dwattr $C$DW$21, DW_AT_type(*$C$DW$T$193)
      199                      .dwattr $C$DW$21, DW_AT_declaration
      200                      .dwattr $C$DW$21, DW_AT_external
-     201                      .dwattr $C$DW$21, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_in
+     201                      .dwattr $C$DW$21, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inlin
      202                      .dwattr $C$DW$21, DW_AT_decl_line(0x16)
      203                      .dwattr $C$DW$21, DW_AT_decl_column(0x1a)
      204              
@@ -228,7 +228,7 @@ foc_pipeline.asm                                                     PAGE    4
      208                      .dwattr $C$DW$22, DW_AT_linkage_name("s_clarke")
      209                      .dwattr $C$DW$22, DW_AT_type(*$C$DW$T$73)
      210                      .dwattr $C$DW$22, DW_AT_location[DW_OP_addr ||s_clarke||]
-     211                      .dwattr $C$DW$22, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     211                      .dwattr $C$DW$22, DW_AT_decl_file("../src/foc_pipeline.c")
      212                      .dwattr $C$DW$22, DW_AT_decl_line(0x20)
      213                      .dwattr $C$DW$22, DW_AT_decl_column(0x16)
      214              
@@ -238,12 +238,12 @@ foc_pipeline.asm                                                     PAGE    4
      218                      .dwattr $C$DW$23, DW_AT_linkage_name("s_park")
      219                      .dwattr $C$DW$23, DW_AT_type(*$C$DW$T$126)
      220                      .dwattr $C$DW$23, DW_AT_location[DW_OP_addr ||s_park||]
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    5
 
-     221                      .dwattr $C$DW$23, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     221                      .dwattr $C$DW$23, DW_AT_decl_file("../src/foc_pipeline.c")
      222                      .dwattr $C$DW$23, DW_AT_decl_line(0x21)
      223                      .dwattr $C$DW$23, DW_AT_decl_column(0x16)
      224              
@@ -253,7 +253,7 @@ foc_pipeline.asm                                                     PAGE    5
      228                      .dwattr $C$DW$24, DW_AT_linkage_name("s_ipark")
      229                      .dwattr $C$DW$24, DW_AT_type(*$C$DW$T$83)
      230                      .dwattr $C$DW$24, DW_AT_location[DW_OP_addr ||s_ipark||]
-     231                      .dwattr $C$DW$24, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     231                      .dwattr $C$DW$24, DW_AT_decl_file("../src/foc_pipeline.c")
      232                      .dwattr $C$DW$24, DW_AT_decl_line(0x22)
      233                      .dwattr $C$DW$24, DW_AT_decl_column(0x16)
      234              
@@ -263,7 +263,7 @@ foc_pipeline.asm                                                     PAGE    5
      238                      .dwattr $C$DW$25, DW_AT_linkage_name("s_svgen")
      239                      .dwattr $C$DW$25, DW_AT_type(*$C$DW$T$46)
      240                      .dwattr $C$DW$25, DW_AT_location[DW_OP_addr ||s_svgen||]
-     241                      .dwattr $C$DW$25, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     241                      .dwattr $C$DW$25, DW_AT_decl_file("../src/foc_pipeline.c")
      242                      .dwattr $C$DW$25, DW_AT_decl_line(0x23)
      243                      .dwattr $C$DW$25, DW_AT_decl_column(0x16)
      244              
@@ -273,7 +273,7 @@ foc_pipeline.asm                                                     PAGE    5
      248                      .dwattr $C$DW$26, DW_AT_linkage_name("s_pi_id")
      249                      .dwattr $C$DW$26, DW_AT_type(*$C$DW$T$134)
      250                      .dwattr $C$DW$26, DW_AT_location[DW_OP_addr ||s_pi_id||]
-     251                      .dwattr $C$DW$26, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     251                      .dwattr $C$DW$26, DW_AT_decl_file("../src/foc_pipeline.c")
      252                      .dwattr $C$DW$26, DW_AT_decl_line(0x24)
      253                      .dwattr $C$DW$26, DW_AT_decl_column(0x16)
      254              
@@ -283,7 +283,7 @@ foc_pipeline.asm                                                     PAGE    5
      258                      .dwattr $C$DW$27, DW_AT_linkage_name("s_pi_iq")
      259                      .dwattr $C$DW$27, DW_AT_type(*$C$DW$T$134)
      260                      .dwattr $C$DW$27, DW_AT_location[DW_OP_addr ||s_pi_iq||]
-     261                      .dwattr $C$DW$27, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     261                      .dwattr $C$DW$27, DW_AT_decl_file("../src/foc_pipeline.c")
      262                      .dwattr $C$DW$27, DW_AT_decl_line(0x25)
      263                      .dwattr $C$DW$27, DW_AT_decl_column(0x16)
      264              
@@ -293,12 +293,12 @@ foc_pipeline.asm                                                     PAGE    5
      268                      .dwattr $C$DW$28, DW_AT_linkage_name("s_pi_spd")
      269                      .dwattr $C$DW$28, DW_AT_type(*$C$DW$T$134)
      270                      .dwattr $C$DW$28, DW_AT_location[DW_OP_addr ||s_pi_spd||]
-     271                      .dwattr $C$DW$28, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     271                      .dwattr $C$DW$28, DW_AT_decl_file("../src/foc_pipeline.c")
      272                      .dwattr $C$DW$28, DW_AT_decl_line(0x26)
      273                      .dwattr $C$DW$28, DW_AT_decl_column(0x16)
      274              
      275                      .global ||g_dbg_align_id_meas||
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    6
@@ -310,7 +310,7 @@ foc_pipeline.asm                                                     PAGE    6
      280                      .dwattr $C$DW$29, DW_AT_location[DW_OP_addr ||g_dbg_align_id_meas||]
      281                      .dwattr $C$DW$29, DW_AT_type(*$C$DW$T$207)
      282                      .dwattr $C$DW$29, DW_AT_external
-     283                      .dwattr $C$DW$29, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     283                      .dwattr $C$DW$29, DW_AT_decl_file("../src/foc_pipeline.c")
      284                      .dwattr $C$DW$29, DW_AT_decl_line(0x33)
      285                      .dwattr $C$DW$29, DW_AT_decl_column(0x14)
      286              
@@ -322,7 +322,7 @@ foc_pipeline.asm                                                     PAGE    6
      292                      .dwattr $C$DW$30, DW_AT_location[DW_OP_addr ||g_dbg_align_iq_meas||]
      293                      .dwattr $C$DW$30, DW_AT_type(*$C$DW$T$207)
      294                      .dwattr $C$DW$30, DW_AT_external
-     295                      .dwattr $C$DW$30, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     295                      .dwattr $C$DW$30, DW_AT_decl_file("../src/foc_pipeline.c")
      296                      .dwattr $C$DW$30, DW_AT_decl_line(0x34)
      297                      .dwattr $C$DW$30, DW_AT_decl_column(0x14)
      298              
@@ -334,7 +334,7 @@ foc_pipeline.asm                                                     PAGE    6
      304                      .dwattr $C$DW$31, DW_AT_location[DW_OP_addr ||g_dbg_align_vd||]
      305                      .dwattr $C$DW$31, DW_AT_type(*$C$DW$T$207)
      306                      .dwattr $C$DW$31, DW_AT_external
-     307                      .dwattr $C$DW$31, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     307                      .dwattr $C$DW$31, DW_AT_decl_file("../src/foc_pipeline.c")
      308                      .dwattr $C$DW$31, DW_AT_decl_line(0x35)
      309                      .dwattr $C$DW$31, DW_AT_decl_column(0x14)
      310              
@@ -346,7 +346,7 @@ foc_pipeline.asm                                                     PAGE    6
      316                      .dwattr $C$DW$32, DW_AT_location[DW_OP_addr ||g_dbg_openloop_vd||]
      317                      .dwattr $C$DW$32, DW_AT_type(*$C$DW$T$207)
      318                      .dwattr $C$DW$32, DW_AT_external
-     319                      .dwattr $C$DW$32, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     319                      .dwattr $C$DW$32, DW_AT_decl_file("../src/foc_pipeline.c")
      320                      .dwattr $C$DW$32, DW_AT_decl_line(0x3e)
      321                      .dwattr $C$DW$32, DW_AT_decl_column(0x14)
      322              
@@ -358,12 +358,12 @@ foc_pipeline.asm                                                     PAGE    6
      328                      .dwattr $C$DW$33, DW_AT_location[DW_OP_addr ||g_dbg_openloop_vq||]
      329                      .dwattr $C$DW$33, DW_AT_type(*$C$DW$T$207)
      330                      .dwattr $C$DW$33, DW_AT_external
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    7
 
-     331                      .dwattr $C$DW$33, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     331                      .dwattr $C$DW$33, DW_AT_decl_file("../src/foc_pipeline.c")
      332                      .dwattr $C$DW$33, DW_AT_decl_line(0x43)
      333                      .dwattr $C$DW$33, DW_AT_decl_column(0x14)
      334              
@@ -418,7 +418,7 @@ foc_pipeline.asm                                                     PAGE    7
      383              
      384              $C$DW$42        .dwtag  DW_TAG_formal_parameter
      385                      .dwattr $C$DW$42, DW_AT_type(*$C$DW$T$76)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    8
@@ -469,7 +469,7 @@ foc_pipeline.asm                                                     PAGE    8
      429                      .dwattr $C$DW$49, DW_AT_type(*$C$DW$T$16)
      430                      .dwattr $C$DW$49, DW_AT_declaration
      431                      .dwattr $C$DW$49, DW_AT_external
-     432                      .dwattr $C$DW$49, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/adc_iface.h")
+     432                      .dwattr $C$DW$49, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/adc_iface.h")
      433                      .dwattr $C$DW$49, DW_AT_decl_line(0x12)
      434                      .dwattr $C$DW$49, DW_AT_decl_column(0x0e)
      435                      .dwendtag $C$DW$49
@@ -478,14 +478,14 @@ foc_pipeline.asm                                                     PAGE    8
      438              $C$DW$50        .dwtag  DW_TAG_variable
      439                      .dwattr $C$DW$50, DW_AT_name("s_park_obj")
      440                      .dwattr $C$DW$50, DW_AT_linkage_name("s_park_obj")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    9
 
      441                      .dwattr $C$DW$50, DW_AT_type(*$C$DW$T$124)
      442                      .dwattr $C$DW$50, DW_AT_location[DW_OP_addr ||s_park_obj||]
-     443                      .dwattr $C$DW$50, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     443                      .dwattr $C$DW$50, DW_AT_decl_file("../src/foc_pipeline.c")
      444                      .dwattr $C$DW$50, DW_AT_decl_line(0x19)
      445                      .dwattr $C$DW$50, DW_AT_decl_column(0x16)
      446              
@@ -495,7 +495,7 @@ foc_pipeline.asm                                                     PAGE    9
      450                      .dwattr $C$DW$51, DW_AT_linkage_name("s_ipark_obj")
      451                      .dwattr $C$DW$51, DW_AT_type(*$C$DW$T$81)
      452                      .dwattr $C$DW$51, DW_AT_location[DW_OP_addr ||s_ipark_obj||]
-     453                      .dwattr $C$DW$51, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     453                      .dwattr $C$DW$51, DW_AT_decl_file("../src/foc_pipeline.c")
      454                      .dwattr $C$DW$51, DW_AT_decl_line(0x1a)
      455                      .dwattr $C$DW$51, DW_AT_decl_column(0x16)
      456              
@@ -505,7 +505,7 @@ foc_pipeline.asm                                                     PAGE    9
      460                      .dwattr $C$DW$52, DW_AT_linkage_name("s_svgen_obj")
      461                      .dwattr $C$DW$52, DW_AT_type(*$C$DW$T$140)
      462                      .dwattr $C$DW$52, DW_AT_location[DW_OP_addr ||s_svgen_obj||]
-     463                      .dwattr $C$DW$52, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     463                      .dwattr $C$DW$52, DW_AT_decl_file("../src/foc_pipeline.c")
      464                      .dwattr $C$DW$52, DW_AT_decl_line(0x1b)
      465                      .dwattr $C$DW$52, DW_AT_decl_column(0x16)
      466              
@@ -515,7 +515,7 @@ foc_pipeline.asm                                                     PAGE    9
      470                      .dwattr $C$DW$53, DW_AT_linkage_name("s_clarke_obj")
      471                      .dwattr $C$DW$53, DW_AT_type(*$C$DW$T$71)
      472                      .dwattr $C$DW$53, DW_AT_location[DW_OP_addr ||s_clarke_obj||]
-     473                      .dwattr $C$DW$53, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     473                      .dwattr $C$DW$53, DW_AT_decl_file("../src/foc_pipeline.c")
      474                      .dwattr $C$DW$53, DW_AT_decl_line(0x18)
      475                      .dwattr $C$DW$53, DW_AT_decl_column(0x16)
      476              
@@ -525,7 +525,7 @@ foc_pipeline.asm                                                     PAGE    9
      480                      .dwattr $C$DW$54, DW_AT_linkage_name("s_refs")
      481                      .dwattr $C$DW$54, DW_AT_type(*$C$DW$T$66)
      482                      .dwattr $C$DW$54, DW_AT_location[DW_OP_addr ||s_refs||]
-     483                      .dwattr $C$DW$54, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     483                      .dwattr $C$DW$54, DW_AT_decl_file("../src/foc_pipeline.c")
      484                      .dwattr $C$DW$54, DW_AT_decl_line(0x29)
      485                      .dwattr $C$DW$54, DW_AT_decl_column(0x1f)
      486              
@@ -535,10 +535,10 @@ foc_pipeline.asm                                                     PAGE    9
      490                      .dwattr $C$DW$55, DW_AT_linkage_name("s_pi_id_obj")
      491                      .dwattr $C$DW$55, DW_AT_type(*$C$DW$T$132)
      492                      .dwattr $C$DW$55, DW_AT_location[DW_OP_addr ||s_pi_id_obj||]
-     493                      .dwattr $C$DW$55, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     493                      .dwattr $C$DW$55, DW_AT_decl_file("../src/foc_pipeline.c")
      494                      .dwattr $C$DW$55, DW_AT_decl_line(0x1c)
      495                      .dwattr $C$DW$55, DW_AT_decl_column(0x16)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   10
@@ -550,7 +550,7 @@ foc_pipeline.asm                                                     PAGE   10
      500                      .dwattr $C$DW$56, DW_AT_linkage_name("s_pi_iq_obj")
      501                      .dwattr $C$DW$56, DW_AT_type(*$C$DW$T$132)
      502                      .dwattr $C$DW$56, DW_AT_location[DW_OP_addr ||s_pi_iq_obj||]
-     503                      .dwattr $C$DW$56, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     503                      .dwattr $C$DW$56, DW_AT_decl_file("../src/foc_pipeline.c")
      504                      .dwattr $C$DW$56, DW_AT_decl_line(0x1d)
      505                      .dwattr $C$DW$56, DW_AT_decl_column(0x16)
      506              
@@ -560,7 +560,7 @@ foc_pipeline.asm                                                     PAGE   10
      510                      .dwattr $C$DW$57, DW_AT_linkage_name("s_pi_spd_obj")
      511                      .dwattr $C$DW$57, DW_AT_type(*$C$DW$T$132)
      512                      .dwattr $C$DW$57, DW_AT_location[DW_OP_addr ||s_pi_spd_obj||]
-     513                      .dwattr $C$DW$57, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     513                      .dwattr $C$DW$57, DW_AT_decl_file("../src/foc_pipeline.c")
      514                      .dwattr $C$DW$57, DW_AT_decl_line(0x1e)
      515                      .dwattr $C$DW$57, DW_AT_decl_column(0x16)
      516              
@@ -570,13 +570,13 @@ foc_pipeline.asm                                                     PAGE   10
      520                      .dwattr $C$DW$58, DW_AT_linkage_name("s_sig")
      521                      .dwattr $C$DW$58, DW_AT_type(*$C$DW$T$62)
      522                      .dwattr $C$DW$58, DW_AT_location[DW_OP_addr ||s_sig||]
-     523                      .dwattr $C$DW$58, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     523                      .dwattr $C$DW$58, DW_AT_decl_file("../src/foc_pipeline.c")
      524                      .dwattr $C$DW$58, DW_AT_decl_line(0x2a)
      525                      .dwattr $C$DW$58, DW_AT_decl_column(0x1f)
      526              
      527                      .sblock ".bss"
-     528              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI262hRVEmt /tmp/T
-     529              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI262ACVURg 
+     528              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI6XpwoVJmG /tmp/T
+     529              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI6Xp3rhpQS 
      530 00000000               .sect   ".text:PI_run"
      531                      .clink
      532              
@@ -598,7 +598,7 @@ foc_pipeline.asm                                                     PAGE   10
      548                      .dwattr $C$DW$60, DW_AT_location[DW_OP_reg12]
      549              
      550              $C$DW$61        .dwtag  DW_TAG_formal_parameter
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   11
@@ -658,7 +658,7 @@ foc_pipeline.asm                                                     PAGE   11
      603                      .dwattr $C$DW$68, DW_AT_type(*$C$DW$T$27)
      604                      .dwattr $C$DW$68, DW_AT_location[DW_OP_regx 0x3f]
      605              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   12
@@ -718,7 +718,7 @@ foc_pipeline.asm                                                     PAGE   12
      652                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
      653 0000000f E2AF          MOV32     R2H,*+XAR4[4]         ; [CPU_FPU] |661| 
          00000010 02E4 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   13
@@ -778,7 +778,7 @@ foc_pipeline.asm                                                     PAGE   13
      695                      .dwendentry
      696                      .dwendtag $C$DW$59
      697              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   14
@@ -793,11 +793,11 @@ foc_pipeline.asm                                                     PAGE   14
      705                      .dwattr $C$DW$73, DW_AT_high_pc(0x00)
      706                      .dwattr $C$DW$73, DW_AT_linkage_name("foc_speed_loop_tick")
      707                      .dwattr $C$DW$73, DW_AT_external
-     708                      .dwattr $C$DW$73, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     708                      .dwattr $C$DW$73, DW_AT_decl_file("../src/foc_pipeline.c")
      709                      .dwattr $C$DW$73, DW_AT_decl_line(0xd0)
      710                      .dwattr $C$DW$73, DW_AT_decl_column(0x06)
      711                      .dwattr $C$DW$73, DW_AT_TI_max_frame_size(-8)
-     712                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 209,column 1,is_s
+     712                      .dwpsn  file "../src/foc_pipeline.c",line 209,column 1,is_stmt,address ||foc_speed_loop_tick||,isa 0
      713              
      714                      .dwfde $C$DW$CIE, ||foc_speed_loop_tick||
      715              
@@ -838,7 +838,7 @@ foc_pipeline.asm                                                     PAGE   14
      750              
      751              ;* R4    assigned to outMax
      752              $C$DW$78        .dwtag  DW_TAG_variable
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   15
@@ -866,7 +866,7 @@ foc_pipeline.asm                                                     PAGE   15
          00000004 05BD 
      772                      .dwcfi  save_reg_to_mem, 63, 6
      773                      .dwcfi  cfa_offset, -8
-     774                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 210,column 5,is_s
+     774                      .dwpsn  file "../src/foc_pipeline.c",line 210,column 5,is_stmt,isa 0
      775              $C$DW$80        .dwtag  DW_TAG_TI_branch
      776                      .dwattr $C$DW$80, DW_AT_low_pc(0x00)
      777                      .dwattr $C$DW$80, DW_AT_name("sm_get_state")
@@ -880,7 +880,7 @@ foc_pipeline.asm                                                     PAGE   15
      784                      ; branchcc occurs ; [] |210| 
      785 00000009 761F!         MOVW      DP,#||s_sig||+30      ; [CPU_ARAU] 
          0000000a 0000 
-     786                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 213,column 26,is_
+     786                      .dwpsn  file "../src/foc_pipeline.c",line 213,column 26,is_stmt,isa 0
      787 0000000b E2AF!         MOV32     R0H,@||s_sig||+30     ; [CPU_FPU] |213| 
          0000000c 001E 
      788 0000000d 761F!         MOVW      DP,#||s_pi_spd||      ; [CPU_ARAU] 
@@ -898,7 +898,7 @@ foc_pipeline.asm                                                     PAGE   15
      797 00000015 D10E          MOVB      XAR1,#14              ; [CPU_ALU] |223| 
      798                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
      799 00000016 E720          SUBF32    R2H,R4H,R5H           ; [CPU_FPU] |655| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   16
@@ -928,7 +928,7 @@ foc_pipeline.asm                                                     PAGE   16
      815              
      816                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
      817 00000024 D008          MOVB      XAR0,#8               ; [CPU_ALU] |311| 
-     818                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 217,column 9,is_s
+     818                      .dwpsn  file "../src/foc_pipeline.c",line 217,column 9,is_stmt,isa 0
      819 00000025 E592          ZERO      R2H                   ; [CPU_FPU] |217| 
      820                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
      821 00000026 E2AF          MOV32     R4H,*+XAR4[AR1]       ; [CPU_FPU] |223| 
@@ -938,7 +938,7 @@ foc_pipeline.asm                                                     PAGE   16
          00000029 0008 
      824 0000002a E697          MINF32    R0H,R4H               ; [CPU_FPU] |661| 
          0000002b 0020 
-     825                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 216,column 9,is_s
+     825                      .dwpsn  file "../src/foc_pipeline.c",line 216,column 9,is_stmt,isa 0
      826              
      827 0000002c E010          ADDF32    R3H,R3H,R0H           ; [CPU_FPU] |216| 
          0000002d DD94 
@@ -947,23 +947,23 @@ foc_pipeline.asm                                                     PAGE   16
      830                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
      831 0000002e E203          MOV32     *+XAR4[4],R0H         ; [CPU_FPU] |507| 
          0000002f 00E4 
-     832                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 216,column 9,is_s
+     832                      .dwpsn  file "../src/foc_pipeline.c",line 216,column 9,is_stmt,isa 0
      833 00000030 E696          MAXF32    R3H,R1H               ; [CPU_FPU] |216| 
          00000031 000B 
      834 00000032 E697          MINF32    R3H,R4H               ; [CPU_FPU] |216| 
          00000033 0023 
      835 00000034 E203!         MOV32     @||s_refs||+2,R3H     ; [CPU_FPU] |216| 
          00000035 0302 
-     836                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 217,column 9,is_s
+     836                      .dwpsn  file "../src/foc_pipeline.c",line 217,column 9,is_stmt,isa 0
      837 00000036 E203!         MOV32     @||s_refs||,R2H       ; [CPU_FPU] |217| 
          00000037 0200 
      838 00000038       ||$C$L1||:    
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   17
 
-     839                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 220,column 5,is_s
+     839                      .dwpsn  file "../src/foc_pipeline.c",line 220,column 5,is_stmt,isa 0
      840              $C$DW$81        .dwtag  DW_TAG_TI_branch
      841                      .dwattr $C$DW$81, DW_AT_low_pc(0x00)
      842                      .dwattr $C$DW$81, DW_AT_name("sm_tick_1khz")
@@ -989,7 +989,7 @@ foc_pipeline.asm                                                     PAGE   17
      859              
      860 0000003f 0006          LRETR     ; [CPU_ALU] 
      861                      ; return occurs ; [] 
-     862                      .dwattr $C$DW$73, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c"
+     862                      .dwattr $C$DW$73, DW_AT_TI_end_file("../src/foc_pipeline.c")
      863                      .dwattr $C$DW$73, DW_AT_TI_end_line(0xdd)
      864                      .dwattr $C$DW$73, DW_AT_TI_end_column(0x01)
      865                      .dwendentry
@@ -1005,11 +1005,11 @@ foc_pipeline.asm                                                     PAGE   17
      875                      .dwattr $C$DW$83, DW_AT_high_pc(0x00)
      876                      .dwattr $C$DW$83, DW_AT_linkage_name("foc_init")
      877                      .dwattr $C$DW$83, DW_AT_external
-     878                      .dwattr $C$DW$83, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+     878                      .dwattr $C$DW$83, DW_AT_decl_file("../src/foc_pipeline.c")
      879                      .dwattr $C$DW$83, DW_AT_decl_line(0x45)
      880                      .dwattr $C$DW$83, DW_AT_decl_column(0x06)
      881                      .dwattr $C$DW$83, DW_AT_TI_max_frame_size(-4)
-     882                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 70,column 1,is_st
+     882                      .dwpsn  file "../src/foc_pipeline.c",line 70,column 1,is_stmt,address ||foc_init||,isa 0
      883              
      884                      .dwfde $C$DW$CIE, ||foc_init||
      885              
@@ -1018,7 +1018,7 @@ foc_pipeline.asm                                                     PAGE   17
      888              ;*                                                             *
      889              ;* FUNCTION ENVIRONMENT                                        *
      890              ;*                                                             *
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   18
@@ -1042,7 +1042,7 @@ foc_pipeline.asm                                                     PAGE   18
      907 00000000 B2BD          MOVL      *SP++,XAR1            ; [CPU_ALU] 
      908                      .dwcfi  save_reg_to_mem, 7, 2
      909                      .dwcfi  cfa_offset, -4
-     910                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 71,column 5,is_st
+     910                      .dwpsn  file "../src/foc_pipeline.c",line 71,column 5,is_stmt,isa 0
      911 00000001 0206          MOVB      ACC,#6                ; [CPU_ALU] |71| 
      912 00000002 8F00!         MOVL      XAR4,#||s_clarke_obj|| ; [CPU_ARAU] |71| 
          00000003 0000 
@@ -1056,11 +1056,11 @@ foc_pipeline.asm                                                     PAGE   18
      919                      ; call occurs [#||CLARKE_init||] ; [] |71| 
      920 00000006 761F!         MOVW      DP,#||s_clarke||      ; [CPU_ARAU] 
          00000007 0000 
-     921                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 72,column 5,is_st
+     921                      .dwpsn  file "../src/foc_pipeline.c",line 72,column 5,is_stmt,isa 0
      922 00000008 0204          MOVB      ACC,#4                ; [CPU_ALU] |72| 
-     923                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 71,column 5,is_st
+     923                      .dwpsn  file "../src/foc_pipeline.c",line 71,column 5,is_stmt,isa 0
      924 00000009 A800!         MOVL      @||s_clarke||,XAR4    ; [CPU_ALU] |71| 
-     925                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 72,column 5,is_st
+     925                      .dwpsn  file "../src/foc_pipeline.c",line 72,column 5,is_stmt,isa 0
      926 0000000a 8F00!         MOVL      XAR4,#||s_park_obj||  ; [CPU_ARAU] |72| 
          0000000b 0000 
      927              $C$DW$85        .dwtag  DW_TAG_TI_branch
@@ -1073,12 +1073,12 @@ foc_pipeline.asm                                                     PAGE   18
      933                      ; call occurs [#||PARK_init||] ; [] |72| 
      934 0000000e 761F!         MOVW      DP,#||s_park||        ; [CPU_ARAU] 
          0000000f 0000 
-     935                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 73,column 5,is_st
+     935                      .dwpsn  file "../src/foc_pipeline.c",line 73,column 5,is_stmt,isa 0
      936 00000010 0204          MOVB      ACC,#4                ; [CPU_ALU] |73| 
-     937                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 72,column 5,is_st
+     937                      .dwpsn  file "../src/foc_pipeline.c",line 72,column 5,is_stmt,isa 0
      938 00000011 A800!         MOVL      @||s_park||,XAR4      ; [CPU_ALU] |72| 
-     939                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 73,column 5,is_st
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+     939                      .dwpsn  file "../src/foc_pipeline.c",line 73,column 5,is_stmt,isa 0
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   19
@@ -1095,11 +1095,11 @@ foc_pipeline.asm                                                     PAGE   19
      947                      ; call occurs [#||IPARK_init||] ; [] |73| 
      948 00000016 761F!         MOVW      DP,#||s_ipark||       ; [CPU_ARAU] 
          00000017 0000 
-     949                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 74,column 5,is_st
+     949                      .dwpsn  file "../src/foc_pipeline.c",line 74,column 5,is_stmt,isa 0
      950 00000018 0204          MOVB      ACC,#4                ; [CPU_ALU] |74| 
-     951                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 73,column 5,is_st
+     951                      .dwpsn  file "../src/foc_pipeline.c",line 73,column 5,is_stmt,isa 0
      952 00000019 A800!         MOVL      @||s_ipark||,XAR4     ; [CPU_ALU] |73| 
-     953                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 74,column 5,is_st
+     953                      .dwpsn  file "../src/foc_pipeline.c",line 74,column 5,is_stmt,isa 0
      954 0000001a 8F00!         MOVL      XAR4,#||s_svgen_obj|| ; [CPU_ARAU] |74| 
          0000001b 0000 
      955              $C$DW$87        .dwtag  DW_TAG_TI_branch
@@ -1112,11 +1112,11 @@ foc_pipeline.asm                                                     PAGE   19
      961                      ; call occurs [#||SVGEN_init||] ; [] |74| 
      962 0000001e 761F!         MOVW      DP,#||s_svgen||       ; [CPU_ARAU] 
          0000001f 0000 
-     963                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 75,column 5,is_st
+     963                      .dwpsn  file "../src/foc_pipeline.c",line 75,column 5,is_stmt,isa 0
      964 00000020 0210          MOVB      ACC,#16               ; [CPU_ALU] |75| 
-     965                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 74,column 5,is_st
+     965                      .dwpsn  file "../src/foc_pipeline.c",line 74,column 5,is_stmt,isa 0
      966 00000021 A800!         MOVL      @||s_svgen||,XAR4     ; [CPU_ALU] |74| 
-     967                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 75,column 5,is_st
+     967                      .dwpsn  file "../src/foc_pipeline.c",line 75,column 5,is_stmt,isa 0
      968 00000022 8F00!         MOVL      XAR4,#||s_pi_id_obj|| ; [CPU_ARAU] |75| 
          00000023 0000 
      969              $C$DW$88        .dwtag  DW_TAG_TI_branch
@@ -1129,16 +1129,16 @@ foc_pipeline.asm                                                     PAGE   19
      975                      ; call occurs [#||PI_init||] ; [] |75| 
      976 00000026 761F!         MOVW      DP,#||s_pi_id||       ; [CPU_ARAU] 
          00000027 0000 
-     977                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 76,column 5,is_st
+     977                      .dwpsn  file "../src/foc_pipeline.c",line 76,column 5,is_stmt,isa 0
      978 00000028 0210          MOVB      ACC,#16               ; [CPU_ALU] |76| 
-     979                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 75,column 5,is_st
+     979                      .dwpsn  file "../src/foc_pipeline.c",line 75,column 5,is_stmt,isa 0
      980 00000029 A800!         MOVL      @||s_pi_id||,XAR4     ; [CPU_ALU] |75| 
-     981                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 76,column 5,is_st
+     981                      .dwpsn  file "../src/foc_pipeline.c",line 76,column 5,is_stmt,isa 0
      982 0000002a 8F00!         MOVL      XAR4,#||s_pi_iq_obj|| ; [CPU_ARAU] |76| 
          0000002b 0000 
      983              $C$DW$89        .dwtag  DW_TAG_TI_branch
      984                      .dwattr $C$DW$89, DW_AT_low_pc(0x00)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   20
@@ -1151,11 +1151,11 @@ foc_pipeline.asm                                                     PAGE   20
      989                      ; call occurs [#||PI_init||] ; [] |76| 
      990 0000002e 761F!         MOVW      DP,#||s_pi_iq||       ; [CPU_ARAU] 
          0000002f 0000 
-     991                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 77,column 5,is_st
+     991                      .dwpsn  file "../src/foc_pipeline.c",line 77,column 5,is_stmt,isa 0
      992 00000030 0210          MOVB      ACC,#16               ; [CPU_ALU] |77| 
-     993                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 76,column 5,is_st
+     993                      .dwpsn  file "../src/foc_pipeline.c",line 76,column 5,is_stmt,isa 0
      994 00000031 A800!         MOVL      @||s_pi_iq||,XAR4     ; [CPU_ALU] |76| 
-     995                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 77,column 5,is_st
+     995                      .dwpsn  file "../src/foc_pipeline.c",line 77,column 5,is_stmt,isa 0
      996 00000032 8F00!         MOVL      XAR4,#||s_pi_spd_obj|| ; [CPU_ARAU] |77| 
          00000033 0000 
      997              $C$DW$90        .dwtag  DW_TAG_TI_branch
@@ -1198,7 +1198,7 @@ foc_pipeline.asm                                                     PAGE   20
     1026 00000048 56BF          MOVB      *+XAR5[4],#3,UNC      ; [CPU_ALU] |250| 
          00000049 03E5 
     1027                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/clarke/i
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   21
@@ -1214,7 +1214,7 @@ foc_pipeline.asm                                                     PAGE   21
     1033                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
     1034 00000050 E801          MOVIZ     R2H,#14929            ; [CPU_FPU] |356| 
          00000051 D28A 
-    1035                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 97,column 5,is_st
+    1035                      .dwpsn  file "../src/foc_pipeline.c",line 97,column 5,is_stmt,isa 0
     1036 00000052 E802          MOVIZ     R3H,#16960            ; [CPU_FPU] |97| 
          00000053 1203 
     1037                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
@@ -1227,9 +1227,9 @@ foc_pipeline.asm                                                     PAGE   21
     1043                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
     1044 00000058 E801          MOVIZ     R0H,#16076            ; [CPU_FPU] |355| 
          00000059 F660 
-    1045                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 98,column 5,is_st
+    1045                      .dwpsn  file "../src/foc_pipeline.c",line 98,column 5,is_stmt,isa 0
     1046 0000005a 2B00!         MOV       @||s_decim||,#0       ; [CPU_ALU] |98| 
-    1047                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 77,column 5,is_st
+    1047                      .dwpsn  file "../src/foc_pipeline.c",line 77,column 5,is_stmt,isa 0
     1048 0000005b A800!         MOVL      @||s_pi_spd||,XAR4    ; [CPU_ALU] |77| 
     1049                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
     1050 0000005c E809          MOVXI     R1H,#13107            ; [CPU_FPU] |422| 
@@ -1258,7 +1258,7 @@ foc_pipeline.asm                                                     PAGE   21
          00000070 00C4 
     1064                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
     1065 00000071 E806          MOVIZ     R0H,#49382            ; [CPU_FPU] |422| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   22
@@ -1304,27 +1304,27 @@ foc_pipeline.asm                                                     PAGE   22
     1089                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
     1090 00000093 E203          MOV32     *+XAR5[2],R0H         ; [CPU_FPU] |356| 
          00000094 00D5 
-    1091                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 94,column 5,is_st
+    1091                      .dwpsn  file "../src/foc_pipeline.c",line 94,column 5,is_stmt,isa 0
     1092 00000095 E590          ZERO      R0H                   ; [CPU_FPU] |94| 
     1093 00000096 E203!         MOV32     @||s_refs||,R0H       ; [CPU_FPU] |94| 
          00000097 0000 
-    1094                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 95,column 5,is_st
+    1094                      .dwpsn  file "../src/foc_pipeline.c",line 95,column 5,is_stmt,isa 0
     1095 00000098 E203!         MOV32     @||s_refs||+2,R0H     ; [CPU_FPU] |95| 
          00000099 0002 
-    1096                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 96,column 5,is_st
+    1096                      .dwpsn  file "../src/foc_pipeline.c",line 96,column 5,is_stmt,isa 0
     1097 0000009a E203!         MOV32     @||s_refs||+4,R0H     ; [CPU_FPU] |96| 
          0000009b 0004 
     1098                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
     1099 0000009c E801          MOVIZ     R0H,#15733            ; [CPU_FPU] |356| 
          0000009d EBA8 
     1100 0000009e E80E          MOVXI     R0H,#49807            ; [CPU_FPU] |356| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   23
 
          0000009f 1478 
-    1101                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 97,column 5,is_st
+    1101                      .dwpsn  file "../src/foc_pipeline.c",line 97,column 5,is_stmt,isa 0
     1102 000000a0 E203!         MOV32     @||s_refs||+6,R3H     ; [CPU_FPU] |97| 
          000000a1 0306 
     1103                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
@@ -1350,7 +1350,7 @@ foc_pipeline.asm                                                     PAGE   23
     1118              
     1119 000000ad 0006          LRETR     ; [CPU_ALU] 
     1120                      ; return occurs ; [] 
-    1121                      .dwattr $C$DW$83, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c"
+    1121                      .dwattr $C$DW$83, DW_AT_TI_end_file("../src/foc_pipeline.c")
     1122                      .dwattr $C$DW$83, DW_AT_TI_end_line(0x63)
     1123                      .dwattr $C$DW$83, DW_AT_TI_end_column(0x01)
     1124                      .dwendentry
@@ -1367,18 +1367,18 @@ foc_pipeline.asm                                                     PAGE   23
     1135                      .dwattr $C$DW$92, DW_AT_linkage_name("foc_get_signals")
     1136                      .dwattr $C$DW$92, DW_AT_external
     1137                      .dwattr $C$DW$92, DW_AT_type(*$C$DW$T$60)
-    1138                      .dwattr $C$DW$92, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+    1138                      .dwattr $C$DW$92, DW_AT_decl_file("../src/foc_pipeline.c")
     1139                      .dwattr $C$DW$92, DW_AT_decl_line(0x66)
     1140                      .dwattr $C$DW$92, DW_AT_decl_column(0x17)
     1141                      .dwattr $C$DW$92, DW_AT_TI_max_frame_size(-2)
-    1142                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 102,column 45,is_
+    1142                      .dwpsn  file "../src/foc_pipeline.c",line 102,column 45,is_stmt,address ||foc_get_signals||,isa 0
     1143              
     1144                      .dwfde $C$DW$CIE, ||foc_get_signals||
     1145              
     1146              ;***************************************************************
     1147              ;* FNAME: foc_get_signals               FR SIZE:   0           *
     1148              ;*                                                             *
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   24
@@ -1392,7 +1392,7 @@ foc_pipeline.asm                                                     PAGE   24
     1155 00000000       ||foc_get_signals||:
     1156                      .dwcfi  cfa_offset, -2
     1157                      .dwcfi  save_reg_to_mem, 26, 0
-    1158                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 102,column 47,is_
+    1158                      .dwpsn  file "../src/foc_pipeline.c",line 102,column 47,is_stmt,isa 0
     1159 00000000 8F00!         MOVL      XAR4,#||s_sig||       ; [CPU_ARAU] |102| 
          00000001 0000 
     1160              $C$DW$93        .dwtag  DW_TAG_TI_branch
@@ -1401,7 +1401,7 @@ foc_pipeline.asm                                                     PAGE   24
     1163              
     1164 00000002 0006          LRETR     ; [CPU_ALU] 
     1165                      ; return occurs ; [] 
-    1166                      .dwattr $C$DW$92, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c"
+    1166                      .dwattr $C$DW$92, DW_AT_TI_end_file("../src/foc_pipeline.c")
     1167                      .dwattr $C$DW$92, DW_AT_TI_end_line(0x66)
     1168                      .dwattr $C$DW$92, DW_AT_TI_end_column(0x55)
     1169                      .dwendentry
@@ -1418,11 +1418,11 @@ foc_pipeline.asm                                                     PAGE   24
     1180                      .dwattr $C$DW$94, DW_AT_linkage_name("foc_get_refs")
     1181                      .dwattr $C$DW$94, DW_AT_external
     1182                      .dwattr $C$DW$94, DW_AT_type(*$C$DW$T$67)
-    1183                      .dwattr $C$DW$94, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+    1183                      .dwattr $C$DW$94, DW_AT_decl_file("../src/foc_pipeline.c")
     1184                      .dwattr $C$DW$94, DW_AT_decl_line(0x65)
     1185                      .dwattr $C$DW$94, DW_AT_decl_column(0x0e)
     1186                      .dwattr $C$DW$94, DW_AT_TI_max_frame_size(-2)
-    1187                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 101,column 33,is_
+    1187                      .dwpsn  file "../src/foc_pipeline.c",line 101,column 33,is_stmt,address ||foc_get_refs||,isa 0
     1188              
     1189                      .dwfde $C$DW$CIE, ||foc_get_refs||
     1190              
@@ -1438,12 +1438,12 @@ foc_pipeline.asm                                                     PAGE   24
     1200 00000000       ||foc_get_refs||:
     1201                      .dwcfi  cfa_offset, -2
     1202                      .dwcfi  save_reg_to_mem, 26, 0
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   25
 
-    1203                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 101,column 35,is_
+    1203                      .dwpsn  file "../src/foc_pipeline.c",line 101,column 35,is_stmt,isa 0
     1204 00000000 8F00!         MOVL      XAR4,#||s_refs||      ; [CPU_ARAU] |101| 
          00000001 0000 
     1205              $C$DW$95        .dwtag  DW_TAG_TI_branch
@@ -1452,7 +1452,7 @@ foc_pipeline.asm                                                     PAGE   25
     1208              
     1209 00000002 0006          LRETR     ; [CPU_ALU] 
     1210                      ; return occurs ; [] 
-    1211                      .dwattr $C$DW$94, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c"
+    1211                      .dwattr $C$DW$94, DW_AT_TI_end_file("../src/foc_pipeline.c")
     1212                      .dwattr $C$DW$94, DW_AT_TI_end_line(0x65)
     1213                      .dwattr $C$DW$94, DW_AT_TI_end_column(0x41)
     1214                      .dwendentry
@@ -1498,7 +1498,7 @@ foc_pipeline.asm                                                     PAGE   25
     1254              ;*                            0 Parameter,  0 Auto,  2 SOE     *
     1255              ;***************************************************************
     1256              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   26
@@ -1558,7 +1558,7 @@ foc_pipeline.asm                                                     PAGE   26
     1306                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/clarke/i
     1307 00000009 6113          B         ||$C$L2||,EQ          ; [CPU_ALU] |147| 
     1308                      ; branchcc occurs ; [] |147| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   27
@@ -1618,7 +1618,7 @@ foc_pipeline.asm                                                     PAGE   27
     1344 00000033 7700          NOP       ; [CPU_ALU] 
     1345 00000034       ||$C$L3||:    
     1346 00000034 E700          MPYF32    R0H,R0H,R1H           ; [CPU_FPU] |154| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   28
@@ -1678,7 +1678,7 @@ foc_pipeline.asm                                                     PAGE   28
     1396              ;***************************************************************
     1397              ;* FNAME: PARK_run                      FR SIZE:   4           *
     1398              ;*                                                             *
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   29
@@ -1738,7 +1738,7 @@ foc_pipeline.asm                                                     PAGE   29
          00000001 04BD 
     1451                      .dwcfi  save_reg_to_mem, 59, 2
     1452                      .dwcfi  cfa_offset, -4
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   30
@@ -1798,7 +1798,7 @@ foc_pipeline.asm                                                     PAGE   30
     1491              
     1492 0000001f 0006          LRETR     ; [CPU_ALU] 
     1493                      ; return occurs ; [] 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   31
@@ -1858,7 +1858,7 @@ foc_pipeline.asm                                                     PAGE   31
     1546              
     1547              ;* AR5   assigned to pInVec
     1548              $C$DW$123       .dwtag  DW_TAG_variable
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   32
@@ -1918,7 +1918,7 @@ foc_pipeline.asm                                                     PAGE   32
          00000009 01C5 
     1597                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/ipark/in
     1598              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   33
@@ -1978,7 +1978,7 @@ foc_pipeline.asm                                                     PAGE   33
     1641                      .dwattr $C$DW$130, DW_AT_high_pc(0x00)
     1642                      .dwattr $C$DW$130, DW_AT_linkage_name("SVGEN_run")
     1643                      .dwattr $C$DW$130, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/librari
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   34
@@ -2038,7 +2038,7 @@ foc_pipeline.asm                                                     PAGE   34
     1696                      .dwattr $C$DW$136, DW_AT_location[DW_OP_reg14]
     1697              
     1698              ;* R0    assigned to Vmax_pu
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   35
@@ -2098,7 +2098,7 @@ foc_pipeline.asm                                                     PAGE   35
          00000005 06BD 
     1749                      .dwcfi  save_reg_to_mem, 67, 6
     1750                      .dwcfi  cfa_offset, -8
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   36
@@ -2158,7 +2158,7 @@ foc_pipeline.asm                                                     PAGE   36
          00000029 0000 
     1789 0000002a E710          ADDF32    R6H,R2H,R0H           ; [CPU_FPU] |291| 
          0000002b 0016 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   37
@@ -2218,7 +2218,7 @@ foc_pipeline.asm                                                     PAGE   37
     1831 0000004b 6116          B         ||$C$L9||,EQ          ; [CPU_ALU] |310| 
     1832                      ; branchcc occurs ; [] |310| 
     1833                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/svgen/in
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   38
@@ -2278,7 +2278,7 @@ foc_pipeline.asm                                                     PAGE   38
     1871                      ; branch occurs ; [] 
     1872 0000006e       ||$C$L10||:    
     1873                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/svgen/in
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   39
@@ -2338,16 +2338,16 @@ foc_pipeline.asm                                                     PAGE   39
     1917                      .dwattr $C$DW$145, DW_AT_high_pc(0x00)
     1918                      .dwattr $C$DW$145, DW_AT_linkage_name("foc_current_loop_isr")
     1919                      .dwattr $C$DW$145, DW_AT_external
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   40
 
-    1920                      .dwattr $C$DW$145, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c")
+    1920                      .dwattr $C$DW$145, DW_AT_decl_file("../src/foc_pipeline.c")
     1921                      .dwattr $C$DW$145, DW_AT_decl_line(0x6c)
     1922                      .dwattr $C$DW$145, DW_AT_decl_column(0x06)
     1923                      .dwattr $C$DW$145, DW_AT_TI_max_frame_size(-10)
-    1924                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 109,column 1,is_s
+    1924                      .dwpsn  file "../src/foc_pipeline.c",line 109,column 1,is_stmt,address ||foc_current_loop_isr||,isa 0
     1925              
     1926                      .dwfde $C$DW$CIE, ||foc_current_loop_isr||
     1927              
@@ -2398,7 +2398,7 @@ foc_pipeline.asm                                                     PAGE   40
     1972              $C$DW$148       .dwtag  DW_TAG_variable
     1973                      .dwattr $C$DW$148, DW_AT_name("cnt")
     1974                      .dwattr $C$DW$148, DW_AT_type(*$C$DW$T$188)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   41
@@ -2448,7 +2448,7 @@ foc_pipeline.asm                                                     PAGE   41
     2017                      .dwcfi  cfa_offset, -8
     2018 00000003 FE02          ADDB      SP,#2                 ; [CPU_ARAU] 
     2019                      .dwcfi  cfa_offset, -10
-    2020                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 110,column 5,is_s
+    2020                      .dwpsn  file "../src/foc_pipeline.c",line 110,column 5,is_stmt,isa 0
     2021              $C$DW$154       .dwtag  DW_TAG_TI_branch
     2022                      .dwattr $C$DW$154, DW_AT_low_pc(0x00)
     2023                      .dwattr $C$DW$154, DW_AT_name("debug_isr_scope_high")
@@ -2457,8 +2457,8 @@ foc_pipeline.asm                                                     PAGE   41
     2026 00000004 7640!         LCR       #||debug_isr_scope_high|| ; [CPU_ALU] |110| 
          00000005 0000 
     2027                      ; call occurs [#||debug_isr_scope_high||] ; [] |110| 
-    2028                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 115,column 20,is_
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+    2028                      .dwpsn  file "../src/foc_pipeline.c",line 115,column 20,is_stmt,isa 0
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   42
@@ -2476,16 +2476,16 @@ foc_pipeline.asm                                                     PAGE   42
          00000009 5100 
     2038 0000000a 761F!         MOVW      DP,#||g_dbg_qep_count|| ; [CPU_ARAU] 
          0000000b 0000 
-    2039                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 115,column 20,is_
+    2039                      .dwpsn  file "../src/foc_pipeline.c",line 115,column 20,is_stmt,isa 0
     2040 0000000c 5BA9          MOVZ      AR3,AL                ; [CPU_ALU] |115| 
-    2041                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 31,colum
+    2041                      .dwpsn  file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 31,column 5
     2042 0000000d C200!         MOVL      @||g_dbg_qep_count||,XAR6 ; [CPU_ALU] |31| 
     2043 0000000e 761F!         MOVW      DP,#||g_dbg_qep_index_latch|| ; [CPU_ARAU] 
          0000000f 0000 
     2044                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/eqep.h",line 1464
     2045 00000010 BFA9          MOV32     ACC,*(0:0x5108)       ; [CPU_FPU] |1464| 
          00000011 5108 
-    2046                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 32,colum
+    2046                      .dwpsn  file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 32,column 5
     2047 00000012 1E00!         MOVL      @||g_dbg_qep_index_latch||,ACC ; [CPU_ALU] |32| 
     2048 00000013 761F!         MOVW      DP,#||g_dbg_qep_status|| ; [CPU_ARAU] 
          00000014 0000 
@@ -2493,7 +2493,7 @@ foc_pipeline.asm                                                     PAGE   42
     2050 00000015 F5A9          MOV       AL,*(0:0x511c)        ; [CPU_ALU] |814| 
          00000016 511C 
     2051 00000017 90FF          ANDB      AL,#0xff              ; [CPU_ALU] |814| 
-    2052                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 33,colum
+    2052                      .dwpsn  file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 33,column 5
     2053 00000018 9600!         MOV       @||g_dbg_qep_status||,AL ; [CPU_ALU] |33| 
     2054                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/eqep.h",line 547,
     2055 00000019 F5A8          MOV       AH,*(0:0x511c)        ; [CPU_ALU] |547| 
@@ -2512,40 +2512,40 @@ foc_pipeline.asm                                                     PAGE   42
     2066 00000021       ||$C$L14||:    
     2067 00000021 761F!         MOVW      DP,#||g_dbg_qep_direction|| ; [CPU_ARAU] 
          00000022 0000 
-    2068                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 36,colum
+    2068                      .dwpsn  file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 36,column 1
     2069 00000023 06A6          MOVL      ACC,XAR6              ; [CPU_ALU] |36| 
-    2070                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 34,colum
+    2070                      .dwpsn  file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 34,column 5
     2071 00000024 7F00!         MOV       @||g_dbg_qep_direction||,AR7 ; [CPU_ALU] |34| 
     2072 00000025 761F!         MOVW      DP,#||g_qep_mech_offset_cnt|| ; [CPU_ARAU] 
          00000026 0000 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   43
 
-    2073                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 36,colum
+    2073                      .dwpsn  file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 36,column 1
     2074 00000027 0300!         SUBL      ACC,@||g_qep_mech_offset_cnt|| ; [CPU_ALU] |36| 
     2075 00000028 1EA6          MOVL      XAR6,ACC              ; [CPU_ALU] |36| 
     2076 00000029 6304          B         ||$C$L15||,GEQ        ; [CPU_ALU] |36| 
     2077                      ; branchcc occurs ; [] |36| 
-    2078                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 39,colum
+    2078                      .dwpsn  file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 39,column 2
     2079 0000002a FF17          ADD       ACC,#125 << 7         ; [CPU_ALU] |39| 
          0000002b 007D 
     2080 0000002c 1EA6          MOVL      XAR6,ACC              ; [CPU_ALU] |39| 
     2081 0000002d       ||$C$L15||:    
-    2082                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 40,colum
+    2082                      .dwpsn  file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 40,column 5
     2083 0000002d FF20          MOV       ACC,#16000            ; [CPU_ALU] |40| 
          0000002e 3E80 
     2084 0000002f 0FA6          CMPL      ACC,XAR6              ; [CPU_ALU] |40| 
     2085 00000030 6205          B         ||$C$L16||,GT         ; [CPU_ALU] |40| 
     2086                      ; branchcc occurs ; [] |40| 
     2087 00000031 06A6          MOVL      ACC,XAR6              ; [CPU_ALU] 
-    2088                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 40,colum
+    2088                      .dwpsn  file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 40,column 3
     2089 00000032 FF07          SUB       ACC,#125 << 7         ; [CPU_ALU] |40| 
          00000033 007D 
     2090 00000034 1EA6          MOVL      XAR6,ACC              ; [CPU_ALU] |40| 
     2091 00000035       ||$C$L16||:    
-    2092                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 45,colum
+    2092                      .dwpsn  file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 45,column 5
     2093 00000035 BDA6          MOV32     R1H,XAR6              ; [CPU_FPU] |45| 
          00000036 0F16 
     2094 00000037 7700          NOP       ; [CPU_ALU] 
@@ -2577,17 +2577,17 @@ foc_pipeline.asm                                                     PAGE   43
          00000051 7EDB 
     2110 00000052 E700          MPYF32    R0H,R3H,R1H           ; [CPU_FPU] |45| 
          00000053 0058 
-    2111                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 117,column 5,is_s
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+    2111                      .dwpsn  file "../src/foc_pipeline.c",line 117,column 5,is_stmt,isa 0
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   44
 
     2112 00000054 5202          CMPB      AL,#2                 ; [CPU_ALU] |117| 
-    2113                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 45,colum
+    2113                      .dwpsn  file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 45,column 5
     2114 00000055 E203!         MOV32     @||g_qep_theta_elec||,R0H ; [CPU_FPU] |45| 
          00000056 0000 
-    2115                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 117,column 5,is_s
+    2115                      .dwpsn  file "../src/foc_pipeline.c",line 117,column 5,is_stmt,isa 0
     2116 00000057 6003          B         ||$C$L17||,NEQ        ; [CPU_ALU] |117| 
     2117                      ; branchcc occurs ; [] |117| 
     2118 00000058 E590          ZERO      R0H                   ; [CPU_FPU] |117| 
@@ -2603,18 +2603,18 @@ foc_pipeline.asm                                                     PAGE   44
     2126 0000005f D11C          MOVB      XAR1,#28              ; [CPU_ALU] |117| 
     2127 00000060 761F!         MOVW      DP,#||g_qep_omega_elec|| ; [CPU_ARAU] 
          00000061 0000 
-    2128                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 118,column 5,is_s
+    2128                      .dwpsn  file "../src/foc_pipeline.c",line 118,column 5,is_stmt,isa 0
     2129 00000062 D01E          MOVB      XAR0,#30              ; [CPU_ALU] |118| 
-    2130                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 117,column 5,is_s
+    2130                      .dwpsn  file "../src/foc_pipeline.c",line 117,column 5,is_stmt,isa 0
     2131 00000063 E203          MOV32     *+XAR4[AR1],R0H       ; [CPU_FPU] |117| 
          00000064 009C 
-    2132                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/include/sensor_qep_inline.h",line 52,colum
+    2132                      .dwpsn  file "/home/jose/workspace_ccstheia/foc_f28379d/include/sensor_qep_inline.h",line 52,column 5
     2133 00000065 E2AF!         MOV32     R0H,@||g_qep_omega_elec|| ; [CPU_FPU] |52| 
          00000066 0000 
-    2134                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 118,column 5,is_s
+    2134                      .dwpsn  file "../src/foc_pipeline.c",line 118,column 5,is_stmt,isa 0
     2135 00000067 E203          MOV32     *+XAR4[AR0],R0H       ; [CPU_FPU] |118| 
          00000068 0094 
-    2136                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 121,column 5,is_s
+    2136                      .dwpsn  file "../src/foc_pipeline.c",line 121,column 5,is_stmt,isa 0
     2137              $C$DW$156       .dwtag  DW_TAG_TI_branch
     2138                      .dwattr $C$DW$156, DW_AT_low_pc(0x00)
     2139                      .dwattr $C$DW$156, DW_AT_name("adc_read_phase_currents")
@@ -2625,7 +2625,7 @@ foc_pipeline.asm                                                     PAGE   44
     2143                      ; call occurs [#||adc_read_phase_currents||] ; [] |121| 
     2144 0000006b 761F!         MOVW      DP,#||s_clarke||      ; [CPU_ARAU] 
          0000006c 0000 
-    2145                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 122,column 5,is_s
+    2145                      .dwpsn  file "../src/foc_pipeline.c",line 122,column 5,is_stmt,isa 0
     2146 0000006d AAA9          MOVL      ACC,XAR2              ; [CPU_ALU] |122| 
     2147 0000006e 83A2          MOVL      XAR5,XAR2             ; [CPU_ALU] |122| 
     2148 0000006f 8A00!         MOVL      XAR4,@||s_clarke||    ; [CPU_ALU] |122| 
@@ -2638,7 +2638,7 @@ foc_pipeline.asm                                                     PAGE   44
     2155              
     2156 00000072 7640!         LCR       #||CLARKE_run||       ; [CPU_ALU] |122| 
          00000073 0000 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   45
@@ -2647,7 +2647,7 @@ foc_pipeline.asm                                                     PAGE   45
     2158 00000074 C5A2          MOVL      XAR7,XAR2             ; [CPU_ALU] |122| 
     2159                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/park/inc
     2160 00000075 D01C          MOVB      XAR0,#28              ; [CPU_ALU] |283| 
-    2161                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 124,column 5,is_s
+    2161                      .dwpsn  file "../src/foc_pipeline.c",line 124,column 5,is_stmt,isa 0
     2162 00000076 AAA9          MOVL      ACC,XAR2              ; [CPU_ALU] |124| 
     2163                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/park/inc
     2164 00000077 E2AF          MOV32     R0H,*+XAR7[AR0]       ; [CPU_FPU] |283| 
@@ -2665,7 +2665,7 @@ foc_pipeline.asm                                                     PAGE   45
     2172                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/park/inc
     2173 00000080 E279          COSPUF32  R0H,R0H               ; [CPU_FPU] |291| 
          00000081 0000 
-    2174                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 124,column 5,is_s
+    2174                      .dwpsn  file "../src/foc_pipeline.c",line 124,column 5,is_stmt,isa 0
     2175 00000082 090A          ADDB      ACC,#10               ; [CPU_ALU] |124| 
     2176 00000083 DD06          ADDB      XAR5,#6               ; [CPU_ALU] |124| 
     2177                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/park/inc
@@ -2674,7 +2674,7 @@ foc_pipeline.asm                                                     PAGE   45
     2179                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/park/inc
     2180 00000086 E203          MOV32     *+XAR4[2],R0H         ; [CPU_FPU] |291| 
          00000087 00D4 
-    2181                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 124,column 5,is_s
+    2181                      .dwpsn  file "../src/foc_pipeline.c",line 124,column 5,is_stmt,isa 0
     2182 00000088 1E42          MOVL      *-SP[2],ACC           ; [CPU_FPU] |124| 
     2183              $C$DW$158       .dwtag  DW_TAG_TI_branch
     2184                      .dwattr $C$DW$158, DW_AT_low_pc(0x00)
@@ -2690,15 +2690,15 @@ foc_pipeline.asm                                                     PAGE   45
     2193 0000008c D00E          MOVB      XAR0,#14              ; [CPU_ALU] |423| 
     2194                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
     2195 0000008d 92A3          MOV       AL,AR3                ; [CPU_ALU] |422| 
-    2196                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 135,column 5,is_s
+    2196                      .dwpsn  file "../src/foc_pipeline.c",line 135,column 5,is_stmt,isa 0
     2197 0000008e 5203          CMPB      AL,#3                 ; [CPU_ALU] |135| 
-    2198                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 130,column 24,is_
+    2198                      .dwpsn  file "../src/foc_pipeline.c",line 130,column 24,is_stmt,isa 0
     2199 0000008f E801          MOVIZ     R0H,#16025            ; [CPU_FPU] |130| 
          00000090 F4C8 
     2200 00000091 E2AF!         MOV32     R1H,@||s_refs||+6     ; [CPU_FPU] |130| 
          00000092 0106 
     2201 00000093 E80C          MOVXI     R0H,#39322            ; [CPU_FPU] |130| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   46
@@ -2708,7 +2708,7 @@ foc_pipeline.asm                                                     PAGE   46
          00000096 0040 
     2203                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
     2204 00000097 C400!         MOVL      XAR6,@||s_pi_id||     ; [CPU_ALU] |419| 
-    2205                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 130,column 24,is_
+    2205                      .dwpsn  file "../src/foc_pipeline.c",line 130,column 24,is_stmt,isa 0
     2206 00000098 E84F          MPYF32    R1H,R0H,#16128        ; [CPU_FPU] |130| 
          00000099 C001 
     2207                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
@@ -2733,14 +2733,14 @@ foc_pipeline.asm                                                     PAGE   46
     2221                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
     2222 000000a7 E203          MOV32     *+XAR7[AR0],R1H       ; [CPU_FPU] |423| 
          000000a8 0197 
-    2223                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 135,column 5,is_s
+    2223                      .dwpsn  file "../src/foc_pipeline.c",line 135,column 5,is_stmt,isa 0
     2224 000000a9 6103          B         ||$C$L19||,EQ         ; [CPU_ALU] |135| 
     2225                      ; branchcc occurs ; [] |135| 
     2226 000000aa 5202          CMPB      AL,#2                 ; [CPU_ALU] |135| 
     2227 000000ab 603E          B         ||$C$L22||,NEQ        ; [CPU_ALU] |135| 
     2228                      ; branchcc occurs ; [] |135| 
     2229 000000ac       ||$C$L19||:    
-    2230                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 137,column 9,is_s
+    2230                      .dwpsn  file "../src/foc_pipeline.c",line 137,column 9,is_stmt,isa 0
     2231 000000ac D00A          MOVB      XAR0,#10              ; [CPU_ALU] |137| 
     2232 000000ad 8D40!         MOVL      XAR1,#||s_sig||       ; [CPU_ARAU] |137| 
          000000ae 0000 
@@ -2758,13 +2758,13 @@ foc_pipeline.asm                                                     PAGE   46
     2242              
     2243 000000b6 7640!         LCR       #||PI_run||           ; [CPU_ALU] |137| 
          000000b7 0000 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   47
 
     2244                      ; call occurs [#||PI_run||] ; [] |137| 
-    2245                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 138,column 9,is_s
+    2245                      .dwpsn  file "../src/foc_pipeline.c",line 138,column 9,is_stmt,isa 0
     2246 000000b8 83A2          MOVL      XAR5,XAR2             ; [CPU_ALU] |138| 
     2247 000000b9 D00C          MOVB      XAR0,#12              ; [CPU_ALU] |138| 
     2248 000000ba 8AA7          MOVL      XAR4,XAR7             ; [CPU_ALU] |138| 
@@ -2781,11 +2781,11 @@ foc_pipeline.asm                                                     PAGE   47
     2257 000000c0 7640!         LCR       #||PI_run||           ; [CPU_ALU] |138| 
          000000c1 0000 
     2258                      ; call occurs [#||PI_run||] ; [] |138| 
-    2259                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 143,column 9,is_s
+    2259                      .dwpsn  file "../src/foc_pipeline.c",line 143,column 9,is_stmt,isa 0
     2260 000000c2 5202          CMPB      AL,#2                 ; [CPU_ALU] |143| 
-    2261                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 137,column 9,is_s
+    2261                      .dwpsn  file "../src/foc_pipeline.c",line 137,column 9,is_stmt,isa 0
     2262 000000c3 D90E          ADDB      XAR1,#14              ; [CPU_ALU] |137| 
-    2263                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 143,column 9,is_s
+    2263                      .dwpsn  file "../src/foc_pipeline.c",line 143,column 9,is_stmt,isa 0
     2264 000000c4 6036          B         ||$C$L23||,NEQ        ; [CPU_ALU] |143| 
     2265                      ; branchcc occurs ; [] |143| 
     2266 000000c5 E2AF!         MOV32     R0H,@||g_dbg_openloop_vd|| ; [CPU_FPU] |143| 
@@ -2804,7 +2804,7 @@ foc_pipeline.asm                                                     PAGE   47
     2277                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
     2278 000000cf E590          ZERO      R0H                   ; [CPU_FPU] |507| 
     2279 000000d0 E591          ZERO      R1H                   ; [CPU_FPU] |507| 
-    2280                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 146,column 13,is_
+    2280                      .dwpsn  file "../src/foc_pipeline.c",line 146,column 13,is_stmt,isa 0
     2281 000000d1 D00E          MOVB      XAR0,#14              ; [CPU_ALU] |146| 
     2282 000000d2 0600!         MOVL      ACC,@||g_dbg_openloop_vd|| ; [CPU_ALU] |146| 
     2283 000000d3 8F00!         MOVL      XAR4,#||s_sig||       ; [CPU_ARAU] |146| 
@@ -2814,11 +2814,11 @@ foc_pipeline.asm                                                     PAGE   47
          000000d6 00E7 
     2286 000000d7 E203          MOV32     *+XAR6[4],R1H         ; [CPU_FPU] |507| 
          000000d8 01E6 
-    2287                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 146,column 13,is_
+    2287                      .dwpsn  file "../src/foc_pipeline.c",line 146,column 13,is_stmt,isa 0
     2288 000000d9 1E94          MOVL      *+XAR4[AR0],ACC       ; [CPU_ALU] |146| 
-    2289                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 147,column 13,is_
+    2289                      .dwpsn  file "../src/foc_pipeline.c",line 147,column 13,is_stmt,isa 0
     2290 000000da D010          MOVB      XAR0,#16              ; [CPU_ALU] |147| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   48
@@ -2826,38 +2826,38 @@ foc_pipeline.asm                                                     PAGE   48
     2291 000000db 0600!         MOVL      ACC,@||g_dbg_openloop_vq|| ; [CPU_ALU] |147| 
     2292 000000dc 1E94          MOVL      *+XAR4[AR0],ACC       ; [CPU_ALU] |147| 
     2293 000000dd       ||$C$L21||:    
-    2294                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 162,column 9,is_s
+    2294                      .dwpsn  file "../src/foc_pipeline.c",line 162,column 9,is_stmt,isa 0
     2295 000000dd D00A          MOVB      XAR0,#10              ; [CPU_ALU] |162| 
     2296 000000de 8F00!         MOVL      XAR4,#||s_sig||       ; [CPU_ARAU] |162| 
          000000df 0000 
     2297 000000e0 0694          MOVL      ACC,*+XAR4[AR0]       ; [CPU_ALU] |162| 
-    2298                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 163,column 9,is_s
+    2298                      .dwpsn  file "../src/foc_pipeline.c",line 163,column 9,is_stmt,isa 0
     2299 000000e1 D00C          MOVB      XAR0,#12              ; [CPU_ALU] |163| 
-    2300                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 162,column 9,is_s
+    2300                      .dwpsn  file "../src/foc_pipeline.c",line 162,column 9,is_stmt,isa 0
     2301 000000e2 1E00!         MOVL      @||g_dbg_align_id_meas||,ACC ; [CPU_ALU] |162| 
-    2302                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 163,column 9,is_s
+    2302                      .dwpsn  file "../src/foc_pipeline.c",line 163,column 9,is_stmt,isa 0
     2303 000000e3 0694          MOVL      ACC,*+XAR4[AR0]       ; [CPU_ALU] |163| 
-    2304                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 164,column 9,is_s
+    2304                      .dwpsn  file "../src/foc_pipeline.c",line 164,column 9,is_stmt,isa 0
     2305 000000e4 D00E          MOVB      XAR0,#14              ; [CPU_ALU] |164| 
-    2306                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 163,column 9,is_s
+    2306                      .dwpsn  file "../src/foc_pipeline.c",line 163,column 9,is_stmt,isa 0
     2307 000000e5 1E00!         MOVL      @||g_dbg_align_iq_meas||,ACC ; [CPU_ALU] |163| 
-    2308                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 164,column 9,is_s
+    2308                      .dwpsn  file "../src/foc_pipeline.c",line 164,column 9,is_stmt,isa 0
     2309 000000e6 0694          MOVL      ACC,*+XAR4[AR0]       ; [CPU_ALU] |164| 
     2310 000000e7 1E00!         MOVL      @||g_dbg_align_vd||,ACC ; [CPU_ALU] |164| 
     2311 000000e8 6F12          B         ||$C$L23||,UNC        ; [CPU_ALU] |164| 
     2312                      ; branch occurs ; [] |164| 
     2313 000000e9       ||$C$L22||:    
-    2314                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 154,column 9,is_s
+    2314                      .dwpsn  file "../src/foc_pipeline.c",line 154,column 9,is_stmt,isa 0
     2315 000000e9 E593          ZERO      R3H                   ; [CPU_FPU] |154| 
     2316 000000ea 761F!         MOVW      DP,#||s_sig||+14      ; [CPU_ARAU] 
          000000eb 0000 
     2317                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
     2318 000000ec E591          ZERO      R1H                   ; [CPU_FPU] |507| 
     2319 000000ed E590          ZERO      R0H                   ; [CPU_FPU] |507| 
-    2320                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 155,column 9,is_s
+    2320                      .dwpsn  file "../src/foc_pipeline.c",line 155,column 9,is_stmt,isa 0
     2321 000000ee D010          MOVB      XAR0,#16              ; [CPU_ALU] |155| 
     2322 000000ef E592          ZERO      R2H                   ; [CPU_FPU] |155| 
-    2323                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 154,column 9,is_s
+    2323                      .dwpsn  file "../src/foc_pipeline.c",line 154,column 9,is_stmt,isa 0
     2324 000000f0 8BA2          MOVL      XAR1,XAR2             ; [CPU_ALU] |154| 
     2325 000000f1 E203!         MOV32     @||s_sig||+14,R3H     ; [CPU_FPU] |154| 
          000000f2 030E 
@@ -2866,19 +2866,19 @@ foc_pipeline.asm                                                     PAGE   48
          000000f4 01E6 
     2328 000000f5 E203          MOV32     *+XAR7[4],R0H         ; [CPU_FPU] |507| 
          000000f6 00E7 
-    2329                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 155,column 9,is_s
+    2329                      .dwpsn  file "../src/foc_pipeline.c",line 155,column 9,is_stmt,isa 0
     2330 000000f7 E203          MOV32     *+XAR2[AR0],R2H       ; [CPU_FPU] |155| 
          000000f8 0292 
-    2331                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 154,column 9,is_s
+    2331                      .dwpsn  file "../src/foc_pipeline.c",line 154,column 9,is_stmt,isa 0
     2332 000000f9 D90E          ADDB      XAR1,#14              ; [CPU_ALU] |154| 
     2333 000000fa       ||$C$L23||:    
-    2334                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 175,column 5,is_s
+    2334                      .dwpsn  file "../src/foc_pipeline.c",line 175,column 5,is_stmt,isa 0
     2335              $C$DW$161       .dwtag  DW_TAG_TI_branch
     2336                      .dwattr $C$DW$161, DW_AT_low_pc(0x00)
     2337                      .dwattr $C$DW$161, DW_AT_name("adc_read_vbus")
     2338                      .dwattr $C$DW$161, DW_AT_TI_call
     2339              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   49
@@ -2891,7 +2891,7 @@ foc_pipeline.asm                                                     PAGE   49
     2343                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/svgen/in
     2344 000000fe E801          MOVIZ     R1H,#16256            ; [CPU_FPU] |158| 
          000000ff FC01 
-    2345                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 175,column 5,is_s
+    2345                      .dwpsn  file "../src/foc_pipeline.c",line 175,column 5,is_stmt,isa 0
     2346 00000100 E203!         MOV32     @||s_refs||+6,R0H     ; [CPU_FPU] |175| 
          00000101 0006 
     2347                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/svgen/in
@@ -2903,18 +2903,18 @@ foc_pipeline.asm                                                     PAGE   49
     2351 00000107 C400!         MOVL      XAR6,@||s_svgen||     ; [CPU_ALU] |158| 
     2352                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/svgen/in
     2353 00000108 92A3          MOV       AL,AR3                ; [CPU_ALU] |161| 
-    2354                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 178,column 5,is_s
+    2354                      .dwpsn  file "../src/foc_pipeline.c",line 178,column 5,is_stmt,isa 0
     2355 00000109 5203          CMPB      AL,#3                 ; [CPU_ALU] |178| 
     2356                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/svgen/in
     2357 0000010a E203          MOV32     *+XAR6[0],R0H         ; [CPU_FPU] |161| 
          0000010b 00C6 
-    2358                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 178,column 5,is_s
+    2358                      .dwpsn  file "../src/foc_pipeline.c",line 178,column 5,is_stmt,isa 0
     2359 0000010c 610C          B         ||$C$L24||,EQ         ; [CPU_ALU] |178| 
     2360                      ; branchcc occurs ; [] |178| 
     2361 0000010d 5202          CMPB      AL,#2                 ; [CPU_ALU] |178| 
     2362 0000010e 610A          B         ||$C$L24||,EQ         ; [CPU_ALU] |178| 
     2363                      ; branchcc occurs ; [] |178| 
-    2364                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 187,column 9,is_s
+    2364                      .dwpsn  file "../src/foc_pipeline.c",line 187,column 9,is_stmt,isa 0
     2365              $C$DW$162       .dwtag  DW_TAG_TI_branch
     2366                      .dwattr $C$DW$162, DW_AT_low_pc(0x00)
     2367                      .dwattr $C$DW$162, DW_AT_name("pwm_force_safe")
@@ -2925,7 +2925,7 @@ foc_pipeline.asm                                                     PAGE   49
     2371                      ; call occurs [#||pwm_force_safe||] ; [] |187| 
     2372 00000111 761F!         MOVW      DP,#||s_decim||       ; [CPU_ARAU] 
          00000112 0000 
-    2373                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 191,column 5,is_s
+    2373                      .dwpsn  file "../src/foc_pipeline.c",line 191,column 5,is_stmt,isa 0
     2374 00000113 0A00!         INC       @||s_decim||          ; [CPU_ALU] |191| 
     2375 00000114 9200!         MOV       AL,@||s_decim||       ; [CPU_ALU] |191| 
     2376 00000115 520A          CMPB      AL,#10                ; [CPU_ALU] |191| 
@@ -2938,13 +2938,13 @@ foc_pipeline.asm                                                     PAGE   49
          00000119 0000 
     2383                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/ipark/in
     2384 0000011a E2AF!         MOV32     R0H,@||s_sig||+28     ; [CPU_FPU] |278| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   50
 
          0000011b 001C 
-    2385                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 181,column 9,is_s
+    2385                      .dwpsn  file "../src/foc_pipeline.c",line 181,column 9,is_stmt,isa 0
     2386 0000011c AAA9          MOVL      ACC,XAR2              ; [CPU_ALU] |181| 
     2387 0000011d 761F!         MOVW      DP,#||s_ipark||       ; [CPU_ARAU] 
          0000011e 0000 
@@ -2961,7 +2961,7 @@ foc_pipeline.asm                                                     PAGE   50
     2395                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/ipark/in
     2396 00000126 E279          COSPUF32  R0H,R0H               ; [CPU_FPU] |286| 
          00000127 0000 
-    2397                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 181,column 9,is_s
+    2397                      .dwpsn  file "../src/foc_pipeline.c",line 181,column 9,is_stmt,isa 0
     2398 00000128 83A1          MOVL      XAR5,XAR1             ; [CPU_ALU] |181| 
     2399 00000129 0912          ADDB      ACC,#18               ; [CPU_ALU] |181| 
     2400                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/ipark/in
@@ -2970,7 +2970,7 @@ foc_pipeline.asm                                                     PAGE   50
     2402                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/ipark/in
     2403 0000012c E203          MOV32     *+XAR4[2],R0H         ; [CPU_FPU] |286| 
          0000012d 00D4 
-    2404                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 181,column 9,is_s
+    2404                      .dwpsn  file "../src/foc_pipeline.c",line 181,column 9,is_stmt,isa 0
     2405 0000012e 1E42          MOVL      *-SP[2],ACC           ; [CPU_ALU] |181| 
     2406              $C$DW$163       .dwtag  DW_TAG_TI_branch
     2407                      .dwattr $C$DW$163, DW_AT_low_pc(0x00)
@@ -2980,7 +2980,7 @@ foc_pipeline.asm                                                     PAGE   50
     2411 0000012f 7640!         LCR       #||IPARK_run||        ; [CPU_ALU] |181| 
          00000130 0000 
     2412                      ; call occurs [#||IPARK_run||] ; [] |181| 
-    2413                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 182,column 9,is_s
+    2413                      .dwpsn  file "../src/foc_pipeline.c",line 182,column 9,is_stmt,isa 0
     2414 00000131 C5A2          MOVL      XAR7,XAR2             ; [CPU_ALU] |182| 
     2415 00000132 DF16          ADDB      XAR7,#22              ; [CPU_ALU] |182| 
     2416 00000133 8AA6          MOVL      XAR4,XAR6             ; [CPU_FPU] |182| 
@@ -2994,11 +2994,11 @@ foc_pipeline.asm                                                     PAGE   50
     2424 00000136 7640!         LCR       #||SVGEN_run||        ; [CPU_ALU] |182| 
          00000137 0000 
     2425                      ; call occurs [#||SVGEN_run||] ; [] |182| 
-    2426                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 183,column 9,is_s
+    2426                      .dwpsn  file "../src/foc_pipeline.c",line 183,column 9,is_stmt,isa 0
     2427 00000138 8AA7          MOVL      XAR4,XAR7             ; [CPU_ALU] |183| 
     2428              $C$DW$165       .dwtag  DW_TAG_TI_branch
     2429                      .dwattr $C$DW$165, DW_AT_low_pc(0x00)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   51
@@ -3011,16 +3011,16 @@ foc_pipeline.asm                                                     PAGE   51
     2434                      ; call occurs [#||pwm_set_duty||] ; [] |183| 
     2435 0000013b 761F!         MOVW      DP,#||s_decim||       ; [CPU_ARAU] 
          0000013c 0000 
-    2436                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 191,column 5,is_s
+    2436                      .dwpsn  file "../src/foc_pipeline.c",line 191,column 5,is_stmt,isa 0
     2437 0000013d 0A00!         INC       @||s_decim||          ; [CPU_ALU] |191| 
     2438 0000013e 9200!         MOV       AL,@||s_decim||       ; [CPU_ALU] |191| 
     2439 0000013f 520A          CMPB      AL,#10                ; [CPU_ALU] |191| 
     2440 00000140 6804          B         ||$C$L26||,LO         ; [CPU_ALU] |191| 
     2441                      ; branchcc occurs ; [] |191| 
     2442 00000141       ||$C$L25||:    
-    2443                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 193,column 9,is_s
+    2443                      .dwpsn  file "../src/foc_pipeline.c",line 193,column 9,is_stmt,isa 0
     2444 00000141 2B00!         MOV       @||s_decim||,#0       ; [CPU_ALU] |193| 
-    2445                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 194,column 9,is_s
+    2445                      .dwpsn  file "../src/foc_pipeline.c",line 194,column 9,is_stmt,isa 0
     2446              $C$DW$166       .dwtag  DW_TAG_TI_branch
     2447                      .dwattr $C$DW$166, DW_AT_low_pc(0x00)
     2448                      .dwattr $C$DW$166, DW_AT_name("foc_speed_loop_tick")
@@ -3030,7 +3030,7 @@ foc_pipeline.asm                                                     PAGE   51
          00000143 0000 
     2452                      ; call occurs [#||foc_speed_loop_tick||] ; [] |194| 
     2453 00000144       ||$C$L26||:    
-    2454                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 198,column 5,is_s
+    2454                      .dwpsn  file "../src/foc_pipeline.c",line 198,column 5,is_stmt,isa 0
     2455              $C$DW$167       .dwtag  DW_TAG_TI_branch
     2456                      .dwattr $C$DW$167, DW_AT_low_pc(0x00)
     2457                      .dwattr $C$DW$167, DW_AT_name("safety_check_isr")
@@ -3040,7 +3040,7 @@ foc_pipeline.asm                                                     PAGE   51
          00000145 0000 
     2461                      ; call occurs [#||safety_check_isr||] ; [] |198| 
     2462 00000146 92A3          MOV       AL,AR3                ; [CPU_ALU] |198| 
-    2463                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 201,column 5,is_s
+    2463                      .dwpsn  file "../src/foc_pipeline.c",line 201,column 5,is_stmt,isa 0
     2464 00000147 8AA2          MOVL      XAR4,XAR2             ; [CPU_ALU] |201| 
     2465              $C$DW$168       .dwtag  DW_TAG_TI_branch
     2466                      .dwattr $C$DW$168, DW_AT_low_pc(0x00)
@@ -3050,7 +3050,7 @@ foc_pipeline.asm                                                     PAGE   51
     2470 00000148 7640!         LCR       #||debug_datalog_push|| ; [CPU_ALU] |201| 
          00000149 0000 
     2471                      ; call occurs [#||debug_datalog_push||] ; [] |201| 
-    2472                      .dwpsn  file "/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c",line 202,column 5,is_s
+    2472                      .dwpsn  file "../src/foc_pipeline.c",line 202,column 5,is_stmt,isa 0
     2473              $C$DW$169       .dwtag  DW_TAG_TI_branch
     2474                      .dwattr $C$DW$169, DW_AT_low_pc(0x00)
     2475                      .dwattr $C$DW$169, DW_AT_name("debug_isr_scope_low")
@@ -3058,7 +3058,7 @@ foc_pipeline.asm                                                     PAGE   51
     2477              
     2478 0000014a 7640!         LCR       #||debug_isr_scope_low|| ; [CPU_ALU] |202| 
          0000014b 0000 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   52
@@ -3081,7 +3081,7 @@ foc_pipeline.asm                                                     PAGE   52
     2494              
     2495 00000150 0006          LRETR     ; [CPU_ALU] 
     2496                      ; return occurs ; [] 
-    2497                      .dwattr $C$DW$145, DW_AT_TI_end_file("/home/jose/Documents/source/foc-f28379d-fsae/src/foc_pipeline.c
+    2497                      .dwattr $C$DW$145, DW_AT_TI_end_file("../src/foc_pipeline.c")
     2498                      .dwattr $C$DW$145, DW_AT_TI_end_line(0xcb)
     2499                      .dwattr $C$DW$145, DW_AT_TI_end_column(0x01)
     2500                      .dwendentry
@@ -3118,7 +3118,7 @@ foc_pipeline.asm                                                     PAGE   52
     2531              ;***************************************************************
     2532                      .battr "c28xabi", Tag_File, 1, Tag_float_args(1)
     2533                      .battr "c28xabi", Tag_File, 1, Tag_double_args(0)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   53
@@ -3178,7 +3178,7 @@ foc_pipeline.asm                                                     PAGE   53
     2586                      .dwattr $C$DW$173, DW_AT_decl_column(0x03)
     2587              
     2588              $C$DW$174       .dwtag  DW_TAG_enumerator
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   54
@@ -3217,44 +3217,44 @@ foc_pipeline.asm                                                     PAGE   54
     2620              $C$DW$175       .dwtag  DW_TAG_enumerator
     2621                      .dwattr $C$DW$175, DW_AT_name("FOC_IDLE")
     2622                      .dwattr $C$DW$175, DW_AT_const_value(0x00)
-    2623                      .dwattr $C$DW$175, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_ma
+    2623                      .dwattr $C$DW$175, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machi
     2624                      .dwattr $C$DW$175, DW_AT_decl_line(0x0e)
     2625                      .dwattr $C$DW$175, DW_AT_decl_column(0x05)
     2626              
     2627              $C$DW$176       .dwtag  DW_TAG_enumerator
     2628                      .dwattr $C$DW$176, DW_AT_name("FOC_CALIBRATE_OFFSETS")
     2629                      .dwattr $C$DW$176, DW_AT_const_value(0x01)
-    2630                      .dwattr $C$DW$176, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_ma
+    2630                      .dwattr $C$DW$176, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machi
     2631                      .dwattr $C$DW$176, DW_AT_decl_line(0x0f)
     2632                      .dwattr $C$DW$176, DW_AT_decl_column(0x05)
     2633              
     2634              $C$DW$177       .dwtag  DW_TAG_enumerator
     2635                      .dwattr $C$DW$177, DW_AT_name("FOC_ALIGN_ROTOR")
     2636                      .dwattr $C$DW$177, DW_AT_const_value(0x02)
-    2637                      .dwattr $C$DW$177, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_ma
+    2637                      .dwattr $C$DW$177, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machi
     2638                      .dwattr $C$DW$177, DW_AT_decl_line(0x10)
     2639                      .dwattr $C$DW$177, DW_AT_decl_column(0x05)
     2640              
     2641              $C$DW$178       .dwtag  DW_TAG_enumerator
     2642                      .dwattr $C$DW$178, DW_AT_name("FOC_RUN")
     2643                      .dwattr $C$DW$178, DW_AT_const_value(0x03)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   55
 
-    2644                      .dwattr $C$DW$178, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_ma
+    2644                      .dwattr $C$DW$178, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machi
     2645                      .dwattr $C$DW$178, DW_AT_decl_line(0x11)
     2646                      .dwattr $C$DW$178, DW_AT_decl_column(0x05)
     2647              
     2648              $C$DW$179       .dwtag  DW_TAG_enumerator
     2649                      .dwattr $C$DW$179, DW_AT_name("FOC_FAULT")
     2650                      .dwattr $C$DW$179, DW_AT_const_value(0x04)
-    2651                      .dwattr $C$DW$179, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_ma
+    2651                      .dwattr $C$DW$179, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machi
     2652                      .dwattr $C$DW$179, DW_AT_decl_line(0x12)
     2653                      .dwattr $C$DW$179, DW_AT_decl_column(0x05)
     2654              
-    2655                      .dwattr $C$DW$T$48, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_m
+    2655                      .dwattr $C$DW$T$48, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_mach
     2656                      .dwattr $C$DW$T$48, DW_AT_decl_line(0x0d)
     2657                      .dwattr $C$DW$T$48, DW_AT_decl_column(0x0e)
     2658                      .dwendtag $C$DW$T$48
@@ -3267,7 +3267,7 @@ foc_pipeline.asm                                                     PAGE   55
     2665              $C$DW$T$49      .dwtag  DW_TAG_typedef
     2666                      .dwattr $C$DW$T$49, DW_AT_name("FOC_State_t")
     2667                      .dwattr $C$DW$T$49, DW_AT_type(*$C$DW$T$48)
-    2668                      .dwattr $C$DW$T$49, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_state_m
+    2668                      .dwattr $C$DW$T$49, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_mach
     2669                      .dwattr $C$DW$T$49, DW_AT_decl_line(0x13)
     2670                      .dwattr $C$DW$T$49, DW_AT_decl_column(0x03)
     2671              
@@ -3283,7 +3283,7 @@ foc_pipeline.asm                                                     PAGE   55
     2681                      .dwattr $C$DW$180, DW_AT_type(*$C$DW$T$20)
     2682                      .dwattr $C$DW$180, DW_AT_name("Iabc")
     2683                      .dwattr $C$DW$180, DW_AT_accessibility(DW_ACCESS_public)
-    2684                      .dwattr $C$DW$180, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h"
+    2684                      .dwattr $C$DW$180, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2685                      .dwattr $C$DW$180, DW_AT_decl_line(0x1b)
     2686                      .dwattr $C$DW$180, DW_AT_decl_column(0x11)
     2687              
@@ -3292,13 +3292,13 @@ foc_pipeline.asm                                                     PAGE   55
     2690                      .dwattr $C$DW$181, DW_AT_name("Iab")
     2691                      .dwattr $C$DW$181, DW_AT_data_member_location[DW_OP_plus_uconst 0x6]
     2692                      .dwattr $C$DW$181, DW_AT_accessibility(DW_ACCESS_public)
-    2693                      .dwattr $C$DW$181, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h"
+    2693                      .dwattr $C$DW$181, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2694                      .dwattr $C$DW$181, DW_AT_decl_line(0x1c)
     2695                      .dwattr $C$DW$181, DW_AT_decl_column(0x11)
     2696              
     2697              $C$DW$182       .dwtag  DW_TAG_member
     2698                      .dwattr $C$DW$182, DW_AT_type(*$C$DW$T$23)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   56
@@ -3306,7 +3306,7 @@ foc_pipeline.asm                                                     PAGE   56
     2699                      .dwattr $C$DW$182, DW_AT_name("Idq")
     2700                      .dwattr $C$DW$182, DW_AT_data_member_location[DW_OP_plus_uconst 0xa]
     2701                      .dwattr $C$DW$182, DW_AT_accessibility(DW_ACCESS_public)
-    2702                      .dwattr $C$DW$182, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h"
+    2702                      .dwattr $C$DW$182, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2703                      .dwattr $C$DW$182, DW_AT_decl_line(0x1d)
     2704                      .dwattr $C$DW$182, DW_AT_decl_column(0x11)
     2705              
@@ -3315,7 +3315,7 @@ foc_pipeline.asm                                                     PAGE   56
     2708                      .dwattr $C$DW$183, DW_AT_name("Vdq")
     2709                      .dwattr $C$DW$183, DW_AT_data_member_location[DW_OP_plus_uconst 0xe]
     2710                      .dwattr $C$DW$183, DW_AT_accessibility(DW_ACCESS_public)
-    2711                      .dwattr $C$DW$183, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h"
+    2711                      .dwattr $C$DW$183, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2712                      .dwattr $C$DW$183, DW_AT_decl_line(0x1e)
     2713                      .dwattr $C$DW$183, DW_AT_decl_column(0x11)
     2714              
@@ -3324,7 +3324,7 @@ foc_pipeline.asm                                                     PAGE   56
     2717                      .dwattr $C$DW$184, DW_AT_name("Vab")
     2718                      .dwattr $C$DW$184, DW_AT_data_member_location[DW_OP_plus_uconst 0x12]
     2719                      .dwattr $C$DW$184, DW_AT_accessibility(DW_ACCESS_public)
-    2720                      .dwattr $C$DW$184, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h"
+    2720                      .dwattr $C$DW$184, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2721                      .dwattr $C$DW$184, DW_AT_decl_line(0x1f)
     2722                      .dwattr $C$DW$184, DW_AT_decl_column(0x11)
     2723              
@@ -3333,7 +3333,7 @@ foc_pipeline.asm                                                     PAGE   56
     2726                      .dwattr $C$DW$185, DW_AT_name("duty")
     2727                      .dwattr $C$DW$185, DW_AT_data_member_location[DW_OP_plus_uconst 0x16]
     2728                      .dwattr $C$DW$185, DW_AT_accessibility(DW_ACCESS_public)
-    2729                      .dwattr $C$DW$185, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h"
+    2729                      .dwattr $C$DW$185, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2730                      .dwattr $C$DW$185, DW_AT_decl_line(0x20)
     2731                      .dwattr $C$DW$185, DW_AT_decl_column(0x11)
     2732              
@@ -3342,7 +3342,7 @@ foc_pipeline.asm                                                     PAGE   56
     2735                      .dwattr $C$DW$186, DW_AT_name("theta_elec")
     2736                      .dwattr $C$DW$186, DW_AT_data_member_location[DW_OP_plus_uconst 0x1c]
     2737                      .dwattr $C$DW$186, DW_AT_accessibility(DW_ACCESS_public)
-    2738                      .dwattr $C$DW$186, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h"
+    2738                      .dwattr $C$DW$186, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2739                      .dwattr $C$DW$186, DW_AT_decl_line(0x21)
     2740                      .dwattr $C$DW$186, DW_AT_decl_column(0x11)
     2741              
@@ -3351,14 +3351,14 @@ foc_pipeline.asm                                                     PAGE   56
     2744                      .dwattr $C$DW$187, DW_AT_name("omega_elec")
     2745                      .dwattr $C$DW$187, DW_AT_data_member_location[DW_OP_plus_uconst 0x1e]
     2746                      .dwattr $C$DW$187, DW_AT_accessibility(DW_ACCESS_public)
-    2747                      .dwattr $C$DW$187, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h"
+    2747                      .dwattr $C$DW$187, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2748                      .dwattr $C$DW$187, DW_AT_decl_line(0x22)
     2749                      .dwattr $C$DW$187, DW_AT_decl_column(0x11)
     2750              
-    2751                      .dwattr $C$DW$T$28, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+    2751                      .dwattr $C$DW$T$28, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2752                      .dwattr $C$DW$T$28, DW_AT_decl_line(0x1a)
     2753                      .dwattr $C$DW$T$28, DW_AT_decl_column(0x10)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   57
@@ -3373,7 +3373,7 @@ foc_pipeline.asm                                                     PAGE   57
     2761              $C$DW$T$58      .dwtag  DW_TAG_typedef
     2762                      .dwattr $C$DW$T$58, DW_AT_name("FOC_Signals_t")
     2763                      .dwattr $C$DW$T$58, DW_AT_type(*$C$DW$T$28)
-    2764                      .dwattr $C$DW$T$58, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+    2764                      .dwattr $C$DW$T$58, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2765                      .dwattr $C$DW$T$58, DW_AT_decl_line(0x23)
     2766                      .dwattr $C$DW$T$58, DW_AT_decl_column(0x03)
     2767              
@@ -3418,14 +3418,14 @@ foc_pipeline.asm                                                     PAGE   57
     2806                      .dwattr $C$DW$T$29, DW_AT_byte_size(0x08)
     2807              $C$DW$190       .dwtag  DW_TAG_member
     2808                      .dwattr $C$DW$190, DW_AT_type(*$C$DW$T$27)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   58
 
     2809                      .dwattr $C$DW$190, DW_AT_name("id_ref")
     2810                      .dwattr $C$DW$190, DW_AT_accessibility(DW_ACCESS_public)
-    2811                      .dwattr $C$DW$190, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h"
+    2811                      .dwattr $C$DW$190, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2812                      .dwattr $C$DW$190, DW_AT_decl_line(0x14)
     2813                      .dwattr $C$DW$190, DW_AT_decl_column(0x0f)
     2814              
@@ -3434,7 +3434,7 @@ foc_pipeline.asm                                                     PAGE   58
     2817                      .dwattr $C$DW$191, DW_AT_name("iq_ref")
     2818                      .dwattr $C$DW$191, DW_AT_data_member_location[DW_OP_plus_uconst 0x2]
     2819                      .dwattr $C$DW$191, DW_AT_accessibility(DW_ACCESS_public)
-    2820                      .dwattr $C$DW$191, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h"
+    2820                      .dwattr $C$DW$191, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2821                      .dwattr $C$DW$191, DW_AT_decl_line(0x15)
     2822                      .dwattr $C$DW$191, DW_AT_decl_column(0x0f)
     2823              
@@ -3443,7 +3443,7 @@ foc_pipeline.asm                                                     PAGE   58
     2826                      .dwattr $C$DW$192, DW_AT_name("speed_ref")
     2827                      .dwattr $C$DW$192, DW_AT_data_member_location[DW_OP_plus_uconst 0x4]
     2828                      .dwattr $C$DW$192, DW_AT_accessibility(DW_ACCESS_public)
-    2829                      .dwattr $C$DW$192, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h"
+    2829                      .dwattr $C$DW$192, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2830                      .dwattr $C$DW$192, DW_AT_decl_line(0x16)
     2831                      .dwattr $C$DW$192, DW_AT_decl_column(0x0f)
     2832              
@@ -3452,11 +3452,11 @@ foc_pipeline.asm                                                     PAGE   58
     2835                      .dwattr $C$DW$193, DW_AT_name("vbus")
     2836                      .dwattr $C$DW$193, DW_AT_data_member_location[DW_OP_plus_uconst 0x6]
     2837                      .dwattr $C$DW$193, DW_AT_accessibility(DW_ACCESS_public)
-    2838                      .dwattr $C$DW$193, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h"
+    2838                      .dwattr $C$DW$193, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2839                      .dwattr $C$DW$193, DW_AT_decl_line(0x17)
     2840                      .dwattr $C$DW$193, DW_AT_decl_column(0x0f)
     2841              
-    2842                      .dwattr $C$DW$T$29, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+    2842                      .dwattr $C$DW$T$29, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2843                      .dwattr $C$DW$T$29, DW_AT_decl_line(0x13)
     2844                      .dwattr $C$DW$T$29, DW_AT_decl_column(0x10)
     2845                      .dwendtag $C$DW$T$29
@@ -3469,7 +3469,7 @@ foc_pipeline.asm                                                     PAGE   58
     2852              $C$DW$T$65      .dwtag  DW_TAG_typedef
     2853                      .dwattr $C$DW$T$65, DW_AT_name("FOC_Refs_t")
     2854                      .dwattr $C$DW$T$65, DW_AT_type(*$C$DW$T$29)
-    2855                      .dwattr $C$DW$T$65, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+    2855                      .dwattr $C$DW$T$65, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2856                      .dwattr $C$DW$T$65, DW_AT_decl_line(0x18)
     2857                      .dwattr $C$DW$T$65, DW_AT_decl_column(0x03)
     2858              
@@ -3478,7 +3478,7 @@ foc_pipeline.asm                                                     PAGE   58
     2861              
     2862              $C$DW$TU$66     .dwtag  DW_TAG_type_unit
     2863                      .dwmtype  $C$DW$T$66
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   59
@@ -3538,7 +3538,7 @@ foc_pipeline.asm                                                     PAGE   59
     2916                      .dwattr $C$DW$T$33, DW_AT_decl_column(0x10)
     2917                      .dwendtag $C$DW$T$33
     2918              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   60
@@ -3598,7 +3598,7 @@ foc_pipeline.asm                                                     PAGE   60
     2971                      .dwattr $C$DW$T$34, DW_AT_byte_size(0x04)
     2972              $C$DW$199       .dwtag  DW_TAG_member
     2973                      .dwattr $C$DW$199, DW_AT_type(*$C$DW$T$27)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   61
@@ -3658,7 +3658,7 @@ foc_pipeline.asm                                                     PAGE   61
     3026              
     3027                      .dwendtag $C$DW$TU$83
     3028              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   62
@@ -3714,11 +3714,11 @@ foc_pipeline.asm                                                     PAGE   62
     3077              $C$DW$T$22      .dwtag  DW_TAG_typedef
     3078                      .dwattr $C$DW$T$22, DW_AT_name("FOC_Iab_t")
     3079                      .dwattr $C$DW$T$22, DW_AT_type(*$C$DW$T$21)
-    3080                      .dwattr $C$DW$T$22, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+    3080                      .dwattr $C$DW$T$22, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     3081                      .dwattr $C$DW$T$22, DW_AT_decl_line(0x0d)
     3082                      .dwattr $C$DW$T$22, DW_AT_decl_column(0x13)
     3083              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   63
@@ -3731,7 +3731,7 @@ foc_pipeline.asm                                                     PAGE   63
     3089              $C$DW$T$23      .dwtag  DW_TAG_typedef
     3090                      .dwattr $C$DW$T$23, DW_AT_name("FOC_Idq_t")
     3091                      .dwattr $C$DW$T$23, DW_AT_type(*$C$DW$T$21)
-    3092                      .dwattr $C$DW$T$23, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+    3092                      .dwattr $C$DW$T$23, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     3093                      .dwattr $C$DW$T$23, DW_AT_decl_line(0x0e)
     3094                      .dwattr $C$DW$T$23, DW_AT_decl_column(0x13)
     3095              
@@ -3743,7 +3743,7 @@ foc_pipeline.asm                                                     PAGE   63
     3101              $C$DW$T$25      .dwtag  DW_TAG_typedef
     3102                      .dwattr $C$DW$T$25, DW_AT_name("FOC_Vab_t")
     3103                      .dwattr $C$DW$T$25, DW_AT_type(*$C$DW$T$21)
-    3104                      .dwattr $C$DW$T$25, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+    3104                      .dwattr $C$DW$T$25, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     3105                      .dwattr $C$DW$T$25, DW_AT_decl_line(0x0f)
     3106                      .dwattr $C$DW$T$25, DW_AT_decl_column(0x13)
     3107              
@@ -3755,7 +3755,7 @@ foc_pipeline.asm                                                     PAGE   63
     3113              $C$DW$T$24      .dwtag  DW_TAG_typedef
     3114                      .dwattr $C$DW$T$24, DW_AT_name("FOC_Vdq_t")
     3115                      .dwattr $C$DW$T$24, DW_AT_type(*$C$DW$T$21)
-    3116                      .dwattr $C$DW$T$24, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+    3116                      .dwattr $C$DW$T$24, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     3117                      .dwattr $C$DW$T$24, DW_AT_decl_line(0x10)
     3118                      .dwattr $C$DW$T$24, DW_AT_decl_column(0x13)
     3119              
@@ -3778,7 +3778,7 @@ foc_pipeline.asm                                                     PAGE   63
     3136              $C$DW$T$90      .dwtag  DW_TAG_pointer_type
     3137                      .dwattr $C$DW$T$90, DW_AT_type(*$C$DW$T$89)
     3138                      .dwattr $C$DW$T$90, DW_AT_address_class(0x20)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   64
@@ -3838,7 +3838,7 @@ foc_pipeline.asm                                                     PAGE   64
     3191                      .dwendtag $C$DW$T$38
     3192              
     3193                      .dwendtag $C$DW$TU$38
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   65
@@ -3862,7 +3862,7 @@ foc_pipeline.asm                                                     PAGE   65
     3210              $C$DW$T$26      .dwtag  DW_TAG_typedef
     3211                      .dwattr $C$DW$T$26, DW_AT_name("FOC_Duty_t")
     3212                      .dwattr $C$DW$T$26, DW_AT_type(*$C$DW$T$19)
-    3213                      .dwattr $C$DW$T$26, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+    3213                      .dwattr $C$DW$T$26, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     3214                      .dwattr $C$DW$T$26, DW_AT_decl_line(0x11)
     3215                      .dwattr $C$DW$T$26, DW_AT_decl_column(0x13)
     3216              
@@ -3894,11 +3894,11 @@ foc_pipeline.asm                                                     PAGE   65
     3242              $C$DW$T$20      .dwtag  DW_TAG_typedef
     3243                      .dwattr $C$DW$T$20, DW_AT_name("FOC_Iabc_t")
     3244                      .dwattr $C$DW$T$20, DW_AT_type(*$C$DW$T$19)
-    3245                      .dwattr $C$DW$T$20, DW_AT_decl_file("/home/jose/Documents/source/foc-f28379d-fsae/include/foc_types.h
+    3245                      .dwattr $C$DW$T$20, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     3246                      .dwattr $C$DW$T$20, DW_AT_decl_line(0x0c)
     3247                      .dwattr $C$DW$T$20, DW_AT_decl_column(0x13)
     3248              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   66
@@ -3958,7 +3958,7 @@ foc_pipeline.asm                                                     PAGE   66
     3301              $C$DW$TU$114    .dwtag  DW_TAG_type_unit
     3302                      .dwmtype  $C$DW$T$114
     3303              $C$DW$210       .dwtag  DW_TAG_TI_far_type
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   67
@@ -4018,7 +4018,7 @@ foc_pipeline.asm                                                     PAGE   67
     3356                      .dwmtype  $C$DW$T$125
     3357              $C$DW$T$125     .dwtag  DW_TAG_pointer_type
     3358                      .dwattr $C$DW$T$125, DW_AT_type(*$C$DW$T$39)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   68
@@ -4078,7 +4078,7 @@ foc_pipeline.asm                                                     PAGE   68
     3411                      .dwattr $C$DW$216, DW_AT_type(*$C$DW$T$27)
     3412                      .dwattr $C$DW$216, DW_AT_name("Ui")
     3413                      .dwattr $C$DW$216, DW_AT_data_member_location[DW_OP_plus_uconst 0x4]
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   69
@@ -4138,7 +4138,7 @@ foc_pipeline.asm                                                     PAGE   69
     3466                      .dwattr $C$DW$T$40, DW_AT_decl_column(0x10)
     3467                      .dwendtag $C$DW$T$40
     3468              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   70
@@ -4198,7 +4198,7 @@ foc_pipeline.asm                                                     PAGE   70
     3521                      .dwattr $C$DW$T$44, DW_AT_byte_size(0x04)
     3522              $C$DW$223       .dwtag  DW_TAG_member
     3523                      .dwattr $C$DW$223, DW_AT_type(*$C$DW$T$27)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   71
@@ -4258,7 +4258,7 @@ foc_pipeline.asm                                                     PAGE   71
     3576              
     3577              $C$DW$TU$46     .dwtag  DW_TAG_type_unit
     3578                      .dwmtype  $C$DW$T$46
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   72
@@ -4318,7 +4318,7 @@ foc_pipeline.asm                                                     PAGE   72
     3631                      .dwattr $C$DW$T$5, DW_AT_name("signed char")
     3632                      .dwattr $C$DW$T$5, DW_AT_byte_size(0x01)
     3633              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   73
@@ -4378,7 +4378,7 @@ foc_pipeline.asm                                                     PAGE   73
     3686                      .dwattr $C$DW$T$176, DW_AT_decl_column(0x14)
     3687              
     3688                      .dwendtag $C$DW$TU$176
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   74
@@ -4438,7 +4438,7 @@ foc_pipeline.asm                                                     PAGE   74
     3741                      .dwattr $C$DW$T$32, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LT
     3742                      .dwattr $C$DW$T$32, DW_AT_decl_line(0x2f)
     3743                      .dwattr $C$DW$T$32, DW_AT_decl_column(0x1a)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   75
@@ -4498,7 +4498,7 @@ foc_pipeline.asm                                                     PAGE   75
     3796                      .dwattr $C$DW$T$12, DW_AT_byte_size(0x02)
     3797              
     3798                      .dwendtag $C$DW$TU$12
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   76
@@ -4558,7 +4558,7 @@ foc_pipeline.asm                                                     PAGE   76
     3851                      .dwattr $C$DW$T$177, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.L
     3852                      .dwattr $C$DW$T$177, DW_AT_decl_line(0x43)
     3853                      .dwattr $C$DW$T$177, DW_AT_decl_column(0x1c)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   77
@@ -4618,7 +4618,7 @@ foc_pipeline.asm                                                     PAGE   77
     3906              $C$DW$T$14      .dwtag  DW_TAG_base_type
     3907                      .dwattr $C$DW$T$14, DW_AT_encoding(DW_ATE_signed)
     3908                      .dwattr $C$DW$T$14, DW_AT_name("long long")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   78
@@ -4678,7 +4678,7 @@ foc_pipeline.asm                                                     PAGE   78
     3961                      .dwmtype  $C$DW$T$37
     3962              
     3963              $C$DW$T$37      .dwtag  DW_TAG_array_type
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   79
@@ -4738,7 +4738,7 @@ foc_pipeline.asm                                                     PAGE   79
     4016              $C$DW$TU$17     .dwtag  DW_TAG_type_unit
     4017                      .dwmtype  $C$DW$T$17
     4018              $C$DW$T$17      .dwtag  DW_TAG_base_type
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 15:57:52 2026
+TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   80
