@@ -6,9 +6,9 @@
 //   Outer speed loop bandwidth target    ~= 50 Hz
 //
 //   Kp_i = L * omega_c                   (per-axis)
-//   Ki_i = R * omega_c * Ts              (per-axis, parallel form)
+//   Ki_i = R * Ts / L                    (per-axis, TI PI_run() series form)
 //
-// PI library here uses series form via PI_run(); equivalent gains.
+// PI_run() integrates Ki*Kp*error, so Ki_series = Ki_parallel/Kp.
 //=============================================================================
 #ifndef GAINS_TEKNIC_H
 #define GAINS_TEKNIC_H
@@ -16,19 +16,15 @@
 #include "build_config.h"
 
 // ---- Inner current loop -------------------------------------------------
-// Design (for 10 kHz ISR): Kp = L*omega_c = 235uH*2*pi*1000 = 1.476,
-//                          Ki = R*omega_c*Ts = 0.36*6283*1e-4 = 0.226.
-// [2026-05-29 BENCH] The board currently runs at HALF clock (10 MHz crystal,
-// _LAUNCHXL_F28379D not defined) so the ISR is ~5 kHz, not 10 kHz. At 5 kHz the
-// 1 kHz-bandwidth design has ~108 deg of sampling-delay phase lag at crossover
-// and the current loop is UNSTABLE (oscillatory railing -> phase OC trip during
-// align). Detuned to ~270 Hz bandwidth (Kp/L = 0.4/235uH) for a stable loop at
-// 5 kHz with healthy margin. RESTORE 1.476 / 0.226 once the clock is fixed to
-// 200 MHz (add _LAUNCHXL_F28379D), then retune.
-#define GAIN_KP_ID              0.4f        // BENCH (design: 1.476f @ 10 kHz)
-#define GAIN_KI_ID              0.06f       // BENCH (design: 0.226f @ 10 kHz)
-#define GAIN_KP_IQ              0.4f        // BENCH (design: 1.476f @ 10 kHz)
-#define GAIN_KI_IQ              0.06f       // BENCH (design: 0.226f @ 10 kHz)
+// Conservative starting point after restoring the LaunchPad to 200 MHz SYSCLK
+// and 10 kHz ISR: bandwidth ~= Kp/L = 0.4/235uH = 270 Hz.
+// TI PI_run() uses series form: Ui += Ki*Kp*error, hence
+// Ki = R*Ts/L = 0.36*1e-4/235uH = 0.153.
+// Raise Kp gradually after validating current polarity and step response.
+#define GAIN_KP_ID              0.4f
+#define GAIN_KI_ID              0.153f
+#define GAIN_KP_IQ              0.4f
+#define GAIN_KI_IQ              0.153f
 
 #define VDQ_MAX_FRACTION        0.30f       // BENCH (production: 0.95f)
 

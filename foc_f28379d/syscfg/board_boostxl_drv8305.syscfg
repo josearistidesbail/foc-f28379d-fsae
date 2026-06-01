@@ -74,6 +74,7 @@ led1.gpio.gpioPin.$assign = "GPIO31";
 
 epwm1.epwmEventTrigger_EPWM_SOC_A_triggerEnable                  = true;
 epwm1.epwmTimebase_counterMode                                   = "EPWM_COUNTER_MODE_UP_DOWN";
+epwm1.epwmTimebase_hsClockDiv                                    = "EPWM_HSCLOCK_DIVIDER_1";
 epwm1.epwmTimebase_period                                        = 5000;
 epwm1.epwmTimebase_syncOutPulseMode                              = "EPWM_SYNC_OUT_PULSE_ON_COUNTER_ZERO";
 epwm1.epwmCounterCompare_cmpA                                    = 2500;
@@ -93,6 +94,7 @@ epwm1.epwm.epwm_bPin.$assign                                     = "GPIO1";
 
 epwm2.$name                                                      = "PWM_V";
 epwm2.epwmTimebase_counterMode                                   = "EPWM_COUNTER_MODE_UP_DOWN";
+epwm2.epwmTimebase_hsClockDiv                                    = "EPWM_HSCLOCK_DIVIDER_1";
 epwm2.epwmTimebase_period                                        = 5000;
 epwm2.epwmTimebase_syncOutPulseMode                              = "EPWM_SYNC_OUT_PULSE_ON_EPWMxSYNCIN";
 epwm2.epwmTimebase_phaseEnable                                   = true;
@@ -110,6 +112,7 @@ epwm2.epwm.epwm_aPin.$assign                                     = "GPIO2";
 epwm2.epwm.epwm_bPin.$assign                                     = "GPIO3";
 
 epwm3.epwmTimebase_counterMode                                   = "EPWM_COUNTER_MODE_UP_DOWN";
+epwm3.epwmTimebase_hsClockDiv                                    = "EPWM_HSCLOCK_DIVIDER_1";
 epwm3.epwmTimebase_period                                        = 5000;
 epwm3.epwmTimebase_syncOutPulseMode                              = "EPWM_SYNC_OUT_PULSE_ON_EPWMxSYNCIN";
 epwm3.epwmTimebase_phaseEnable                                   = true;
