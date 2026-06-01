@@ -21,7 +21,7 @@ extern const FOC_Signals_t * foc_get_signals(void);
 extern void foc_current_loop_isr(void);
 
 // Called from the current-loop ISR every SPEED_LOOP_DECIM ticks.
-// Outer speed PI -> iq_ref. State machine ticks here.
+// State machine ticks here. Speed PI is disabled for current-control bring-up.
 extern void foc_speed_loop_tick(void);
 
 #endif // FOC_PIPELINE_H

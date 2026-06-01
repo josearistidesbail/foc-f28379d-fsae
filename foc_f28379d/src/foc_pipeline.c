@@ -66,6 +66,15 @@ volatile float32_t g_dbg_openloop_vd;
 // (winding/connector/BoosterPack contact), not a firmware problem. 0 = off.
 volatile float32_t g_dbg_openloop_vq;
 
+// Direct q-axis current command for CCS Expressions during current-control
+// bring-up. Write only while g_dbg_state == FOC_RUN. Cleared outside RUN so a
+// stale torque command cannot survive a stop, fault, or restart.
+volatile float32_t g_dbg_iq_ref;
+// ISR-rate RUN snapshots for CCS Expressions. g_dbg_iq_ref is the requested
+// command; these show the applied reference and Park-transform feedback.
+volatile float32_t g_dbg_run_iq_ref;
+volatile float32_t g_dbg_run_iq_meas;
+
 void foc_init(void)
 {
     s_clarke = CLARKE_init(&s_clarke_obj, sizeof(s_clarke_obj));
@@ -95,6 +104,9 @@ void foc_init(void)
     s_refs.iq_ref    = 0.0f;
     s_refs.speed_ref = 0.0f;
     s_refs.vbus      = MOTOR_VBUS_NOM_V;
+    g_dbg_iq_ref     = 0.0f;
+    g_dbg_run_iq_ref = 0.0f;
+    g_dbg_run_iq_meas = 0.0f;
     s_decim          = 0;
 }
 
@@ -163,6 +175,11 @@ void foc_current_loop_isr(void)
         g_dbg_align_iq_meas = s_sig.Idq.value[1];
         g_dbg_align_vd      = s_sig.Vdq.value[0];
     }
+    else if(st == FOC_RUN)
+    {
+        g_dbg_run_iq_ref  = s_refs.iq_ref;
+        g_dbg_run_iq_meas = s_sig.Idq.value[1];
+    }
 
     // 4. Inverse Park -> SVGEN -> PWM.
     //    Keep vbus fresh every ISR (safety_check_isr() needs it for OV/UV),
@@ -203,18 +220,21 @@ void foc_current_loop_isr(void)
 }
 
 //-----------------------------------------------------------------------------
-// Outer speed loop at 1 kHz - also drives the state machine tick.
+// Slow-loop tick at 1 kHz. Speed PI is intentionally disabled during
+// current-control bring-up so iq_ref remains directly commandable.
 //-----------------------------------------------------------------------------
 void foc_speed_loop_tick(void)
 {
     if(sm_get_state() == FOC_RUN)
     {
-        // omega measured = electrical -> convert to mech for the speed loop.
-        float omega_mech = s_sig.omega_elec * (1.0f / (float)MOTOR_POLE_PAIRS);
-        float iq_cmd;
-        PI_run(s_pi_spd, s_refs.speed_ref, omega_mech, &iq_cmd);
-        s_refs.iq_ref = iq_cmd;
+        s_refs.iq_ref = g_dbg_iq_ref;
         s_refs.id_ref = ID_REF_NOMINAL_A;
+        PI_setUi(s_pi_spd, 0.0f);
+    }
+    else
+    {
+        g_dbg_iq_ref = 0.0f;
+        s_refs.iq_ref = 0.0f;
     }
 
     sm_tick_1khz();

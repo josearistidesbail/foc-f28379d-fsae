@@ -139,7 +139,8 @@ void inverter_init(void)
     // external DRV8305 is NOT reset by an MCU restart, so it can retain a bad
     // config from a previous run, and clearing faults while VDS blanking is
     // disabled just re-latches VDS_L immediately. Values per datasheet section 7.6.
-    const uint16_t shunt_cfg = 0x0290;          // gain=10, blank=0.5us
+    // DC_CAL_CHx=0 (normal), CS_BLANK=b'01 (500 ns), GAIN_CSx=b'00 (10 V/V).
+    const uint16_t shunt_cfg = 0x0040;
     drv8305_xfer(0, DRV8305_REG_SHUNT_AMP, shunt_cfg);
     // reg 0x0C VDS Sense Control = 0x0080: VDS_LEVEL=b'10000 (0.403 V),
     // VDS_MODE=b'000 (latched shutdown). BUG FIX: the previous 0x0086 set

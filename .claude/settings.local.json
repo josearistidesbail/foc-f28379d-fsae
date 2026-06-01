@@ -30,7 +30,8 @@
       "mcp__ccs-debug",
       "mcp__ccs-project",
       "mcp__ccs-sysconfig",
-      "mcp__ccs-serial"
+      "mcp__ccs-serial",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ],
     "ask": [
       "mcp__ccs-project__changeSysConfigVersion"
