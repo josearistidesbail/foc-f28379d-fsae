@@ -4,8 +4,7 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 SYSCFG_SRCS += \
-../syscfg/board_boostxl_drv8305.syscfg \
-../syscfg/board_control_v2.syscfg 
+../syscfg/board_boostxl_drv8305.syscfg 
 
 C_SRCS += \
 ./syscfg/board.c \
@@ -18,12 +17,9 @@ GEN_FILES += \
 ./syscfg/c2000ware_libraries.c 
 
 GEN_MISC_DIRS += \
-./syscfg \
 ./syscfg 
 
 C_DEPS += \
-./syscfg/board.d \
-./syscfg/c2000ware_libraries.d \
 ./syscfg/board.d \
 ./syscfg/c2000ware_libraries.d 
 
@@ -44,17 +40,9 @@ GEN_MISC_FILES += \
 ./syscfg/adc.dot \
 ./syscfg/c2000ware_libraries.cmd.genlibs \
 ./syscfg/c2000ware_libraries.h \
-./syscfg/clocktree.h \
-./syscfg/board.h \
-./syscfg/board.cmd.genlibs \
-./syscfg/board.json \
-./syscfg/pinmux.csv \
-./syscfg/c2000ware_libraries.cmd.genlibs \
-./syscfg/c2000ware_libraries.h \
 ./syscfg/clocktree.h 
 
 GEN_MISC_DIRS__QUOTED += \
-"syscfg" \
 "syscfg" 
 
 OBJS__QUOTED += \
@@ -70,18 +58,9 @@ GEN_MISC_FILES__QUOTED += \
 "syscfg/adc.dot" \
 "syscfg/c2000ware_libraries.cmd.genlibs" \
 "syscfg/c2000ware_libraries.h" \
-"syscfg/clocktree.h" \
-"syscfg/board.h" \
-"syscfg/board.cmd.genlibs" \
-"syscfg/board.json" \
-"syscfg/pinmux.csv" \
-"syscfg/c2000ware_libraries.cmd.genlibs" \
-"syscfg/c2000ware_libraries.h" \
 "syscfg/clocktree.h" 
 
 C_DEPS__QUOTED += \
-"syscfg/board.d" \
-"syscfg/c2000ware_libraries.d" \
 "syscfg/board.d" \
 "syscfg/c2000ware_libraries.d" 
 
@@ -92,8 +71,7 @@ GEN_FILES__QUOTED += \
 "syscfg/c2000ware_libraries.c" 
 
 SYSCFG_SRCS__QUOTED += \
-"../syscfg/board_boostxl_drv8305.syscfg" \
-"../syscfg/board_control_v2.syscfg" 
+"../syscfg/board_boostxl_drv8305.syscfg" 
 
 C_SRCS__QUOTED += \
 "./syscfg/board.c" \

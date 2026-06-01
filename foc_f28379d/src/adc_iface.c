@@ -55,8 +55,20 @@ void adc_read_phase_currents(FOC_Iabc_t *out)
     out->value[1] = code_to_amps(cv, s_iv_offset, ISENSE_SIGN_V);
     out->value[2] = code_to_amps(cw, s_iw_offset, ISENSE_SIGN_W);
 
-#if defined(ISENSE_RECONSTRUCT_U_FROM_KCL) && (ISENSE_RECONSTRUCT_U_FROM_KCL == 1)
-    out->value[0] = -out->value[1] - out->value[2];   // KCL: SO1 hardware dead
+    // Reconstruct one dead current-sense channel via KCL (Iu + Iv + Iw = 0).
+    // The dead phase's own (scaled) reading is overwritten; the synthesized
+    // value depends only on the two healthy channels. g_dbg_i*_raw above still
+    // hold the true raw codes (incl. the dead channel) for diagnostics.
+#if defined(ISENSE_RECONSTRUCT_PHASE) && (ISENSE_RECONSTRUCT_PHASE != 0)
+  #if   (ISENSE_RECONSTRUCT_PHASE == 1)
+    out->value[0] = -out->value[1] - out->value[2];   // SO1 (phase U) amp dead
+  #elif (ISENSE_RECONSTRUCT_PHASE == 2)
+    out->value[1] = -out->value[0] - out->value[2];   // SO2 (phase V) amp dead
+  #elif (ISENSE_RECONSTRUCT_PHASE == 3)
+    out->value[2] = -out->value[0] - out->value[1];   // SO3 (phase W) amp dead
+  #else
+    #error "ISENSE_RECONSTRUCT_PHASE must be 0 (none), 1 (U), 2 (V), or 3 (W)"
+  #endif
 #endif
 }
 

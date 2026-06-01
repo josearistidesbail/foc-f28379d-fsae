@@ -1,11 +1,11 @@
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    1
 
        1              ;***************************************************************
        2              ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
-       3              ;* Date/Time created: Sat May 30 20:22:51 2026                 *
+       3              ;* Date/Time created: Sun May 31 21:09:06 2026                 *
        4              ;***************************************************************
        5                      .compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --
        6                      .asg    XAR2, FP
@@ -58,7 +58,7 @@ inverter_drv8305.asm                                                 PAGE    1
       53              $C$DW$7 .dwtag  DW_TAG_formal_parameter
       54                      .dwattr $C$DW$7, DW_AT_type(*$C$DW$T$24)
       55              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    2
@@ -118,7 +118,7 @@ inverter_drv8305.asm                                                 PAGE    2
      108                      .dwattr $C$DW$12, DW_AT_decl_file("../src/inverter_drv8305.c")
      109                      .dwattr $C$DW$12, DW_AT_decl_line(0x25)
      110                      .dwattr $C$DW$12, DW_AT_decl_column(0x13)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    3
@@ -178,7 +178,7 @@ inverter_drv8305.asm                                                 PAGE    3
      163                      .dwattr $C$DW$17, DW_AT_name("g_dbg_spi_icflt")
      164                      .dwattr $C$DW$17, DW_AT_linkage_name("g_dbg_spi_icflt")
      165                      .dwattr $C$DW$17, DW_AT_location[DW_OP_addr ||g_dbg_spi_icflt||]
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    4
@@ -238,7 +238,7 @@ inverter_drv8305.asm                                                 PAGE    4
      218                      .dwattr $C$DW$21, DW_AT_decl_column(0x13)
      219              
      220                      .global ||g_dbg_fault_vgsflt||
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    5
@@ -298,7 +298,7 @@ inverter_drv8305.asm                                                 PAGE    5
      273                      .dwattr $C$DW$26, DW_AT_location[DW_OP_addr ||g_dbg_spi_rx_raw||]
      274                      .dwattr $C$DW$26, DW_AT_type(*$C$DW$T$43)
      275                      .dwattr $C$DW$26, DW_AT_external
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    6
@@ -321,8 +321,8 @@ inverter_drv8305.asm                                                 PAGE    6
      291              
      292                      .sblock ".bss"
      293                      .sblock ".data"
-     294              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI6XCqgHUwa /tmp/T
-     295              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI6XCWB53K8 
+     294              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TIagNd4xu0v /tmp/T
+     295              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TIagN8J5lmw 
      296 00000000               .sect   ".text:drv8305_xfer"
      297                      .clink
      298              
@@ -358,7 +358,7 @@ inverter_drv8305.asm                                                 PAGE    6
      328              ;***************************************************************
      329              ;* FNAME: drv8305_xfer                  FR SIZE:   6           *
      330              ;*                                                             *
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    7
@@ -418,7 +418,7 @@ inverter_drv8305.asm                                                 PAGE    7
          00000009 610B 
      380 0000000a AABD          MOVL      *SP++,XAR2            ; [CPU_ALU] 
      381                      .dwcfi  save_reg_to_mem, 9, 4
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    8
@@ -478,7 +478,7 @@ inverter_drv8305.asm                                                 PAGE    8
          0000002a 6108 
      425 0000002b       ||$C$L2||:    
      426                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/spi.h",line 758,c
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE    9
@@ -538,7 +538,7 @@ inverter_drv8305.asm                                                 PAGE    9
      471                      .dwattr $C$DW$40, DW_AT_low_pc(0x00)
      472                      .dwattr $C$DW$40, DW_AT_TI_return
      473              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   10
@@ -598,7 +598,7 @@ inverter_drv8305.asm                                                 PAGE   10
      524                      .dwpsn  file "../src/inverter_drv8305.c",line 112,column 5,is_stmt,isa 0
      525 00000007 D400          MOVB      XAR4,#0               ; [CPU_ALU] |112| 
      526 00000008 9B02          MOVB      AH,#2                 ; [CPU_ALU] |112| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   11
@@ -658,7 +658,7 @@ inverter_drv8305.asm                                                 PAGE   11
      573              
      574 00000020 0006          LRETR     ; [CPU_ALU] 
      575                      ; return occurs ; [] 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   12
@@ -718,7 +718,7 @@ inverter_drv8305.asm                                                 PAGE   12
          0000000a 01A6 
      626 0000000b 92A6          MOV       AL,AR6                ; [CPU_ALU] |191| 
      627              $C$DW$48        .dwtag  DW_TAG_TI_branch
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   13
@@ -778,7 +778,7 @@ inverter_drv8305.asm                                                 PAGE   13
      678                      ; call occurs [#||SysCtl_delay||] ; [] |103| 
      679                      .dwpsn  file "../src/inverter_drv8305.c",line 104,column 5,is_stmt,isa 0
      680 00000005 9A00          MOVB      AL,#0                 ; [CPU_ALU] |104| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   14
@@ -838,7 +838,7 @@ inverter_drv8305.asm                                                 PAGE   14
      730              ;* FNAME: inverter_init                 FR SIZE:   2           *
      731              ;*                                                             *
      732              ;* FUNCTION ENVIRONMENT                                        *
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   15
@@ -898,7 +898,7 @@ inverter_drv8305.asm                                                 PAGE   15
      779 00000012 A8A9          MOVL      ACC,XAR4              ; [CPU_ALU] |133| 
      780              $C$DW$58        .dwtag  DW_TAG_TI_branch
      781                      .dwattr $C$DW$58, DW_AT_low_pc(0x00)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   16
@@ -958,7 +958,7 @@ inverter_drv8305.asm                                                 PAGE   16
      826 0000002a 8F00          MOVL      XAR4,#534             ; [CPU_ALU] |154| 
          0000002b 0216 
      827 0000002c 9B07          MOVB      AH,#7                 ; [CPU_ALU] |154| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   17
@@ -1018,7 +1018,7 @@ inverter_drv8305.asm                                                 PAGE   17
      872                      .dwpsn  file "../src/inverter_drv8305.c",line 169,column 5,is_stmt,isa 0
      873 00000043 F500!         MOV       @||g_dbg_spi_sts||,*(0:0x6102) ; [CPU_ALU] |169| 
          00000044 6102 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   18
@@ -1078,7 +1078,7 @@ inverter_drv8305.asm                                                 PAGE   18
      918              
      919 00000060 7640!         LCR       #||drv8305_xfer||     ; [CPU_ALU] |181| 
          00000061 0000 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   19
@@ -1138,7 +1138,7 @@ inverter_drv8305.asm                                                 PAGE   19
      967 00000000               .sect   ".text:inverter_fault_status"
      968                      .clink
      969                      .global ||inverter_fault_status||
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   20
@@ -1198,7 +1198,7 @@ inverter_drv8305.asm                                                 PAGE   20
     1020                      .dwendentry
     1021                      .dwendtag $C$DW$72
     1022              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   21
@@ -1258,7 +1258,7 @@ inverter_drv8305.asm                                                 PAGE   21
     1073                      .dwattr $C$DW$77, DW_AT_name("inverter_disable_gate")
     1074                      .dwattr $C$DW$77, DW_AT_low_pc(||inverter_disable_gate||)
     1075                      .dwattr $C$DW$77, DW_AT_high_pc(0x00)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   22
@@ -1318,7 +1318,7 @@ inverter_drv8305.asm                                                 PAGE   22
     1126                      .dwattr $C$DW$CU, DW_AT_language(DW_LANG_C)
     1127              
     1128              ;***************************************************************
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   23
@@ -1378,7 +1378,7 @@ inverter_drv8305.asm                                                 PAGE   23
     1181              $C$DW$TU$20     .dwtag  DW_TAG_type_unit
     1182                      .dwmtype  $C$DW$T$20
     1183              $C$DW$T$20      .dwtag  DW_TAG_typedef
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   24
@@ -1438,7 +1438,7 @@ inverter_drv8305.asm                                                 PAGE   24
     1236                      .dwattr $C$DW$86, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
     1237                      .dwattr $C$DW$86, DW_AT_decl_line(0x146)
     1238                      .dwattr $C$DW$86, DW_AT_decl_column(0x05)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   25
@@ -1498,7 +1498,7 @@ inverter_drv8305.asm                                                 PAGE   25
     1291                      .dwattr $C$DW$94, DW_AT_const_value(0x0c)
     1292                      .dwattr $C$DW$94, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
     1293                      .dwattr $C$DW$94, DW_AT_decl_line(0x14e)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   26
@@ -1558,7 +1558,7 @@ inverter_drv8305.asm                                                 PAGE   26
     1346                      .dwattr $C$DW$T$22, DW_AT_decl_column(0x03)
     1347              
     1348                      .dwendtag $C$DW$TU$22
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   27
@@ -1618,7 +1618,7 @@ inverter_drv8305.asm                                                 PAGE   27
     1401                      .dwattr $C$DW$106, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/drive
     1402                      .dwattr $C$DW$106, DW_AT_decl_line(0x165)
     1403                      .dwattr $C$DW$106, DW_AT_decl_column(0x05)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   28
@@ -1678,7 +1678,7 @@ inverter_drv8305.asm                                                 PAGE   28
     1456                      .dwattr $C$DW$114, DW_AT_const_value(0x0d)
     1457                      .dwattr $C$DW$114, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/drive
     1458                      .dwattr $C$DW$114, DW_AT_decl_line(0x16d)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   29
@@ -1738,7 +1738,7 @@ inverter_drv8305.asm                                                 PAGE   29
     1511                      .dwattr $C$DW$T$27, DW_AT_decl_column(0x03)
     1512              
     1513                      .dwendtag $C$DW$TU$27
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   30
@@ -1798,7 +1798,7 @@ inverter_drv8305.asm                                                 PAGE   30
     1566              $C$DW$T$8       .dwtag  DW_TAG_base_type
     1567                      .dwattr $C$DW$T$8, DW_AT_encoding(DW_ATE_signed)
     1568                      .dwattr $C$DW$T$8, DW_AT_name("short")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   31
@@ -1858,7 +1858,7 @@ inverter_drv8305.asm                                                 PAGE   31
     1621              $C$DW$121       .dwtag  DW_TAG_TI_far_type
     1622                      .dwattr $C$DW$121, DW_AT_type(*$C$DW$T$36)
     1623              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   32
@@ -1918,7 +1918,7 @@ inverter_drv8305.asm                                                 PAGE   32
     1676                      .dwattr $C$DW$T$23, DW_AT_decl_line(0x43)
     1677                      .dwattr $C$DW$T$23, DW_AT_decl_column(0x1c)
     1678              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   33
@@ -1978,7 +1978,7 @@ inverter_drv8305.asm                                                 PAGE   33
     1731                      .dwendtag $C$DW$TU$17
     1732              
     1733              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 inverter_drv8305.asm                                                 PAGE   34

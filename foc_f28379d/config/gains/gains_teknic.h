@@ -43,10 +43,13 @@
 #define ID_REF_NOMINAL_A        0.0f        // 0 for SPM motor (Ld == Lq)
 
 // ---- Alignment current --------------------------------------------------
-// 1 A DC into the d-axis (theta forced to 0) to pull the rotor to the phase-U
-// axis. With a correctly-signed, stable loop, g_dbg_align_id_meas -> +1.0 and
-// g_dbg_align_vd settles near Rs*1.0 = 0.36 V (well under the VDQ clamp).
-#define ALIGN_ID_INJECT_A       1.0f
+// DC into the d-axis (theta forced to 0) to pull the rotor to the phase-U axis.
+// 0.3 A is plenty to pull/hold a small unloaded Teknic servo and keeps phase
+// currents well clear of the 8 A OC trip during the initial step transient.
+// With a correctly-signed, stable loop, g_dbg_align_id_meas -> +0.3 and
+// g_dbg_align_vd settles near Rs*0.3 = 0.11 V (well under the VDQ clamp).
+// [2026-05-31] lowered 1.0 -> 0.3 per bench (1 A felt like too much current).
+#define ALIGN_ID_INJECT_A       0.3f
 // [2026-05-29 BENCH DIAG — restore to 1.5f] Lengthened so the open-loop d/q
 // probes hold long enough to read the supply meter and feel the shaft. At the
 // current 2x clock scaling this 5.0f actually runs ~10 s.

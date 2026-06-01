@@ -1,11 +1,11 @@
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    1
 
        1              ;***************************************************************
        2              ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
-       3              ;* Date/Time created: Sat May 30 20:22:51 2026                 *
+       3              ;* Date/Time created: Sun May 31 21:09:06 2026                 *
        4              ;***************************************************************
        5                      .compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --
        6                      .asg    XAR2, FP
@@ -58,7 +58,7 @@ foc_pipeline.asm                                                     PAGE    1
       53              $C$DW$6 .dwtag  DW_TAG_subprogram
       54                      .dwattr $C$DW$6, DW_AT_name("pwm_force_safe")
       55                      .dwattr $C$DW$6, DW_AT_linkage_name("pwm_force_safe")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    2
@@ -118,7 +118,7 @@ foc_pipeline.asm                                                     PAGE    2
      108                      .dwattr $C$DW$12, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_state_machin
      109                      .dwattr $C$DW$12, DW_AT_decl_line(0x19)
      110                      .dwattr $C$DW$12, DW_AT_decl_column(0x15)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    3
@@ -178,7 +178,7 @@ foc_pipeline.asm                                                     PAGE    3
      163                      .dwattr $C$DW$17, DW_AT_decl_column(0x1b)
      164              
      165              $C$DW$18        .dwtag  DW_TAG_variable
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    4
@@ -238,7 +238,7 @@ foc_pipeline.asm                                                     PAGE    4
      218                      .dwattr $C$DW$23, DW_AT_linkage_name("s_park")
      219                      .dwattr $C$DW$23, DW_AT_type(*$C$DW$T$126)
      220                      .dwattr $C$DW$23, DW_AT_location[DW_OP_addr ||s_park||]
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    5
@@ -298,7 +298,7 @@ foc_pipeline.asm                                                     PAGE    5
      273                      .dwattr $C$DW$28, DW_AT_decl_column(0x16)
      274              
      275                      .global ||g_dbg_align_id_meas||
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    6
@@ -358,7 +358,7 @@ foc_pipeline.asm                                                     PAGE    6
      328                      .dwattr $C$DW$33, DW_AT_location[DW_OP_addr ||g_dbg_openloop_vq||]
      329                      .dwattr $C$DW$33, DW_AT_type(*$C$DW$T$207)
      330                      .dwattr $C$DW$33, DW_AT_external
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    7
@@ -418,7 +418,7 @@ foc_pipeline.asm                                                     PAGE    7
      383              
      384              $C$DW$42        .dwtag  DW_TAG_formal_parameter
      385                      .dwattr $C$DW$42, DW_AT_type(*$C$DW$T$76)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    8
@@ -478,7 +478,7 @@ foc_pipeline.asm                                                     PAGE    8
      438              $C$DW$50        .dwtag  DW_TAG_variable
      439                      .dwattr $C$DW$50, DW_AT_name("s_park_obj")
      440                      .dwattr $C$DW$50, DW_AT_linkage_name("s_park_obj")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE    9
@@ -538,7 +538,7 @@ foc_pipeline.asm                                                     PAGE    9
      493                      .dwattr $C$DW$55, DW_AT_decl_file("../src/foc_pipeline.c")
      494                      .dwattr $C$DW$55, DW_AT_decl_line(0x1c)
      495                      .dwattr $C$DW$55, DW_AT_decl_column(0x16)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   10
@@ -575,8 +575,8 @@ foc_pipeline.asm                                                     PAGE   10
      525                      .dwattr $C$DW$58, DW_AT_decl_column(0x1f)
      526              
      527                      .sblock ".bss"
-     528              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI6XpwoVJmG /tmp/T
-     529              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI6Xp3rhpQS 
+     528              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TIagzXcUlTL /tmp/T
+     529              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TIagz1nhR5j 
      530 00000000               .sect   ".text:PI_run"
      531                      .clink
      532              
@@ -598,7 +598,7 @@ foc_pipeline.asm                                                     PAGE   10
      548                      .dwattr $C$DW$60, DW_AT_location[DW_OP_reg12]
      549              
      550              $C$DW$61        .dwtag  DW_TAG_formal_parameter
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   11
@@ -658,7 +658,7 @@ foc_pipeline.asm                                                     PAGE   11
      603                      .dwattr $C$DW$68, DW_AT_type(*$C$DW$T$27)
      604                      .dwattr $C$DW$68, DW_AT_location[DW_OP_regx 0x3f]
      605              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   12
@@ -718,7 +718,7 @@ foc_pipeline.asm                                                     PAGE   12
      652                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
      653 0000000f E2AF          MOV32     R2H,*+XAR4[4]         ; [CPU_FPU] |661| 
          00000010 02E4 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   13
@@ -778,7 +778,7 @@ foc_pipeline.asm                                                     PAGE   13
      695                      .dwendentry
      696                      .dwendtag $C$DW$59
      697              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   14
@@ -838,7 +838,7 @@ foc_pipeline.asm                                                     PAGE   14
      750              
      751              ;* R4    assigned to outMax
      752              $C$DW$78        .dwtag  DW_TAG_variable
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   15
@@ -898,7 +898,7 @@ foc_pipeline.asm                                                     PAGE   15
      797 00000015 D10E          MOVB      XAR1,#14              ; [CPU_ALU] |223| 
      798                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
      799 00000016 E720          SUBF32    R2H,R4H,R5H           ; [CPU_FPU] |655| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   16
@@ -958,7 +958,7 @@ foc_pipeline.asm                                                     PAGE   16
      837 00000036 E203!         MOV32     @||s_refs||,R2H       ; [CPU_FPU] |217| 
          00000037 0200 
      838 00000038       ||$C$L1||:    
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   17
@@ -1018,7 +1018,7 @@ foc_pipeline.asm                                                     PAGE   17
      888              ;*                                                             *
      889              ;* FUNCTION ENVIRONMENT                                        *
      890              ;*                                                             *
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   18
@@ -1078,7 +1078,7 @@ foc_pipeline.asm                                                     PAGE   18
      937                      .dwpsn  file "../src/foc_pipeline.c",line 72,column 5,is_stmt,isa 0
      938 00000011 A800!         MOVL      @||s_park||,XAR4      ; [CPU_ALU] |72| 
      939                      .dwpsn  file "../src/foc_pipeline.c",line 73,column 5,is_stmt,isa 0
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   19
@@ -1138,7 +1138,7 @@ foc_pipeline.asm                                                     PAGE   19
          0000002b 0000 
      983              $C$DW$89        .dwtag  DW_TAG_TI_branch
      984                      .dwattr $C$DW$89, DW_AT_low_pc(0x00)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   20
@@ -1198,7 +1198,7 @@ foc_pipeline.asm                                                     PAGE   20
     1026 00000048 56BF          MOVB      *+XAR5[4],#3,UNC      ; [CPU_ALU] |250| 
          00000049 03E5 
     1027                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/clarke/i
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   21
@@ -1258,7 +1258,7 @@ foc_pipeline.asm                                                     PAGE   21
          00000070 00C4 
     1064                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/control/pi/include/
     1065 00000071 E806          MOVIZ     R0H,#49382            ; [CPU_FPU] |422| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   22
@@ -1318,7 +1318,7 @@ foc_pipeline.asm                                                     PAGE   22
     1099 0000009c E801          MOVIZ     R0H,#15733            ; [CPU_FPU] |356| 
          0000009d EBA8 
     1100 0000009e E80E          MOVXI     R0H,#49807            ; [CPU_FPU] |356| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   23
@@ -1378,7 +1378,7 @@ foc_pipeline.asm                                                     PAGE   23
     1146              ;***************************************************************
     1147              ;* FNAME: foc_get_signals               FR SIZE:   0           *
     1148              ;*                                                             *
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   24
@@ -1438,7 +1438,7 @@ foc_pipeline.asm                                                     PAGE   24
     1200 00000000       ||foc_get_refs||:
     1201                      .dwcfi  cfa_offset, -2
     1202                      .dwcfi  save_reg_to_mem, 26, 0
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   25
@@ -1498,7 +1498,7 @@ foc_pipeline.asm                                                     PAGE   25
     1254              ;*                            0 Parameter,  0 Auto,  2 SOE     *
     1255              ;***************************************************************
     1256              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   26
@@ -1558,7 +1558,7 @@ foc_pipeline.asm                                                     PAGE   26
     1306                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/clarke/i
     1307 00000009 6113          B         ||$C$L2||,EQ          ; [CPU_ALU] |147| 
     1308                      ; branchcc occurs ; [] |147| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   27
@@ -1618,7 +1618,7 @@ foc_pipeline.asm                                                     PAGE   27
     1344 00000033 7700          NOP       ; [CPU_ALU] 
     1345 00000034       ||$C$L3||:    
     1346 00000034 E700          MPYF32    R0H,R0H,R1H           ; [CPU_FPU] |154| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   28
@@ -1678,7 +1678,7 @@ foc_pipeline.asm                                                     PAGE   28
     1396              ;***************************************************************
     1397              ;* FNAME: PARK_run                      FR SIZE:   4           *
     1398              ;*                                                             *
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   29
@@ -1738,7 +1738,7 @@ foc_pipeline.asm                                                     PAGE   29
          00000001 04BD 
     1451                      .dwcfi  save_reg_to_mem, 59, 2
     1452                      .dwcfi  cfa_offset, -4
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   30
@@ -1798,7 +1798,7 @@ foc_pipeline.asm                                                     PAGE   30
     1491              
     1492 0000001f 0006          LRETR     ; [CPU_ALU] 
     1493                      ; return occurs ; [] 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   31
@@ -1858,7 +1858,7 @@ foc_pipeline.asm                                                     PAGE   31
     1546              
     1547              ;* AR5   assigned to pInVec
     1548              $C$DW$123       .dwtag  DW_TAG_variable
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   32
@@ -1918,7 +1918,7 @@ foc_pipeline.asm                                                     PAGE   32
          00000009 01C5 
     1597                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/ipark/in
     1598              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   33
@@ -1978,7 +1978,7 @@ foc_pipeline.asm                                                     PAGE   33
     1641                      .dwattr $C$DW$130, DW_AT_high_pc(0x00)
     1642                      .dwattr $C$DW$130, DW_AT_linkage_name("SVGEN_run")
     1643                      .dwattr $C$DW$130, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/librari
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   34
@@ -2038,7 +2038,7 @@ foc_pipeline.asm                                                     PAGE   34
     1696                      .dwattr $C$DW$136, DW_AT_location[DW_OP_reg14]
     1697              
     1698              ;* R0    assigned to Vmax_pu
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   35
@@ -2098,7 +2098,7 @@ foc_pipeline.asm                                                     PAGE   35
          00000005 06BD 
     1749                      .dwcfi  save_reg_to_mem, 67, 6
     1750                      .dwcfi  cfa_offset, -8
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   36
@@ -2158,7 +2158,7 @@ foc_pipeline.asm                                                     PAGE   36
          00000029 0000 
     1789 0000002a E710          ADDF32    R6H,R2H,R0H           ; [CPU_FPU] |291| 
          0000002b 0016 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   37
@@ -2218,7 +2218,7 @@ foc_pipeline.asm                                                     PAGE   37
     1831 0000004b 6116          B         ||$C$L9||,EQ          ; [CPU_ALU] |310| 
     1832                      ; branchcc occurs ; [] |310| 
     1833                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/svgen/in
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   38
@@ -2278,7 +2278,7 @@ foc_pipeline.asm                                                     PAGE   38
     1871                      ; branch occurs ; [] 
     1872 0000006e       ||$C$L10||:    
     1873                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/svgen/in
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   39
@@ -2338,7 +2338,7 @@ foc_pipeline.asm                                                     PAGE   39
     1917                      .dwattr $C$DW$145, DW_AT_high_pc(0x00)
     1918                      .dwattr $C$DW$145, DW_AT_linkage_name("foc_current_loop_isr")
     1919                      .dwattr $C$DW$145, DW_AT_external
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   40
@@ -2398,7 +2398,7 @@ foc_pipeline.asm                                                     PAGE   40
     1972              $C$DW$148       .dwtag  DW_TAG_variable
     1973                      .dwattr $C$DW$148, DW_AT_name("cnt")
     1974                      .dwattr $C$DW$148, DW_AT_type(*$C$DW$T$188)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   41
@@ -2458,7 +2458,7 @@ foc_pipeline.asm                                                     PAGE   41
          00000005 0000 
     2027                      ; call occurs [#||debug_isr_scope_high||] ; [] |110| 
     2028                      .dwpsn  file "../src/foc_pipeline.c",line 115,column 20,is_stmt,isa 0
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   42
@@ -2518,7 +2518,7 @@ foc_pipeline.asm                                                     PAGE   42
     2071 00000024 7F00!         MOV       @||g_dbg_qep_direction||,AR7 ; [CPU_ALU] |34| 
     2072 00000025 761F!         MOVW      DP,#||g_qep_mech_offset_cnt|| ; [CPU_ARAU] 
          00000026 0000 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   43
@@ -2578,7 +2578,7 @@ foc_pipeline.asm                                                     PAGE   43
     2110 00000052 E700          MPYF32    R0H,R3H,R1H           ; [CPU_FPU] |45| 
          00000053 0058 
     2111                      .dwpsn  file "../src/foc_pipeline.c",line 117,column 5,is_stmt,isa 0
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   44
@@ -2638,7 +2638,7 @@ foc_pipeline.asm                                                     PAGE   44
     2155              
     2156 00000072 7640!         LCR       #||CLARKE_run||       ; [CPU_ALU] |122| 
          00000073 0000 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   45
@@ -2698,7 +2698,7 @@ foc_pipeline.asm                                                     PAGE   45
     2200 00000091 E2AF!         MOV32     R1H,@||s_refs||+6     ; [CPU_FPU] |130| 
          00000092 0106 
     2201 00000093 E80C          MOVXI     R0H,#39322            ; [CPU_FPU] |130| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   46
@@ -2758,7 +2758,7 @@ foc_pipeline.asm                                                     PAGE   46
     2242              
     2243 000000b6 7640!         LCR       #||PI_run||           ; [CPU_ALU] |137| 
          000000b7 0000 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   47
@@ -2818,7 +2818,7 @@ foc_pipeline.asm                                                     PAGE   47
     2288 000000d9 1E94          MOVL      *+XAR4[AR0],ACC       ; [CPU_ALU] |146| 
     2289                      .dwpsn  file "../src/foc_pipeline.c",line 147,column 13,is_stmt,isa 0
     2290 000000da D010          MOVB      XAR0,#16              ; [CPU_ALU] |147| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   48
@@ -2878,7 +2878,7 @@ foc_pipeline.asm                                                     PAGE   48
     2337                      .dwattr $C$DW$161, DW_AT_name("adc_read_vbus")
     2338                      .dwattr $C$DW$161, DW_AT_TI_call
     2339              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   49
@@ -2938,7 +2938,7 @@ foc_pipeline.asm                                                     PAGE   49
          00000119 0000 
     2383                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/libraries/transforms/ipark/in
     2384 0000011a E2AF!         MOV32     R0H,@||s_sig||+28     ; [CPU_FPU] |278| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   50
@@ -2998,7 +2998,7 @@ foc_pipeline.asm                                                     PAGE   50
     2427 00000138 8AA7          MOVL      XAR4,XAR7             ; [CPU_ALU] |183| 
     2428              $C$DW$165       .dwtag  DW_TAG_TI_branch
     2429                      .dwattr $C$DW$165, DW_AT_low_pc(0x00)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   51
@@ -3058,7 +3058,7 @@ foc_pipeline.asm                                                     PAGE   51
     2477              
     2478 0000014a 7640!         LCR       #||debug_isr_scope_low|| ; [CPU_ALU] |202| 
          0000014b 0000 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   52
@@ -3118,7 +3118,7 @@ foc_pipeline.asm                                                     PAGE   52
     2531              ;***************************************************************
     2532                      .battr "c28xabi", Tag_File, 1, Tag_float_args(1)
     2533                      .battr "c28xabi", Tag_File, 1, Tag_double_args(0)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   53
@@ -3178,7 +3178,7 @@ foc_pipeline.asm                                                     PAGE   53
     2586                      .dwattr $C$DW$173, DW_AT_decl_column(0x03)
     2587              
     2588              $C$DW$174       .dwtag  DW_TAG_enumerator
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   54
@@ -3238,7 +3238,7 @@ foc_pipeline.asm                                                     PAGE   54
     2641              $C$DW$178       .dwtag  DW_TAG_enumerator
     2642                      .dwattr $C$DW$178, DW_AT_name("FOC_RUN")
     2643                      .dwattr $C$DW$178, DW_AT_const_value(0x03)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   55
@@ -3298,7 +3298,7 @@ foc_pipeline.asm                                                     PAGE   55
     2696              
     2697              $C$DW$182       .dwtag  DW_TAG_member
     2698                      .dwattr $C$DW$182, DW_AT_type(*$C$DW$T$23)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   56
@@ -3358,7 +3358,7 @@ foc_pipeline.asm                                                     PAGE   56
     2751                      .dwattr $C$DW$T$28, DW_AT_decl_file("/home/jose/workspace_ccstheia/foc_f28379d/include/foc_types.h")
     2752                      .dwattr $C$DW$T$28, DW_AT_decl_line(0x1a)
     2753                      .dwattr $C$DW$T$28, DW_AT_decl_column(0x10)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   57
@@ -3418,7 +3418,7 @@ foc_pipeline.asm                                                     PAGE   57
     2806                      .dwattr $C$DW$T$29, DW_AT_byte_size(0x08)
     2807              $C$DW$190       .dwtag  DW_TAG_member
     2808                      .dwattr $C$DW$190, DW_AT_type(*$C$DW$T$27)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   58
@@ -3478,7 +3478,7 @@ foc_pipeline.asm                                                     PAGE   58
     2861              
     2862              $C$DW$TU$66     .dwtag  DW_TAG_type_unit
     2863                      .dwmtype  $C$DW$T$66
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   59
@@ -3538,7 +3538,7 @@ foc_pipeline.asm                                                     PAGE   59
     2916                      .dwattr $C$DW$T$33, DW_AT_decl_column(0x10)
     2917                      .dwendtag $C$DW$T$33
     2918              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   60
@@ -3598,7 +3598,7 @@ foc_pipeline.asm                                                     PAGE   60
     2971                      .dwattr $C$DW$T$34, DW_AT_byte_size(0x04)
     2972              $C$DW$199       .dwtag  DW_TAG_member
     2973                      .dwattr $C$DW$199, DW_AT_type(*$C$DW$T$27)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   61
@@ -3658,7 +3658,7 @@ foc_pipeline.asm                                                     PAGE   61
     3026              
     3027                      .dwendtag $C$DW$TU$83
     3028              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   62
@@ -3718,7 +3718,7 @@ foc_pipeline.asm                                                     PAGE   62
     3081                      .dwattr $C$DW$T$22, DW_AT_decl_line(0x0d)
     3082                      .dwattr $C$DW$T$22, DW_AT_decl_column(0x13)
     3083              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   63
@@ -3778,7 +3778,7 @@ foc_pipeline.asm                                                     PAGE   63
     3136              $C$DW$T$90      .dwtag  DW_TAG_pointer_type
     3137                      .dwattr $C$DW$T$90, DW_AT_type(*$C$DW$T$89)
     3138                      .dwattr $C$DW$T$90, DW_AT_address_class(0x20)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   64
@@ -3838,7 +3838,7 @@ foc_pipeline.asm                                                     PAGE   64
     3191                      .dwendtag $C$DW$T$38
     3192              
     3193                      .dwendtag $C$DW$TU$38
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   65
@@ -3898,7 +3898,7 @@ foc_pipeline.asm                                                     PAGE   65
     3246                      .dwattr $C$DW$T$20, DW_AT_decl_line(0x0c)
     3247                      .dwattr $C$DW$T$20, DW_AT_decl_column(0x13)
     3248              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   66
@@ -3958,7 +3958,7 @@ foc_pipeline.asm                                                     PAGE   66
     3301              $C$DW$TU$114    .dwtag  DW_TAG_type_unit
     3302                      .dwmtype  $C$DW$T$114
     3303              $C$DW$210       .dwtag  DW_TAG_TI_far_type
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   67
@@ -4018,7 +4018,7 @@ foc_pipeline.asm                                                     PAGE   67
     3356                      .dwmtype  $C$DW$T$125
     3357              $C$DW$T$125     .dwtag  DW_TAG_pointer_type
     3358                      .dwattr $C$DW$T$125, DW_AT_type(*$C$DW$T$39)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   68
@@ -4078,7 +4078,7 @@ foc_pipeline.asm                                                     PAGE   68
     3411                      .dwattr $C$DW$216, DW_AT_type(*$C$DW$T$27)
     3412                      .dwattr $C$DW$216, DW_AT_name("Ui")
     3413                      .dwattr $C$DW$216, DW_AT_data_member_location[DW_OP_plus_uconst 0x4]
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   69
@@ -4138,7 +4138,7 @@ foc_pipeline.asm                                                     PAGE   69
     3466                      .dwattr $C$DW$T$40, DW_AT_decl_column(0x10)
     3467                      .dwendtag $C$DW$T$40
     3468              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   70
@@ -4198,7 +4198,7 @@ foc_pipeline.asm                                                     PAGE   70
     3521                      .dwattr $C$DW$T$44, DW_AT_byte_size(0x04)
     3522              $C$DW$223       .dwtag  DW_TAG_member
     3523                      .dwattr $C$DW$223, DW_AT_type(*$C$DW$T$27)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   71
@@ -4258,7 +4258,7 @@ foc_pipeline.asm                                                     PAGE   71
     3576              
     3577              $C$DW$TU$46     .dwtag  DW_TAG_type_unit
     3578                      .dwmtype  $C$DW$T$46
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   72
@@ -4318,7 +4318,7 @@ foc_pipeline.asm                                                     PAGE   72
     3631                      .dwattr $C$DW$T$5, DW_AT_name("signed char")
     3632                      .dwattr $C$DW$T$5, DW_AT_byte_size(0x01)
     3633              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   73
@@ -4378,7 +4378,7 @@ foc_pipeline.asm                                                     PAGE   73
     3686                      .dwattr $C$DW$T$176, DW_AT_decl_column(0x14)
     3687              
     3688                      .dwendtag $C$DW$TU$176
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   74
@@ -4438,7 +4438,7 @@ foc_pipeline.asm                                                     PAGE   74
     3741                      .dwattr $C$DW$T$32, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LT
     3742                      .dwattr $C$DW$T$32, DW_AT_decl_line(0x2f)
     3743                      .dwattr $C$DW$T$32, DW_AT_decl_column(0x1a)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   75
@@ -4498,7 +4498,7 @@ foc_pipeline.asm                                                     PAGE   75
     3796                      .dwattr $C$DW$T$12, DW_AT_byte_size(0x02)
     3797              
     3798                      .dwendtag $C$DW$TU$12
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   76
@@ -4558,7 +4558,7 @@ foc_pipeline.asm                                                     PAGE   76
     3851                      .dwattr $C$DW$T$177, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.L
     3852                      .dwattr $C$DW$T$177, DW_AT_decl_line(0x43)
     3853                      .dwattr $C$DW$T$177, DW_AT_decl_column(0x1c)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   77
@@ -4618,7 +4618,7 @@ foc_pipeline.asm                                                     PAGE   77
     3906              $C$DW$T$14      .dwtag  DW_TAG_base_type
     3907                      .dwattr $C$DW$T$14, DW_AT_encoding(DW_ATE_signed)
     3908                      .dwattr $C$DW$T$14, DW_AT_name("long long")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   78
@@ -4678,7 +4678,7 @@ foc_pipeline.asm                                                     PAGE   78
     3961                      .dwmtype  $C$DW$T$37
     3962              
     3963              $C$DW$T$37      .dwtag  DW_TAG_array_type
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   79
@@ -4738,7 +4738,7 @@ foc_pipeline.asm                                                     PAGE   79
     4016              $C$DW$TU$17     .dwtag  DW_TAG_type_unit
     4017                      .dwmtype  $C$DW$T$17
     4018              $C$DW$T$17      .dwtag  DW_TAG_base_type
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 foc_pipeline.asm                                                     PAGE   80

@@ -1,11 +1,11 @@
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:16:39 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 clarke.asm                                                           PAGE    1
 
        1              ;***************************************************************
        2              ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
-       3              ;* Date/Time created: Sat May 30 20:16:39 2026                 *
+       3              ;* Date/Time created: Sun May 31 21:09:06 2026                 *
        4              ;***************************************************************
        5                      .compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --
        6                      .asg    XAR2, FP
@@ -15,8 +15,8 @@ clarke.asm                                                           PAGE    1
       10                      .dwattr $C$DW$CU, DW_AT_producer("TI TMS320C2000 G3 C/C++ Codegen Unix v25.11.0.LTS Copyright (c) 199
       11                      .dwattr $C$DW$CU, DW_AT_TI_version(0x01)
       12                      .dwattr $C$DW$CU, DW_AT_comp_dir("/home/jose/workspace_ccstheia/foc_f28379d/Debug_BOOSTXL_Teknic_QEP"
-      13              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI5VldtpbFq /tmp/T
-      14              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI5VldulrjL 
+      13              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TIahEtf1Zzo /tmp/T
+      14              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TIahEqyVoAR 
       15 00000000               .sect   ".text:CLARKE_init"
       16                      .clink
       17                      .global ||CLARKE_init||
@@ -58,7 +58,7 @@ clarke.asm                                                           PAGE    1
       53 00000000       ||CLARKE_init||:
       54                      .dwcfi  cfa_offset, -2
       55                      .dwcfi  save_reg_to_mem, 26, 0
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:16:39 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 clarke.asm                                                           PAGE    2
@@ -118,7 +118,7 @@ clarke.asm                                                           PAGE    2
      108              $C$DW$TU$23     .dwtag  DW_TAG_type_unit
      109                      .dwmtype  $C$DW$T$23
      110              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:16:39 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 clarke.asm                                                           PAGE    3
@@ -178,7 +178,7 @@ clarke.asm                                                           PAGE    3
      163                      .dwattr $C$DW$T$25, DW_AT_decl_line(0x50)
      164                      .dwattr $C$DW$T$25, DW_AT_decl_column(0x1e)
      165              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:16:39 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 clarke.asm                                                           PAGE    4
@@ -238,7 +238,7 @@ clarke.asm                                                           PAGE    4
      218              $C$DW$T$7       .dwtag  DW_TAG_base_type
      219                      .dwattr $C$DW$T$7, DW_AT_encoding(DW_ATE_signed_char)
      220                      .dwattr $C$DW$T$7, DW_AT_name("wchar_t")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:16:39 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 clarke.asm                                                           PAGE    5
@@ -298,7 +298,7 @@ clarke.asm                                                           PAGE    5
      273                      .dwattr $C$DW$T$20, DW_AT_name("__uint16_t")
      274                      .dwattr $C$DW$T$20, DW_AT_type(*$C$DW$T$9)
      275                      .dwattr $C$DW$T$20, DW_AT_decl_file("/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LT
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:16:39 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 clarke.asm                                                           PAGE    6
@@ -358,7 +358,7 @@ clarke.asm                                                           PAGE    6
      328              $C$DW$T$12      .dwtag  DW_TAG_base_type
      329                      .dwattr $C$DW$T$12, DW_AT_encoding(DW_ATE_signed)
      330                      .dwattr $C$DW$T$12, DW_AT_name("long")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:16:39 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 clarke.asm                                                           PAGE    7
@@ -418,7 +418,7 @@ clarke.asm                                                           PAGE    7
      383                      .dwattr $C$DW$T$16, DW_AT_byte_size(0x02)
      384              
      385                      .dwendtag $C$DW$TU$16
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:16:39 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 clarke.asm                                                           PAGE    8

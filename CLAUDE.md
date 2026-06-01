@@ -24,16 +24,6 @@ Do NOT parallelize these steps with task work. Do NOT skip step 2 regardless of 
 Field-Oriented Control firmware for a TMS320F28379D (F2837xD dual-core). CPU1 only.
 Two independent hardware variants share the same source tree, selected at build time.
 
-## Paths — Critical Non-Obvious Separation
-
-| Location | Purpose |
-|---|---|
-| `C:\Users\Jose\source\repos\foc_f28379d\` | Git repo — all source, headers, config, SysConfig `.syscfg` |
-| `C:\Users\Jose\workspace_ccstheia\foc_f28379d\` | CCS project metadata only (`.project`, `.cproject`) |
-
-The CCS build variable `APP_ROOT` points to the source repo root. SysConfig output
-(generated `board.c`/`board.h`) goes to the **build output** directory inside the workspace,
-**not** the source repo. Never edit generated files in `Debug_*/syscfg/` — re-save SysConfig instead.
 
 ## Build Configurations
 
@@ -127,10 +117,6 @@ Device_init() → Device_initGPIO() → Interrupt_initModule/VectorTable() → B
 | PWRGD | RST net | | VSENA / VSENB / VSENC | ADCIN14 / ADCIN-C3 / ADCIN-B3 |
 
 (VSENA/B/C are phase-voltage-sense channels, not yet used by firmware.)
-
-## Bench-Specific Hardware Quirks
-
-- **BOOSTXL-DRV8305 SO1 output is dead on the current bench unit.** SO2 and SO3 both bias correctly at ~1.65 V on B2/A2; SO1 reads near 0 V at BP27/C2 with the BoosterPack attached. The DRV8305 itself is alive (EN_GATE wakes it, nFAULT clears, SO2/SO3 biased). Until a replacement BOOSTXL is on the bench, reconstruct Iu via KCL: `Iu = -Iv - Iw`. SysConfig + headers leave the C2/ADCC SOC0 wiring in place so the channel is ready when SO1 is fixed.
 
 ## Bring-Up Status
 

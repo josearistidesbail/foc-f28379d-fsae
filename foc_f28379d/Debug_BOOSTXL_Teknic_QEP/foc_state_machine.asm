@@ -1,6 +1,6 @@
 ;***************************************************************
 ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
-;* Date/Time created: Sat May 30 20:22:51 2026                 *
+;* Date/Time created: Sun May 31 21:09:06 2026                 *
 ;***************************************************************
 	.compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --mem_model:code=flat --mem_model:data=large --object_format=elf --quiet --silicon_errata_fpu1_workaround=off --silicon_version=28 --symdebug:dwarf --symdebug:dwarf_version=4 --tmu_support=tmu0 --vcu_support=vcu2 
 	.asg	XAR2, FP
@@ -249,8 +249,8 @@ $C$DW$21	.dwtag  DW_TAG_subprogram
 
 	.sblock	".bss"
 	.sblock	".data"
-;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI6XtENf1NR /tmp/TI6XtOC4lzM --advice:performance=stdout 
-;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI6Xtx8q4hy 
+;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TIagFHUEwCj /tmp/TIagFEk93rB --advice:performance=stdout 
+;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TIagFCIC45K 
 	.sect	".text:sm_clear_fault"
 	.clink
 	.global	||sm_clear_fault||
@@ -702,7 +702,8 @@ $C$DW$48	.dwtag  DW_TAG_TI_branch
 
         LCR       #||foc_get_refs||     ; [CPU_ALU] |52| 
         ; call occurs [#||foc_get_refs||] ; [] |52| 
-        MOVIZ     R0H,#16256            ; [CPU_FPU] |52| 
+        MOVIZ     R0H,#16025            ; [CPU_FPU] |52| 
+        MOVXI     R0H,#39322            ; [CPU_FPU] |52| 
         MOV32     *+XAR4[0],R0H         ; [CPU_FPU] |52| 
 	.dwpsn	file "../src/foc_state_machine.c",line 53,column 9,is_stmt,isa 0
 $C$DW$49	.dwtag  DW_TAG_TI_branch

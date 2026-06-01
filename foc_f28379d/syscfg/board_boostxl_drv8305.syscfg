@@ -133,7 +133,7 @@ eqep1.positionCounterMode   = "EQEP_POSITION_RESET_MAX_POS";
 eqep1.positionCounterMax    = 15999;
 eqep1.enableModule          = true;
 eqep1.emulationMode         = "EQEP_EMULATIONMODE_RUNFREE";
-eqep1.eqep.eqepiPin.$assign = "GPIO23";
+eqep1.eqep.eqepiPin.$assign = "GPIO99";
 
 gpio2.$name             = "DRV8305_EN_GATE";
 gpio2.direction         = "GPIO_DIR_MODE_OUT";
@@ -186,7 +186,7 @@ spi1.pociQual.$name          = "myGPIOQUAL4";
  * re-solve from scratch.
  */
 eqep1.eqep.$suggestSolution          = "EQEP1";
-eqep1.eqep.eqepaPin.$suggestSolution = "GPIO10";
-eqep1.eqep.eqepbPin.$suggestSolution = "GPIO11";
+eqep1.eqep.eqepaPin.$assign          = "GPIO20";
+eqep1.eqep.eqepbPin.$assign          = "GPIO21";
 sci1.sci.$suggestSolution            = "SCIA";
 spi1.spi.$suggestSolution            = "SPIA";

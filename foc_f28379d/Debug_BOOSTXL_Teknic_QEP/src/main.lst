@@ -1,11 +1,11 @@
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 main.asm                                                             PAGE    1
 
        1              ;***************************************************************
        2              ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
-       3              ;* Date/Time created: Sat May 30 20:22:51 2026                 *
+       3              ;* Date/Time created: Sun May 31 21:09:06 2026                 *
        4              ;***************************************************************
        5                      .compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --
        6                      .asg    XAR2, FP
@@ -58,7 +58,7 @@ main.asm                                                             PAGE    1
       53                      .dwattr $C$DW$4, DW_AT_decl_line(0x1b6)
       54                      .dwattr $C$DW$4, DW_AT_decl_column(0x01)
       55                      .dwendtag $C$DW$4
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 main.asm                                                             PAGE    2
@@ -118,7 +118,7 @@ main.asm                                                             PAGE    2
      108                      .dwattr $C$DW$9, DW_AT_decl_line(0x0a)
      109                      .dwattr $C$DW$9, DW_AT_decl_column(0x0d)
      110                      .dwendtag $C$DW$9
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 main.asm                                                             PAGE    3
@@ -178,7 +178,7 @@ main.asm                                                             PAGE    3
      163                      .dwattr $C$DW$14, DW_AT_decl_line(0x0e)
      164                      .dwattr $C$DW$14, DW_AT_decl_column(0x0d)
      165                      .dwendtag $C$DW$14
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 main.asm                                                             PAGE    4
@@ -236,9 +236,9 @@ main.asm                                                             PAGE    4
      216                      .dwattr $C$DW$19, DW_AT_decl_line(0x1a)
      217                      .dwattr $C$DW$19, DW_AT_decl_column(0x1a)
      218              
-     219              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI6XTdfftwn /tmp/T
-     220              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI6XTCsg1xn 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+     219              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TIagWgkaceA /tmp/T
+     220              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TIagW4zLPaf 
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 main.asm                                                             PAGE    5
@@ -298,7 +298,7 @@ main.asm                                                             PAGE    5
      273                      .dwattr $C$DW$23, DW_AT_TI_call
      274              
      275 00000001 7640!         LCR       #||Device_init||      ; [CPU_ALU] |39| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 main.asm                                                             PAGE    6
@@ -358,7 +358,7 @@ main.asm                                                             PAGE    6
      322              
      323 0000000d 7640!         LCR       #||safety_init||      ; [CPU_ALU] |47| 
          0000000e 0000 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 main.asm                                                             PAGE    7
@@ -418,7 +418,7 @@ main.asm                                                             PAGE    7
      371 00000019 7640!         LCR       #||sm_init||          ; [CPU_ALU] |53| 
          0000001a 0000 
      372                      ; call occurs [#||sm_init||] ; [] |53| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 main.asm                                                             PAGE    8
@@ -478,7 +478,7 @@ main.asm                                                             PAGE    8
      416 00000035 9001          ANDB      AL,#0x01              ; [CPU_ALU] |431| 
      417                      .dwpsn  file "../src/main.c",line 73,column 9,is_stmt,isa 0
      418 00000036 9600!         MOV       @||g_dbg_nfault||,AL  ; [CPU_ALU] |73| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 main.asm                                                             PAGE    9
@@ -538,7 +538,7 @@ main.asm                                                             PAGE    9
      466                      .global ||g_isr_count||
      467              
      468              ;***************************************************************
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 main.asm                                                             PAGE   10
@@ -598,7 +598,7 @@ main.asm                                                             PAGE   10
      521              $C$DW$T$5       .dwtag  DW_TAG_base_type
      522                      .dwattr $C$DW$T$5, DW_AT_encoding(DW_ATE_signed_char)
      523                      .dwattr $C$DW$T$5, DW_AT_name("signed char")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 main.asm                                                             PAGE   11
@@ -658,7 +658,7 @@ main.asm                                                             PAGE   11
      576                      .dwattr $C$DW$T$26, DW_AT_decl_column(0x1c)
      577              
      578                      .dwendtag $C$DW$TU$26
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 main.asm                                                             PAGE   12
@@ -718,7 +718,7 @@ main.asm                                                             PAGE   12
      631                      .dwendtag $C$DW$TU$12
      632              
      633              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 main.asm                                                             PAGE   13
@@ -778,7 +778,7 @@ main.asm                                                             PAGE   13
      686                      .dwendtag $C$DW$TU$14
      687              
      688              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 main.asm                                                             PAGE   14

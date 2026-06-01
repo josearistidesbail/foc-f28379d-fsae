@@ -1,11 +1,11 @@
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE    1
 
        1              ;***************************************************************
        2              ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
-       3              ;* Date/Time created: Sat May 30 20:22:51 2026                 *
+       3              ;* Date/Time created: Sun May 31 21:09:06 2026                 *
        4              ;***************************************************************
        5                      .compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --
        6                      .asg    XAR2, FP
@@ -34,8 +34,8 @@ pwm_iface.asm                                                        PAGE    1
       29                      .dwattr $C$DW$1, DW_AT_decl_column(0x0a)
       30              
       31                      .sblock ".data"
-      32              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI6Yog0INDr /tmp/T
-      33              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI6YomjEuwF 
+      32              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TIagZqOgmFo /tmp/T
+      33              ;       /home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TIagZa75RpX 
       34 00000000               .sect   ".text:pwm_set_duty"
       35                      .clink
       36                      .global ||pwm_set_duty||
@@ -58,7 +58,7 @@ pwm_iface.asm                                                        PAGE    1
       53                      .dwattr $C$DW$3, DW_AT_type(*$C$DW$T$33)
       54                      .dwattr $C$DW$3, DW_AT_location[DW_OP_reg12]
       55              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE    2
@@ -118,7 +118,7 @@ pwm_iface.asm                                                        PAGE    2
      104              
      105                      .dwpsn  file "../src/pwm_iface.c",line 57,column 16,is_stmt,isa 0
      106              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE    3
@@ -178,7 +178,7 @@ pwm_iface.asm                                                        PAGE    3
      143                      .dwpsn  file "../src/pwm_iface.c",line 60,column 24,is_stmt,isa 0
      144 0000002d 0E00!         MOVU      ACC,@||g_pwm_period_count|| ; [CPU_ALU] |60| 
      145 0000002e 0FA0          CMPL      ACC,XAR0              ; [CPU_ALU] |60| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE    4
@@ -238,7 +238,7 @@ pwm_iface.asm                                                        PAGE    4
      188 00000054 F4A9          MOV       *(0:0x4149),AL        ; [CPU_ALU] |3079| 
          00000055 4149 
      189 00000056 F5A9          MOV       AL,*(0:0x4249)        ; [CPU_ALU] |3079| 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE    5
@@ -298,7 +298,7 @@ pwm_iface.asm                                                        PAGE    5
      239                      ; return occurs ; [] 
      240                      .dwattr $C$DW$9, DW_AT_TI_end_file("../src/pwm_iface.c")
      241                      .dwattr $C$DW$9, DW_AT_TI_end_line(0x19)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE    6
@@ -358,7 +358,7 @@ pwm_iface.asm                                                        PAGE    6
      294                      .dwpsn  file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/epwm.h",line 3037
      295 00000000 F5A9          MOV       AL,*(0:0x4047)        ; [CPU_ALU] |3037| 
          00000001 4047 
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE    7
@@ -418,7 +418,7 @@ pwm_iface.asm                                                        PAGE    7
      331 0000002c F4A6          MOV       *(0:0x426b),AR6       ; [CPU_ALU] |2446| 
          0000002d 426B 
      332              $C$DW$15        .dwtag  DW_TAG_TI_branch
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE    8
@@ -478,7 +478,7 @@ pwm_iface.asm                                                        PAGE    8
      385                      .dwattr $C$DW$16, DW_AT_const_value(0x00)
      386                      .dwattr $C$DW$16, DW_AT_decl_file("/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driver
      387                      .dwattr $C$DW$16, DW_AT_decl_line(0x111)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE    9
@@ -538,7 +538,7 @@ pwm_iface.asm                                                        PAGE    9
      440                      .dwattr $C$DW$20, DW_AT_decl_line(0x220)
      441                      .dwattr $C$DW$20, DW_AT_decl_column(0x05)
      442              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE   10
@@ -598,7 +598,7 @@ pwm_iface.asm                                                        PAGE   10
      495              
      496              $C$DW$25        .dwtag  DW_TAG_enumerator
      497                      .dwattr $C$DW$25, DW_AT_name("EPWM_AQ_OUTPUT_B")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE   11
@@ -658,7 +658,7 @@ pwm_iface.asm                                                        PAGE   11
      550                      .dwattr $C$DW$T$28, DW_AT_decl_line(0x19f)
      551                      .dwattr $C$DW$T$28, DW_AT_decl_column(0x01)
      552                      .dwendtag $C$DW$T$28
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE   12
@@ -718,7 +718,7 @@ pwm_iface.asm                                                        PAGE   12
      605              $C$DW$T$31      .dwtag  DW_TAG_typedef
      606                      .dwattr $C$DW$T$31, DW_AT_name("FOC_Duty_t")
      607                      .dwattr $C$DW$T$31, DW_AT_type(*$C$DW$T$30)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE   13
@@ -778,7 +778,7 @@ pwm_iface.asm                                                        PAGE   13
      660              
      661                      .dwendtag $C$DW$TU$4
      662              
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE   14
@@ -838,7 +838,7 @@ pwm_iface.asm                                                        PAGE   14
      715                      .dwmtype  $C$DW$T$41
      716              $C$DW$T$41      .dwtag  DW_TAG_typedef
      717                      .dwattr $C$DW$T$41, DW_AT_name("__uint16_t")
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE   15
@@ -898,7 +898,7 @@ pwm_iface.asm                                                        PAGE   15
      770              $C$DW$T$50      .dwtag  DW_TAG_typedef
      771                      .dwattr $C$DW$T$50, DW_AT_name("__int32_t")
      772                      .dwattr $C$DW$T$50, DW_AT_type(*$C$DW$T$12)
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE   16
@@ -958,7 +958,7 @@ pwm_iface.asm                                                        PAGE   16
      825              
      826              $C$DW$TU$14     .dwtag  DW_TAG_type_unit
      827                      .dwmtype  $C$DW$T$14
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE   17
@@ -1018,7 +1018,7 @@ pwm_iface.asm                                                        PAGE   17
      880              
      881              
      882              $C$DW$TU$17     .dwtag  DW_TAG_type_unit
-TMS320C2000 Assembler Unix v25.11.0 Sat May 30 20:22:51 2026
+TMS320C2000 Assembler Unix v25.11.0 Sun May 31 21:09:06 2026
 
 Copyright (c) 1996-2018 Texas Instruments Incorporated
 pwm_iface.asm                                                        PAGE   18

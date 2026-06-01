@@ -21,11 +21,16 @@
       "Read(//home/jose/**)",
       "Read(//home/jose/source/repos/**)",
       "WebFetch(domain:www.ti.com)",
+      "Bash(/usr/bin/grep *)",
+      "Bash(/bin/ls /home/jose/workspace_ccstheia/foc_f28379d/)",
+      "Bash(rtk --version)",
+      "Bash(/bin/ls *)",
+      "Bash(awk NR>=6 && NR<=25 *)",
+      "WebSearch",
       "mcp__ccs-debug",
       "mcp__ccs-project",
       "mcp__ccs-sysconfig",
-      "mcp__ccs-serial",
-      "Bash(/usr/bin/grep *)"
+      "mcp__ccs-serial"
     ],
     "ask": [
       "mcp__ccs-project__changeSysConfigVersion"

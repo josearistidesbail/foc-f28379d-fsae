@@ -1,6 +1,6 @@
 ;***************************************************************
 ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
-;* Date/Time created: Sat May 30 20:15:25 2026                 *
+;* Date/Time created: Sun May 31 21:09:06 2026                 *
 ;***************************************************************
 	.compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --mem_model:code=flat --mem_model:data=large --object_format=elf --quiet --silicon_errata_fpu1_workaround=off --silicon_version=28 --symdebug:dwarf --symdebug:dwarf_version=4 --tmu_support=tmu0 --vcu_support=vcu2 
 	.asg	XAR2, FP
@@ -300,8 +300,8 @@ $C$DW$50	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$50, DW_AT_external
 	.dwendtag $C$DW$50
 
-;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI5gcbfA62r /tmp/TI5gcxgOlJ0 --advice:performance=stdout 
-;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI5gcbhwYho 
+;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TIaiEuGG64c /tmp/TIaiExmm6cz --advice:performance=stdout 
+;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TIaiEDqUx0I 
 	.sect	".text:myADCC_init"
 	.clink
 	.global	||myADCC_init||
@@ -1312,7 +1312,7 @@ $C$DW$94	.dwtag  DW_TAG_TI_branch
         LCR       #||GPIO_setQualificationMode|| ; [CPU_ALU] |105| 
         ; call occurs [#||GPIO_setQualificationMode||] ; [] |105| 
 	.dwpsn	file "syscfg/board.c",line 110,column 2,is_stmt,isa 0
-        MOVL      XAR4,#398341          ; [CPU_ARAU] |110| 
+        MOVL      XAR4,#526337          ; [CPU_ARAU] |110| 
         MOVL      ACC,XAR4              ; [CPU_ALU] |110| 
 $C$DW$95	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$95, DW_AT_low_pc(0x00)
@@ -1324,7 +1324,7 @@ $C$DW$95	.dwtag  DW_TAG_TI_branch
 	.dwpsn	file "syscfg/board.c",line 111,column 2,is_stmt,isa 0
         MOVB      ACC,#0                ; [CPU_ALU] |111| 
         MOVL      *-SP[2],ACC           ; [CPU_ALU] |111| 
-        MOVB      ACC,#10               ; [CPU_ALU] |111| 
+        MOVB      ACC,#20               ; [CPU_ALU] |111| 
 $C$DW$96	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$96, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$96, DW_AT_name("GPIO_setPadConfig")
@@ -1333,7 +1333,7 @@ $C$DW$96	.dwtag  DW_TAG_TI_branch
         LCR       #||GPIO_setPadConfig|| ; [CPU_ALU] |111| 
         ; call occurs [#||GPIO_setPadConfig||] ; [] |111| 
 	.dwpsn	file "syscfg/board.c",line 112,column 2,is_stmt,isa 0
-        MOVB      ACC,#10               ; [CPU_ALU] |112| 
+        MOVB      ACC,#20               ; [CPU_ALU] |112| 
         MOVB      XAR4,#0               ; [CPU_ALU] |112| 
 $C$DW$97	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$97, DW_AT_low_pc(0x00)
@@ -1343,7 +1343,7 @@ $C$DW$97	.dwtag  DW_TAG_TI_branch
         LCR       #||GPIO_setQualificationMode|| ; [CPU_ALU] |112| 
         ; call occurs [#||GPIO_setQualificationMode||] ; [] |112| 
 	.dwpsn	file "syscfg/board.c",line 114,column 2,is_stmt,isa 0
-        MOVL      XAR4,#398853          ; [CPU_ARAU] |114| 
+        MOVL      XAR4,#526849          ; [CPU_ARAU] |114| 
         MOVL      ACC,XAR4              ; [CPU_ALU] |114| 
 $C$DW$98	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$98, DW_AT_low_pc(0x00)
@@ -1355,7 +1355,7 @@ $C$DW$98	.dwtag  DW_TAG_TI_branch
 	.dwpsn	file "syscfg/board.c",line 115,column 2,is_stmt,isa 0
         MOVB      ACC,#0                ; [CPU_ALU] |115| 
         MOVL      *-SP[2],ACC           ; [CPU_ALU] |115| 
-        MOVB      ACC,#11               ; [CPU_ALU] |115| 
+        MOVB      ACC,#21               ; [CPU_ALU] |115| 
 $C$DW$99	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$99, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$99, DW_AT_name("GPIO_setPadConfig")
@@ -1365,7 +1365,7 @@ $C$DW$99	.dwtag  DW_TAG_TI_branch
         ; call occurs [#||GPIO_setPadConfig||] ; [] |115| 
 	.dwpsn	file "syscfg/board.c",line 116,column 2,is_stmt,isa 0
         MOVB      XAR4,#0               ; [CPU_ALU] |116| 
-        MOVB      ACC,#11               ; [CPU_ALU] |116| 
+        MOVB      ACC,#21               ; [CPU_ALU] |116| 
 $C$DW$100	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$100, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$100, DW_AT_name("GPIO_setQualificationMode")
@@ -1374,8 +1374,8 @@ $C$DW$100	.dwtag  DW_TAG_TI_branch
         LCR       #||GPIO_setQualificationMode|| ; [CPU_ALU] |116| 
         ; call occurs [#||GPIO_setQualificationMode||] ; [] |116| 
 	.dwpsn	file "syscfg/board.c",line 118,column 2,is_stmt,isa 0
-        MOVL      XAR4,#527873          ; [CPU_ARAU] |118| 
-        MOVL      ACC,XAR4              ; [CPU_ALU] |118| 
+        MOV       AL,#1541              ; [CPU_ALU] |118| 
+        MOV       AH,#198               ; [CPU_ALU] |118| 
 $C$DW$101	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$101, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$101, DW_AT_name("GPIO_setPinConfig")
@@ -1386,7 +1386,7 @@ $C$DW$101	.dwtag  DW_TAG_TI_branch
 	.dwpsn	file "syscfg/board.c",line 119,column 2,is_stmt,isa 0
         MOVB      ACC,#0                ; [CPU_ALU] |119| 
         MOVL      *-SP[2],ACC           ; [CPU_ALU] |119| 
-        MOVB      ACC,#23               ; [CPU_ALU] |119| 
+        MOVB      ACC,#99               ; [CPU_ALU] |119| 
 $C$DW$102	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$102, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$102, DW_AT_name("GPIO_setPadConfig")
@@ -1396,7 +1396,7 @@ $C$DW$102	.dwtag  DW_TAG_TI_branch
         ; call occurs [#||GPIO_setPadConfig||] ; [] |119| 
 	.dwpsn	file "syscfg/board.c",line 120,column 2,is_stmt,isa 0
         MOVB      XAR4,#0               ; [CPU_ALU] |120| 
-        MOVB      ACC,#23               ; [CPU_ALU] |120| 
+        MOVB      ACC,#99               ; [CPU_ALU] |120| 
 $C$DW$103	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$103, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$103, DW_AT_name("GPIO_setQualificationMode")

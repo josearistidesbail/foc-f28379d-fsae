@@ -1,6 +1,6 @@
 ;***************************************************************
 ;* TMS320C2000 G3 C/C++ Codegen                         Unix v25.11.0.LTS *
-;* Date/Time created: Sat May 30 20:22:51 2026                 *
+;* Date/Time created: Sun May 31 21:09:06 2026                 *
 ;***************************************************************
 	.compiler_opts --abi=eabi --cla_support=cla1 --diag_wrap=off --float_support=fpu32 --hll_source=on --mem_model:code=flat --mem_model:data=large --object_format=elf --quiet --silicon_errata_fpu1_workaround=off --silicon_version=28 --symdebug:dwarf --symdebug:dwarf_version=4 --tmu_support=tmu0 --vcu_support=vcu2 
 	.asg	XAR2, FP
@@ -108,8 +108,8 @@ $C$DW$7	.dwtag  DW_TAG_variable
 
 	.sblock	".bss"
 	.sblock	".data"
-;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TI6XcXW5gH6 /tmp/TI6Xc8vaYqD --advice:performance=stdout 
-;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TI6XciH93jy 
+;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/opt2000 /tmp/TIagqBpcTr7 /tmp/TIagqjd9GoX --advice:performance=stdout 
+;	/home/jose/ti/ccs2051/ccs/tools/compiler/ti-cgt-c2000_25.11.0.LTS/bin/acia2000 -@/tmp/TIagqHylELb 
 	.sect	".text:adc_read_vbus"
 	.clink
 	.global	||adc_read_vbus||
@@ -122,10 +122,10 @@ $C$DW$8	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$8, DW_AT_external
 	.dwattr $C$DW$8, DW_AT_type(*$C$DW$T$16)
 	.dwattr $C$DW$8, DW_AT_decl_file("../src/adc_iface.c")
-	.dwattr $C$DW$8, DW_AT_decl_line(0x3f)
+	.dwattr $C$DW$8, DW_AT_decl_line(0x4b)
 	.dwattr $C$DW$8, DW_AT_decl_column(0x07)
 	.dwattr $C$DW$8, DW_AT_TI_max_frame_size(-2)
-	.dwpsn	file "../src/adc_iface.c",line 64,column 1,is_stmt,address ||adc_read_vbus||,isa 0
+	.dwpsn	file "../src/adc_iface.c",line 76,column 1,is_stmt,address ||adc_read_vbus||,isa 0
 
 	.dwfde $C$DW$CIE, ||adc_read_vbus||
 
@@ -149,18 +149,18 @@ $C$DW$9	.dwtag  DW_TAG_variable
 	.dwcfi	save_reg_to_mem, 26, 0
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/adc.h",line 923,column 5,is_stmt,isa 0
         MOV       AL,*(0:0x0b03)        ; [CPU_ALU] |923| 
-	.dwpsn	file "../src/adc_iface.c",line 67,column 5,is_stmt,isa 0
-        MOVZ      AR6,AL                ; [CPU_ALU] |67| 
-        MOV32     R1H,XAR6              ; [CPU_FPU] |67| 
+	.dwpsn	file "../src/adc_iface.c",line 79,column 5,is_stmt,isa 0
+        MOVZ      AR6,AL                ; [CPU_ALU] |79| 
+        MOV32     R1H,XAR6              ; [CPU_FPU] |79| 
         NOP       ; [CPU_ALU] 
         NOP       ; [CPU_ALU] 
-        MOVIZ     R0H,#15389            ; [CPU_FPU] |67| 
+        MOVIZ     R0H,#15389            ; [CPU_FPU] |79| 
         MOVW      DP,#||g_dbg_vbus_raw|| ; [CPU_ARAU] 
-        UI32TOF32 R1H,R1H               ; [CPU_FPU] |67| 
-        MOVXI     R0H,#36700            ; [CPU_FPU] |67| 
-        MPYF32    R0H,R0H,R1H           ; [CPU_FPU] |67| 
-	.dwpsn	file "../src/adc_iface.c",line 66,column 5,is_stmt,isa 0
-        MOV       @||g_dbg_vbus_raw||,AL ; [CPU_ALU] |66| 
+        UI32TOF32 R1H,R1H               ; [CPU_FPU] |79| 
+        MOVXI     R0H,#36700            ; [CPU_FPU] |79| 
+        MPYF32    R0H,R0H,R1H           ; [CPU_FPU] |79| 
+	.dwpsn	file "../src/adc_iface.c",line 78,column 5,is_stmt,isa 0
+        MOV       @||g_dbg_vbus_raw||,AL ; [CPU_ALU] |78| 
 $C$DW$10	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$10, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$10, DW_AT_TI_return
@@ -168,7 +168,7 @@ $C$DW$10	.dwtag  DW_TAG_TI_branch
         LRETR     ; [CPU_ALU] 
         ; return occurs ; [] 
 	.dwattr $C$DW$8, DW_AT_TI_end_file("../src/adc_iface.c")
-	.dwattr $C$DW$8, DW_AT_TI_end_line(0x44)
+	.dwattr $C$DW$8, DW_AT_TI_end_line(0x50)
 	.dwattr $C$DW$8, DW_AT_TI_end_column(0x01)
 	.dwendentry
 	.dwendtag $C$DW$8
@@ -206,7 +206,7 @@ $C$DW$12	.dwtag  DW_TAG_formal_parameter
 ;***************************************************************
 
 ||adc_read_phase_currents||:
-;* R3    assigned to $O$C4
+;* R2    assigned to $O$C4
 ;* R0    assigned to $O$C5
 ;* AR4   assigned to out
 $C$DW$13	.dwtag  DW_TAG_variable
@@ -214,17 +214,17 @@ $C$DW$13	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$13, DW_AT_type(*$C$DW$T$29)
 	.dwattr $C$DW$13, DW_AT_location[DW_OP_reg12]
 
-;* AH    assigned to cu
+;* AL    assigned to cu
 $C$DW$14	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$14, DW_AT_name("cu")
 	.dwattr $C$DW$14, DW_AT_type(*$C$DW$T$38)
-	.dwattr $C$DW$14, DW_AT_location[DW_OP_reg1]
+	.dwattr $C$DW$14, DW_AT_location[DW_OP_reg0]
 
-;* AL    assigned to cv
+;* AH    assigned to cv
 $C$DW$15	.dwtag  DW_TAG_variable
 	.dwattr $C$DW$15, DW_AT_name("cv")
 	.dwattr $C$DW$15, DW_AT_type(*$C$DW$T$38)
-	.dwattr $C$DW$15, DW_AT_location[DW_OP_reg0]
+	.dwattr $C$DW$15, DW_AT_location[DW_OP_reg1]
 
 ;* AR6   assigned to cw
 $C$DW$16	.dwtag  DW_TAG_variable
@@ -247,62 +247,59 @@ $C$DW$18	.dwtag  DW_TAG_variable
 	.dwcfi	cfa_offset, -2
 	.dwcfi	save_reg_to_mem, 26, 0
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/adc.h",line 923,column 5,is_stmt,isa 0
-        MOV       AH,*(0:0x0b40)        ; [CPU_ALU] |923| 
-        MOV       AL,*(0:0x0b21)        ; [CPU_ALU] |923| 
+        MOV       AL,*(0:0x0b40)        ; [CPU_ALU] |923| 
+        MOV       AH,*(0:0x0b21)        ; [CPU_ALU] |923| 
         MOV       AR6,*(0:0x0b02)       ; [CPU_ALU] |923| 
         MOVW      DP,#||g_dbg_iu_raw||  ; [CPU_ARAU] 
 	.dwpsn	file "../src/adc_iface.c",line 50,column 5,is_stmt,isa 0
-        MOV       @||g_dbg_iu_raw||,AH  ; [CPU_ALU] |50| 
+        MOV       @||g_dbg_iu_raw||,AL  ; [CPU_ALU] |50| 
 	.dwpsn	file "../src/adc_iface.c",line 51,column 5,is_stmt,isa 0
-        MOV       @||g_dbg_iv_raw||,AL  ; [CPU_ALU] |51| 
+        MOV       @||g_dbg_iv_raw||,AH  ; [CPU_ALU] |51| 
 	.dwpsn	file "../src/adc_iface.c",line 52,column 5,is_stmt,isa 0
         MOV       @||g_dbg_iw_raw||,AR6 ; [CPU_ALU] |52| 
         MOVW      DP,#||s_iu_offset||   ; [CPU_ARAU] 
 	.dwpsn	file "../src/adc_iface.c",line 40,column 1,is_stmt,isa 0
-        MOV       AH,@||s_iu_offset||   ; [CPU_ALU] |40| 
-        MOVZ      AR7,@||s_iv_offset||  ; [CPU_ALU] |40| 
-	.dwpsn	file "../src/adc_iface.c",line 55,column 5,is_stmt,isa 0
-        MOVU      ACC,AL                ; [CPU_ALU] |55| 
-        SUBL      ACC,XAR7              ; [CPU_ALU] |55| 
-        MOV32     R0H,ACC               ; [CPU_FPU] |55| 
+        MOVZ      AR7,@||s_iu_offset||  ; [CPU_ALU] |40| 
+	.dwpsn	file "../src/adc_iface.c",line 54,column 5,is_stmt,isa 0
+        MOVU      ACC,AL                ; [CPU_ALU] |54| 
+        SUBL      ACC,XAR7              ; [CPU_ALU] |54| 
+        MOV32     R1H,ACC               ; [CPU_FPU] |54| 
         NOP       ; [CPU_ALU] 
 	.dwpsn	file "../src/adc_iface.c",line 40,column 1,is_stmt,isa 0
+        MOV       AL,@||s_iv_offset||   ; [CPU_ALU] |40| 
         MOVZ      AR7,@||s_iw_offset||  ; [CPU_ALU] |40| 
 	.dwpsn	file "../src/adc_iface.c",line 56,column 5,is_stmt,isa 0
         MOVU      ACC,AR6               ; [CPU_ALU] |56| 
-	.dwpsn	file "../src/adc_iface.c",line 55,column 5,is_stmt,isa 0
-        MOVIZ     R1H,#15403            ; [CPU_FPU] |55| 
-        I32TOF32  R0H,R0H               ; [CPU_FPU] |55| 
+	.dwpsn	file "../src/adc_iface.c",line 54,column 5,is_stmt,isa 0
+        I32TOF32  R1H,R1H               ; [CPU_FPU] |54| 
 	.dwpsn	file "../src/adc_iface.c",line 56,column 5,is_stmt,isa 0
         MOVZ      AR6,AR7               ; [CPU_ALU] |56| 
-	.dwpsn	file "../src/adc_iface.c",line 55,column 5,is_stmt,isa 0
-        MOVXI     R1H,#28087            ; [CPU_FPU] |55| 
-        NEGF32    R0H,R0H               ; [CPU_FPU] |55| 
-        MPYF32    R3H,R1H,R0H           ; [CPU_FPU] |55| 
+	.dwpsn	file "../src/adc_iface.c",line 54,column 5,is_stmt,isa 0
+        MOVIZ     R0H,#15403            ; [CPU_FPU] |54| 
+        MOVXI     R0H,#28087            ; [CPU_FPU] |54| 
+        MPYF32    R2H,R0H,R1H           ; [CPU_FPU] |54| 
 	.dwpsn	file "../src/adc_iface.c",line 56,column 5,is_stmt,isa 0
         SUBL      ACC,XAR6              ; [CPU_ALU] |56| 
-        MOV32     R0H,ACC               ; [CPU_FPU] |56| 
+        MOV32     R1H,ACC               ; [CPU_FPU] |56| 
         NOP       ; [CPU_ALU] 
         NOP       ; [CPU_ALU] 
-        MOVIZ     R1H,#15403            ; [CPU_FPU] |56| 
-	.dwpsn	file "../src/adc_iface.c",line 59,column 5,is_stmt,isa 0
-        MOV32     R2H,R3H               ; [CPU_FPU] |59| 
-	.dwpsn	file "../src/adc_iface.c",line 56,column 5,is_stmt,isa 0
-        I32TOF32  R0H,R0H               ; [CPU_FPU] |56| 
-        MOVXI     R1H,#28087            ; [CPU_FPU] |56| 
-        NEGF32    R0H,R0H               ; [CPU_FPU] |56| 
-        MPYF32    R0H,R1H,R0H           ; [CPU_FPU] |56| 
-	.dwpsn	file "../src/adc_iface.c",line 59,column 5,is_stmt,isa 0
-        NEGF32    R2H,R2H               ; [CPU_FPU] |59| 
-	.dwpsn	file "../src/adc_iface.c",line 55,column 5,is_stmt,isa 0
+        NOP       ; [CPU_ALU] 
+        MOVIZ     R0H,#15403            ; [CPU_FPU] |56| 
+        I32TOF32  R3H,R1H               ; [CPU_FPU] |56| 
+        MOVXI     R0H,#28087            ; [CPU_FPU] |56| 
+        MPYF32    R0H,R0H,R3H           ; [CPU_FPU] |56| 
+	.dwpsn	file "../src/adc_iface.c",line 66,column 5,is_stmt,isa 0
+        MOV32     R1H,R2H               ; [CPU_FPU] |66| 
+        NEGF32    R1H,R1H               ; [CPU_FPU] |66| 
+	.dwpsn	file "../src/adc_iface.c",line 54,column 5,is_stmt,isa 0
 
-        SUBF32    R1H,R2H,R0H           ; [CPU_FPU] |59| 
-||      MOV32     *+XAR4[2],R3H         ; [CPU_FPU] |55| 
+        SUBF32    R1H,R1H,R0H           ; [CPU_FPU] |66| 
+||      MOV32     *+XAR4[0],R2H         ; [CPU_FPU] |54| 
 
 	.dwpsn	file "../src/adc_iface.c",line 56,column 5,is_stmt,isa 0
         MOV32     *+XAR4[4],R0H         ; [CPU_FPU] |56| 
-	.dwpsn	file "../src/adc_iface.c",line 59,column 5,is_stmt,isa 0
-        MOV32     *+XAR4[0],R1H         ; [CPU_FPU] |59| 
+	.dwpsn	file "../src/adc_iface.c",line 66,column 5,is_stmt,isa 0
+        MOV32     *+XAR4[2],R1H         ; [CPU_FPU] |66| 
 $C$DW$19	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$19, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$19, DW_AT_TI_return
@@ -310,7 +307,7 @@ $C$DW$19	.dwtag  DW_TAG_TI_branch
         LRETR     ; [CPU_ALU] 
         ; return occurs ; [] 
 	.dwattr $C$DW$11, DW_AT_TI_end_file("../src/adc_iface.c")
-	.dwattr $C$DW$11, DW_AT_TI_end_line(0x3d)
+	.dwattr $C$DW$11, DW_AT_TI_end_line(0x49)
 	.dwattr $C$DW$11, DW_AT_TI_end_column(0x01)
 	.dwendentry
 	.dwendtag $C$DW$11
@@ -368,10 +365,10 @@ $C$DW$22	.dwtag  DW_TAG_subprogram
 	.dwattr $C$DW$22, DW_AT_linkage_name("adc_calibrate_offsets")
 	.dwattr $C$DW$22, DW_AT_external
 	.dwattr $C$DW$22, DW_AT_decl_file("../src/adc_iface.c")
-	.dwattr $C$DW$22, DW_AT_decl_line(0x53)
+	.dwattr $C$DW$22, DW_AT_decl_line(0x5f)
 	.dwattr $C$DW$22, DW_AT_decl_column(0x06)
 	.dwattr $C$DW$22, DW_AT_TI_max_frame_size(-4)
-	.dwpsn	file "../src/adc_iface.c",line 84,column 1,is_stmt,address ||adc_calibrate_offsets||,isa 0
+	.dwpsn	file "../src/adc_iface.c",line 96,column 1,is_stmt,address ||adc_calibrate_offsets||,isa 0
 
 	.dwfde $C$DW$CIE, ||adc_calibrate_offsets||
 $C$DW$23	.dwtag  DW_TAG_formal_parameter
@@ -419,21 +416,21 @@ $C$DW$27	.dwtag  DW_TAG_variable
 
 	.dwcfi	cfa_offset, -2
 	.dwcfi	save_reg_to_mem, 26, 0
-	.dwpsn	file "../src/adc_iface.c",line 85,column 17,is_stmt,isa 0
-        MOV       P,#0                  ; [CPU_ALU] |85| 
-	.dwpsn	file "../src/adc_iface.c",line 87,column 16,is_stmt,isa 0
-        CMPB      AL,#0                 ; [CPU_ALU] |87| 
+	.dwpsn	file "../src/adc_iface.c",line 97,column 17,is_stmt,isa 0
+        MOV       P,#0                  ; [CPU_ALU] |97| 
+	.dwpsn	file "../src/adc_iface.c",line 99,column 16,is_stmt,isa 0
+        CMPB      AL,#0                 ; [CPU_ALU] |99| 
         MOVL      *SP++,XAR2            ; [CPU_ALU] 
 	.dwcfi	save_reg_to_mem, 9, 2
 	.dwcfi	cfa_offset, -4
-	.dwpsn	file "../src/adc_iface.c",line 84,column 1,is_stmt,isa 0
-        MOVZ      AR0,AL                ; [CPU_ALU] |84| 
-	.dwpsn	file "../src/adc_iface.c",line 85,column 17,is_stmt,isa 0
-        MOVL      XAR7,P                ; [CPU_FPU] |85| 
-        MOVL      XAR4,P                ; [CPU_FPU] |85| 
-	.dwpsn	file "../src/adc_iface.c",line 87,column 16,is_stmt,isa 0
-        B         ||$C$L2||,EQ          ; [CPU_ALU] |87| 
-        ; branchcc occurs ; [] |87| 
+	.dwpsn	file "../src/adc_iface.c",line 96,column 1,is_stmt,isa 0
+        MOVZ      AR0,AL                ; [CPU_ALU] |96| 
+	.dwpsn	file "../src/adc_iface.c",line 97,column 17,is_stmt,isa 0
+        MOVL      XAR7,P                ; [CPU_FPU] |97| 
+        MOVL      XAR4,P                ; [CPU_FPU] |97| 
+	.dwpsn	file "../src/adc_iface.c",line 99,column 16,is_stmt,isa 0
+        B         ||$C$L2||,EQ          ; [CPU_ALU] |99| 
+        ; branchcc occurs ; [] |99| 
         MOVZ      AR6,AR0               ; [CPU_ALU] 
         SUBB      XAR6,#1               ; [CPU_ARAU] 
 ||$C$L1||:    
@@ -449,55 +446,55 @@ $C$DW$27	.dwtag  DW_TAG_variable
         MOV       AR2,*(0:0x0b40)       ; [CPU_ALU] |923| 
         MOVL      ACC,P                 ; [CPU_ALU] |923| 
         MOV       T,*(0:0x0b21)         ; [CPU_ALU] |923| 
-	.dwpsn	file "../src/adc_iface.c",line 94,column 9,is_stmt,isa 0
-        ADDU      ACC,AR2               ; [CPU_ALU] |94| 
+	.dwpsn	file "../src/adc_iface.c",line 106,column 9,is_stmt,isa 0
+        ADDU      ACC,AR2               ; [CPU_ALU] |106| 
 	.dwpsn	file "/home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/adc.h",line 923,column 5,is_stmt,isa 0
         MOV       AR5,*(0:0x0b02)       ; [CPU_FPU] |923| 
-	.dwpsn	file "../src/adc_iface.c",line 94,column 9,is_stmt,isa 0
-        MOVL      P,ACC                 ; [CPU_ALU] |94| 
-	.dwpsn	file "../src/adc_iface.c",line 87,column 16,is_stmt,isa 0
-        MOVL      ACC,XAR7              ; [CPU_ALU] |87| 
-	.dwpsn	file "../src/adc_iface.c",line 95,column 9,is_stmt,isa 0
-        ADDU      ACC,T                 ; [CPU_ALU] |95| 
-        MOVL      XAR7,ACC              ; [CPU_ALU] |95| 
-        MOVL      ACC,XAR4              ; [CPU_ALU] |95| 
-	.dwpsn	file "../src/adc_iface.c",line 96,column 9,is_stmt,isa 0
-        ADDU      ACC,AR5               ; [CPU_ALU] |96| 
-        MOVL      XAR4,ACC              ; [CPU_ALU] |96| 
-	.dwpsn	file "../src/adc_iface.c",line 87,column 16,is_stmt,isa 0
-        BANZ      ||$C$L1||,AR6--       ; [CPU_ALU] |87| 
-        ; branchcc occurs ; [] |87| 
+	.dwpsn	file "../src/adc_iface.c",line 106,column 9,is_stmt,isa 0
+        MOVL      P,ACC                 ; [CPU_ALU] |106| 
+	.dwpsn	file "../src/adc_iface.c",line 99,column 16,is_stmt,isa 0
+        MOVL      ACC,XAR7              ; [CPU_ALU] |99| 
+	.dwpsn	file "../src/adc_iface.c",line 107,column 9,is_stmt,isa 0
+        ADDU      ACC,T                 ; [CPU_ALU] |107| 
+        MOVL      XAR7,ACC              ; [CPU_ALU] |107| 
+        MOVL      ACC,XAR4              ; [CPU_ALU] |107| 
+	.dwpsn	file "../src/adc_iface.c",line 108,column 9,is_stmt,isa 0
+        ADDU      ACC,AR5               ; [CPU_ALU] |108| 
+        MOVL      XAR4,ACC              ; [CPU_ALU] |108| 
+	.dwpsn	file "../src/adc_iface.c",line 99,column 16,is_stmt,isa 0
+        BANZ      ||$C$L1||,AR6--       ; [CPU_ALU] |99| 
+        ; branchcc occurs ; [] |99| 
 ||$C$L2||:    
-	.dwpsn	file "../src/adc_iface.c",line 98,column 5,is_stmt,isa 0
-        MOVZ      AR6,AR0               ; [CPU_ALU] |98| 
-        MOVB      ACC,#0                ; [CPU_ALU] |98| 
+	.dwpsn	file "../src/adc_iface.c",line 110,column 5,is_stmt,isa 0
+        MOVZ      AR6,AR0               ; [CPU_ALU] |110| 
+        MOVB      ACC,#0                ; [CPU_ALU] |110| 
         MOVW      DP,#||s_iu_offset||   ; [CPU_ARAU] 
         RPT       #31
-||     SUBCUL    ACC,XAR6              ; [CPU_ALU] |98| 
-	.dwpsn	file "../src/adc_iface.c",line 99,column 5,is_stmt,isa 0
-        MOVZ      AR6,AR0               ; [CPU_ALU] |99| 
-	.dwpsn	file "../src/adc_iface.c",line 98,column 5,is_stmt,isa 0
-        MOV       @||s_iu_offset||,P    ; [CPU_ALU] |98| 
-	.dwpsn	file "../src/adc_iface.c",line 99,column 5,is_stmt,isa 0
-        MOVB      ACC,#0                ; [CPU_ALU] |99| 
-	.dwpsn	file "../src/adc_iface.c",line 98,column 5,is_stmt,isa 0
-        MOVL      P,XAR7                ; [CPU_ALU] |98| 
-	.dwpsn	file "../src/adc_iface.c",line 99,column 5,is_stmt,isa 0
+||     SUBCUL    ACC,XAR6              ; [CPU_ALU] |110| 
+	.dwpsn	file "../src/adc_iface.c",line 111,column 5,is_stmt,isa 0
+        MOVZ      AR6,AR0               ; [CPU_ALU] |111| 
+	.dwpsn	file "../src/adc_iface.c",line 110,column 5,is_stmt,isa 0
+        MOV       @||s_iu_offset||,P    ; [CPU_ALU] |110| 
+	.dwpsn	file "../src/adc_iface.c",line 111,column 5,is_stmt,isa 0
+        MOVB      ACC,#0                ; [CPU_ALU] |111| 
+	.dwpsn	file "../src/adc_iface.c",line 110,column 5,is_stmt,isa 0
+        MOVL      P,XAR7                ; [CPU_ALU] |110| 
+	.dwpsn	file "../src/adc_iface.c",line 111,column 5,is_stmt,isa 0
         RPT       #31
-||     SUBCUL    ACC,XAR6              ; [CPU_ALU] |99| 
-        MOV       @||s_iv_offset||,P    ; [CPU_ALU] |99| 
-	.dwpsn	file "../src/adc_iface.c",line 100,column 5,is_stmt,isa 0
-        MOVZ      AR6,AR0               ; [CPU_ALU] |100| 
+||     SUBCUL    ACC,XAR6              ; [CPU_ALU] |111| 
+        MOV       @||s_iv_offset||,P    ; [CPU_ALU] |111| 
+	.dwpsn	file "../src/adc_iface.c",line 112,column 5,is_stmt,isa 0
+        MOVZ      AR6,AR0               ; [CPU_ALU] |112| 
         MOVL      XAR2,*--SP            ; [CPU_ALU] 
 	.dwcfi	cfa_offset, -2
 	.dwcfi	restore_reg, 9
-        MOVB      ACC,#0                ; [CPU_ALU] |100| 
-	.dwpsn	file "../src/adc_iface.c",line 99,column 5,is_stmt,isa 0
-        MOVL      P,XAR4                ; [CPU_ALU] |99| 
-	.dwpsn	file "../src/adc_iface.c",line 100,column 5,is_stmt,isa 0
+        MOVB      ACC,#0                ; [CPU_ALU] |112| 
+	.dwpsn	file "../src/adc_iface.c",line 111,column 5,is_stmt,isa 0
+        MOVL      P,XAR4                ; [CPU_ALU] |111| 
+	.dwpsn	file "../src/adc_iface.c",line 112,column 5,is_stmt,isa 0
         RPT       #31
-||     SUBCUL    ACC,XAR6              ; [CPU_ALU] |100| 
-        MOV       @||s_iw_offset||,P    ; [CPU_ALU] |100| 
+||     SUBCUL    ACC,XAR6              ; [CPU_ALU] |112| 
+        MOV       @||s_iw_offset||,P    ; [CPU_ALU] |112| 
 $C$DW$28	.dwtag  DW_TAG_TI_branch
 	.dwattr $C$DW$28, DW_AT_low_pc(0x00)
 	.dwattr $C$DW$28, DW_AT_TI_return
@@ -505,7 +502,7 @@ $C$DW$28	.dwtag  DW_TAG_TI_branch
         LRETR     ; [CPU_ALU] 
         ; return occurs ; [] 
 	.dwattr $C$DW$22, DW_AT_TI_end_file("../src/adc_iface.c")
-	.dwattr $C$DW$22, DW_AT_TI_end_line(0x65)
+	.dwattr $C$DW$22, DW_AT_TI_end_line(0x71)
 	.dwattr $C$DW$22, DW_AT_TI_end_column(0x01)
 	.dwendentry
 	.dwendtag $C$DW$22

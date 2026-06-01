@@ -21,6 +21,16 @@ static volatile uint16_t s_latched;
 //   0x08 OVERTEMP     0x10 GATE_DRIVER  0x20 SENSOR_LOSS   0x40 WATCHDOG
 volatile uint16_t g_dbg_fault_code;
 
+// TODO: Debugging Step 6, remove after. Snapshot of the three phase currents at
+// the instant the phase-OC check first latches FAULT_OVERCURRENT, plus which
+// phase breached (1=U, 2=V, 3=W). Lets us see the ACTUAL tripping current rather
+// than guessing. NOTE: value[1] (V) is KCL-reconstructed on this bench board, so
+// a V trip with small U/W means the reconstruction amplified a transient.
+volatile float    g_dbg_trip_iu;
+volatile float    g_dbg_trip_iv;
+volatile float    g_dbg_trip_iw;
+volatile uint16_t g_dbg_trip_phase;
+
 void safety_init(void)        { s_latched = 0; }
 void safety_latch(uint16_t b) { s_latched |= b; }
 bool safety_is_clear(void)    { return s_latched == 0; }
@@ -37,12 +47,26 @@ void safety_check_isr(void)
     // tri-stated, so the (raw - offset) math reports a bogus reading.
     if(st == FOC_RUN || st == FOC_ALIGN_ROTOR)
     {
-        if(s->Iabc.value[0] >  MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
-        if(s->Iabc.value[0] < -MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
-        if(s->Iabc.value[1] >  MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
-        if(s->Iabc.value[1] < -MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
-        if(s->Iabc.value[2] >  MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
-        if(s->Iabc.value[2] < -MOTOR_OC_TRIP_A) safety_latch(FAULT_OVERCURRENT);
+        float iu = s->Iabc.value[0];
+        float iv = s->Iabc.value[1];
+        float iw = s->Iabc.value[2];
+        uint16_t oc = 0;
+        if(iu > MOTOR_OC_TRIP_A || iu < -MOTOR_OC_TRIP_A)      oc = 1;
+        else if(iv > MOTOR_OC_TRIP_A || iv < -MOTOR_OC_TRIP_A) oc = 2;
+        else if(iw > MOTOR_OC_TRIP_A || iw < -MOTOR_OC_TRIP_A) oc = 3;
+
+        if(oc != 0)
+        {
+            // Snapshot the currents at the FIRST breach only.
+            if((s_latched & FAULT_OVERCURRENT) == 0)
+            {
+                g_dbg_trip_iu    = iu;
+                g_dbg_trip_iv    = iv;
+                g_dbg_trip_iw    = iw;
+                g_dbg_trip_phase = oc;
+            }
+            safety_latch(FAULT_OVERCURRENT);
+        }
     }
 
     float vbus = foc_get_refs()->vbus;
