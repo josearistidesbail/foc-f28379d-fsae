@@ -133,9 +133,11 @@ epwm3.epwm.epwm_bPin.$assign                                     = "GPIO5";
 eqep1.$name                 = "QEP_SENSOR";
 eqep1.useCase               = "NO STROBE";
 eqep1.positionCounterMode   = "EQEP_POSITION_RESET_MAX_POS";
-eqep1.positionCounterMax    = 15999;
 eqep1.enableModule          = true;
 eqep1.emulationMode         = "EQEP_EMULATIONMODE_RUNFREE";
+eqep1.positionCounterMax    = 3999;
+eqep1.eqep.eqepaPin.$assign = "GPIO20";
+eqep1.eqep.eqepbPin.$assign = "GPIO21";
 eqep1.eqep.eqepiPin.$assign = "GPIO99";
 
 gpio2.$name             = "DRV8305_EN_GATE";
@@ -188,8 +190,6 @@ spi1.pociQual.$name          = "myGPIOQUAL4";
  * version of the tool will not impact the pinmux you originally saw.  These lines can be completely deleted in order to
  * re-solve from scratch.
  */
-eqep1.eqep.$suggestSolution          = "EQEP1";
-eqep1.eqep.eqepaPin.$assign          = "GPIO20";
-eqep1.eqep.eqepbPin.$assign          = "GPIO21";
-sci1.sci.$suggestSolution            = "SCIA";
-spi1.spi.$suggestSolution            = "SPIA";
+eqep1.eqep.$suggestSolution = "EQEP1";
+sci1.sci.$suggestSolution   = "SCIA";
+spi1.spi.$suggestSolution   = "SPIA";
