@@ -371,6 +371,20 @@ void debug_iface_init(void)
 
 void debug_iface_poll(void)
 {
+    // Recover the SCIA receiver if it latched a break/framing/parity/overrun
+    // error. On C28x, SCIRXST.RXERROR disables the receiver until a software
+    // reset; without this, one line glitch (e.g. the FT2232 toggling the line
+    // when the host opens the port) silences the link for the rest of the power
+    // cycle. We check here in the polled context, not just the ISR, because a
+    // latched error can stop the RX-FIFO interrupt from firing — so the ISR may
+    // never run to fix itself. SCI_performSoftwareReset() clears the error state
+    // machine while preserving the configured baud/format/FIFO setup.
+    if((SCI_getRxStatus(UART_DEBUG_BASE) & SCI_RXSTATUS_ERROR) != 0U)
+    {
+        SCI_performSoftwareReset(UART_DEBUG_BASE);
+        s_pstate = P_SYNC0;     // drop any half-parsed frame, hunt for sync
+    }
+
     while(s_rx_tail != s_rx_head)
     {
         uint16_t b = s_rx_ring[s_rx_tail];

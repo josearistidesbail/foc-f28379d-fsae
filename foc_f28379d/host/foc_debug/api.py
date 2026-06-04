@@ -147,9 +147,11 @@ class FocDebug:
         rsp = self.link.transact(proto.CMD_SCOPE_CONFIG, payload)
         return rsp.payload[0] if rsp.payload else 0xFF
 
-    def capture_scope(self) -> ScopeCapture:
+    def capture_scope(self, timeout: float = 3.0, retries: int = 2) -> ScopeCapture:
         # Scope frame is ~4 kB; give it a generous timeout (~0.4 s on wire @115200).
-        rsp = self.link.transact(proto.CMD_SCOPE_CAPTURE, b"", timeout=3.0, retries=2)
+        # The async GUI worker passes a tighter bound (1.0 s / 1) so a stalled
+        # capture can't tie up the I/O thread for long.
+        rsp = self.link.transact(proto.CMD_SCOPE_CAPTURE, b"", timeout=timeout, retries=retries)
         p = rsp.payload
         if len(p) < 5:
             raise RuntimeError(f"short SCOPE_CAPTURE response: {len(p)} bytes")

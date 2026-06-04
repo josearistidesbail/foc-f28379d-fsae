@@ -10,16 +10,24 @@ scope channels live. No CLI flags, no typed commands.
 
 Needs PySide6 + pyqtgraph + numpy (pip install -r requirements.txt).
 
-Threading note: serial I/O is serialized by a mutex. The scope runs in a worker
-thread; button/table actions briefly wait (≤ one capture, ~0.4 s) if a capture
-is in flight. The periodic state refresh uses a non-blocking try-lock so it
-never stalls the UI.
+Threading note: the GUI thread NEVER touches the serial port. A single
+SerialWorker thread owns the link and drains a job queue; the window enqueues
+work (button clicks, table edits, periodic polls, scope captures) and gets
+results back via Qt signals whose slots run on the GUI thread. A slow, timing
+out, or disconnected link therefore can no longer stall the event loop — the
+window stays live while errors log in the background. The scope keeps a rolling
+per-channel ring buffer and is redrawn on its own ~30 FPS timer, independent of
+when (or whether) captures arrive, so history persists across stalls.
 """
 
 from __future__ import annotations
 
+import collections
 import logging
+import queue
 import sys
+import threading
+from dataclasses import dataclass
 
 from . import proto
 from .api import FocDebug, ParamInfo
@@ -27,6 +35,22 @@ from .link import SerialLink, LinkError, NackError, autodetect_port
 from .log import setup_logging
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class Job:
+    """A unit of serial work handed to the SerialWorker.
+
+    ``fn(dbg) -> result`` runs on the worker thread. ``on_done(result)`` /
+    ``on_fail(msg)`` run on the GUI thread (delivered via a queued signal), so
+    they may touch widgets. ``arg`` carries the port for a "connect" job.
+    """
+
+    kind: str
+    fn: object = None
+    arg: object = None
+    on_done: object = None
+    on_fail: object = None
 
 
 def _require_qt():
@@ -51,41 +75,129 @@ def list_serial_ports():
 
 def build(pg, QtCore, QtGui, QtWidgets):
     import numpy as np
+    import time
 
     Signal = QtCore.Signal
 
-    class ScopeWorker(QtCore.QThread):
-        captured = Signal(object)
-        failed = Signal(str)
+    class SerialWorker(QtCore.QThread):
+        """Owns the SerialLink/FocDebug and serializes all I/O on one thread.
 
-        def __init__(self, dbg, mutex, interval_ms=250):
+        User jobs are processed as soon as they arrive; scope captures run only
+        when the queue is idle and the configured interval has elapsed, so
+        button presses always take priority over the scope.
+        """
+
+        done = Signal(object, object)        # (job, result)
+        failed = Signal(object, str)         # (job, message)
+        scope_captured = Signal(object)      # ScopeCapture
+        scope_error = Signal(str)
+        connected = Signal(bool, str)        # (ok, msg)  -- msg is port or error
+
+        def __init__(self, scope_timeout=1.0, scope_retries=1):
             super().__init__()
-            self.dbg = dbg
-            self.mutex = mutex
-            self.interval_ms = interval_ms
-            self._stop = False
+            self._q = queue.Queue()
+            self._stop = threading.Event()
+            self.link: SerialLink | None = None
+            self.dbg: FocDebug | None = None
+            self._scope_on = False
+            self._scope_interval = 0.25            # seconds
+            self._scope_timeout = scope_timeout
+            self._scope_retries = scope_retries
 
-        def run(self):
-            while not self._stop:
-                self.mutex.lock()
-                try:
-                    cap = self.dbg.capture_scope()
-                except Exception as e:  # noqa: BLE001
-                    cap = None
-                    self.failed.emit(str(e))
-                finally:
-                    self.mutex.unlock()
-                if cap is not None:
-                    self.captured.emit(cap)
-                # Sleep outside the lock so other I/O can run between captures.
-                slept = 0
-                while slept < self.interval_ms and not self._stop:
-                    QtCore.QThread.msleep(20)
-                    slept += 20
+        # ---- public API (call from the GUI thread) ----------------------
+        def submit(self, kind, fn=None, arg=None, on_done=None, on_fail=None) -> Job:
+            job = Job(kind, fn, arg, on_done, on_fail)
+            self._q.put(job)
+            return job
+
+        def connect_port(self, port):
+            return self.submit("connect", arg=port)
+
+        def disconnect_port(self):
+            return self.submit("disconnect")
+
+        def set_scope(self, on: bool):
+            # Plain bool write; read by the worker loop. GIL-atomic, no lock.
+            self._scope_on = bool(on)
+
+        def set_interval(self, interval_s: float):
+            self._scope_interval = max(0.02, float(interval_s))
+
+        def set_decim(self, decim: int):
+            self.submit("scope_config", fn=lambda d, v=int(decim): d.scope_config(decim=v))
 
         def stop(self):
-            self._stop = True
-            self.wait(2000)
+            self._stop.set()
+            self._q.put(Job("__wake__"))   # unblock a blocking get()
+            self.wait(4000)
+
+        # ---- worker thread ----------------------------------------------
+        def run(self):
+            last_cap = 0.0
+            while not self._stop.is_set():
+                if self._scope_on and self.dbg is not None:
+                    due_in = (last_cap + self._scope_interval) - time.monotonic()
+                    wait = min(max(due_in, 0.0), 0.1)
+                else:
+                    wait = 0.1
+                try:
+                    job = self._q.get(timeout=wait)
+                except queue.Empty:
+                    job = None
+                if self._stop.is_set():
+                    break
+                if job is not None:
+                    if job.kind != "__wake__":
+                        self._dispatch(job)
+                    continue
+                if (self._scope_on and self.dbg is not None
+                        and (time.monotonic() - last_cap) >= self._scope_interval):
+                    self._do_scope()
+                    last_cap = time.monotonic()
+            # Close the port on the thread that owns it.
+            if self.link is not None:
+                self.link.close()
+                self.link = None
+                self.dbg = None
+
+        def _dispatch(self, job: Job):
+            if job.kind == "connect":
+                try:
+                    self.link = SerialLink(port=job.arg, timeout=1.0)
+                    self.dbg = FocDebug(self.link)
+                    self.connected.emit(True, self.link.port)
+                except Exception as e:  # noqa: BLE001
+                    self.link = None
+                    self.dbg = None
+                    self.connected.emit(False, str(e))
+                return
+            if job.kind == "disconnect":
+                self._scope_on = False
+                if self.link is not None:
+                    self.link.close()
+                self.link = None
+                self.dbg = None
+                self.connected.emit(False, "")
+                return
+            if self.dbg is None:
+                self.failed.emit(job, "not connected")
+                return
+            try:
+                result = job.fn(self.dbg)
+                self.done.emit(job, result)
+            except NackError as e:
+                self.failed.emit(job, f"NACK: {e}")
+            except (LinkError, KeyError, ValueError, RuntimeError, IndexError) as e:
+                self.failed.emit(job, f"error: {e}")
+
+        def _do_scope(self):
+            try:
+                cap = self.dbg.capture_scope(
+                    timeout=self._scope_timeout, retries=self._scope_retries
+                )
+                self.scope_captured.emit(cap)
+            except Exception as e:  # noqa: BLE001
+                self.scope_error.emit(str(e))
 
     COL_ID, COL_NAME, COL_TYPE, COL_FLAGS, COL_VALUE, COL_STATUS = range(6)
 
@@ -95,14 +207,33 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.setWindowTitle("FOC debug — F28379D")
             self.resize(1100, 760)
 
-            self.link: SerialLink | None = None
-            self.dbg: FocDebug | None = None
             self.params: list[ParamInfo] = []
             self.row_of_id: dict[int, int] = {}
-            self.scope_worker: ScopeWorker | None = None
-            self.io_mutex = QtCore.QMutex()
+            self._connected = False
+            self._conn_port = ""
             self._programmatic = False
             self._last_scope_err = None
+            self._last_cap = None
+            self._state_pending = False
+            self._refresh_pending = False
+
+            # Rolling scope buffers (one deque per channel) + dirty flag.
+            self._history = 8000
+            self._ring = [
+                collections.deque(maxlen=self._history)
+                for _ in proto.SCOPE_CHANNEL_NAMES
+            ]
+            self._scope_dirty = False
+
+            # One serial worker for the whole app lifetime (idles when not
+            # connected). The GUI thread never touches the port directly.
+            self.worker = SerialWorker()
+            self.worker.done.connect(self._job_done)
+            self.worker.failed.connect(self._job_failed)
+            self.worker.scope_captured.connect(self._on_capture)
+            self.worker.scope_error.connect(self._scope_failed)
+            self.worker.connected.connect(self._on_connected)
+            self.worker.start()
 
             self._build_ui()
             self._set_connected(False)
@@ -111,6 +242,12 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.state_timer = QtCore.QTimer(self)
             self.state_timer.timeout.connect(self._tick)
             self.state_timer.start(500)
+
+            # Redraw the scope from the ring buffers independently of capture
+            # arrival, so the trace stays smooth and survives link stalls.
+            self.render_timer = QtCore.QTimer(self)
+            self.render_timer.timeout.connect(self._render_scope)
+            self.render_timer.start(33)
 
         # ---- UI construction --------------------------------------------
         def _build_ui(self):
@@ -215,6 +352,16 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.interval_spin.setValue(250)
             self.interval_spin.valueChanged.connect(self._apply_interval)
             sc.addWidget(self.interval_spin)
+            sc.addWidget(QtWidgets.QLabel("history:"))
+            self.history_spin = QtWidgets.QSpinBox()
+            self.history_spin.setRange(256, 200000)
+            self.history_spin.setSingleStep(1000)
+            self.history_spin.setValue(self._history)
+            self.history_spin.valueChanged.connect(self._apply_history)
+            sc.addWidget(self.history_spin)
+            self.clear_buf_btn = QtWidgets.QPushButton("Clear")
+            self.clear_buf_btn.clicked.connect(self._clear_scope)
+            sc.addWidget(self.clear_buf_btn)
             self.save_csv_btn = QtWidgets.QPushButton("Save last to CSV…")
             self.save_csv_btn.clicked.connect(self._save_csv)
             sc.addWidget(self.save_csv_btn)
@@ -230,7 +377,6 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self.curves.append(pl.plot(pen=pg.mkPen(width=1)))
                 self.plots.append(pl)
             rv.addWidget(self.glw, 1)
-            self._last_cap = None
 
             split.addWidget(right)
             split.setSizes([520, 580])
@@ -238,35 +384,21 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.statusBar().showMessage("Ready. Pick a port and Connect.")
 
         # ---- helpers -----------------------------------------------------
-        def _io(self, fn):
-            """Run a serial op under the mutex (blocking). Returns (value, ok)."""
-            self.io_mutex.lock()
-            try:
-                return fn(), True
-            except NackError as e:
-                self._report(f"NACK: {e}", logging.WARNING)
-            except (LinkError, KeyError, ValueError) as e:
-                self._report(f"error: {e}", logging.ERROR)
-            finally:
-                self.io_mutex.unlock()
-            return None, False
-
-        def _io_try(self, fn):
-            """Non-blocking variant for the periodic timer (skips if busy)."""
-            if not self.io_mutex.tryLock():
-                return None, False
-            try:
-                return fn(), True
-            except Exception as e:  # noqa: BLE001
-                log.debug("periodic op skipped/failed: %s", e)
-                return None, False
-            finally:
-                self.io_mutex.unlock()
-
         def _report(self, msg, level=logging.INFO):
             """Show a message in the status bar and mirror it to the console log."""
             self.statusBar().showMessage(msg)
             log.log(level, "%s", msg)
+
+        # ---- job result routing (slots run on the GUI thread) -----------
+        def _job_done(self, job, result):
+            if job.on_done is not None:
+                job.on_done(result)
+
+        def _job_failed(self, job, msg):
+            if job.on_fail is not None:
+                job.on_fail(msg)
+            else:
+                self._report(msg, logging.ERROR)
 
         # ---- ports / connection -----------------------------------------
         def _refresh_ports(self, select=None):
@@ -284,39 +416,43 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self.port_combo.addItem("(no serial ports found)", None)
 
         def _toggle_connect(self):
-            if self.link is None:
+            if not self._connected:
                 port = self.port_combo.currentData()
-                try:
-                    self.link = SerialLink(port=port, timeout=1.0)
-                except LinkError as e:
-                    self._report(f"connect failed: {e}")
-                    self.link = None
-                    return
-                self.dbg = FocDebug(self.link)
-                self._report(f"connected to {self.link.port}")
-                self._set_connected(True)
-                self._load_params()
+                self._report(f"connecting to {port}…")
+                self.worker.connect_port(port)
             else:
                 self._disconnect()
 
         def _disconnect(self):
             self._stop_scope()
-            if self.link:
-                self.link.close()
-            self.link = None
-            self.dbg = None
+            self.worker.disconnect_port()
             self._set_connected(False)
             self._report("disconnected")
 
+        def _on_connected(self, ok, msg):
+            if ok:
+                self._conn_port = msg
+                self._set_connected(True)
+                self._report(f"connected to {msg}")
+                self._load_params()
+            else:
+                was = self._connected
+                self._set_connected(False)
+                if msg:
+                    self._report(f"connect failed: {msg}", logging.ERROR)
+                elif was:
+                    self._report("disconnected")
+
         def _set_connected(self, on):
+            self._connected = on
             self.connect_btn.setText("Disconnect" if on else "Connect")
             self.conn_label.setText(
-                f"connected: {self.link.port}" if (on and self.link) else "disconnected"
+                f"connected: {self._conn_port}" if on else "disconnected"
             )
             for w in (
                 self.ping_btn, self.run_btn, self.stop_btn, self.clear_btn,
                 self.refresh_vals_btn, self.scope_btn, self.table, self.autoread_chk,
-                self.decim_spin, self.interval_spin, self.save_csv_btn,
+                self.decim_spin, self.interval_spin,
             ):
                 w.setEnabled(on)
             self.port_combo.setEnabled(not on)
@@ -326,10 +462,14 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
         # ---- params ------------------------------------------------------
         def _load_params(self):
-            res, ok = self._io(lambda: self.dbg.list_params())
-            if not ok:
-                return
-            self.params = res
+            self.worker.submit(
+                "list", fn=lambda d: d.list_params(),
+                on_done=self._apply_params,
+                on_fail=lambda m: self._report(f"param list failed: {m}", logging.ERROR),
+            )
+
+        def _apply_params(self, params):
+            self.params = params
             self.row_of_id = {}
             self._programmatic = True
             self.table.setRowCount(len(self.params))
@@ -359,64 +499,124 @@ def build(pg, QtCore, QtGui, QtWidgets):
             return str(val)
 
         def _refresh_values(self):
-            if not self.dbg:
+            """Read all params in one worker job and apply them in a single pass.
+
+            Coalesced via ``_refresh_pending`` so auto-refresh / the 500 ms tick
+            can never pile reads up on a slow link.
+            """
+            if not self._connected or self._refresh_pending or not self.params:
                 return
+            ids = [info.id for info in self.params]
+
+            def read_all(dbg, ids=ids):
+                out = {}
+                for pid in ids:
+                    try:
+                        out[pid] = dbg.read_param(pid)
+                    except Exception:  # noqa: BLE001
+                        out[pid] = None
+                return out
+
+            self._refresh_pending = True
+            self.worker.submit("refresh", fn=read_all,
+                               on_done=self._apply_values, on_fail=self._refresh_failed)
+
+        def _apply_values(self, out):
+            self._refresh_pending = False
             self._programmatic = True
             try:
                 for info in self.params:
-                    val, ok = self._io(lambda i=info: self.dbg.read_param(i.id))
-                    row = self.row_of_id[info.id]
-                    if ok:
+                    val = out.get(info.id)
+                    row = self.row_of_id.get(info.id)
+                    if row is not None and val is not None:
                         self.table.item(row, COL_VALUE).setText(self._fmt(info, val))
             finally:
                 self._programmatic = False
 
+        def _refresh_failed(self, msg):
+            self._refresh_pending = False
+            log.debug("refresh failed: %s", msg)
+
         def _on_item_changed(self, item):
-            if self._programmatic or item.column() != COL_VALUE or not self.dbg:
+            if self._programmatic or item.column() != COL_VALUE or not self._connected:
                 return
             row = item.row()
             info = self.params[row]
             text = item.text().strip()
             if text == "":
                 return
-            status, ok = self._io(lambda: self.dbg.write_param(info.id, text))
-            if ok:
-                sstr = proto.PARAM_WR_STR.get(status, f"status{status}")
-                self.table.item(row, COL_STATUS).setText(sstr)
-                self._report(f"write {info.name} = {text} → {sstr}")
-            # Reflect the actual stored value.
-            val, ok2 = self._io(lambda: self.dbg.read_param(info.id))
-            if ok2:
+
+            def do_write(dbg, info=info, text=text):
+                status = dbg.write_param(info.id, text)
+                val = None
+                try:
+                    val = dbg.read_param(info.id)
+                except Exception:  # noqa: BLE001
+                    pass
+                return status, val
+
+            self.worker.submit(
+                "write", fn=do_write,
+                on_done=lambda res, info=info, row=row, text=text: self._write_done(info, row, text, res),
+                on_fail=lambda m: self._report(m, logging.ERROR),
+            )
+
+        def _write_done(self, info, row, text, res):
+            status, val = res
+            sstr = proto.PARAM_WR_STR.get(status, f"status{status}")
+            self.table.item(row, COL_STATUS).setText(sstr)
+            self._report(f"write {info.name} = {text} → {sstr}")
+            if val is not None:
                 self._programmatic = True
-                item.setText(self._fmt(info, val))
+                self.table.item(row, COL_VALUE).setText(self._fmt(info, val))
                 self._programmatic = False
 
         # ---- state machine ----------------------------------------------
         def _sm(self, op):
-            if not self.dbg:
+            if not self._connected:
                 return
-            fn = {"run": self.dbg.request_run, "stop": self.dbg.request_stop,
-                  "clear": self.dbg.clear_fault}[op]
-            st, ok = self._io(fn)
-            if ok:
-                self.state_label.setText(self.dbg.state_name(st))
-                self._report(f"{op} → {self.dbg.state_name(st)}")
+            fn = {"run": lambda d: d.request_run(),
+                  "stop": lambda d: d.request_stop(),
+                  "clear": lambda d: d.clear_fault()}[op]
+            self.worker.submit(
+                "sm", fn=fn,
+                on_done=lambda st, op=op: self._sm_done(op, st),
+                on_fail=lambda m: self._report(m, logging.ERROR),
+            )
+
+        def _sm_done(self, op, st):
+            name = FocDebug.state_name(st)
+            self.state_label.setText(name)
+            self._report(f"{op} → {name}")
 
         def _do_ping(self):
-            if not self.dbg:
+            if not self._connected:
                 return
-            dt, ok = self._io(lambda: self.dbg.ping_latency(b"foc-ping"))
-            if ok:
-                self._report(f"ping ok: {dt * 1e3:.2f} ms round-trip")
+            self.worker.submit(
+                "ping", fn=lambda d: d.ping_latency(b"foc-ping"),
+                on_done=lambda dt: self._report(f"ping ok: {dt * 1e3:.2f} ms round-trip"),
+                on_fail=lambda m: self._report(m, logging.ERROR),
+            )
 
         # ---- scope -------------------------------------------------------
         def _apply_decim(self, val):
-            if self.dbg:
-                self._io(lambda: self.dbg.scope_config(decim=val))
+            if self._connected:
+                self.worker.set_decim(val)
 
         def _apply_interval(self, val):
-            if self.scope_worker:
-                self.scope_worker.interval_ms = val
+            self.worker.set_interval(val / 1000.0)
+
+        def _apply_history(self, val):
+            self._history = val
+            self._ring = [collections.deque(buf, maxlen=val) for buf in self._ring]
+            self._scope_dirty = True
+
+        def _clear_scope(self):
+            for buf in self._ring:
+                buf.clear()
+            for cur in self.curves:
+                cur.setData([], [])
+            self._scope_dirty = False
 
         def _toggle_scope(self, checked):
             if checked:
@@ -425,17 +625,21 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self._stop_scope()
 
         def _start_scope(self):
-            if not self.dbg or self.scope_worker:
+            if not self._connected:
+                self.scope_btn.setChecked(False)
                 return
             self._last_scope_err = None
-            self._io(lambda: self.dbg.scope_config(decim=self.decim_spin.value()))
-            self.scope_worker = ScopeWorker(self.dbg, self.io_mutex, self.interval_spin.value())
-            self.scope_worker.captured.connect(self._on_capture)
-            self.scope_worker.failed.connect(self._scope_failed)
-            self.scope_worker.start()
+            self.worker.set_decim(self.decim_spin.value())
+            self.worker.set_interval(self.interval_spin.value() / 1000.0)
+            self.worker.set_scope(True)
             self._report("scope started")
             self.scope_btn.setText("Stop scope")
             self.scope_btn.setChecked(True)
+
+        def _stop_scope(self):
+            self.worker.set_scope(False)
+            self.scope_btn.setText("Start scope")
+            self.scope_btn.setChecked(False)
 
         def _scope_failed(self, msg):
             # The worker retries every interval; log a given error only once
@@ -444,21 +648,31 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self._last_scope_err = msg
                 self._report(f"scope error: {msg}", logging.ERROR)
 
-        def _stop_scope(self):
-            if self.scope_worker:
-                self.scope_worker.stop()
-                self.scope_worker = None
-            self.scope_btn.setText("Start scope")
-            self.scope_btn.setChecked(False)
-
         def _on_capture(self, cap):
+            # Append into the rolling buffers. Drawing happens on the render
+            # timer, not here — so a burst of captures coalesces into one redraw
+            # and a stalled link leaves the existing history on screen.
             if self._last_scope_err is not None:
                 self._report("scope recovered", logging.INFO)
                 self._last_scope_err = None
             self._last_cap = cap
-            x = np.arange(cap.n_samples)
-            for c in range(min(len(self.curves), cap.n_channels)):
-                self.curves[c].setData(x, np.asarray(cap.data[c]))
+            for c in range(min(len(self._ring), cap.n_channels)):
+                self._ring[c].extend(cap.data[c])
+            self._scope_dirty = True
+
+        def _render_scope(self):
+            if not self._scope_dirty:
+                return
+            self._scope_dirty = False
+            for c, buf in enumerate(self._ring):
+                if c >= len(self.curves):
+                    break
+                n = len(buf)
+                if n:
+                    y = np.fromiter(buf, dtype=float, count=n)
+                    self.curves[c].setData(np.arange(n), y)
+                else:
+                    self.curves[c].setData([], [])
 
         def _save_csv(self):
             if not self._last_cap:
@@ -476,16 +690,35 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
         # ---- periodic refresh -------------------------------------------
         def _tick(self):
-            if not self.dbg:
+            if not self._connected:
                 return
-            st, ok = self._io_try(lambda: self.dbg.sm_state())
-            if ok and st is not None:
-                self.state_label.setText(self.dbg.state_name(st))
+            if not self._state_pending:
+                self._state_pending = True
+
+                def poll_state(d):
+                    p = d.link.transact(
+                        proto.CMD_SM_STATE, b"", timeout=0.4, retries=1
+                    ).payload
+                    return p[0] if p else 0xFF
+
+                self.worker.submit("state", fn=poll_state,
+                                   on_done=self._state_done, on_fail=self._state_failed)
             if self.autoread_chk.isChecked():
                 self._refresh_values()
 
+        def _state_done(self, st):
+            self._state_pending = False
+            self.state_label.setText(FocDebug.state_name(st))
+
+        def _state_failed(self, msg):
+            self._state_pending = False
+            log.debug("state poll failed: %s", msg)
+
         def closeEvent(self, ev):
-            self._disconnect()
+            self.state_timer.stop()
+            self.render_timer.stop()
+            self.worker.set_scope(False)
+            self.worker.stop()
             super().closeEvent(ev)
 
     return MainWindow
