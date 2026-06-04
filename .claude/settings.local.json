@@ -31,7 +31,13 @@
       "mcp__ccs-project",
       "mcp__ccs-sysconfig",
       "mcp__ccs-serial",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(git checkout *)",
+      "Bash(rtk wc *)",
+      "Bash(cd *)",
+      "Bash(lsusb)",
+      "Bash(dmesg)",
+      "Bash(getfacl /dev/ttyUSB0)"
     ],
     "ask": [
       "mcp__ccs-project__changeSysConfigVersion"

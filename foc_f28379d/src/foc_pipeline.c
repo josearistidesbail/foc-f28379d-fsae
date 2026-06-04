@@ -113,6 +113,34 @@ void foc_init(void)
 FOC_Refs_t * foc_get_refs(void) { return (FOC_Refs_t *)&s_refs; }
 const FOC_Signals_t * foc_get_signals(void) { return (const FOC_Signals_t *)&s_sig; }
 
+float32_t foc_get_gain(foc_gain_id_t which)
+{
+    switch(which)
+    {
+    case FOC_GAIN_KP_D: return PI_getKp(s_pi_id);
+    case FOC_GAIN_KI_D: return PI_getKi(s_pi_id);
+    case FOC_GAIN_KP_Q: return PI_getKp(s_pi_iq);
+    case FOC_GAIN_KI_Q: return PI_getKi(s_pi_iq);
+    case FOC_GAIN_KP_W: return PI_getKp(s_pi_spd);
+    case FOC_GAIN_KI_W: return PI_getKi(s_pi_spd);
+    default:            return 0.0f;
+    }
+}
+
+void foc_set_gain(foc_gain_id_t which, float32_t value)
+{
+    switch(which)
+    {
+    case FOC_GAIN_KP_D: PI_setKp(s_pi_id,  value); break;
+    case FOC_GAIN_KI_D: PI_setKi(s_pi_id,  value); break;
+    case FOC_GAIN_KP_Q: PI_setKp(s_pi_iq,  value); break;
+    case FOC_GAIN_KI_Q: PI_setKi(s_pi_iq,  value); break;
+    case FOC_GAIN_KP_W: PI_setKp(s_pi_spd, value); break;
+    case FOC_GAIN_KI_W: PI_setKi(s_pi_spd, value); break;
+    default: break;
+    }
+}
+
 //-----------------------------------------------------------------------------
 // Current loop, called from ADCA1 EOC ISR at FOC_ISR_FREQ_HZ.
 // Placed in .TI.ramfunc by the linker pragma in isr.c (where it is called).

@@ -13,6 +13,23 @@ extern void foc_init(void);
 // Read/write the live reference inputs from the slow loop / app.
 extern FOC_Refs_t * foc_get_refs(void);
 
+// Runtime access to the inner/outer PI gains (backed by the static PI objects
+// owned by foc_pipeline.c). Used by the debug param registry so gains can be
+// tuned over the serial link without rebuilding. Writes take effect on the
+// next ISR; callers must gate "needs idle" policy themselves.
+typedef enum {
+    FOC_GAIN_KP_D = 0,
+    FOC_GAIN_KI_D,
+    FOC_GAIN_KP_Q,
+    FOC_GAIN_KI_Q,
+    FOC_GAIN_KP_W,
+    FOC_GAIN_KI_W,
+    FOC_GAIN_COUNT
+} foc_gain_id_t;
+
+extern float32_t foc_get_gain(foc_gain_id_t which);
+extern void      foc_set_gain(foc_gain_id_t which, float32_t value);
+
 // Read-only access to the latest pipeline signals (for datalog / scope).
 extern const FOC_Signals_t * foc_get_signals(void);
 
