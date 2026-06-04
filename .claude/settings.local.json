@@ -1,0 +1,52 @@
+{
+  "env": {
+    "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1"
+  },
+  "permissions": {
+    "allow": [
+      "Read(//home/jose/ti/ccs2051/ccs/utils/sysconfig_1.27.1/**)",
+      "Read(//home/jose/ti/ccs2051/ccs/theia/resources/ai/**)",
+      "Bash(rtk ls *)",
+      "Bash(rtk find *)",
+      "Bash(rtk proxy *)",
+      "Bash(rtk git *)",
+      "Bash(rtk grep *)",
+      "Bash(git -C /home/jose/workspace_ccstheia/foc_f28379d/ remote -v)",
+      "Bash(python3 *)",
+      "Bash(rtk read *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(/usr/bin/grep -n \"ContSWForce\" /home/jose/ti/c2000/C2000Ware_26_01_00_00/driverlib/f2837xd/driverlib/epwm.h)",
+      "Read(//home/jose/ti/c2000/C2000Ware_26_01_00_00/**)",
+      "Read(//home/jose/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00/**)",
+      "Read(//home/jose/**)",
+      "Read(//home/jose/source/repos/**)",
+      "WebFetch(domain:www.ti.com)",
+      "Bash(/usr/bin/grep *)",
+      "Bash(/bin/ls /home/jose/workspace_ccstheia/foc_f28379d/)",
+      "Bash(rtk --version)",
+      "Bash(/bin/ls *)",
+      "Bash(awk NR>=6 && NR<=25 *)",
+      "WebSearch",
+      "mcp__ccs-debug",
+      "mcp__ccs-project",
+      "mcp__ccs-sysconfig",
+      "mcp__ccs-serial",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(git checkout *)",
+      "Bash(rtk wc *)",
+      "Bash(cd *)",
+      "Bash(lsusb)",
+      "Bash(dmesg)",
+      "Bash(getfacl /dev/ttyUSB0)"
+    ],
+    "ask": [
+      "mcp__ccs-project__changeSysConfigVersion"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "ccs-debug",
+    "ccs-project",
+    "ccs-sysconfig",
+    "ccs-serial"
+  ]
+}
