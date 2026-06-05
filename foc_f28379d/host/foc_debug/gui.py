@@ -213,6 +213,14 @@ def build(pg, QtCore, QtGui, QtWidgets):
     RECON_PARAM_NAME = "isense_recon"
     RECON_LABELS = ["none", "U", "V", "W"]
 
+    # Scope signal → firmware reference param that should be overlaid in red.
+    _SCOPE_TO_REF = {
+        "Id":         "id_ref",
+        "Iq":         "iq_ref",
+        "omega_elec": "omega_ref",
+    }
+    _REF_TO_SCOPE = {v: k for k, v in _SCOPE_TO_REF.items()}
+
     class MainWindow(QtWidgets.QMainWindow):
         def __init__(self, initial_port=None):
             super().__init__()
@@ -221,8 +229,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
             self.params: list[ParamInfo] = []
             self.row_of_id: dict[int, int] = {}
-            self.recon_combo = None        # QComboBox for the isense_recon row
-            self.recon_row = None          # its table row index
+            self.recon_combo = None        # QComboBox in the Advanced table
+            self.recon_row = None          # its row in the Advanced table
+            # One entry per tab; each dict holds the table and its per-tab
+            # row<->id maps, recon widget, and the name filter (None = all).
+            self._all_tables: list = []
             self._connected = False
             self._conn_port = ""
             self._programmatic = False
@@ -238,6 +249,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._scope_mask = proto.SCOPE_MASK_V1
             self._ring: list = []
             self._scope_dirty = False
+            self._ref_lines: dict = {}   # scope_name -> pg.InfiniteLine
 
             # One serial worker for the whole app lifetime (idles when not
             # connected). The GUI thread never touches the port directly.
@@ -331,7 +343,6 @@ def build(pg, QtCore, QtGui, QtWidgets):
             lv.addWidget(sm_box)
 
             ph = QtWidgets.QHBoxLayout()
-            ph.addWidget(QtWidgets.QLabel("Parameters"))
             ph.addStretch(1)
             self.autoread_chk = QtWidgets.QCheckBox("Auto-refresh values")
             self.refresh_vals_btn = QtWidgets.QPushButton("Refresh values")
@@ -340,21 +351,61 @@ def build(pg, QtCore, QtGui, QtWidgets):
             ph.addWidget(self.refresh_vals_btn)
             lv.addLayout(ph)
 
-            self.table = QtWidgets.QTableWidget(0, 6)
-            self.table.setHorizontalHeaderLabels(
-                ["id", "name", "type", "flags", "value (edit + Enter)", "status"]
-            )
-            self.table.horizontalHeader().setStretchLastSection(True)
-            self.table.setEditTriggers(
-                QtWidgets.QAbstractItemView.DoubleClicked
-                | QtWidgets.QAbstractItemView.EditKeyPressed
-            )
-            self.table.itemChanged.connect(self._on_item_changed)
-            lv.addWidget(self.table, 1)
+            # Tab definitions: (label, name_filter_set or None=all)
+            _TAB_DEFS = [
+                ("References", {"id_ref", "iq_ref", "omega_ref"}),
+                ("Gains",      {"kp_d", "ki_d", "kp_q", "ki_q", "kp_w", "ki_w"}),
+                ("Config",     {"isense_recon"}),
+                ("Advanced",   None),
+            ]
+            self.tab_widget = QtWidgets.QTabWidget()
+            self._all_tables = []
+            for tab_label, fset in _TAB_DEFS:
+                page = QtWidgets.QWidget()
+                page_lv = QtWidgets.QVBoxLayout(page)
+                page_lv.setContentsMargins(4, 4, 4, 4)
+
+                if tab_label == "Gains":
+                    tune_box = QtWidgets.QGroupBox("Tune D & Q together (current loop — needs IDLE)")
+                    tune_grid = QtWidgets.QGridLayout(tune_box)
+                    tune_grid.addWidget(QtWidgets.QLabel("kp  (D = Q):"), 0, 0)
+                    self.kp_dq_spin = QtWidgets.QDoubleSpinBox()
+                    self.kp_dq_spin.setRange(0.0, 1e6)
+                    self.kp_dq_spin.setDecimals(6)
+                    self.kp_dq_spin.setSingleStep(0.01)
+                    tune_grid.addWidget(self.kp_dq_spin, 0, 1)
+                    _kp_btn = QtWidgets.QPushButton("Apply")
+                    _kp_btn.clicked.connect(self._apply_kp_dq)
+                    tune_grid.addWidget(_kp_btn, 0, 2)
+                    tune_grid.addWidget(QtWidgets.QLabel("ki   (D = Q):"), 1, 0)
+                    self.ki_dq_spin = QtWidgets.QDoubleSpinBox()
+                    self.ki_dq_spin.setRange(0.0, 1e6)
+                    self.ki_dq_spin.setDecimals(6)
+                    self.ki_dq_spin.setSingleStep(0.01)
+                    tune_grid.addWidget(self.ki_dq_spin, 1, 1)
+                    _ki_btn = QtWidgets.QPushButton("Apply")
+                    _ki_btn.clicked.connect(self._apply_ki_dq)
+                    tune_grid.addWidget(_ki_btn, 1, 2)
+                    tune_grid.setColumnStretch(1, 1)
+                    page_lv.addWidget(tune_box)
+
+                table = self._make_param_table()
+                treg = {"table": table, "row_of_id": {}, "id_of_row": {},
+                        "recon_combo": None, "recon_row": None, "filter_set": fset}
+                table.itemChanged.connect(
+                    lambda item, t=treg: self._on_table_item_changed(t, item)
+                )
+                self._all_tables.append(treg)
+                if tab_label == "Advanced":
+                    self.table = table   # backward compat for save/load JSON
+                page_lv.addWidget(table, 1)
+                self.tab_widget.addTab(page, tab_label)
+
+            lv.addWidget(self.tab_widget, 1)
 
             hint = QtWidgets.QLabel(
-                "Double-click a writable value, type, press Enter to write. "
-                "needs_idle params take only in IDLE."
+                "Double-click a writable value and press Enter to write. "
+                "needs_idle params only accepted in IDLE state."
             )
             hint.setWordWrap(True)
             hint.setStyleSheet("color: gray;")
@@ -431,6 +482,18 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.statusBar().addPermanentWidget(_jab)
 
         # ---- helpers -----------------------------------------------------
+        def _make_param_table(self):
+            t = QtWidgets.QTableWidget(0, 6)
+            t.setHorizontalHeaderLabels(
+                ["id", "name", "type", "flags", "value (edit + Enter)", "status"]
+            )
+            t.horizontalHeader().setStretchLastSection(True)
+            t.setEditTriggers(
+                QtWidgets.QAbstractItemView.DoubleClicked
+                | QtWidgets.QAbstractItemView.EditKeyPressed
+            )
+            return t
+
         def _report(self, msg, level=logging.INFO):
             """Show a message in the status bar and mirror it to the console log."""
             self.statusBar().showMessage(msg)
@@ -498,10 +561,12 @@ def build(pg, QtCore, QtGui, QtWidgets):
             )
             for w in (
                 self.ping_btn, self.run_btn, self.stop_btn, self.clear_btn,
-                self.refresh_vals_btn, self.scope_btn, self.table, self.autoread_chk,
+                self.refresh_vals_btn, self.scope_btn, self.autoread_chk,
                 self.decim_spin, self.interval_spin,
             ):
                 w.setEnabled(on)
+            for treg in self._all_tables:
+                treg["table"].setEnabled(on)
             self.port_combo.setEnabled(not on)
             self.refresh_ports_btn.setEnabled(not on)
             if not on:
@@ -517,44 +582,54 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
         def _apply_params(self, params):
             self.params = params
-            self.row_of_id = {}
-            self.recon_combo = None
-            self.recon_row = None
             self._programmatic = True
-            self.table.setRowCount(len(self.params))
-            for row, info in enumerate(self.params):
-                self.row_of_id[info.id] = row
-                self._set_cell(row, COL_ID, f"0x{info.id:04X}", editable=False)
-                self._set_cell(row, COL_NAME, info.name, editable=False)
-                self._set_cell(row, COL_TYPE, info.type_str, editable=False)
-                self._set_cell(row, COL_FLAGS, info.flags_str, editable=False)
-                if info.name == RECON_PARAM_NAME and not info.read_only:
-                    self._make_recon_combo(row, info)
-                else:
-                    self._set_cell(row, COL_VALUE, "", editable=not info.read_only)
-                self._set_cell(row, COL_STATUS, "", editable=False)
+            for treg in self._all_tables:
+                self._populate_table(treg, params)
             self._programmatic = False
-            self.table.resizeColumnsToContents()
+            for treg in self._all_tables:
+                treg["table"].resizeColumnsToContents()
             self._refresh_values()
 
-        def _make_recon_combo(self, row, info):
-            """Render the reconstruct-phase value cell as a labeled dropdown."""
-            combo = QtWidgets.QComboBox()
-            combo.addItems(RECON_LABELS)
-            # `activated` fires only on user selection, never on programmatic
-            # setCurrentIndex — so value refreshes can't trigger a spurious write.
-            combo.activated.connect(
-                lambda idx, info=info, row=row: self._on_recon_changed(info, row, idx)
-            )
-            self.table.setCellWidget(row, COL_VALUE, combo)
-            self.recon_combo = combo
-            self.recon_row = row
+        def _populate_table(self, treg, params):
+            """Fill a tab's QTableWidget with the subset of params it tracks."""
+            table = treg["table"]
+            fset = treg["filter_set"]
+            visible = [p for p in params if fset is None or p.name in fset]
+            treg["row_of_id"] = {}
+            treg["id_of_row"] = {}
+            treg["recon_combo"] = None
+            treg["recon_row"] = None
+            table.setRowCount(len(visible))
+            for row, info in enumerate(visible):
+                treg["row_of_id"][info.id] = row
+                treg["id_of_row"][row] = info.id
+                self._fill_cell(table, row, COL_ID, f"0x{info.id:04X}", editable=False)
+                self._fill_cell(table, row, COL_NAME, info.name, editable=False)
+                self._fill_cell(table, row, COL_TYPE, info.type_str, editable=False)
+                self._fill_cell(table, row, COL_FLAGS, info.flags_str, editable=False)
+                if info.name == RECON_PARAM_NAME and not info.read_only:
+                    combo = QtWidgets.QComboBox()
+                    combo.addItems(RECON_LABELS)
+                    combo.activated.connect(
+                        lambda idx, i=info, r=row, t=treg: self._on_recon_changed(i, r, idx, t)
+                    )
+                    table.setCellWidget(row, COL_VALUE, combo)
+                    treg["recon_combo"] = combo
+                    treg["recon_row"] = row
+                else:
+                    self._fill_cell(table, row, COL_VALUE, "", editable=not info.read_only)
+                self._fill_cell(table, row, COL_STATUS, "", editable=False)
+            # Keep canonical shortcuts pointing at the Advanced table's recon
+            if table is self.table:
+                self.row_of_id = treg["row_of_id"]
+                self.recon_combo = treg["recon_combo"]
+                self.recon_row = treg["recon_row"]
 
-        def _set_cell(self, row, col, text, editable):
+        def _fill_cell(self, table, row, col, text, editable):
             item = QtWidgets.QTableWidgetItem(text)
             if not editable:
                 item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
-            self.table.setItem(row, col, item)
+            table.setItem(row, col, item)
 
         def _fmt(self, info: ParamInfo, val):
             if val is None:
@@ -592,32 +667,56 @@ def build(pg, QtCore, QtGui, QtWidgets):
             try:
                 for info in self.params:
                     val = out.get(info.id)
-                    row = self.row_of_id.get(info.id)
-                    if row is None or val is None:
+                    if val is None:
                         continue
-                    if self.recon_combo is not None and row == self.recon_row:
-                        self._set_recon_index(int(val))
-                    else:
-                        self.table.item(row, COL_VALUE).setText(self._fmt(info, val))
+                    fmt_val = self._fmt(info, val)
+                    for treg in self._all_tables:
+                        row = treg["row_of_id"].get(info.id)
+                        if row is None:
+                            continue
+                        if treg["recon_combo"] is not None and row == treg["recon_row"]:
+                            self._set_recon_combo(treg["recon_combo"], int(val))
+                        else:
+                            item = treg["table"].item(row, COL_VALUE)
+                            if item:
+                                item.setText(fmt_val)
             finally:
                 self._programmatic = False
+            # Update reference overlay lines on the scope plots.
+            for info in self.params:
+                val = out.get(info.id)
+                if val is None:
+                    continue
+                scope_name = _REF_TO_SCOPE.get(info.name)
+                if scope_name and scope_name in self._ref_lines:
+                    self._ref_lines[scope_name].setPos(float(val))
+
+        def _set_recon_combo(self, combo, val):
+            """Set a recon dropdown without triggering a write signal."""
+            idx = val if 0 <= val < len(RECON_LABELS) else 0
+            combo.blockSignals(True)
+            combo.setCurrentIndex(idx)
+            combo.blockSignals(False)
 
         def _set_recon_index(self, val):
-            """Point the dropdown at firmware value `val` without emitting a write."""
-            idx = val if 0 <= val < len(RECON_LABELS) else 0
-            self.recon_combo.blockSignals(True)
-            self.recon_combo.setCurrentIndex(idx)
-            self.recon_combo.blockSignals(False)
+            """Backward-compat wrapper; updates the Advanced table's recon combo."""
+            if self.recon_combo is not None:
+                self._set_recon_combo(self.recon_combo, val)
 
         def _refresh_failed(self, msg):
             self._refresh_pending = False
             log.debug("refresh failed: %s", msg)
 
-        def _on_item_changed(self, item):
+        def _on_table_item_changed(self, treg, item):
             if self._programmatic or item.column() != COL_VALUE or not self._connected:
                 return
             row = item.row()
-            info = self.params[row]
+            param_id = treg["id_of_row"].get(row)
+            if param_id is None:
+                return
+            info = next((p for p in self.params if p.id == param_id), None)
+            if info is None:
+                return
             text = item.text().strip()
             if text == "":
                 return
@@ -633,21 +732,34 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
             self.worker.submit(
                 "write", fn=do_write,
-                on_done=lambda res, info=info, row=row, text=text: self._write_done(info, row, text, res),
+                on_done=lambda res, info=info, text=text: self._write_done(info, text, res),
                 on_fail=lambda m: self._report(m, logging.ERROR),
             )
 
-        def _write_done(self, info, row, text, res):
+        def _write_done(self, info, text, res):
             status, val = res
             sstr = proto.PARAM_WR_STR.get(status, f"status{status}")
-            self.table.item(row, COL_STATUS).setText(sstr)
             self._report(f"write {info.name} = {text} → {sstr}")
+            self._programmatic = True
+            for treg in self._all_tables:
+                row = treg["row_of_id"].get(info.id)
+                if row is None:
+                    continue
+                si = treg["table"].item(row, COL_STATUS)
+                if si:
+                    si.setText(sstr)
+                if val is not None:
+                    vi = treg["table"].item(row, COL_VALUE)
+                    if vi:
+                        vi.setText(self._fmt(info, val))
+            self._programmatic = False
+            # Immediately move the reference overlay line if this param is a ref.
             if val is not None:
-                self._programmatic = True
-                self.table.item(row, COL_VALUE).setText(self._fmt(info, val))
-                self._programmatic = False
+                scope_name = _REF_TO_SCOPE.get(info.name)
+                if scope_name and scope_name in self._ref_lines:
+                    self._ref_lines[scope_name].setPos(float(val))
 
-        def _on_recon_changed(self, info, row, idx):
+        def _on_recon_changed(self, info, row, idx, treg=None):
             if not self._connected:
                 return
 
@@ -662,19 +774,58 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
             self.worker.submit(
                 "write", fn=do_write,
-                on_done=lambda res, info=info, row=row, idx=idx: self._recon_write_done(info, row, idx, res),
+                on_done=lambda res, info=info, idx=idx: self._recon_write_done(info, idx, res),
                 on_fail=lambda m: self._report(m, logging.ERROR),
             )
 
-        def _recon_write_done(self, info, row, idx, res):
+        def _recon_write_done(self, info, idx, res):
             status, rb = res
             sstr = proto.PARAM_WR_STR.get(status, f"status{status}")
-            self.table.item(row, COL_STATUS).setText(sstr)
             self._report(f"write {info.name} = {RECON_LABELS[idx]} → {sstr}")
-            # Snap the dropdown to the firmware's actual value so a rejected write
-            # (e.g. needs_idle while running) visibly reverts instead of lying.
-            if rb is not None and self.recon_combo is not None:
-                self._set_recon_index(int(rb))
+            self._programmatic = True
+            for treg in self._all_tables:
+                row = treg["row_of_id"].get(info.id)
+                if row is None:
+                    continue
+                si = treg["table"].item(row, COL_STATUS)
+                if si:
+                    si.setText(sstr)
+                if rb is not None and treg["recon_combo"] is not None:
+                    self._set_recon_combo(treg["recon_combo"], int(rb))
+            self._programmatic = False
+
+        # ---- tune-both gain helpers -------------------------------------
+        def _apply_kp_dq(self):
+            self._apply_gain_pair("kp_d", "kp_q", self.kp_dq_spin.value())
+
+        def _apply_ki_dq(self):
+            self._apply_gain_pair("ki_d", "ki_q", self.ki_dq_spin.value())
+
+        def _apply_gain_pair(self, name_a, name_b, val):
+            if not self._connected:
+                self._report("not connected")
+                return
+            val_str = f"{val:.6g}"
+            for name in (name_a, name_b):
+                info = next((p for p in self.params if p.name == name), None)
+                if info is None:
+                    self._report(f"param '{name}' not found", logging.WARNING)
+                    continue
+
+                def do_write(dbg, pid=info.id, v=val_str):
+                    st = dbg.write_param(pid, v)
+                    rb = None
+                    try:
+                        rb = dbg.read_param(pid)
+                    except Exception:  # noqa: BLE001
+                        pass
+                    return st, rb
+
+                self.worker.submit(
+                    "write", fn=do_write,
+                    on_done=lambda res, i=info, v=val_str: self._write_done(i, v, res),
+                    on_fail=lambda m: self._report(m, logging.ERROR),
+                )
 
         # ---- state machine ----------------------------------------------
         def _sm(self, op):
@@ -714,11 +865,24 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.glw.clear()
             self.plots = []
             self.curves = []
+            self._ref_lines = {}
+            _ref_pen = pg.mkPen(color=(220, 60, 60), width=1.5,
+                                style=QtCore.Qt.DashLine)
             for r, name in enumerate(names):
                 pl = self.glw.addPlot(row=r, col=0, title=name)
                 pl.showGrid(x=True, y=True, alpha=0.3)
                 self.curves.append(pl.plot(pen=pg.mkPen(width=1)))
                 self.plots.append(pl)
+                if name in _SCOPE_TO_REF:
+                    ref_param = _SCOPE_TO_REF[name]
+                    line = pg.InfiniteLine(
+                        angle=0, pos=0, pen=_ref_pen, movable=False,
+                        label=ref_param,
+                        labelOpts={"color": (220, 60, 60), "position": 0.97,
+                                   "anchors": [(1, 1), (1, 1)]},
+                    )
+                    pl.addItem(line)
+                    self._ref_lines[name] = line
             self._ring = [collections.deque(maxlen=self._history) for _ in names]
             self._scope_dirty = True
 
@@ -896,38 +1060,43 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 if info is None:
                     skipped += 1
                     continue
-                row = self.row_of_id.get(info.id)
-                if row is None:
-                    skipped += 1
-                    continue
-                # Update table display without triggering _on_item_changed writes
-                self._programmatic = True
-                if self.recon_combo is not None and row == self.recon_row:
+                is_recon = info.name == RECON_PARAM_NAME
+                if is_recon:
                     try:
-                        idx = RECON_LABELS.index(val)
-                        self._set_recon_index(idx)
+                        recon_idx = RECON_LABELS.index(val)
                     except ValueError:
-                        self._programmatic = False
                         skipped += 1
                         continue
+                # Pre-fill all tables without triggering writes
+                self._programmatic = True
+                if is_recon:
+                    for treg in self._all_tables:
+                        if treg["recon_combo"] is not None:
+                            self._set_recon_combo(treg["recon_combo"], recon_idx)
                 else:
-                    item = self.table.item(row, COL_VALUE)
-                    if item:
-                        item.setText(val)
+                    for treg in self._all_tables:
+                        r = treg["row_of_id"].get(info.id)
+                        if r is not None:
+                            it = treg["table"].item(r, COL_VALUE)
+                            if it:
+                                it.setText(val)
                 self._programmatic = False
                 # Write to device if connected
                 if self._connected:
-                    if self.recon_combo is not None and row == self.recon_row:
-                        try:
-                            idx = RECON_LABELS.index(val)
-                            self._on_recon_changed(info, row, idx)
-                        except ValueError:
-                            pass
+                    if is_recon:
+                        self._on_recon_changed(info, recon_idx, recon_idx)
                     else:
                         def do_write(dbg, pid=info.id, v=val):
-                            return dbg.write_param(pid, v), None
+                            st = dbg.write_param(pid, v)
+                            rb = None
+                            try:
+                                rb = dbg.read_param(pid)
+                            except Exception:  # noqa: BLE001
+                                pass
+                            return st, rb
                         self.worker.submit(
                             "write", fn=do_write,
+                            on_done=lambda res, i=info, v=val: self._write_done(i, v, res),
                             on_fail=lambda m: self._report(m, logging.ERROR),
                         )
                 written += 1
@@ -935,7 +1104,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             if skipped:
                 msg += f", {skipped} skipped"
             if not self._connected and written:
-                msg += " (table pre-filled; connect + write to send to device)"
+                msg += " (table pre-filled; connect to write to device)"
             self._report(msg)
 
         # ---- periodic refresh -------------------------------------------
