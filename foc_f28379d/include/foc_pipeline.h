@@ -4,6 +4,7 @@
 #ifndef FOC_PIPELINE_H
 #define FOC_PIPELINE_H
 
+#include <stdbool.h>
 #include "build_config.h"
 #include "foc_types.h"
 
@@ -40,5 +41,10 @@ extern void foc_current_loop_isr(void);
 // Called from the current-loop ISR every SPEED_LOOP_DECIM ticks.
 // State machine ticks here. Speed PI is disabled for current-control bring-up.
 extern void foc_speed_loop_tick(void);
+
+// True once the alignment controller has captured the electrical offset. Driven
+// inside foc_current_loop_isr() while the state machine is in FOC_ALIGN_ROTOR;
+// the state machine polls this to leave ALIGN. Reset on each entry to ALIGN.
+extern bool foc_align_done(void);
 
 #endif // FOC_PIPELINE_H

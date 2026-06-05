@@ -180,6 +180,9 @@ class FocDebug:
     def request_run(self) -> int:
         return self._sm_cmd(proto.SM_OP_RUN)
 
+    def request_align(self) -> int:
+        return self._sm_cmd(proto.SM_OP_ALIGN)
+
     def request_stop(self) -> int:
         return self._sm_cmd(proto.SM_OP_STOP)
 

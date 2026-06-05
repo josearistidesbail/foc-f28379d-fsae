@@ -18,10 +18,16 @@
 
 extern void sensor_init(void);
 
-// Latch the current rotor position as the new electrical zero. Called from
-// the state machine at the end of FOC_ALIGN_ROTOR, after the rotor has
-// settled to alignment with Id-axis injection. Backend-specific behaviour:
-//   QEP    : stores QPOSCNT into g_qep_mech_offset_cnt
+// Update the filtered speed estimate. Called once per slow-loop tick (1 kHz)
+// from foc_speed_loop_tick(), unconditionally in every state. QEP derives speed
+// here from a count difference over the fixed slow-loop period; backends that
+// derive speed inside sensor_update_isr() (resolver) implement this as a no-op.
+extern void sensor_update_speed_slow(void);
+
+// Latch the current rotor position as the new electrical zero. Backend-specific:
+//   QEP    : sets g_qep_theta_offset_elec so the present angle reads 0 (single-
+//            shot fallback; QEP alignment normally uses the ramp-and-average
+//            controller in foc_pipeline.c via sensor_set_elec_offset()).
 //   RM44AC : stores g_resolver_theta_mech into g_resolver_elec_offset
 extern void sensor_capture_zero(void);
 

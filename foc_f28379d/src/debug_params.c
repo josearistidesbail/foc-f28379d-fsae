@@ -17,6 +17,13 @@ extern volatile uint32_t  g_isr_count;    // src/isr.c
 // KCL phase-current reconstruction selector (0=none,1=U,2=V,3=W).
 extern volatile uint16_t  g_isense_reconstruct_phase;   // src/adc_iface.c
 
+// Cross-coupling/back-EMF feedforward toggle + captured alignment offset [deg].
+extern volatile uint16_t  g_dbg_decouple_en;            // src/foc_pipeline.c
+extern volatile float32_t g_dbg_align_offset_elec;      // src/foc_pipeline.c
+
+// Outer-loop control mode (0=torque, 1=speed). See FOC_MODE_* in build_config.h.
+extern volatile uint16_t  g_dbg_control_mode;           // src/foc_pipeline.c
+
 // ---- raw <-> float bit-cast helpers (C28x: float32_t and uint32_t are 32b) --
 static inline uint32_t f32_to_raw(float32_t f)
 {
@@ -41,6 +48,8 @@ static void set_id_ref(uint32_t  r){ foc_get_refs()->id_ref = raw_to_f32(r); }
 static void get_iq_ref(uint32_t *r){ *r = f32_to_raw(g_dbg_iq_ref); }
 static void set_iq_ref(uint32_t  r){ g_dbg_iq_ref = raw_to_f32(r); }
 
+// omega_ref is the electrical speed setpoint [rad/s] consumed by the speed PI in
+// FOC_MODE_SPEED. The GUI converts to/from shaft RPM using pole_pairs.
 static void get_omega_ref(uint32_t *r){ *r = f32_to_raw(foc_get_refs()->speed_ref); }
 static void set_omega_ref(uint32_t  r){ foc_get_refs()->speed_ref = raw_to_f32(r); }
 
@@ -64,9 +73,26 @@ static void set_ki_w(uint32_t  r){ foc_set_gain(FOC_GAIN_KI_W, raw_to_f32(r)); }
 static void get_recon(uint32_t *r){ *r = (uint32_t)g_isense_reconstruct_phase; }
 static void set_recon(uint32_t  r){ if(r <= 3U) g_isense_reconstruct_phase = (uint16_t)r; }
 
+// Decoupling feedforward toggle. Live (no NEEDS_IDLE) so it can be A/B'd in RUN.
+static void get_decouple(uint32_t *r){ *r = (uint32_t)g_dbg_decouple_en; }
+static void set_decouple(uint32_t  r){ g_dbg_decouple_en = (uint16_t)(r ? 1U : 0U); }
+
+// Control mode: 0=torque, 1=speed. Live (no NEEDS_IDLE) — the speed loop makes
+// the switch bumpless. Out-of-range writes clamp to torque.
+static void get_mode(uint32_t *r){ *r = (uint32_t)g_dbg_control_mode; }
+static void set_mode(uint32_t  r){ g_dbg_control_mode = (r == FOC_MODE_SPEED)
+                                                        ? FOC_MODE_SPEED : FOC_MODE_TORQUE; }
+
 // ---- Read-only telemetry -------------------------------------------------
 static void get_state(uint32_t *r){ *r = (uint32_t)(uint16_t)sm_get_state(); }
 static void get_isr_count(uint32_t *r){ *r = g_isr_count; }
+static void get_align_off(uint32_t *r){ *r = f32_to_raw(g_dbg_align_offset_elec); }
+
+// Motor pole-pairs (compile-time constant) — lets the GUI convert shaft RPM
+// <-> electrical rad/s for the speed setpoint and the measured-speed readout.
+static void get_pole_pairs(uint32_t *r){ *r = (uint32_t)MOTOR_POLE_PAIRS; }
+// Live measured electrical speed [rad/s]; GUI displays it as shaft RPM.
+static void get_omega_meas(uint32_t *r){ *r = f32_to_raw(foc_get_signals()->omega_elec); }
 
 //=============================================================================
 const param_entry_t g_param_table[] =
@@ -83,9 +109,14 @@ const param_entry_t g_param_table[] =
     { 0x0021U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "ki_w",      get_ki_w,      set_ki_w      },
 
     { 0x0030U, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "isense_recon", get_recon,  set_recon     },
+    { 0x0031U, PARAM_TYPE_U16, 0,                     "decouple_en",  get_decouple, set_decouple },
+    { 0x0032U, PARAM_TYPE_U16, 0,                     "control_mode", get_mode,     set_mode     },
 
-    { 0x0100U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "state",     get_state,     0             },
-    { 0x0101U, PARAM_TYPE_U32, PARAM_FLAG_RO,         "isr_count", get_isr_count, 0             },
+    { 0x0100U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "state",      get_state,     0            },
+    { 0x0101U, PARAM_TYPE_U32, PARAM_FLAG_RO,         "isr_count",  get_isr_count, 0            },
+    { 0x0102U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "align_offset", get_align_off, 0          },
+    { 0x0103U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "pole_pairs", get_pole_pairs, 0           },
+    { 0x0104U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "omega_meas", get_omega_meas, 0           },
 };
 
 const uint16_t g_param_count = (uint16_t)(sizeof(g_param_table) / sizeof(g_param_table[0]));

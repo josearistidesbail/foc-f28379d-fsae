@@ -62,6 +62,7 @@ PARAM_WR_STR = {
 SM_OP_RUN = 1
 SM_OP_STOP = 2
 SM_OP_CLEAR_FAULT = 3
+SM_OP_ALIGN = 4  # re-run CALIBRATE+ALIGN, then return to IDLE
 
 # ---- NACK error codes ----------------------------------------------------
 NACK_BAD_CRC = 1

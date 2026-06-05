@@ -34,6 +34,10 @@ void sensor_init(void)
     // sensor_rm44ac_capture_zero() during the ALIGN_ROTOR state.
 }
 
+// The resolver derives speed inside sensor_update_isr() (per-ISR atan2 + LPF in
+// sensor_rm44ac_inline.h), so the slow-loop speed update has nothing to do.
+void sensor_update_speed_slow(void) {}
+
 // Called by the state machine at the end of FOC_ALIGN_ROTOR.
 void sensor_rm44ac_capture_zero(void)
 {

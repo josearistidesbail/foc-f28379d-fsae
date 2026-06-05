@@ -26,7 +26,7 @@
 #define GAIN_KP_IQ              0.4f
 #define GAIN_KI_IQ              0.153f
 
-#define VDQ_MAX_FRACTION        0.30f       // BENCH (production: 0.95f)
+#define VDQ_MAX_FRACTION        0.80f       // BENCH (production: 0.95f)
 
 // ---- Outer speed loop ---------------------------------------------------
 #define GAIN_KP_SPEED           0.015f
@@ -38,17 +38,25 @@
 #define SPEED_RAMP_RAD_S2       500.0f      // accel limit
 #define ID_REF_NOMINAL_A        0.0f        // 0 for SPM motor (Ld == Lq)
 
-// ---- Alignment current --------------------------------------------------
-// DC into the d-axis (theta forced to 0) to pull the rotor to the phase-U axis.
-// 0.3 A is plenty to pull/hold a small unloaded Teknic servo and keeps phase
-// currents well clear of the 8 A OC trip during the initial step transient.
-// With a correctly-signed, stable loop, g_dbg_align_id_meas -> +0.3 and
-// g_dbg_align_vd settles near Rs*0.3 = 0.11 V (well under the VDQ clamp).
-// [2026-05-31] lowered 1.0 -> 0.3 per bench (1 A felt like too much current).
-#define ALIGN_ID_INJECT_A       0.3f
-// [2026-05-29 BENCH DIAG — restore to 1.5f] Lengthened so the open-loop d/q
-// probes hold long enough to read the supply meter and feel the shaft. At the
-// current 2x clock scaling this 5.0f actually runs ~10 s.
-#define ALIGN_DURATION_S        5.0f
+// ---- Alignment (ramp-and-average offset capture) ------------------------
+// DC into the d-axis pulls the rotor to the commanded electrical angle. The
+// align controller (foc_pipeline.c) settles at theta=0, then slowly sweeps the
+// commanded field through an integer number of mechanical revolutions while
+// circular-averaging (encoder - commanded) electrical angle. Averaging over
+// whole mech revs cancels the cogging/stiction that biased the old single-shot
+// snapshot. 1.0 A is needed to drag the rotor through detent while it moves
+// (well under the 8 A OC trip).
+#define ALIGN_ID_INJECT_A           1.0f
+#define ALIGN_SETTLE_S              1.0f    // lock to phase-U before sweeping
+#define ALIGN_RAMP_MECH_REVS        2.0f    // integer revs -> cancels cogging
+#define ALIGN_RAMP_MECH_SPEED_RPS   1.0f    // carrier speed [mech rev/s]
+
+// ---- Cross-coupling / back-EMF feedforward ------------------------------
+// Compile-time default for g_dbg_decouple_en. Decoupling adds
+//   ff_d = -we*Lq*iq_ref,  ff_q = we*(Ld*id_ref + lambda_pm)
+// to the PI outputs in FOC_RUN (foc_pipeline.c). 0 keeps RUN bit-identical to
+// the no-feedforward path; flip live via CCS Expressions or the "decouple_en"
+// serial param to A/B it.
+#define FOC_DECOUPLE_DEFAULT        0
 
 #endif // GAINS_TEKNIC_H

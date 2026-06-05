@@ -16,4 +16,14 @@
 SECTIONS
 {
     .ebss : >> RAMGS4 | RAMGS5 | RAMGS6 | RAMGS7   PAGE = 1
+
+    /* The SDK device .cmd pins both .text (>> FLASHB|FLASHC|...) and .cinit
+     * (> FLASHB only) into FLASHB. .text grew to fill FLASHB exactly, leaving no
+     * room for .cinit -> link failed with #10099 (".cinit FAILED TO ALLOCATE",
+     * FLASHB free 0x15 < .cinit 0x34). FLASHA is otherwise unused, so relocate
+     * the large align_step() function (~0x240 words) there to free FLASHB.
+     * Functions are split into .text:<name> subsections (--gen_func_subsections),
+     * so this explicit placement does NOT clash with the SDK's catch-all .text;
+     * the named subsection simply wins for this one function. */
+    .text:align_step : > FLASHA   PAGE = 0, ALIGN(8)
 }

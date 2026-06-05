@@ -14,9 +14,10 @@
 #include "sensor_iface.h"
 #include "libraries/math/include/math.h"
 
-volatile float32_t g_qep_theta_elec   = 0.0f;
-volatile float32_t g_qep_omega_elec   = 0.0f;
-volatile int32_t   g_qep_mech_offset_cnt = 0;
+volatile float32_t g_qep_theta_elec        = 0.0f;
+volatile float32_t g_qep_theta_raw_elec    = 0.0f;
+volatile float32_t g_qep_omega_elec        = 0.0f;
+volatile float32_t g_qep_theta_offset_elec = 0.0f;   // electrical zero offset [rad]
 
 // TODO: Debugging QEP (Step 3 verification), remove after
 volatile uint32_t g_dbg_qep_count;        // QPOSCNT - should change with rotation
@@ -37,7 +38,7 @@ void sensor_init(void)
 }
 
 // Called from the slow loop (1 kHz) to update the filtered speed.
-void sensor_qep_update_speed_slow(void)
+void sensor_update_speed_slow(void)
 {
     int32_t cnt = (int32_t)EQEP_getPosition(EQEP1_BASE);
     int32_t dcnt = cnt - s_last_cnt;
@@ -55,12 +56,19 @@ void sensor_qep_update_speed_slow(void)
     g_qep_omega_elec = s_omega_lpf * (float)MOTOR_POLE_PAIRS * (float)SENSOR_QEP_DIR_SIGN;
 }
 
-// Called by the state machine at the end of FOC_ALIGN_ROTOR.
-void sensor_qep_capture_zero(void)
+// Store the electrical zero offset (radians), wrapped to [0, 2*pi). The align
+// controller in foc_pipeline.c computes it as the circular mean of
+// (raw_encoder_elec - commanded_elec) over the ramp sweep.
+void sensor_set_elec_offset(float32_t rad)
 {
-    g_qep_mech_offset_cnt = (int32_t)EQEP_getPosition(EQEP1_BASE);
+    while(rad < 0.0f)             rad += 2.0f * MATH_PI;
+    while(rad >= 2.0f * MATH_PI)  rad -= 2.0f * MATH_PI;
+    g_qep_theta_offset_elec = rad;
 }
 
-void sensor_capture_zero(void) { sensor_qep_capture_zero(); }
+// Single-shot fallback (kept for the sensor_iface contract). Sets the offset so
+// the current rotor position reads theta_elec = 0. The ramp-and-average path in
+// foc_pipeline.c is used instead for QEP alignment.
+void sensor_capture_zero(void) { sensor_set_elec_offset(g_qep_theta_raw_elec); }
 
 #endif // SENSOR_BACKEND_QEP

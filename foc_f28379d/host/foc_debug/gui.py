@@ -241,6 +241,9 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._last_cap = None
             self._state_pending = False
             self._refresh_pending = False
+            # Motor pole-pairs for RPM <-> electrical-rad/s conversion; replaced by
+            # the device's read-only "pole_pairs" param once values are refreshed.
+            self._pole_pairs = 4
 
             # Rolling scope buffers (one deque per channel) + dirty flag. The
             # deques are (re)created by _rebuild_plots to match the currently
@@ -249,7 +252,14 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._scope_mask = proto.SCOPE_MASK_V1
             self._ring: list = []
             self._scope_dirty = False
-            self._ref_lines: dict = {}   # scope_name -> pg.InfiniteLine
+            # Reference tracking: current value + per-channel history buffer.
+            # _ref_values holds the latest setpoint; _ref_rings mirrors _ring
+            # (None for channels without a reference). Each capture appends the
+            # current setpoint repeated N times so the red trace stays in sync.
+            self._ref_values: dict = {}   # scope_name -> current float value
+            self._ref_rings: list = []    # parallel to _ring; None if no ref
+            self._ref_curves: dict = {}   # scope_name -> red pg.PlotDataItem
+            self._plot_names: list = []   # channel name by ring index
 
             # One serial worker for the whole app lifetime (idles when not
             # connected). The GUI thread never touches the port directly.
@@ -324,22 +334,63 @@ def build(pg, QtCore, QtGui, QtWidgets):
             lv = QtWidgets.QVBoxLayout(left)
 
             sm_box = QtWidgets.QGroupBox("State machine")
-            smh = QtWidgets.QHBoxLayout(sm_box)
+            sm_v = QtWidgets.QVBoxLayout(sm_box)
+            smh = QtWidgets.QHBoxLayout()
             self.state_label = QtWidgets.QLabel("—")
             f = self.state_label.font()
             f.setBold(True)
             self.state_label.setFont(f)
             self.run_btn = QtWidgets.QPushButton("Run")
+            self.calibrate_btn = QtWidgets.QPushButton("Calibrate")
+            self.calibrate_btn.setToolTip(
+                "Re-run offset calibration + rotor alignment, then return to IDLE"
+            )
             self.stop_btn = QtWidgets.QPushButton("Stop")
             self.clear_btn = QtWidgets.QPushButton("Clear fault")
             self.run_btn.clicked.connect(lambda: self._sm("run"))
+            self.calibrate_btn.clicked.connect(lambda: self._sm("calibrate"))
             self.stop_btn.clicked.connect(lambda: self._sm("stop"))
             self.clear_btn.clicked.connect(lambda: self._sm("clear"))
             smh.addWidget(QtWidgets.QLabel("State:"))
             smh.addWidget(self.state_label, 1)
             smh.addWidget(self.run_btn)
+            smh.addWidget(self.calibrate_btn)
             smh.addWidget(self.stop_btn)
             smh.addWidget(self.clear_btn)
+            sm_v.addLayout(smh)
+
+            # Control-mode + speed row. Speed is shown/entered in shaft RPM; the
+            # firmware speed loop works in electrical rad/s, so we convert with the
+            # motor pole-pairs reported by the device (self._pole_pairs).
+            modeh = QtWidgets.QHBoxLayout()
+            modeh.addWidget(QtWidgets.QLabel("Mode:"))
+            self.mode_combo = QtWidgets.QComboBox()
+            self.mode_combo.addItems(["Torque", "Speed"])
+            self.mode_combo.setToolTip(
+                "Torque: iq_ref commanded directly.  Speed: speed PI drives iq_ref "
+                "from the RPM setpoint. Switchable live (bumpless)."
+            )
+            self.mode_combo.activated.connect(self._on_mode_changed)
+            modeh.addWidget(self.mode_combo)
+            modeh.addSpacing(12)
+            modeh.addWidget(QtWidgets.QLabel("Speed (RPM):"))
+            self.speed_spin = QtWidgets.QDoubleSpinBox()
+            self.speed_spin.setRange(-20000.0, 20000.0)
+            self.speed_spin.setDecimals(0)
+            self.speed_spin.setSingleStep(50.0)
+            modeh.addWidget(self.speed_spin)
+            self.speed_apply_btn = QtWidgets.QPushButton("Apply")
+            self.speed_apply_btn.setToolTip("Write omega_ref (RPM converted to electrical rad/s)")
+            self.speed_apply_btn.clicked.connect(self._apply_speed_rpm)
+            modeh.addWidget(self.speed_apply_btn)
+            modeh.addStretch(1)
+            modeh.addWidget(QtWidgets.QLabel("Measured:"))
+            self.speed_meas_label = QtWidgets.QLabel("— rpm")
+            mf = self.speed_meas_label.font()
+            mf.setBold(True)
+            self.speed_meas_label.setFont(mf)
+            modeh.addWidget(self.speed_meas_label)
+            sm_v.addLayout(modeh)
             lv.addWidget(sm_box)
 
             ph = QtWidgets.QHBoxLayout()
@@ -560,9 +611,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 f"connected: {self._conn_port}" if on else "disconnected"
             )
             for w in (
-                self.ping_btn, self.run_btn, self.stop_btn, self.clear_btn,
+                self.ping_btn, self.run_btn, self.calibrate_btn,
+                self.stop_btn, self.clear_btn,
                 self.refresh_vals_btn, self.scope_btn, self.autoread_chk,
                 self.decim_spin, self.interval_spin,
+                self.mode_combo, self.speed_spin, self.speed_apply_btn,
             ):
                 w.setEnabled(on)
             for treg in self._all_tables:
@@ -682,14 +735,27 @@ def build(pg, QtCore, QtGui, QtWidgets):
                                 item.setText(fmt_val)
             finally:
                 self._programmatic = False
-            # Update reference overlay lines on the scope plots.
+            # Update current reference values (used by the next capture fill).
             for info in self.params:
                 val = out.get(info.id)
                 if val is None:
                     continue
                 scope_name = _REF_TO_SCOPE.get(info.name)
-                if scope_name and scope_name in self._ref_lines:
-                    self._ref_lines[scope_name].setPos(float(val))
+                if scope_name:
+                    self._ref_values[scope_name] = float(val)
+
+            # Speed-control widgets: pole-pairs (RPM conversion), measured speed
+            # (electrical rad/s shown as shaft RPM), and the live mode selector.
+            val_by_name = {info.name: out.get(info.id) for info in self.params}
+            pp = val_by_name.get("pole_pairs")
+            if pp:
+                self._pole_pairs = int(pp)
+            we_meas = val_by_name.get("omega_meas")
+            if we_meas is not None:
+                self.speed_meas_label.setText(f"{self._elec_to_rpm(we_meas):.0f} rpm")
+            mode = val_by_name.get("control_mode")
+            if mode is not None:
+                self._set_mode_combo(int(mode))
 
         def _set_recon_combo(self, combo, val):
             """Set a recon dropdown without triggering a write signal."""
@@ -753,11 +819,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
                     if vi:
                         vi.setText(self._fmt(info, val))
             self._programmatic = False
-            # Immediately move the reference overlay line if this param is a ref.
+            # Record new reference value; the next capture fill picks it up.
             if val is not None:
                 scope_name = _REF_TO_SCOPE.get(info.name)
-                if scope_name and scope_name in self._ref_lines:
-                    self._ref_lines[scope_name].setPos(float(val))
+                if scope_name:
+                    self._ref_values[scope_name] = float(val)
 
         def _on_recon_changed(self, info, row, idx, treg=None):
             if not self._connected:
@@ -832,6 +898,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             if not self._connected:
                 return
             fn = {"run": lambda d: d.request_run(),
+                  "calibrate": lambda d: d.request_align(),
                   "stop": lambda d: d.request_stop(),
                   "clear": lambda d: d.clear_fault()}[op]
             self.worker.submit(
@@ -854,6 +921,84 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 on_fail=lambda m: self._report(m, logging.ERROR),
             )
 
+        # ---- control mode + speed (RPM) ----------------------------------
+        def _elec_to_rpm(self, we):
+            """Electrical rad/s -> shaft RPM using the reported pole-pairs."""
+            pp = self._pole_pairs if self._pole_pairs else 4
+            return float(we) * 60.0 / (2.0 * np.pi) / pp
+
+        def _rpm_to_elec(self, rpm):
+            """Shaft RPM -> electrical rad/s using the reported pole-pairs."""
+            pp = self._pole_pairs if self._pole_pairs else 4
+            return float(rpm) * (2.0 * np.pi) / 60.0 * pp
+
+        def _set_mode_combo(self, val):
+            """Reflect the device control_mode (0=torque,1=speed) without a write."""
+            idx = 1 if int(val) == 1 else 0
+            self.mode_combo.blockSignals(True)
+            self.mode_combo.setCurrentIndex(idx)
+            self.mode_combo.blockSignals(False)
+
+        def _on_mode_changed(self, idx):
+            if not self._connected:
+                return
+            info = next((p for p in self.params if p.name == "control_mode"), None)
+            if info is None:
+                self._report("control_mode param not found", logging.WARNING)
+                return
+            val = 1 if idx == 1 else 0
+
+            def do_write(dbg, pid=info.id, v=val):
+                st = dbg.write_param(pid, v)
+                rb = None
+                try:
+                    rb = dbg.read_param(pid)
+                except Exception:  # noqa: BLE001
+                    pass
+                return st, rb
+
+            self.worker.submit(
+                "write", fn=do_write,
+                on_done=lambda res: self._mode_write_done(res),
+                on_fail=lambda m: self._report(m, logging.ERROR),
+            )
+
+        def _mode_write_done(self, res):
+            status, rb = res
+            sstr = proto.PARAM_WR_STR.get(status, f"status{status}")
+            label = "Speed" if (rb == 1) else "Torque"
+            self._report(f"control mode → {label} ({sstr})")
+            if rb is not None:
+                self._set_mode_combo(int(rb))
+
+        def _apply_speed_rpm(self):
+            if not self._connected:
+                self._report("not connected")
+                return
+            info = next((p for p in self.params if p.name == "omega_ref"), None)
+            if info is None:
+                self._report("omega_ref param not found", logging.WARNING)
+                return
+            rpm = self.speed_spin.value()
+            we = self._rpm_to_elec(rpm)
+            val_str = f"{we:.6g}"
+
+            def do_write(dbg, pid=info.id, v=val_str):
+                st = dbg.write_param(pid, v)
+                rb = None
+                try:
+                    rb = dbg.read_param(pid)
+                except Exception:  # noqa: BLE001
+                    pass
+                return st, rb
+
+            self.worker.submit(
+                "write", fn=do_write,
+                on_done=lambda res, i=info: self._write_done(
+                    i, f"{rpm:.0f} rpm", res),
+                on_fail=lambda m: self._report(m, logging.ERROR),
+            )
+
         # ---- scope -------------------------------------------------------
         def _selected_names(self):
             """Checked catalog signal names, in ascending bit (= wire) order."""
@@ -865,7 +1010,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.glw.clear()
             self.plots = []
             self.curves = []
-            self._ref_lines = {}
+            self._ref_curves = {}
+            self._plot_names = list(names)
             _ref_pen = pg.mkPen(color=(220, 60, 60), width=1.5,
                                 style=QtCore.Qt.DashLine)
             for r, name in enumerate(names):
@@ -874,16 +1020,13 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self.curves.append(pl.plot(pen=pg.mkPen(width=1)))
                 self.plots.append(pl)
                 if name in _SCOPE_TO_REF:
-                    ref_param = _SCOPE_TO_REF[name]
-                    line = pg.InfiniteLine(
-                        angle=0, pos=0, pen=_ref_pen, movable=False,
-                        label=ref_param,
-                        labelOpts={"color": (220, 60, 60), "position": 0.97,
-                                   "anchors": [(1, 1), (1, 1)]},
-                    )
-                    pl.addItem(line)
-                    self._ref_lines[name] = line
+                    ref_curve = pl.plot(pen=_ref_pen, name=_SCOPE_TO_REF[name])
+                    self._ref_curves[name] = ref_curve
             self._ring = [collections.deque(maxlen=self._history) for _ in names]
+            self._ref_rings = [
+                collections.deque(maxlen=self._history) if name in _SCOPE_TO_REF else None
+                for name in names
+            ]
             self._scope_dirty = True
 
         def _on_signal_toggled(self, _checked=False):
@@ -915,12 +1058,21 @@ def build(pg, QtCore, QtGui, QtWidgets):
         def _apply_history(self, val):
             self._history = val
             self._ring = [collections.deque(buf, maxlen=val) for buf in self._ring]
+            self._ref_rings = [
+                collections.deque(buf, maxlen=val) if buf is not None else None
+                for buf in self._ref_rings
+            ]
             self._scope_dirty = True
 
         def _clear_scope(self):
             for buf in self._ring:
                 buf.clear()
+            for buf in self._ref_rings:
+                if buf is not None:
+                    buf.clear()
             for cur in self.curves:
+                cur.setData([], [])
+            for cur in self._ref_curves.values():
                 cur.setData([], [])
             self._scope_dirty = False
 
@@ -968,6 +1120,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._last_cap = cap
             for c in range(min(len(self._ring), cap.n_channels)):
                 self._ring[c].extend(cap.data[c])
+                if c < len(self._ref_rings) and self._ref_rings[c] is not None:
+                    name = self._plot_names[c] if c < len(self._plot_names) else None
+                    if name is not None:
+                        val = self._ref_values.get(name, 0.0)
+                        self._ref_rings[c].extend([val] * len(cap.data[c]))
             self._scope_dirty = True
 
         def _render_scope(self):
@@ -983,6 +1140,18 @@ def build(pg, QtCore, QtGui, QtWidgets):
                     self.curves[c].setData(np.arange(n), y)
                 else:
                     self.curves[c].setData([], [])
+            for c, ref_buf in enumerate(self._ref_rings):
+                if ref_buf is None:
+                    continue
+                name = self._plot_names[c] if c < len(self._plot_names) else None
+                if name is None or name not in self._ref_curves:
+                    continue
+                n = len(ref_buf)
+                if n:
+                    y = np.fromiter(ref_buf, dtype=float, count=n)
+                    self._ref_curves[name].setData(np.arange(n), y)
+                else:
+                    self._ref_curves[name].setData([], [])
 
         def _save_csv(self):
             if not self._last_cap:

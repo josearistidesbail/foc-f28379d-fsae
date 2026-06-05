@@ -53,4 +53,8 @@
 #define SPEED_LOOP_DECIM        10                 // 1 kHz outer loop
 #define SPEED_LOOP_TS           (FOC_ISR_TS * (float)SPEED_LOOP_DECIM)
 
+//----- Control mode (outer-loop source of iq_ref) -------------------------
+#define FOC_MODE_TORQUE         0U   // iq_ref commanded directly (bring-up)
+#define FOC_MODE_SPEED          1U   // iq_ref from the speed PI (omega_ref)
+
 #endif // BUILD_CONFIG_H
