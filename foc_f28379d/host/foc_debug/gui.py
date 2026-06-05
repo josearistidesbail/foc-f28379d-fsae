@@ -23,7 +23,9 @@ when (or whether) captures arrive, so history persists across stalls.
 from __future__ import annotations
 
 import collections
+import json
 import logging
+import pathlib
 import queue
 import sys
 import threading
@@ -214,7 +216,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
     class MainWindow(QtWidgets.QMainWindow):
         def __init__(self, initial_port=None):
             super().__init__()
-            self.setWindowTitle("FOC debug — F28379D")
+            self.setWindowTitle("UFPR Formula - Inverter Manager")
             self.resize(1100, 760)
 
             self.params: list[ParamInfo] = []
@@ -267,6 +269,13 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.setCentralWidget(central)
             outer = QtWidgets.QVBoxLayout(central)
 
+            # Menu bar
+            _file_menu = self.menuBar().addMenu("File")
+            _save_act = _file_menu.addAction("Save Parameters…")
+            _save_act.triggered.connect(self._save_params_json)
+            _load_act = _file_menu.addAction("Load Parameters…")
+            _load_act.triggered.connect(self._load_params_json)
+
             # Connection bar
             bar = QtWidgets.QHBoxLayout()
             self.port_combo = QtWidgets.QComboBox()
@@ -284,6 +293,15 @@ def build(pg, QtCore, QtGui, QtWidgets):
             bar.addWidget(self.connect_btn)
             bar.addWidget(self.ping_btn)
             bar.addWidget(self.conn_label, 1)
+            # Logo top-right: drop your image at foc_debug/assets/logo.png
+            _logo_path = pathlib.Path(__file__).parent / "assets" / "logo.png"
+            if _logo_path.exists():
+                _pix = QtGui.QPixmap(str(_logo_path))
+                _pix = _pix.scaledToHeight(36, QtCore.Qt.SmoothTransformation)
+                _logo_lbl = QtWidgets.QLabel()
+                _logo_lbl.setPixmap(_pix)
+                _logo_lbl.setContentsMargins(8, 0, 4, 0)
+                bar.addWidget(_logo_lbl)
             outer.addLayout(bar)
 
             split = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
@@ -404,6 +422,13 @@ def build(pg, QtCore, QtGui, QtWidgets):
             split.setSizes([520, 580])
 
             self.statusBar().showMessage("Ready. Pick a port and Connect.")
+            _jab = QtWidgets.QLabel(
+                '<a href="https://github.com/josearistidesbail" style="color:gray;">'
+                "Made by Jose Aristides Bail</a>"
+            )
+            _jab.setOpenExternalLinks(True)
+            _jab.setToolTip("Jose Aristides Bail")
+            self.statusBar().addPermanentWidget(_jab)
 
         # ---- helpers -----------------------------------------------------
         def _report(self, msg, level=logging.INFO):
@@ -808,6 +833,110 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 for i in range(cap.n_samples):
                     fh.write(",".join([str(i)] + [f"{cap.data[c][i]:.6g}" for c in range(cap.n_channels)]) + "\n")
             self._report(f"saved {path}")
+
+        # ---- save / load parameters (JSON) --------------------------------
+        def _save_params_json(self):
+            if not self.params:
+                self._report("no parameters loaded — connect and refresh first")
+                return
+            path, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self, "Save parameters", "params.json", "JSON (*.json)"
+            )
+            if not path:
+                return
+            rows = []
+            for info in self.params:
+                row = self.row_of_id.get(info.id)
+                if row is None:
+                    continue
+                if self.recon_combo is not None and row == self.recon_row:
+                    val = self.recon_combo.currentText()
+                else:
+                    item = self.table.item(row, COL_VALUE)
+                    val = item.text() if item else ""
+                rows.append({
+                    "name": info.name,
+                    "id": f"0x{info.id:04X}",
+                    "type": info.type_str,
+                    "read_only": info.read_only,
+                    "value": val,
+                })
+            with open(path, "w") as fh:
+                json.dump({"params": rows}, fh, indent=2)
+            self._report(f"parameters saved → {path}")
+
+        def _load_params_json(self):
+            path, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self, "Load parameters", "", "JSON (*.json)"
+            )
+            if not path:
+                return
+            try:
+                with open(path) as fh:
+                    data = json.load(fh)
+            except Exception as e:  # noqa: BLE001
+                self._report(f"load failed: {e}", logging.ERROR)
+                return
+            entries = data.get("params", [])
+            if not self.params:
+                self._report(
+                    "no parameters known — connect and refresh before loading",
+                    logging.ERROR,
+                )
+                return
+            name_map = {info.name: info for info in self.params}
+            written = skipped = 0
+            for entry in entries:
+                name = entry.get("name", "")
+                val = str(entry.get("value", ""))
+                if entry.get("read_only") or not name or val == "":
+                    skipped += 1
+                    continue
+                info = name_map.get(name)
+                if info is None:
+                    skipped += 1
+                    continue
+                row = self.row_of_id.get(info.id)
+                if row is None:
+                    skipped += 1
+                    continue
+                # Update table display without triggering _on_item_changed writes
+                self._programmatic = True
+                if self.recon_combo is not None and row == self.recon_row:
+                    try:
+                        idx = RECON_LABELS.index(val)
+                        self._set_recon_index(idx)
+                    except ValueError:
+                        self._programmatic = False
+                        skipped += 1
+                        continue
+                else:
+                    item = self.table.item(row, COL_VALUE)
+                    if item:
+                        item.setText(val)
+                self._programmatic = False
+                # Write to device if connected
+                if self._connected:
+                    if self.recon_combo is not None and row == self.recon_row:
+                        try:
+                            idx = RECON_LABELS.index(val)
+                            self._on_recon_changed(info, row, idx)
+                        except ValueError:
+                            pass
+                    else:
+                        def do_write(dbg, pid=info.id, v=val):
+                            return dbg.write_param(pid, v), None
+                        self.worker.submit(
+                            "write", fn=do_write,
+                            on_fail=lambda m: self._report(m, logging.ERROR),
+                        )
+                written += 1
+            msg = f"loaded {written} param(s) from {path}"
+            if skipped:
+                msg += f", {skipped} skipped"
+            if not self._connected and written:
+                msg += " (table pre-filled; connect + write to send to device)"
+            self._report(msg)
 
         # ---- periodic refresh -------------------------------------------
         def _tick(self):
