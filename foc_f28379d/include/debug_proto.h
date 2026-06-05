@@ -27,8 +27,9 @@
 #define FRAME_HDR_LEN        6U     // sync0, sync1, len_lo, len_hi, cmd, seq
 #define FRAME_CRC_LEN        2U
 // Protocol cap for responses (requests are tiny). Must stay >= the largest
-// response: SCOPE_CAPTURE = 5 + DATALOG_LEN_SAMPLES(256)*SCOPE_CHANNELS(4)*4 =
-// 4101 bytes. Not enforced on the TX path here; the host (proto.py) enforces it
+// response: a full SCOPE_CAPTURE with every catalog signal selected =
+// 5 + DATALOG_LEN_SAMPLES(128)*SCOPE_MAX_CHANNELS(9)*4 = 4613 bytes. Not enforced
+// on the TX path here (the response is streamed); the host (proto.py) enforces it
 // on RX, so this is the value that must match there.
 #define FRAME_MAX_PAYLOAD    8192U
 
@@ -73,9 +74,37 @@
 #define NACK_UNKNOWN_CMD     2U
 #define NACK_BAD_LEN         3U
 
-// ---- Scope channels (v1: fixed set, mask forced to SCOPE_MASK_V1) --------
-// Wire channel order (selected from the g_datalog ring columns):
-//   ch0 = Id, ch1 = Iq, ch2 = theta_elec, ch3 = omega_elec
+// ---- Scope signal catalog -----------------------------------------------
+// SCOPE_CONFIG carries a channel_mask:u16 selecting which catalog signals the
+// firmware streams. Each catalog bit maps to one g_datalog ring column (see
+// s_scope_cols[] in debug_hooks.c). Streamed channel order = ascending bit
+// order; the SCOPE_CAPTURE response echoes the effective mask so the host knows
+// exactly which channels (and in what order) arrived.
+//
+//   bit  mask    signal       datalog col
+//   0    0x001   Id           1
+//   1    0x002   Iq           2
+//   2    0x004   theta_elec   0
+//   3    0x008   omega_elec   5
+//   4    0x010   Vd           3
+//   5    0x020   Vq           4
+//   6    0x040   Iu           7
+//   7    0x080   Iv           8
+//   8    0x100   Iw           9
+#define SCOPE_BIT_ID         0x0001U
+#define SCOPE_BIT_IQ         0x0002U
+#define SCOPE_BIT_THETA      0x0004U
+#define SCOPE_BIT_OMEGA      0x0008U
+#define SCOPE_BIT_VD         0x0010U
+#define SCOPE_BIT_VQ         0x0020U
+#define SCOPE_BIT_IU         0x0040U
+#define SCOPE_BIT_IV         0x0080U
+#define SCOPE_BIT_IW         0x0100U
+
+#define SCOPE_MAX_CHANNELS   9U        // number of catalog signals (popcount cap)
+
+// Default channel set (v1): Id, Iq, theta_elec, omega_elec. Used when the host
+// has not selected a mask (or selects an empty one).
 #define SCOPE_CHANNELS       4U
 #define SCOPE_MASK_V1        0x000FU
 

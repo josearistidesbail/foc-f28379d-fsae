@@ -14,6 +14,9 @@
 extern volatile float32_t g_dbg_iq_ref;   // src/foc_pipeline.c
 extern volatile uint32_t  g_isr_count;    // src/isr.c
 
+// KCL phase-current reconstruction selector (0=none,1=U,2=V,3=W).
+extern volatile uint16_t  g_isense_reconstruct_phase;   // src/adc_iface.c
+
 // ---- raw <-> float bit-cast helpers (C28x: float32_t and uint32_t are 32b) --
 static inline uint32_t f32_to_raw(float32_t f)
 {
@@ -55,6 +58,12 @@ static void set_kp_w(uint32_t  r){ foc_set_gain(FOC_GAIN_KP_W, raw_to_f32(r)); }
 static void get_ki_w(uint32_t *r){ *r = f32_to_raw(foc_get_gain(FOC_GAIN_KI_W)); }
 static void set_ki_w(uint32_t  r){ foc_set_gain(FOC_GAIN_KI_W, raw_to_f32(r)); }
 
+// ---- Hardware / diagnostic config (needs_idle) ---------------------------
+// Reconstruct selector clamps to the valid 0..3 range; out-of-range writes are
+// ignored so the live value never goes undefined (the GUI dropdown also bounds it).
+static void get_recon(uint32_t *r){ *r = (uint32_t)g_isense_reconstruct_phase; }
+static void set_recon(uint32_t  r){ if(r <= 3U) g_isense_reconstruct_phase = (uint16_t)r; }
+
 // ---- Read-only telemetry -------------------------------------------------
 static void get_state(uint32_t *r){ *r = (uint32_t)(uint16_t)sm_get_state(); }
 static void get_isr_count(uint32_t *r){ *r = g_isr_count; }
@@ -72,6 +81,8 @@ const param_entry_t g_param_table[] =
     { 0x0013U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "ki_q",      get_ki_q,      set_ki_q      },
     { 0x0020U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "kp_w",      get_kp_w,      set_kp_w      },
     { 0x0021U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "ki_w",      get_ki_w,      set_ki_w      },
+
+    { 0x0030U, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "isense_recon", get_recon,  set_recon     },
 
     { 0x0100U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "state",     get_state,     0             },
     { 0x0101U, PARAM_TYPE_U32, PARAM_FLAG_RO,         "isr_count", get_isr_count, 0             },

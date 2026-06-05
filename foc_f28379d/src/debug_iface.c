@@ -36,10 +36,14 @@ static volatile uint16_t s_rx_head;     // written by ISR
 static volatile uint16_t s_rx_tail;     // read by super-loop
 
 //=============================================================================
-// Scope snapshot staging (Id, Iq, theta, omega for all 256 ring slots)
+// Scope snapshot staging (up to SCOPE_MAX_CHANNELS catalog signals per slot).
 //=============================================================================
 #pragma DATA_SECTION(s_scope_buf, ".ebss")
-static float s_scope_buf[DATALOG_LEN_SAMPLES * SCOPE_CHANNELS];
+static float s_scope_buf[DATALOG_LEN_SAMPLES * SCOPE_MAX_CHANNELS];
+
+// Channel selection requested by the host via SCOPE_CONFIG. Defaults to the v1
+// set (Id, Iq, theta, omega) until the host selects otherwise.
+volatile uint16_t g_scope_mask = SCOPE_MASK_V1;
 
 //=============================================================================
 // CRC16-CCITT (poly 0x1021, init 0xFFFF), one 8-bit byte at a time.
@@ -201,10 +205,14 @@ static void handle_param_write(void)
 
 static void handle_scope_config(void)
 {
-    uint16_t decim;
+    uint16_t mask, decim;
     if(s_p_len < 4U) { send_nack(s_p_seq, NACK_BAD_LEN, CMD_SCOPE_CONFIG); return; }
-    // payload: channel_mask:u16 (ignored in v1, forced 0x000F), decim:u16
+    // payload: channel_mask:u16, decim:u16
+    mask  = s_rx_payload[0] | (uint16_t)(s_rx_payload[1] << 8);
     decim = s_rx_payload[2] | (uint16_t)(s_rx_payload[3] << 8);
+
+    mask &= (uint16_t)((1U << SCOPE_MAX_CHANNELS) - 1U);
+    g_scope_mask    = (mask == 0U) ? SCOPE_MASK_V1 : mask;
     g_datalog_decim = (decim == 0U) ? 1U : decim;
 
     frame_begin(CMD_SCOPE_CONFIG, s_p_seq, 1U);
@@ -214,26 +222,27 @@ static void handle_scope_config(void)
 
 static void handle_scope_capture(void)
 {
-    uint16_t head;
+    uint16_t head, mask, nch;
     uint16_t i, c, idx;
     uint32_t payload_len;
 
-    debug_datalog_snapshot(s_scope_buf, &head);
+    mask = g_scope_mask;
+    nch  = debug_datalog_snapshot(s_scope_buf, &head, mask);
 
     // Response: n:u16, nch:u8, mask:u16, samples[n*nch*f32]
-    payload_len = 5U + ((uint32_t)DATALOG_LEN_SAMPLES * SCOPE_CHANNELS * 4U);
+    payload_len = 5U + ((uint32_t)DATALOG_LEN_SAMPLES * nch * 4U);
     frame_begin(CMD_SCOPE_CAPTURE, s_p_seq, (uint16_t)payload_len);
     tx_pu16(DATALOG_LEN_SAMPLES);
-    tx_pb(SCOPE_CHANNELS);
-    tx_pu16(SCOPE_MASK_V1);
+    tx_pb(nch);
+    tx_pu16(mask);
 
     // Reorder ring -> chronological: oldest sample sits at head.
     for(i = 0; i < DATALOG_LEN_SAMPLES; i++)
     {
         idx = (uint16_t)((head + i) & (DATALOG_LEN_SAMPLES - 1U));
-        for(c = 0; c < SCOPE_CHANNELS; c++)
+        for(c = 0; c < nch; c++)
         {
-            tx_pu32(f32_to_raw(s_scope_buf[(idx * SCOPE_CHANNELS) + c]));
+            tx_pu32(f32_to_raw(s_scope_buf[(idx * nch) + c]));
         }
     }
     frame_end();

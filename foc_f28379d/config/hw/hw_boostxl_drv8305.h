@@ -111,6 +111,11 @@
 // W's sensor read it, V's read ~0, proving the V sense is dead, not the winding).
 // Reconstruct V from the healthy U,W channels. Set back to 0 once SO2 hardware
 // is fixed and Iv reads ~2048 codes at rest.
-#define ISENSE_RECONSTRUCT_PHASE  2
+//
+// This macro is now only the POWER-ON DEFAULT: it seeds the live variable
+// g_isense_reconstruct_phase (src/adc_iface.c). The selector can be changed at
+// runtime from the host via the "isense_recon" debug param (IDLE-only) without
+// a rebuild, so experiments don't require editing/flashing this header.
+#define ISENSE_RECONSTRUCT_PHASE  0
 
 #endif // HW_BOOSTXL_DRV8305_H

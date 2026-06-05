@@ -14,6 +14,15 @@ static volatile uint16_t s_iu_offset = ISENSE_ZERO_CODE;
 static volatile uint16_t s_iv_offset = ISENSE_ZERO_CODE;
 static volatile uint16_t s_iw_offset = ISENSE_ZERO_CODE;
 
+// Runtime KCL phase-current reconstruction selector: 0=none, 1=U, 2=V, 3=W.
+// Boot default comes from the hw header (hw_control_v2.h does not define it, so
+// guard with a 0 fallback). Host-writable via the "isense_recon" debug param
+// (IDLE-only); see debug_params.c.
+#ifndef ISENSE_RECONSTRUCT_PHASE
+#define ISENSE_RECONSTRUCT_PHASE 0
+#endif
+volatile uint16_t g_isense_reconstruct_phase = ISENSE_RECONSTRUCT_PHASE;
+
 // TODO: Debugging ADC, remove after
 volatile uint16_t g_dbg_iu_raw;
 volatile uint16_t g_dbg_iv_raw;
@@ -58,18 +67,16 @@ void adc_read_phase_currents(FOC_Iabc_t *out)
     // Reconstruct one dead current-sense channel via KCL (Iu + Iv + Iw = 0).
     // The dead phase's own (scaled) reading is overwritten; the synthesized
     // value depends only on the two healthy channels. g_dbg_i*_raw above still
-    // hold the true raw codes (incl. the dead channel) for diagnostics.
-#if defined(ISENSE_RECONSTRUCT_PHASE) && (ISENSE_RECONSTRUCT_PHASE != 0)
-  #if   (ISENSE_RECONSTRUCT_PHASE == 1)
-    out->value[0] = -out->value[1] - out->value[2];   // SO1 (phase U) amp dead
-  #elif (ISENSE_RECONSTRUCT_PHASE == 2)
-    out->value[1] = -out->value[0] - out->value[2];   // SO2 (phase V) amp dead
-  #elif (ISENSE_RECONSTRUCT_PHASE == 3)
-    out->value[2] = -out->value[0] - out->value[1];   // SO3 (phase W) amp dead
-  #else
-    #error "ISENSE_RECONSTRUCT_PHASE must be 0 (none), 1 (U), 2 (V), or 3 (W)"
-  #endif
-#endif
+    // hold the true raw codes (incl. the dead channel) for diagnostics. The
+    // selector is a runtime variable so the dead phase can be chosen from the
+    // host without a rebuild (debug param "isense_recon").
+    switch(g_isense_reconstruct_phase)
+    {
+    case 1U: out->value[0] = -out->value[1] - out->value[2]; break; // SO1 (U) dead
+    case 2U: out->value[1] = -out->value[0] - out->value[2]; break; // SO2 (V) dead
+    case 3U: out->value[2] = -out->value[0] - out->value[1]; break; // SO3 (W) dead
+    default: break;                                                  // 0 = none
+    }
 }
 
 float adc_read_vbus(void)

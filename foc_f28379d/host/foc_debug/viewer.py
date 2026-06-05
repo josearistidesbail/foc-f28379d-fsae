@@ -1,7 +1,8 @@
 """viewer.py - pyqtgraph live scope viewer.
 
-Triggers capture_scope() on a timer and plots the 4 channels (Id, Iq,
-theta_elec, omega_elec). Run with:
+Triggers capture_scope() on a timer and plots whatever channels the firmware is
+streaming (the active signal mask; default Id, Iq, theta_elec, omega_elec). Run
+with:
 
     python -m foc_debug.viewer --port /dev/ttyUSB1
 
@@ -14,6 +15,7 @@ from __future__ import annotations
 import argparse
 import sys
 
+from . import proto
 from .api import FocDebug
 from .link import SerialLink, LinkError
 
@@ -50,7 +52,13 @@ def main(argv: list | None = None) -> int:
     win = pg.GraphicsLayoutWidget(title="FOC scope")
     win.resize(900, 700)
 
-    names = ["Id", "Iq", "theta_elec", "omega_elec"]
+    # Learn the active channel set from one capture so the plots match whatever
+    # signal mask the firmware is streaming (falls back to the V1 default).
+    try:
+        names = dbg.capture_scope().names
+    except LinkError as e:
+        print(f"warning: initial capture failed ({e}); using default channels", file=sys.stderr)
+        names = list(proto.SCOPE_CHANNEL_NAMES)
     plots = []
     curves = []
     for r, name in enumerate(names):

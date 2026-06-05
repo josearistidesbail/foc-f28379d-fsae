@@ -15,9 +15,11 @@ volatile uint16_t g_datalog_idx;
 volatile uint16_t g_datalog_decim = 1U;
 static uint16_t   s_decim_cnt = 0U;
 
-// Wire scope-channel -> g_datalog column map (see debug_proto.h channel order):
-//   ch0=Id (col 1), ch1=Iq (col 2), ch2=theta_elec (col 0), ch3=omega_elec (col 5)
-static const uint16_t s_scope_cols[SCOPE_CHANNELS] = { 1U, 2U, 0U, 5U };
+// Catalog bit -> g_datalog column map (see debug_proto.h SCOPE_BIT_*):
+//   bit0 Id=1, bit1 Iq=2, bit2 theta=0, bit3 omega=5, bit4 Vd=3, bit5 Vq=4,
+//   bit6 Iu=7, bit7 Iv=8, bit8 Iw=9
+static const uint16_t s_scope_cols[SCOPE_MAX_CHANNELS] =
+    { 1U, 2U, 0U, 5U, 3U, 4U, 7U, 8U, 9U };
 
 void debug_init(void)
 {
@@ -41,22 +43,36 @@ void debug_datalog_push(const FOC_Signals_t *s, uint16_t state)
     g_datalog[i][4] = s->Vdq.value[1];   // Vq
     g_datalog[i][5] = s->omega_elec;
     g_datalog[i][6] = (float)state;
+    g_datalog[i][7] = s->Iabc.value[0];  // Iu
+    g_datalog[i][8] = s->Iabc.value[1];  // Iv
+    g_datalog[i][9] = s->Iabc.value[2];  // Iw
     g_datalog_idx = (i + 1U) & (DATALOG_LEN_SAMPLES - 1U);
 }
 
-void debug_datalog_snapshot(float *dst, uint16_t *out_head)
+uint16_t debug_datalog_snapshot(float *dst, uint16_t *out_head, uint16_t mask)
 {
+    // Resolve the set bits (ascending) into the datalog columns to emit. nch is
+    // the streamed channel count; dst is packed as dst[slot*nch + c].
+    uint16_t sel[SCOPE_MAX_CHANNELS];
+    uint16_t nch = 0U;
+    uint16_t b, i, c;
+    for(b = 0; b < SCOPE_MAX_CHANNELS; b++)
+    {
+        if(mask & (uint16_t)(1U << b)) sel[nch++] = s_scope_cols[b];
+    }
+
     // Capture the index first so the caller can reorder ring -> chronological.
-    uint16_t head = g_datalog_idx;
-    uint16_t i, c;
+    *out_head = g_datalog_idx;
+    if(nch == 0U) return 0U;
+
     for(i = 0; i < DATALOG_LEN_SAMPLES; i++)
     {
-        for(c = 0; c < SCOPE_CHANNELS; c++)
+        for(c = 0; c < nch; c++)
         {
-            dst[(i * SCOPE_CHANNELS) + c] = g_datalog[i][s_scope_cols[c]];
+            dst[(i * nch) + c] = g_datalog[i][sel[c]];
         }
     }
-    *out_head = head;
+    return nch;
 }
 
 void debug_dac_set(float sig_a, float sig_b, float scale01)

@@ -1,8 +1,8 @@
 """gui.py - point-and-click control panel for the FOC debug link.
 
 Everything is done from the window: pick a port and Connect, read/write
-parameters in a table, drive the state machine with buttons, and watch the four
-scope channels live. No CLI flags, no typed commands.
+parameters in a table, drive the state machine with buttons, and watch a
+selectable set of scope channels live. No CLI flags, no typed commands.
 
     python -m foc_debug            # launches this GUI (default)
     python -m foc_debug gui
@@ -123,8 +123,13 @@ def build(pg, QtCore, QtGui, QtWidgets):
         def set_interval(self, interval_s: float):
             self._scope_interval = max(0.02, float(interval_s))
 
-        def set_decim(self, decim: int):
-            self.submit("scope_config", fn=lambda d, v=int(decim): d.scope_config(decim=v))
+        def set_scope_config(self, mask: int, decim: int):
+            # Always send mask + decim together so neither clobbers the other
+            # (d.scope_config defaults the unspecified one back to V1 / 1).
+            self.submit(
+                "scope_config",
+                fn=lambda d, m=int(mask), v=int(decim): d.scope_config(decim=v, mask=m),
+            )
 
         def stop(self):
             self._stop.set()
@@ -201,6 +206,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
     COL_ID, COL_NAME, COL_TYPE, COL_FLAGS, COL_VALUE, COL_STATUS = range(6)
 
+    # The reconstruct-phase param is rendered as a labeled dropdown (instead of a
+    # plain numeric cell). Labels are positional: index == firmware value 0..3.
+    RECON_PARAM_NAME = "isense_recon"
+    RECON_LABELS = ["none", "U", "V", "W"]
+
     class MainWindow(QtWidgets.QMainWindow):
         def __init__(self, initial_port=None):
             super().__init__()
@@ -209,6 +219,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
             self.params: list[ParamInfo] = []
             self.row_of_id: dict[int, int] = {}
+            self.recon_combo = None        # QComboBox for the isense_recon row
+            self.recon_row = None          # its table row index
             self._connected = False
             self._conn_port = ""
             self._programmatic = False
@@ -217,12 +229,12 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._state_pending = False
             self._refresh_pending = False
 
-            # Rolling scope buffers (one deque per channel) + dirty flag.
+            # Rolling scope buffers (one deque per channel) + dirty flag. The
+            # deques are (re)created by _rebuild_plots to match the currently
+            # selected signal set.
             self._history = 8000
-            self._ring = [
-                collections.deque(maxlen=self._history)
-                for _ in proto.SCOPE_CHANNEL_NAMES
-            ]
+            self._scope_mask = proto.SCOPE_MASK_V1
+            self._ring: list = []
             self._scope_dirty = False
 
             # One serial worker for the whole app lifetime (idles when not
@@ -368,15 +380,25 @@ def build(pg, QtCore, QtGui, QtWidgets):
             sc.addStretch(1)
             rv.addLayout(sc)
 
+            # Signal selector: one checkbox per catalog signal (V1 four default).
+            sigrow = QtWidgets.QHBoxLayout()
+            sigrow.addWidget(QtWidgets.QLabel("Signals:"))
+            self.sig_checks = {}
+            default_on = set(proto.mask_to_names(self._scope_mask))
+            for _bit, name in proto.SCOPE_CATALOG:
+                cb = QtWidgets.QCheckBox(name)
+                cb.setChecked(name in default_on)
+                cb.toggled.connect(self._on_signal_toggled)
+                self.sig_checks[name] = cb
+                sigrow.addWidget(cb)
+            sigrow.addStretch(1)
+            rv.addLayout(sigrow)
+
             self.glw = pg.GraphicsLayoutWidget()
             self.curves = []
             self.plots = []
-            for r, name in enumerate(proto.SCOPE_CHANNEL_NAMES):
-                pl = self.glw.addPlot(row=r, col=0, title=name)
-                pl.showGrid(x=True, y=True, alpha=0.3)
-                self.curves.append(pl.plot(pen=pg.mkPen(width=1)))
-                self.plots.append(pl)
             rv.addWidget(self.glw, 1)
+            self._rebuild_plots(self._selected_names())
 
             split.addWidget(right)
             split.setSizes([520, 580])
@@ -471,6 +493,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
         def _apply_params(self, params):
             self.params = params
             self.row_of_id = {}
+            self.recon_combo = None
+            self.recon_row = None
             self._programmatic = True
             self.table.setRowCount(len(self.params))
             for row, info in enumerate(self.params):
@@ -479,11 +503,27 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self._set_cell(row, COL_NAME, info.name, editable=False)
                 self._set_cell(row, COL_TYPE, info.type_str, editable=False)
                 self._set_cell(row, COL_FLAGS, info.flags_str, editable=False)
-                self._set_cell(row, COL_VALUE, "", editable=not info.read_only)
+                if info.name == RECON_PARAM_NAME and not info.read_only:
+                    self._make_recon_combo(row, info)
+                else:
+                    self._set_cell(row, COL_VALUE, "", editable=not info.read_only)
                 self._set_cell(row, COL_STATUS, "", editable=False)
             self._programmatic = False
             self.table.resizeColumnsToContents()
             self._refresh_values()
+
+        def _make_recon_combo(self, row, info):
+            """Render the reconstruct-phase value cell as a labeled dropdown."""
+            combo = QtWidgets.QComboBox()
+            combo.addItems(RECON_LABELS)
+            # `activated` fires only on user selection, never on programmatic
+            # setCurrentIndex — so value refreshes can't trigger a spurious write.
+            combo.activated.connect(
+                lambda idx, info=info, row=row: self._on_recon_changed(info, row, idx)
+            )
+            self.table.setCellWidget(row, COL_VALUE, combo)
+            self.recon_combo = combo
+            self.recon_row = row
 
         def _set_cell(self, row, col, text, editable):
             item = QtWidgets.QTableWidgetItem(text)
@@ -528,10 +568,21 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 for info in self.params:
                     val = out.get(info.id)
                     row = self.row_of_id.get(info.id)
-                    if row is not None and val is not None:
+                    if row is None or val is None:
+                        continue
+                    if self.recon_combo is not None and row == self.recon_row:
+                        self._set_recon_index(int(val))
+                    else:
                         self.table.item(row, COL_VALUE).setText(self._fmt(info, val))
             finally:
                 self._programmatic = False
+
+        def _set_recon_index(self, val):
+            """Point the dropdown at firmware value `val` without emitting a write."""
+            idx = val if 0 <= val < len(RECON_LABELS) else 0
+            self.recon_combo.blockSignals(True)
+            self.recon_combo.setCurrentIndex(idx)
+            self.recon_combo.blockSignals(False)
 
         def _refresh_failed(self, msg):
             self._refresh_pending = False
@@ -571,6 +622,35 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self.table.item(row, COL_VALUE).setText(self._fmt(info, val))
                 self._programmatic = False
 
+        def _on_recon_changed(self, info, row, idx):
+            if not self._connected:
+                return
+
+            def do_write(dbg, pid=info.id, val=idx):
+                status = dbg.write_param(pid, val)
+                rb = None
+                try:
+                    rb = dbg.read_param(pid)
+                except Exception:  # noqa: BLE001
+                    pass
+                return status, rb
+
+            self.worker.submit(
+                "write", fn=do_write,
+                on_done=lambda res, info=info, row=row, idx=idx: self._recon_write_done(info, row, idx, res),
+                on_fail=lambda m: self._report(m, logging.ERROR),
+            )
+
+        def _recon_write_done(self, info, row, idx, res):
+            status, rb = res
+            sstr = proto.PARAM_WR_STR.get(status, f"status{status}")
+            self.table.item(row, COL_STATUS).setText(sstr)
+            self._report(f"write {info.name} = {RECON_LABELS[idx]} → {sstr}")
+            # Snap the dropdown to the firmware's actual value so a rejected write
+            # (e.g. needs_idle while running) visibly reverts instead of lying.
+            if rb is not None and self.recon_combo is not None:
+                self._set_recon_index(int(rb))
+
         # ---- state machine ----------------------------------------------
         def _sm(self, op):
             if not self._connected:
@@ -599,9 +679,46 @@ def build(pg, QtCore, QtGui, QtWidgets):
             )
 
         # ---- scope -------------------------------------------------------
+        def _selected_names(self):
+            """Checked catalog signal names, in ascending bit (= wire) order."""
+            return [name for _bit, name in proto.SCOPE_CATALOG
+                    if self.sig_checks[name].isChecked()]
+
+        def _rebuild_plots(self, names):
+            """Rebuild the stacked plots + rolling buffers for `names`."""
+            self.glw.clear()
+            self.plots = []
+            self.curves = []
+            for r, name in enumerate(names):
+                pl = self.glw.addPlot(row=r, col=0, title=name)
+                pl.showGrid(x=True, y=True, alpha=0.3)
+                self.curves.append(pl.plot(pen=pg.mkPen(width=1)))
+                self.plots.append(pl)
+            self._ring = [collections.deque(maxlen=self._history) for _ in names]
+            self._scope_dirty = True
+
+        def _on_signal_toggled(self, _checked=False):
+            names = self._selected_names()
+            if not names:
+                # Disallow an empty selection: re-check the box just cleared.
+                cb = self.sender()
+                if isinstance(cb, QtWidgets.QCheckBox):
+                    cb.blockSignals(True)
+                    cb.setChecked(True)
+                    cb.blockSignals(False)
+                return
+            mask = proto.names_to_mask(names)
+            if mask == self._scope_mask:
+                return
+            self._scope_mask = mask
+            self._rebuild_plots(names)
+            if self._connected:
+                self.worker.set_scope_config(self._scope_mask, self.decim_spin.value())
+            self._report("scope signals: " + ", ".join(names))
+
         def _apply_decim(self, val):
             if self._connected:
-                self.worker.set_decim(val)
+                self.worker.set_scope_config(self._scope_mask, val)
 
         def _apply_interval(self, val):
             self.worker.set_interval(val / 1000.0)
@@ -629,7 +746,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self.scope_btn.setChecked(False)
                 return
             self._last_scope_err = None
-            self.worker.set_decim(self.decim_spin.value())
+            self.worker.set_scope_config(self._scope_mask, self.decim_spin.value())
             self.worker.set_interval(self.interval_spin.value() / 1000.0)
             self.worker.set_scope(True)
             self._report("scope started")
@@ -649,6 +766,10 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self._report(f"scope error: {msg}", logging.ERROR)
 
         def _on_capture(self, cap):
+            # Drop frames captured under a different mask (in flight across a
+            # signal-selection change) so the rolling buffers never misalign.
+            if cap.mask != self._scope_mask:
+                return
             # Append into the rolling buffers. Drawing happens on the render
             # timer, not here — so a burst of captures coalesces into one redraw
             # and a stalled link leaves the existing history on screen.

@@ -163,7 +163,12 @@ class FocDebug:
             raise RuntimeError(f"truncated scope payload: {len(p)} < {expected}")
         floats = struct.unpack_from("<%df" % (n * nch), p, 5)
         data = [[floats[i * nch + c] for i in range(n)] for c in range(nch)]
-        names = proto.SCOPE_CHANNEL_NAMES[:nch]
+        # Names come from the echoed mask (ascending bit = wire order). Fall back
+        # to generic labels if the mask/nch disagree (defensive against a future
+        # firmware that streams more channels than the mask describes).
+        names = proto.mask_to_names(mask)
+        if len(names) != nch:
+            names = (names + [f"ch{c}" for c in range(len(names), nch)])[:nch]
         log.debug("scope capture: %d samples x %d ch, mask=0x%04X", n, nch, mask)
         return ScopeCapture(n_samples=n, n_channels=nch, mask=mask, names=names, data=data)
 

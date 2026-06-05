@@ -19,8 +19,9 @@ from dataclasses import dataclass
 FRAME_SYNC0 = 0xAA
 FRAME_SYNC1 = 0x55
 # Largest response payload the host will accept. The SCOPE_CAPTURE frame is the
-# biggest: 5 + DATALOG_LEN_SAMPLES(256) * SCOPE_CHANNELS(4) * 4 = 4101 bytes, so
-# this must stay comfortably above that. Keep in sync with debug_proto.h.
+# biggest: with every catalog signal selected, 5 + DATALOG_LEN_SAMPLES(128) *
+# SCOPE_MAX_CHANNELS(9) * 4 = 4613 bytes, so this stays comfortably above that.
+# Enforced in link.py on RX. Keep in sync with debug_proto.h.
 FRAME_MAX_PAYLOAD = 8192
 
 # ---- Command codes -------------------------------------------------------
@@ -74,9 +75,41 @@ NACK_STR = {
 }
 
 # ---- Scope ---------------------------------------------------------------
+# Signal catalog, in ascending bit order. Mirrors debug_proto.h SCOPE_BIT_*.
+# The firmware streams the masked signals in this same ascending bit order, so
+# this list is the canonical bit<->name<->wire-order mapping.
+SCOPE_CATALOG = [
+    (0, "Id"),
+    (1, "Iq"),
+    (2, "theta_elec"),
+    (3, "omega_elec"),
+    (4, "Vd"),
+    (5, "Vq"),
+    (6, "Iu"),
+    (7, "Iv"),
+    (8, "Iw"),
+]
+SCOPE_MAX_CHANNELS = len(SCOPE_CATALOG)
+
+# Default channel set (v1): Id, Iq, theta_elec, omega_elec.
 SCOPE_CHANNELS = 4
 SCOPE_MASK_V1 = 0x000F
 SCOPE_CHANNEL_NAMES = ["Id", "Iq", "theta_elec", "omega_elec"]
+
+
+def mask_to_names(mask: int) -> list:
+    """Catalog signal names selected by `mask`, in ascending bit (= wire) order."""
+    return [name for bit, name in SCOPE_CATALOG if mask & (1 << bit)]
+
+
+def names_to_mask(names) -> int:
+    """Bit mask for the given catalog signal names (unknown names ignored)."""
+    bit_of = {name: bit for bit, name in SCOPE_CATALOG}
+    mask = 0
+    for n in names:
+        if n in bit_of:
+            mask |= 1 << bit_of[n]
+    return mask
 
 
 def crc16_ccitt(data: bytes, crc: int = 0xFFFF) -> int:
