@@ -31,7 +31,7 @@ import sys
 import threading
 from dataclasses import dataclass
 
-from . import proto
+from . import autotune, proto
 from .api import FocDebug, ParamInfo
 from .link import SerialLink, LinkError, NackError, autodetect_port
 from .log import setup_logging
@@ -221,6 +221,81 @@ def build(pg, QtCore, QtGui, QtWidgets):
     }
     _REF_TO_SCOPE = {v: k for k, v in _SCOPE_TO_REF.items()}
 
+    # Firmware state codes (api.STATE_NAMES).
+    ST_IDLE, ST_RUN, ST_FAULT = 0, 3, 4
+
+    # Fallback motor/loop constants used when the firmware predates the
+    # read-only autotune params (host degrades gracefully; fields stay editable).
+    MC_DEFAULTS = {
+        "rs_ohm": 0.36, "ld_h": 235e-6, "lq_h": 235e-6, "flux_vs": 0.0046,
+        "i_peak_a": 7.1, "vbus": 24.0, "isr_freq_hz": 10000.0,
+        "speed_loop_ts": 1e-3, "fw_vmax_frac": 0.70, "pole_pairs": 4,
+    }
+
+    # ---- worker-thread experiment helpers (touch only dbg/time) ------------
+    def at_wait_state(dbg, target, timeout):
+        """Poll sm_state until it equals target. Raises on FAULT or timeout."""
+        t0 = time.monotonic()
+        while time.monotonic() - t0 < timeout:
+            st = dbg.sm_state()
+            if st == target:
+                return
+            if st == ST_FAULT and target != ST_FAULT:
+                raise RuntimeError("device entered FAULT during the experiment")
+            time.sleep(0.1)
+        raise RuntimeError(f"timed out waiting for state {target}")
+
+    def at_apply_gains(dbg, gains):
+        """Ensure IDLE (stopping a run if needed) then write NEEDS_IDLE gains.
+
+        ``gains`` is name->float. Returns name->write-status. Raises if the
+        device is faulted (the operator must clear it first).
+        """
+        st = dbg.sm_state()
+        if st == ST_FAULT:
+            raise RuntimeError("device in FAULT — clear the fault before applying gains")
+        if st != ST_IDLE:
+            dbg.request_stop()
+            at_wait_state(dbg, ST_IDLE, timeout=3.0)
+        return {name: dbg.write_param(name, float(val)) for name, val in gains.items()}
+
+    def at_run_step(dbg, *, mode, ref_param, ref_value, mask, decim, isr_freq,
+                    pre_gains=None, settle_frac=0.5, run_timeout=8.0):
+        """Apply optional gains, RUN, step one reference param, and snapshot the
+        scope with the edge placed inside the window. Returns (capture, dt).
+
+        Leaves the device stopped (IDLE) with the reference back at 0.
+        """
+        if pre_gains:
+            at_apply_gains(dbg, pre_gains)
+        else:
+            st = dbg.sm_state()
+            if st == ST_FAULT:
+                raise RuntimeError("device in FAULT — clear the fault first")
+            if st != ST_IDLE:
+                dbg.request_stop()
+                at_wait_state(dbg, ST_IDLE, timeout=3.0)
+        dbg.write_param("control_mode", int(mode))
+        dbg.write_param(ref_param, 0.0)
+        dbg.scope_config(decim=int(decim), mask=int(mask))
+        dbg.request_run()
+        try:
+            at_wait_state(dbg, ST_RUN, run_timeout)   # may align (~3 s) first
+            time.sleep(0.05)
+            dbg.write_param(ref_param, float(ref_value))
+            window = 128.0 * decim / isr_freq
+            time.sleep(window * settle_frac)
+            cap = dbg.capture_scope(timeout=2.0, retries=1)
+        finally:
+            # Always relax the command and stop the motor, even if the run
+            # never reached RUN (timeout/FAULT) or the capture failed.
+            for op in (lambda: dbg.write_param(ref_param, 0.0), dbg.request_stop):
+                try:
+                    op()
+                except Exception:   # noqa: BLE001 - best-effort safe-down
+                    pass
+        return cap, decim / isr_freq
+
     class MainWindow(QtWidgets.QMainWindow):
         def __init__(self, initial_port=None):
             super().__init__()
@@ -244,6 +319,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
             # Motor pole-pairs for RPM <-> electrical-rad/s conversion; replaced by
             # the device's read-only "pole_pairs" param once values are refreshed.
             self._pole_pairs = 4
+            # Motor/loop constants for the autotuner, populated from the device's
+            # read-only params each refresh (falls back to MC_DEFAULTS).
+            self._motor_const = dict(MC_DEFAULTS)
+            self._at_measured_km = None    # last measured speed-plant gain
+            self._at_last_cap = None       # last verify ScopeCapture (for CSV)
 
             # Rolling scope buffers (one deque per channel) + dirty flag. The
             # deques are (re)created by _rebuild_plots to match the currently
@@ -452,6 +532,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 page_lv.addWidget(table, 1)
                 self.tab_widget.addTab(page, tab_label)
 
+            self.tab_widget.addTab(self._build_autotune_page(), "Autotune")
+
             lv.addWidget(self.tab_widget, 1)
 
             hint = QtWidgets.QLabel(
@@ -616,6 +698,9 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self.refresh_vals_btn, self.scope_btn, self.autoread_chk,
                 self.decim_spin, self.interval_spin,
                 self.mode_combo, self.speed_spin, self.speed_apply_btn,
+                self.at_cur_apply_btn, self.at_cur_verify_btn,
+                self.at_spd_apply_btn, self.at_spd_verify_btn,
+                self.at_spd_measure_btn, self.at_fw_apply_btn,
             ):
                 w.setEnabled(on)
             for treg in self._all_tables:
@@ -756,6 +841,17 @@ def build(pg, QtCore, QtGui, QtWidgets):
             mode = val_by_name.get("control_mode")
             if mode is not None:
                 self._set_mode_combo(int(mode))
+
+            # Autotuner: cache motor/loop constants from the read-only params and
+            # refresh the computed-gain previews (vbus is live, so this tracks it).
+            mc_changed = False
+            for name in MC_DEFAULTS:
+                v = val_by_name.get(name)
+                if v is not None:
+                    self._motor_const[name] = float(v)
+                    mc_changed = True
+            if mc_changed:
+                self._at_refresh_all_previews()
 
         def _set_recon_combo(self, combo, val):
             """Set a recon dropdown without triggering a write signal."""
@@ -998,6 +1094,452 @@ def build(pg, QtCore, QtGui, QtWidgets):
                     i, f"{rpm:.0f} rpm", res),
                 on_fail=lambda m: self._report(m, logging.ERROR),
             )
+
+        # ---- autotune ----------------------------------------------------
+        def _mc(self, name):
+            """A motor/loop constant from the device (or its default fallback)."""
+            return float(self._motor_const.get(name, MC_DEFAULTS.get(name, 0.0)))
+
+        def _build_autotune_page(self):
+            page = QtWidgets.QWidget()
+            outer = QtWidgets.QVBoxLayout(page)
+            outer.setContentsMargins(4, 4, 4, 4)
+
+            scroll = QtWidgets.QScrollArea()
+            scroll.setWidgetResizable(True)
+            inner = QtWidgets.QWidget()
+            iv = QtWidgets.QVBoxLayout(inner)
+            iv.addWidget(self._build_at_current_box())
+            iv.addWidget(self._build_at_speed_box())
+            iv.addWidget(self._build_at_fw_box())
+            iv.addStretch(1)
+            scroll.setWidget(inner)
+            outer.addWidget(scroll, 1)
+
+            res_box = QtWidgets.QGroupBox("Last verify (step response)")
+            res_v = QtWidgets.QVBoxLayout(res_box)
+            self.at_plot = pg.PlotWidget()
+            self.at_plot.showGrid(x=True, y=True, alpha=0.3)
+            self.at_plot.setMaximumHeight(200)
+            self.at_meas_curve = self.at_plot.plot(pen=pg.mkPen(width=1))
+            self.at_ref_curve = self.at_plot.plot(
+                pen=pg.mkPen(color=(220, 60, 60), width=1.5, style=QtCore.Qt.DashLine))
+            res_v.addWidget(self.at_plot)
+            self.at_metrics_lbl = QtWidgets.QLabel("—")
+            self.at_metrics_lbl.setWordWrap(True)
+            res_v.addWidget(self.at_metrics_lbl)
+            outer.addWidget(res_box)
+
+            self._at_refresh_all_previews()
+            return page
+
+        def _build_at_current_box(self):
+            box = QtWidgets.QGroupBox("Current loop (Id/Iq) — model-based, exact")
+            g = QtWidgets.QGridLayout(box)
+            r = 0
+            g.addWidget(QtWidgets.QLabel("Target bandwidth (Hz):"), r, 0)
+            self.at_cur_bw = QtWidgets.QDoubleSpinBox()
+            self.at_cur_bw.setRange(10.0, 5000.0)
+            self.at_cur_bw.setDecimals(0)
+            self.at_cur_bw.setSingleStep(50.0)
+            self.at_cur_bw.setValue(600.0)
+            self.at_cur_bw.valueChanged.connect(lambda _v: self._at_current_preview())
+            g.addWidget(self.at_cur_bw, r, 1)
+            self.at_cur_ceil_lbl = QtWidgets.QLabel("")
+            g.addWidget(self.at_cur_ceil_lbl, r, 2)
+            r += 1
+            self.at_cur_plant_lbl = QtWidgets.QLabel("")
+            self.at_cur_plant_lbl.setStyleSheet("color: gray;")
+            g.addWidget(self.at_cur_plant_lbl, r, 0, 1, 3)
+            r += 1
+            self.at_cur_preview_lbl = QtWidgets.QLabel("—")
+            g.addWidget(self.at_cur_preview_lbl, r, 0, 1, 3)
+            r += 1
+            self.at_cur_apply_btn = QtWidgets.QPushButton("Apply current gains")
+            self.at_cur_apply_btn.clicked.connect(self._at_apply_current)
+            g.addWidget(self.at_cur_apply_btn, r, 0)
+            g.addWidget(QtWidgets.QLabel("iq step (A):"), r, 1)
+            self.at_cur_step = QtWidgets.QDoubleSpinBox()
+            self.at_cur_step.setRange(0.05, 5.0)
+            self.at_cur_step.setDecimals(2)
+            self.at_cur_step.setSingleStep(0.1)
+            self.at_cur_step.setValue(0.5)
+            g.addWidget(self.at_cur_step, r, 2)
+            r += 1
+            self.at_cur_verify_btn = QtWidgets.QPushButton("Apply + Verify (step iq)")
+            self.at_cur_verify_btn.setToolTip(
+                "Applies the gains (needs IDLE), runs in torque mode, steps iq, "
+                "and captures the response. The first Run after boot auto-aligns "
+                "(~3 s spin). Energizes the motor — keep the shaft clear.")
+            self.at_cur_verify_btn.clicked.connect(self._at_verify_current)
+            g.addWidget(self.at_cur_verify_btn, r, 0, 1, 3)
+            g.setColumnStretch(0, 1)
+            return box
+
+        def _build_at_speed_box(self):
+            box = QtWidgets.QGroupBox("Speed loop — symmetric optimum")
+            g = QtWidgets.QGridLayout(box)
+            r = 0
+            g.addWidget(QtWidgets.QLabel("SO factor a (2–4):"), r, 0)
+            self.at_spd_a = QtWidgets.QDoubleSpinBox()
+            self.at_spd_a.setRange(1.5, 6.0)
+            self.at_spd_a.setDecimals(2)
+            self.at_spd_a.setSingleStep(0.25)
+            self.at_spd_a.setValue(2.5)
+            self.at_spd_a.valueChanged.connect(lambda _v: self._at_speed_preview())
+            g.addWidget(self.at_spd_a, r, 1)
+            r += 1
+            g.addWidget(QtWidgets.QLabel("Inertia J (kg·m²):"), r, 0)
+            self.at_spd_j = QtWidgets.QDoubleSpinBox()
+            self.at_spd_j.setRange(1e-7, 1.0)
+            self.at_spd_j.setDecimals(8)
+            self.at_spd_j.setSingleStep(1e-6)
+            self.at_spd_j.setValue(1e-5)
+            self.at_spd_j.valueChanged.connect(self._on_at_j_changed)
+            g.addWidget(self.at_spd_j, r, 1)
+            self.at_spd_measure_btn = QtWidgets.QPushButton("Measure Km…")
+            self.at_spd_measure_btn.setToolTip(
+                "Briefly spins the motor (torque step) to estimate the speed "
+                "plant gain Km and back out J. Keep the shaft free; start small.")
+            self.at_spd_measure_btn.clicked.connect(self._at_measure_km)
+            g.addWidget(self.at_spd_measure_btn, r, 2)
+            r += 1
+            g.addWidget(QtWidgets.QLabel("Km probe iq (A):"), r, 0)
+            self.at_spd_km_iq = QtWidgets.QDoubleSpinBox()
+            self.at_spd_km_iq.setRange(0.05, 3.0)
+            self.at_spd_km_iq.setDecimals(2)
+            self.at_spd_km_iq.setSingleStep(0.1)
+            self.at_spd_km_iq.setValue(0.3)
+            g.addWidget(self.at_spd_km_iq, r, 1)
+            self.at_spd_km_lbl = QtWidgets.QLabel("Km: (from J)")
+            self.at_spd_km_lbl.setStyleSheet("color: gray;")
+            g.addWidget(self.at_spd_km_lbl, r, 2)
+            r += 1
+            self.at_spd_preview_lbl = QtWidgets.QLabel("—")
+            g.addWidget(self.at_spd_preview_lbl, r, 0, 1, 3)
+            r += 1
+            self.at_spd_apply_btn = QtWidgets.QPushButton("Apply speed gains")
+            self.at_spd_apply_btn.clicked.connect(self._at_apply_speed)
+            g.addWidget(self.at_spd_apply_btn, r, 0)
+            g.addWidget(QtWidgets.QLabel("RPM step:"), r, 1)
+            self.at_spd_step = QtWidgets.QDoubleSpinBox()
+            self.at_spd_step.setRange(-10000.0, 10000.0)
+            self.at_spd_step.setDecimals(0)
+            self.at_spd_step.setSingleStep(50.0)
+            self.at_spd_step.setValue(500.0)
+            g.addWidget(self.at_spd_step, r, 2)
+            r += 1
+            self.at_spd_verify_btn = QtWidgets.QPushButton("Apply + Verify (step RPM)")
+            self.at_spd_verify_btn.setToolTip(
+                "Applies the gains (needs IDLE), runs in speed mode, steps the "
+                "RPM setpoint, and captures omega. Spins the motor — shaft clear.")
+            self.at_spd_verify_btn.clicked.connect(self._at_verify_speed)
+            g.addWidget(self.at_spd_verify_btn, r, 0, 1, 3)
+            g.setColumnStretch(0, 1)
+            return box
+
+        def _build_at_fw_box(self):
+            box = QtWidgets.QGroupBox("Field weakening — estimate only")
+            g = QtWidgets.QGridLayout(box)
+            r = 0
+            g.addWidget(QtWidgets.QLabel("Target FW bandwidth (Hz):"), r, 0)
+            self.at_fw_bw = QtWidgets.QDoubleSpinBox()
+            self.at_fw_bw.setRange(1.0, 200.0)
+            self.at_fw_bw.setDecimals(1)
+            self.at_fw_bw.setSingleStep(1.0)
+            self.at_fw_bw.setValue(10.0)
+            self.at_fw_bw.valueChanged.connect(lambda _v: self._at_fw_preview())
+            g.addWidget(self.at_fw_bw, r, 1)
+            r += 1
+            g.addWidget(QtWidgets.QLabel("Vmax fraction:"), r, 0)
+            self.at_fw_frac = QtWidgets.QDoubleSpinBox()
+            self.at_fw_frac.setRange(0.10, 1.0)
+            self.at_fw_frac.setDecimals(2)
+            self.at_fw_frac.setSingleStep(0.05)
+            self.at_fw_frac.setValue(0.70)
+            self.at_fw_frac.valueChanged.connect(lambda _v: self._at_fw_preview())
+            g.addWidget(self.at_fw_frac, r, 1)
+            r += 1
+            self.at_fw_plant_lbl = QtWidgets.QLabel("")
+            self.at_fw_plant_lbl.setStyleSheet("color: gray;")
+            g.addWidget(self.at_fw_plant_lbl, r, 0, 1, 3)
+            r += 1
+            self.at_fw_preview_lbl = QtWidgets.QLabel("—")
+            g.addWidget(self.at_fw_preview_lbl, r, 0, 1, 3)
+            r += 1
+            self.at_fw_apply_btn = QtWidgets.QPushButton("Apply FW gains")
+            self.at_fw_apply_btn.clicked.connect(self._at_apply_fw)
+            g.addWidget(self.at_fw_apply_btn, r, 0)
+            r += 1
+            cav = QtWidgets.QLabel(
+                "FW gains are a starting estimate: the loop engages only above "
+                "base speed and its gain scales with speed — verify on hardware.")
+            cav.setWordWrap(True)
+            cav.setStyleSheet("color: #a06000;")
+            g.addWidget(cav, r, 0, 1, 3)
+            g.setColumnStretch(0, 1)
+            return box
+
+        def _at_refresh_all_previews(self):
+            if not hasattr(self, "at_cur_bw"):
+                return
+            self._at_current_preview()
+            self._at_speed_preview()
+            self._at_fw_preview()
+
+        # ---- preview (compute) handlers ---------------------------------
+        def _at_current_preview(self):
+            R, Ld, Lq = self._mc("rs_ohm"), self._mc("ld_h"), self._mc("lq_h")
+            f_isr = self._mc("isr_freq_hz")
+            Ts = 1.0 / f_isr if f_isr > 0 else 1e-4
+            ceil = autotune.current_bw_ceiling(f_isr)
+            self.at_cur_ceil_lbl.setText(f"≤ {ceil:.0f} Hz")
+            self.at_cur_plant_lbl.setText(
+                f"R={R:.4g} Ω   Ld={Ld * 1e6:.1f} µH   Lq={Lq * 1e6:.1f} µH   "
+                f"Ts={Ts * 1e6:.0f} µs")
+            f_bw = self.at_cur_bw.value()
+            try:
+                gains = autotune.current_loop_gains_dq(R, Ld, Lq, Ts, f_bw)
+            except ValueError as e:
+                self.at_cur_preview_lbl.setText(f"invalid: {e}")
+                self._at_cur_gains = None
+                return
+            self._at_cur_gains = gains
+            warn = "   ⚠ above ISR/10" if f_bw > ceil else ""
+            self.at_cur_preview_lbl.setText(
+                f"kp_d={gains['kp_d']:.4g}  ki_d={gains['ki_d']:.4g}    "
+                f"kp_q={gains['kp_q']:.4g}  ki_q={gains['ki_q']:.4g}{warn}")
+
+        def _at_km_value(self):
+            if self._at_measured_km:
+                return self._at_measured_km
+            try:
+                return autotune.km_from_j(
+                    self.at_spd_j.value(), int(self._mc("pole_pairs")) or 4,
+                    self._mc("flux_vs"))
+            except ValueError:
+                return 0.0
+
+        def _at_speed_preview(self):
+            a = self.at_spd_a.value()
+            f_bw_cur = self.at_cur_bw.value() if hasattr(self, "at_cur_bw") else 600.0
+            T_eq = 1.0 / (2.0 * np.pi * f_bw_cur) if f_bw_cur > 0 else 0.0
+            Ts_spd = self._mc("speed_loop_ts")
+            Km = self._at_km_value()
+            try:
+                kp, ki = autotune.speed_loop_gains(Km, T_eq, Ts_spd, a)
+            except ValueError as e:
+                self.at_spd_preview_lbl.setText(f"invalid: {e}")
+                self._at_spd_gains = None
+                return
+            self._at_spd_gains = {"kp_w": kp, "ki_w": ki}
+            src = "measured" if self._at_measured_km else "from J"
+            self.at_spd_preview_lbl.setText(
+                f"Km={Km:.4g} ({src})  T_eq={T_eq * 1e3:.3f} ms  →  "
+                f"kp_w={kp:.4g}  ki_w={ki:.4g}")
+
+        def _on_at_j_changed(self, _val=None):
+            # Editing J means "use J", not a previously measured Km.
+            self._at_measured_km = None
+            self.at_spd_km_lbl.setText("Km: (from J)")
+            self._at_speed_preview()
+
+        def _at_fw_preview(self):
+            vbus, Ld, flux = self._mc("vbus"), self._mc("ld_h"), self._mc("flux_vs")
+            f_isr = self._mc("isr_freq_hz")
+            Ts = 1.0 / f_isr if f_isr > 0 else 1e-4
+            frac = self.at_fw_frac.value()
+            f_fw = self.at_fw_bw.value()
+            vmax_fw = frac * vbus * 0.5
+            try:
+                we_ref = autotune.fw_base_speed_elec(vmax_fw, flux)
+                kp, ki = autotune.fw_loop_gains(vmax_fw, we_ref, Ld, Ts, f_fw)
+            except ValueError as e:
+                self.at_fw_preview_lbl.setText(f"invalid: {e}")
+                self._at_fw_gains = None
+                return
+            self._at_fw_gains = {"kp_fw": kp, "ki_fw": ki}
+            pp = int(self._mc("pole_pairs")) or 4
+            base_rpm = we_ref * 60.0 / (2.0 * np.pi) / pp
+            self.at_fw_plant_lbl.setText(
+                f"vbus={vbus:.1f} V   vmax_fw={vmax_fw:.2f} V   "
+                f"base≈{we_ref:.0f} elec rad/s (~{base_rpm:.0f} rpm)")
+            self.at_fw_preview_lbl.setText(f"kp_fw={kp:.4g}   ki_fw={ki:.4g}")
+
+        # ---- apply handlers ---------------------------------------------
+        def _at_apply(self, which, gains):
+            if not self._connected:
+                self._report("not connected")
+                return
+            if not gains:
+                self._report(f"no valid {which} gains computed", logging.WARNING)
+                return
+            self.worker.submit(
+                "at_apply", fn=lambda d, g=dict(gains): at_apply_gains(d, g),
+                on_done=lambda res, w=which: self._at_apply_done(w, res),
+                on_fail=lambda m: self._report(f"apply failed: {m}", logging.ERROR))
+
+        def _at_apply_current(self):
+            self._at_current_preview()
+            self._at_apply("current", getattr(self, "_at_cur_gains", None))
+
+        def _at_apply_speed(self):
+            self._at_speed_preview()
+            self._at_apply("speed", getattr(self, "_at_spd_gains", None))
+
+        def _at_apply_fw(self):
+            self._at_fw_preview()
+            self._at_apply("field-weakening", getattr(self, "_at_fw_gains", None))
+
+        def _at_apply_done(self, which, res):
+            parts = [f"{k}={proto.PARAM_WR_STR.get(v, v)}" for k, v in res.items()]
+            self._report(f"{which} gains applied: " + ", ".join(parts))
+            self._refresh_values()
+
+        # ---- verify / measure experiments -------------------------------
+        def _at_set_busy(self, on):
+            for w in (self.at_cur_verify_btn, self.at_spd_verify_btn,
+                      self.at_spd_measure_btn, self.at_cur_apply_btn,
+                      self.at_spd_apply_btn, self.at_fw_apply_btn):
+                w.setEnabled((not on) and self._connected)
+
+        def _at_verify_current(self):
+            if not self._connected:
+                self._report("not connected")
+                return
+            self._at_current_preview()
+            gains = getattr(self, "_at_cur_gains", None)
+            if not gains:
+                self._report("no valid current gains computed", logging.WARNING)
+                return
+            iq = self.at_cur_step.value()
+            isr = self._mc("isr_freq_hz")
+            mask = proto.names_to_mask(["Id", "Iq"])
+            self._report("current verify: applying gains + stepping iq…")
+            self._at_set_busy(True)
+            self.worker.submit(
+                "at_verify_cur",
+                fn=lambda d, g=dict(gains): at_run_step(
+                    d, mode=0, ref_param="iq_ref", ref_value=iq, mask=mask,
+                    decim=3, isr_freq=isr, pre_gains=g, settle_frac=0.5),
+                on_done=lambda res, iq=iq: self._at_verify_done(
+                    "Iq", res, 0.0, iq, "current"),
+                on_fail=self._at_verify_failed)
+
+        def _at_verify_speed(self):
+            if not self._connected:
+                self._report("not connected")
+                return
+            self._at_speed_preview()
+            gains = getattr(self, "_at_spd_gains", None)
+            if not gains:
+                self._report("no valid speed gains computed", logging.WARNING)
+                return
+            rpm = self.at_spd_step.value()
+            we = self._rpm_to_elec(rpm)
+            isr = self._mc("isr_freq_hz")
+            # Size the window ~1.6x the firmware accel ramp (SPEED_RAMP_RAD_S2~500)
+            # so the ramp + overshoot fit inside the 128-sample snapshot.
+            ramp_t = abs(we) / 500.0
+            total_t = ramp_t * 1.6 + 0.1
+            decim = int(max(20, min(200, round(total_t * isr / 128.0))))
+            mask = proto.names_to_mask(["omega_elec"])
+            self._report("speed verify: applying gains + stepping RPM…")
+            self._at_set_busy(True)
+            self.worker.submit(
+                "at_verify_spd",
+                fn=lambda d, g=dict(gains): at_run_step(
+                    d, mode=1, ref_param="omega_ref", ref_value=we, mask=mask,
+                    decim=decim, isr_freq=isr, pre_gains=g, settle_frac=0.55),
+                on_done=lambda res, we=we: self._at_verify_done(
+                    "omega_elec", res, 0.0, we, "speed"),
+                on_fail=self._at_verify_failed)
+
+        def _at_measure_km(self):
+            if not self._connected:
+                self._report("not connected")
+                return
+            iq = self.at_spd_km_iq.value()
+            isr = self._mc("isr_freq_hz")
+            mask = proto.names_to_mask(["omega_elec"])
+            self._report("measuring Km: torque ramp…")
+            self._at_set_busy(True)
+            self.worker.submit(
+                "at_km",
+                fn=lambda d: at_run_step(
+                    d, mode=0, ref_param="iq_ref", ref_value=iq, mask=mask,
+                    decim=12, isr_freq=isr, pre_gains=None, settle_frac=0.9),
+                on_done=lambda res, iq=iq: self._at_km_done(res, iq),
+                on_fail=self._at_verify_failed)
+
+        def _at_verify_failed(self, msg):
+            self._at_set_busy(False)
+            self._report(f"experiment failed: {msg}", logging.ERROR)
+
+        def _at_verify_done(self, chan, res, ref0, ref1, which):
+            self._at_set_busy(False)
+            cap, dt = res
+            self._at_last_cap = cap
+            if chan not in cap.names:
+                self._report(f"verify: channel {chan} not in capture", logging.ERROR)
+                return
+            y = cap.data[cap.names.index(chan)]
+            m = autotune.step_metrics(y, dt, ref0=ref0, ref1=ref1)
+            xs = np.arange(len(y)) * dt * 1e3
+            self.at_meas_curve.setData(xs, np.asarray(y, dtype=float))
+            self.at_ref_curve.setData([float(xs[0]), float(xs[-1])], [ref1, ref1])
+            self.at_plot.setTitle(f"{which} verify — {chan}")
+            self.at_plot.setLabel("bottom", "t (ms)")
+            if m.ok:
+                self.at_metrics_lbl.setText(
+                    f"rise(10–90%)={m.t_rise * 1e3:.2f} ms   "
+                    f"overshoot={m.overshoot_pct:.1f}%   "
+                    f"settle={m.t_settle * 1e3:.2f} ms   "
+                    f"eff.BW≈{m.bw_hz:.0f} Hz")
+                self._report(
+                    f"{which} verify: overshoot {m.overshoot_pct:.1f}%, "
+                    f"rise {m.t_rise * 1e3:.2f} ms")
+            else:
+                self.at_metrics_lbl.setText(
+                    f"could not analyze step ({m.reason}) — try a larger step "
+                    "or different decimation")
+                self._report(f"{which} verify: {m.reason}", logging.WARNING)
+            self._refresh_values()
+
+        def _at_km_done(self, res, iq):
+            self._at_set_busy(False)
+            cap, dt = res
+            self._at_last_cap = cap
+            if "omega_elec" not in cap.names:
+                self._report("Km: omega channel missing from capture", logging.ERROR)
+                return
+            y = cap.data[cap.names.index("omega_elec")]
+            n = len(y)
+            slope = autotune.fit_slope(y, dt, i0=int(n * 0.3), i1=n)
+            if iq <= 0 or slope <= 0:
+                self._report(
+                    "Km measure: no usable ramp (is the shaft free? try larger iq)",
+                    logging.WARNING)
+                return
+            Km = slope / iq
+            self._at_measured_km = Km
+            try:
+                J = autotune.j_from_km(Km, int(self._mc("pole_pairs")) or 4,
+                                       self._mc("flux_vs"))
+            except ValueError:
+                J = 0.0
+            self.at_spd_km_lbl.setText(f"Km={Km:.4g} (measured)")
+            self.at_spd_j.blockSignals(True)   # reflect implied J, keep measured Km
+            if J > 0:
+                self.at_spd_j.setValue(J)
+            self.at_spd_j.blockSignals(False)
+            self._at_speed_preview()
+            xs = np.arange(n) * dt * 1e3
+            self.at_meas_curve.setData(xs, np.asarray(y, dtype=float))
+            self.at_ref_curve.setData([], [])
+            self.at_plot.setTitle("Km measure — omega ramp")
+            self.at_plot.setLabel("bottom", "t (ms)")
+            self._report(f"Km measured: {Km:.4g} (rad/s²/A), implied J≈{J:.3g} kg·m²")
 
         # ---- scope -------------------------------------------------------
         def _selected_names(self):

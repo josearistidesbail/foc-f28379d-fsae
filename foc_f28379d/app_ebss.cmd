@@ -38,4 +38,14 @@ SECTIONS
     .text:foc_init            : > FLASHA   PAGE = 0, ALIGN(8)
     .text:foc_speed_loop_tick : > FLASHA   PAGE = 0, ALIGN(8)
     .text:sm_tick_1khz        : > FLASHA   PAGE = 0, ALIGN(8)
+
+    /* The read-only motor/loop autotune params (rs_ohm/ld_h/.../fw_vmax_frac in
+     * debug_params.c) grew .text + the const param table just enough to spill
+     * .cinit out of FLASHB again (#10099: .cinit 0x34, FLASHB 0x32 free).
+     * Relocate the serial-command param accessors to FLASHA -- they run only on
+     * a host request (PARAM_READ/WRITE/LIST), never in the 10 kHz ISR, so flash
+     * wait-state is irrelevant and there is no .TI.ramfunc placement clash. */
+    .text:param_find  : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:param_read  : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:param_write : > FLASHA   PAGE = 0, ALIGN(8)
 }

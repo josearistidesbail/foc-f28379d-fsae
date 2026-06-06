@@ -114,6 +114,20 @@ static void get_omega_meas(uint32_t *r){ *r = f32_to_raw(foc_get_signals()->omeg
 static void get_fw_id(uint32_t *r){ *r = f32_to_raw(g_dbg_fw_id); }
 static void get_vmag(uint32_t *r) { *r = f32_to_raw(g_dbg_vmag); }
 
+// ---- Motor / loop constants (read-only, for the host PI autotuner) --------
+// The autotuner derives gains from the plant (R, L), the loop timestep, and the
+// DC bus, so it reads these instead of hardcoding motor-specific numbers. All
+// but vbus are compile-time constants; vbus is the live ISR-updated bus voltage.
+static void get_rs_ohm(uint32_t *r)      { *r = f32_to_raw(MOTOR_RS_OHM); }
+static void get_ld_h(uint32_t *r)        { *r = f32_to_raw(MOTOR_LD_H); }
+static void get_lq_h(uint32_t *r)        { *r = f32_to_raw(MOTOR_LQ_H); }
+static void get_flux_vs(uint32_t *r)     { *r = f32_to_raw(MOTOR_FLUX_VS); }
+static void get_i_peak_a(uint32_t *r)    { *r = f32_to_raw(MOTOR_I_PEAK_A); }
+static void get_vbus(uint32_t *r)        { *r = f32_to_raw(foc_get_refs()->vbus); }
+static void get_isr_freq_hz(uint32_t *r) { *r = f32_to_raw(FOC_ISR_FREQ_HZ); }
+static void get_speed_loop_ts(uint32_t *r){ *r = f32_to_raw((float32_t)SPEED_LOOP_TS); }
+static void get_fw_vmax_frac(uint32_t *r){ *r = f32_to_raw(FW_VMAX_FRACTION); }
+
 //=============================================================================
 const param_entry_t g_param_table[] =
 {
@@ -142,6 +156,17 @@ const param_entry_t g_param_table[] =
     { 0x0104U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "omega_meas", get_omega_meas, 0           },
     { 0x0105U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "fw_id",      get_fw_id,     0            },
     { 0x0106U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "vmag",       get_vmag,      0            },
+
+    // Motor / loop constants the host PI autotuner reads to compute gains.
+    { 0x0110U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "rs_ohm",        get_rs_ohm,        0       },
+    { 0x0111U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "ld_h",          get_ld_h,          0       },
+    { 0x0112U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "lq_h",          get_lq_h,          0       },
+    { 0x0113U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "flux_vs",       get_flux_vs,       0       },
+    { 0x0114U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "i_peak_a",      get_i_peak_a,      0       },
+    { 0x0115U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "vbus",          get_vbus,          0       },
+    { 0x0116U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "isr_freq_hz",   get_isr_freq_hz,   0       },
+    { 0x0117U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "speed_loop_ts", get_speed_loop_ts, 0       },
+    { 0x0118U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "fw_vmax_frac",  get_fw_vmax_frac,  0       },
 };
 
 const uint16_t g_param_count = (uint16_t)(sizeof(g_param_table) / sizeof(g_param_table[0]));
