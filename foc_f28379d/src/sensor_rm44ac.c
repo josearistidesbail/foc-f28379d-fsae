@@ -23,6 +23,15 @@ volatile float32_t g_resolver_omega_elec  = 0.0f;
 volatile float32_t g_resolver_elec_offset = SENSOR_RES_DEFAULT_OFFSET;
 volatile float32_t g_resolver_last_theta  = 0.0f;
 
+// Sensor-loss state (see sensor_iface.h contract). g_resolver_omega_healthy is
+// the last electrical speed latched while the sin/cos vector was in-window; the
+// fault shutdown reads it to pick active-short vs coast.
+volatile float32_t g_resolver_omega_healthy = 0.0f;
+volatile uint16_t  g_resolver_lost          = 0U;
+volatile uint16_t  g_resolver_loss_count    = 0U;   // consecutive out-of-window ISRs
+// TODO: Debugging Step 9, remove after. Latest sin^2+cos^2 (healthy ~= 1.0).
+volatile float32_t g_dbg_resolver_mag;
+
 void sensor_init(void)
 {
     g_resolver_theta_mech  = 0.0f;
@@ -30,6 +39,9 @@ void sensor_init(void)
     g_resolver_theta_elec  = 0.0f;
     g_resolver_omega_elec  = 0.0f;
     g_resolver_last_theta  = 0.0f;
+    g_resolver_omega_healthy = 0.0f;
+    g_resolver_lost        = 0U;
+    g_resolver_loss_count  = 0U;
     // g_resolver_elec_offset starts at the default and is overwritten by
     // sensor_rm44ac_capture_zero() during the ALIGN_ROTOR state.
 }

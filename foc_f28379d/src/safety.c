@@ -11,6 +11,7 @@
 #include "inverter_iface.h"
 #include "foc_pipeline.h"
 #include "foc_state_machine.h"
+#include "sensor_iface.h"
 
 static volatile uint16_t s_latched;
 
@@ -75,6 +76,13 @@ void safety_check_isr(void)
         safety_latch(FAULT_UNDERVOLTAGE);
 
     if(inverter_is_faulted()) safety_latch(FAULT_GATE_DRIVER);
+
+    // Position-sensor loss. Only act in states that commutate on the angle; the
+    // backend has already debounced (resolver: sin^2+cos^2 window per ISR; QEP:
+    // drive-vs-response in the slow loop). enter(FOC_FAULT) then reads the
+    // last-healthy speed to choose active-short (clamp back-EMF) vs coast.
+    if((st == FOC_RUN || st == FOC_ALIGN_ROTOR) && sensor_is_lost())
+        safety_latch(FAULT_SENSOR_LOSS);
 
     if(s_latched) sm_raise_fault(s_latched);
 

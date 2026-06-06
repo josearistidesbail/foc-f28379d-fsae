@@ -10,5 +10,6 @@
 extern void pwm_init(void);
 extern void pwm_force_safe(void);                  // tristate / 50% duty
 extern void pwm_set_duty(const FOC_Duty_t *duty);  // ISR-rate call
+extern void pwm_clear_trip(void);                  // release latched HW trip-zone
 
 #endif // PWM_IFACE_H

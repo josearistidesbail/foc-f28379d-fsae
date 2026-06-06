@@ -26,4 +26,16 @@ SECTIONS
      * so this explicit placement does NOT clash with the SDK's catch-all .text;
      * the named subsection simply wins for this one function. */
     .text:align_step : > FLASHA   PAGE = 0, ALIGN(8)
+
+    /* Step 11 (field weakening) pushed .text past the end of FLASHB again
+     * (#10099: .cinit 0x34 could not be placed, FLASHB 0 free). Relocate a few
+     * more non-hot functions to the otherwise-empty FLASHA to free FLASHB for
+     * .cinit. All chosen functions are one-time init or 1 kHz slow-loop code --
+     * NOT the 10 kHz current-loop ISR -- so flash wait-state is irrelevant, and
+     * none are candidates for .TI.ramfunc (so no future placement clash). Named
+     * .text:<func> subsections (--gen_func_subsections) win over the SDK's
+     * catch-all .text without conflicting with it. */
+    .text:foc_init            : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:foc_speed_loop_tick : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:sm_tick_1khz        : > FLASHA   PAGE = 0, ALIGN(8)
 }

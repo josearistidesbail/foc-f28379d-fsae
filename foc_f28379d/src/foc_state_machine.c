@@ -35,6 +35,11 @@ volatile uint16_t  g_dbg_state;          // mirrors s_state for visibility
 // g_dbg_align_qep_cnt + g_dbg_align_offset_elec now live in foc_pipeline.c,
 // where the alignment controller runs.
 
+// TODO: Debugging Step 9, remove after. Which safe-state FOC_FAULT chose:
+//   1 = ACTIVE SHORT (gate kept on, low-side short clamps back-EMF; high speed)
+//   0 = COAST        (gate disabled, bridge tristate; low speed / at rest)
+volatile uint16_t  g_dbg_fault_asc;
+
 static void enter(FOC_State_t next)
 {
     s_state = next;
@@ -45,6 +50,7 @@ static void enter(FOC_State_t next)
     case FOC_IDLE:
         inverter_disable_gate();
         pwm_force_safe();
+        pwm_clear_trip();   // release any latched HW trip-zone so RUN can resume
         break;
     case FOC_CALIBRATE_OFFSETS:
         inverter_enable_gate();
@@ -60,11 +66,31 @@ static void enter(FOC_State_t next)
         break;
     case FOC_RUN:
         inverter_enable_gate();
+        // Seed id_ref to nominal on entry. From here the current-loop ISR owns
+        // it: id_ref = ID_REF_NOMINAL_A + field-weakening regulator output
+        // (foc_current_loop_isr step 3b, gated by g_dbg_fw_en).
         foc_get_refs()->id_ref = ID_REF_NOMINAL_A;
         break;
     case FOC_FAULT:
         inverter_snapshot_fault_regs(); // read while EN_GATE still high — tells us what fired
-        inverter_disable_gate();
+        {
+            // Speed-dependent safe-state. Above FAULT_ASC_OMEGA_ELEC hold a
+            // 3-phase ACTIVE SHORT: keep the gate driver ENABLED so the ISR's
+            // pwm_force_safe() (EPWMxA forced low -> dead-band makes EPWMxB high
+            // -> low-side FETs on) clamps the terminals. This stops back-EMF
+            // from rectifying into the DC link (uncontrolled generation ->
+            // overvoltage) during field-weakening. Below the threshold COAST:
+            // disable the gate driver so every FET tristates and the motor
+            // freewheels. Uses the LAST-HEALTHY speed because on sensor loss the
+            // live estimate is already garbage. This also keeps software in
+            // agreement with the HW trip-zone, which latches the same ASC.
+            float32_t w = sensor_get_healthy_speed();
+            if(w < 0.0f) w = -w;
+            bool asc = (w > FAULT_ASC_OMEGA_ELEC);
+            g_dbg_fault_asc = (uint16_t)asc;
+            if(asc) inverter_enable_gate();     // keep gate on -> low-side short
+            else    inverter_disable_gate();    // tristate -> coast
+        }
         pwm_force_safe();
         break;
     }

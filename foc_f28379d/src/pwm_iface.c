@@ -75,3 +75,15 @@ void pwm_set_duty(const FOC_Duty_t *d)
     EPWM_setActionQualifierContSWForceAction(PWM_V_BASE, EPWM_AQ_OUTPUT_A, EPWM_AQ_SW_DISABLED);
     EPWM_setActionQualifierContSWForceAction(PWM_W_BASE, EPWM_AQ_OUTPUT_A, EPWM_AQ_SW_DISABLED);
 }
+
+void pwm_clear_trip(void)
+{
+    // Release the latched one-shot trip-zone (and its interrupt flag) on all
+    // three half-bridges so PWM can resume on the next RUN. Called from
+    // enter(FOC_IDLE) — i.e. after a fault has been cleared. Harmless when no
+    // trip is configured/latched (clears already-zero flags). The HW trip
+    // itself is configured in SysConfig (OSHT1, action A=LOW / B=HIGH = ASC).
+    EPWM_clearTripZoneFlag(PWM_U_BASE, EPWM_TZ_FLAG_OST | EPWM_TZ_INTERRUPT);
+    EPWM_clearTripZoneFlag(PWM_V_BASE, EPWM_TZ_FLAG_OST | EPWM_TZ_INTERRUPT);
+    EPWM_clearTripZoneFlag(PWM_W_BASE, EPWM_TZ_FLAG_OST | EPWM_TZ_INTERRUPT);
+}

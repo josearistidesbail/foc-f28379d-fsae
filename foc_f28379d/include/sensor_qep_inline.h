@@ -17,6 +17,8 @@ extern volatile float32_t g_qep_theta_elec;        // corrected (raw - offset)
 extern volatile float32_t g_qep_theta_raw_elec;    // uncorrected, boot-relative
 extern volatile float32_t g_qep_omega_elec;
 extern volatile float32_t g_qep_theta_offset_elec; // electrical zero offset [rad]
+extern volatile float32_t g_qep_omega_healthy;     // last speed while trusted
+extern volatile uint16_t  g_qep_lost;              // 1 once feedback is lost
 
 // Set the electrical zero offset (radians). Called by the align controller at
 // the end of FOC_ALIGN_ROTOR; see sensor_qep.c.
@@ -63,5 +65,7 @@ static inline void sensor_update_isr(void)
 static inline float32_t sensor_get_elec_angle(void)     { return g_qep_theta_elec; }
 static inline float32_t sensor_get_elec_angle_raw(void) { return g_qep_theta_raw_elec; }
 static inline float32_t sensor_get_elec_speed(void)     { return g_qep_omega_elec; }
+static inline bool      sensor_is_lost(void)            { return g_qep_lost != 0U; }
+static inline float32_t sensor_get_healthy_speed(void)  { return g_qep_omega_healthy; }
 
 #endif // SENSOR_QEP_INLINE_H

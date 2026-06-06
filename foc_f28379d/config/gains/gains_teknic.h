@@ -59,4 +59,25 @@
 // serial param to A/B it.
 #define FOC_DECOUPLE_DEFAULT        0
 
+// ---- Field weakening (Step 11) ------------------------------------------
+// Voltage-feedback FW regulator (foc_pipeline.c, RUN only, gated by g_dbg_fw_en):
+// a PI on the SQUARED voltage-margin error (vmax_fw^2 - |Vdq|^2) winds id
+// negative when the inverter saturates. Mapped onto TI PI_run (series form:
+// Ui += Ki*Kp*error), so the effective integral gain is GAIN_KI_FW*GAIN_KP_FW
+// and BOTH must be nonzero. The squared error has units V^2 -> Kp_fw is A/V^2.
+// These are conservative starting points: FW is default-OFF and the gains are
+// live-tunable over serial (kp_fw/ki_fw), so bench-tune once enabled. A 48 V
+// SPM motor on a 12 V bench rarely reaches base speed -- real FW tuning is an
+// EMRAX task; these mostly exist so the shared code compiles and can be A/B'd.
+#define GAIN_KP_FW              0.01f
+#define GAIN_KI_FW              0.05f
+// Most-negative id the FW regulator may command [A]. Well under I_PEAK (7.1 A).
+#define FW_ID_MIN_A             (-3.0f)
+// Voltage-magnitude target as a fraction of vbus*0.5 (the per-axis PI clamp
+// budget). MUST be < VDQ_MAX_FRACTION so FW reacts just before the q-axis PI
+// clamp saturates (|Vdq| >= |Vq|).
+#define FW_VMAX_FRACTION        0.70f
+// Compile-time default for the runtime enable g_dbg_fw_en (like FOC_DECOUPLE_DEFAULT).
+#define FW_DEFAULT              0
+
 #endif // GAINS_TEKNIC_H

@@ -25,6 +25,8 @@ typedef enum {
     FOC_GAIN_KI_Q,
     FOC_GAIN_KP_W,
     FOC_GAIN_KI_W,
+    FOC_GAIN_KP_FW,     // field-weakening regulator (Step 11)
+    FOC_GAIN_KI_FW,
     FOC_GAIN_COUNT
 } foc_gain_id_t;
 

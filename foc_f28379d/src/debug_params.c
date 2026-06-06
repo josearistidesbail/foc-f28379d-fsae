@@ -24,6 +24,12 @@ extern volatile float32_t g_dbg_align_offset_elec;      // src/foc_pipeline.c
 // Outer-loop control mode (0=torque, 1=speed). See FOC_MODE_* in build_config.h.
 extern volatile uint16_t  g_dbg_control_mode;           // src/foc_pipeline.c
 
+// Field weakening (Step 11): runtime enable + telemetry of the applied weakening
+// current and the requested voltage magnitude.
+extern volatile uint16_t  g_dbg_fw_en;                  // src/foc_pipeline.c
+extern volatile float32_t g_dbg_fw_id;                  // src/foc_pipeline.c
+extern volatile float32_t g_dbg_vmag;                   // src/foc_pipeline.c
+
 // ---- raw <-> float bit-cast helpers (C28x: float32_t and uint32_t are 32b) --
 static inline uint32_t f32_to_raw(float32_t f)
 {
@@ -66,6 +72,10 @@ static void get_kp_w(uint32_t *r){ *r = f32_to_raw(foc_get_gain(FOC_GAIN_KP_W));
 static void set_kp_w(uint32_t  r){ foc_set_gain(FOC_GAIN_KP_W, raw_to_f32(r)); }
 static void get_ki_w(uint32_t *r){ *r = f32_to_raw(foc_get_gain(FOC_GAIN_KI_W)); }
 static void set_ki_w(uint32_t  r){ foc_set_gain(FOC_GAIN_KI_W, raw_to_f32(r)); }
+static void get_kp_fw(uint32_t *r){ *r = f32_to_raw(foc_get_gain(FOC_GAIN_KP_FW)); }
+static void set_kp_fw(uint32_t  r){ foc_set_gain(FOC_GAIN_KP_FW, raw_to_f32(r)); }
+static void get_ki_fw(uint32_t *r){ *r = f32_to_raw(foc_get_gain(FOC_GAIN_KI_FW)); }
+static void set_ki_fw(uint32_t  r){ foc_set_gain(FOC_GAIN_KI_FW, raw_to_f32(r)); }
 
 // ---- Hardware / diagnostic config (needs_idle) ---------------------------
 // Reconstruct selector clamps to the valid 0..3 range; out-of-range writes are
@@ -83,6 +93,11 @@ static void get_mode(uint32_t *r){ *r = (uint32_t)g_dbg_control_mode; }
 static void set_mode(uint32_t  r){ g_dbg_control_mode = (r == FOC_MODE_SPEED)
                                                         ? FOC_MODE_SPEED : FOC_MODE_TORQUE; }
 
+// Field-weakening enable. Live (no NEEDS_IDLE) so it can be A/B'd in RUN; the
+// regulator resets cleanly each RUN entry and when toggled off.
+static void get_fw_en(uint32_t *r){ *r = (uint32_t)g_dbg_fw_en; }
+static void set_fw_en(uint32_t  r){ g_dbg_fw_en = (uint16_t)(r ? 1U : 0U); }
+
 // ---- Read-only telemetry -------------------------------------------------
 static void get_state(uint32_t *r){ *r = (uint32_t)(uint16_t)sm_get_state(); }
 static void get_isr_count(uint32_t *r){ *r = g_isr_count; }
@@ -93,6 +108,11 @@ static void get_align_off(uint32_t *r){ *r = f32_to_raw(g_dbg_align_offset_elec)
 static void get_pole_pairs(uint32_t *r){ *r = (uint32_t)MOTOR_POLE_PAIRS; }
 // Live measured electrical speed [rad/s]; GUI displays it as shaft RPM.
 static void get_omega_meas(uint32_t *r){ *r = f32_to_raw(foc_get_signals()->omega_elec); }
+
+// Field-weakening telemetry: applied weakening current [A] (<=0) and the
+// requested voltage magnitude |Vdq| [V] the regulator is holding to its limit.
+static void get_fw_id(uint32_t *r){ *r = f32_to_raw(g_dbg_fw_id); }
+static void get_vmag(uint32_t *r) { *r = f32_to_raw(g_dbg_vmag); }
 
 //=============================================================================
 const param_entry_t g_param_table[] =
@@ -107,16 +127,21 @@ const param_entry_t g_param_table[] =
     { 0x0013U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "ki_q",      get_ki_q,      set_ki_q      },
     { 0x0020U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "kp_w",      get_kp_w,      set_kp_w      },
     { 0x0021U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "ki_w",      get_ki_w,      set_ki_w      },
+    { 0x0014U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "kp_fw",     get_kp_fw,     set_kp_fw     },
+    { 0x0015U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "ki_fw",     get_ki_fw,     set_ki_fw     },
 
     { 0x0030U, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "isense_recon", get_recon,  set_recon     },
     { 0x0031U, PARAM_TYPE_U16, 0,                     "decouple_en",  get_decouple, set_decouple },
     { 0x0032U, PARAM_TYPE_U16, 0,                     "control_mode", get_mode,     set_mode     },
+    { 0x0033U, PARAM_TYPE_U16, 0,                     "fw_en",        get_fw_en,    set_fw_en    },
 
     { 0x0100U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "state",      get_state,     0            },
     { 0x0101U, PARAM_TYPE_U32, PARAM_FLAG_RO,         "isr_count",  get_isr_count, 0            },
     { 0x0102U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "align_offset", get_align_off, 0          },
     { 0x0103U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "pole_pairs", get_pole_pairs, 0           },
     { 0x0104U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "omega_meas", get_omega_meas, 0           },
+    { 0x0105U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "fw_id",      get_fw_id,     0            },
+    { 0x0106U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "vmag",       get_vmag,      0            },
 };
 
 const uint16_t g_param_count = (uint16_t)(sizeof(g_param_table) / sizeof(g_param_table[0]));

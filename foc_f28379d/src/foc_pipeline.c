@@ -28,6 +28,7 @@ static SVGEN_Obj     s_svgen_obj;
 static PI_Obj        s_pi_id_obj;
 static PI_Obj        s_pi_iq_obj;
 static PI_Obj        s_pi_spd_obj;
+static PI_Obj        s_pi_fw_obj;
 
 static CLARKE_Handle s_clarke;
 static PARK_Handle   s_park;
@@ -36,6 +37,7 @@ static SVGEN_Handle  s_svgen;
 static PI_Handle     s_pi_id;
 static PI_Handle     s_pi_iq;
 static PI_Handle     s_pi_spd;
+static PI_Handle     s_pi_fw;     // field-weakening regulator (Step 11)
 
 // Live signals + refs (volatile because read from background)
 static volatile FOC_Refs_t    s_refs;
@@ -94,9 +96,51 @@ volatile float32_t g_dbg_ff_q;
 // Switchable live; foc_speed_loop_tick() makes the transfer bumpless.
 volatile uint16_t  g_dbg_control_mode;
 
+// Field weakening (Step 11). g_dbg_fw_en toggles it live (also the "fw_en" serial
+// param); default FW_DEFAULT. The regulator runs in the current-loop ISR (RUN
+// only) and winds id negative when the requested |Vdq| saturates the inverter.
+//   g_dbg_fw_id  -- applied FW id component [A], <= 0
+//   g_dbg_vmag   -- requested voltage magnitude |Vdq| [V] (for the scope)
+//   g_dbg_iq_lim -- flux-priority current-circle limit on |iq| [A]
+volatile uint16_t  g_dbg_fw_en;
+volatile float32_t g_dbg_fw_id;
+volatile float32_t g_dbg_vmag;
+volatile float32_t g_dbg_iq_lim;
+
+// Negative d-axis current produced by the FW regulator [A], in [FW_ID_MIN_A, 0].
+// Added to ID_REF_NOMINAL_A to form id_ref each RUN tick. Reset on RUN entry.
+static float32_t   s_fw_id;
+
 // Ramp-limited electrical speed setpoint tracked by the speed loop (speed mode).
 // Reset to 0 in foc_init() and whenever the state machine is not in FOC_RUN.
 static float32_t   s_speed_cmd;
+
+//-----------------------------------------------------------------------------
+// Trig/RTS-free square root for the flux-priority current-circle limit. The SDK
+// <math.h> resolves to the motor-control math header (no C99 sqrtf), and pulling
+// the RTS trig/sqrt routines risks flash overflow (see CLAUDE.md pitfalls), so
+// use a self-contained fast inverse-sqrt seed + two Newton refinements. ~1e-4
+// relative accuracy -- ample for bounding a current reference.
+//-----------------------------------------------------------------------------
+static inline float32_t foc_fast_sqrt(float32_t x)
+{
+    if(x <= 0.0f) return 0.0f;
+    union { float32_t f; uint32_t u; } c;
+    c.f = x;
+    c.u = 0x5f3759dfU - (c.u >> 1);              // initial 1/sqrt(x) estimate
+    float32_t y = c.f;
+    y = y * (1.5f - 0.5f * x * y * y);           // Newton iter 1 (refine 1/sqrt)
+    y = y * (1.5f - 0.5f * x * y * y);           // Newton iter 2
+    return x * y;                                 // sqrt(x) = x * (1/sqrt(x))
+}
+
+// Reset the FW regulator: zero the commanded weakening current and the PI
+// integrator. Called on entry to FOC_RUN and whenever not running.
+static void fw_reset(void)
+{
+    s_fw_id = 0.0f;
+    PI_setUi(s_pi_fw, 0.0f);
+}
 
 //-----------------------------------------------------------------------------
 // Rotor alignment controller (runs inside the current-loop ISR while the state
@@ -199,6 +243,7 @@ void foc_init(void)
     s_pi_id  = PI_init    (&s_pi_id_obj,  sizeof(s_pi_id_obj));
     s_pi_iq  = PI_init    (&s_pi_iq_obj,  sizeof(s_pi_iq_obj));
     s_pi_spd = PI_init    (&s_pi_spd_obj, sizeof(s_pi_spd_obj));
+    s_pi_fw  = PI_init    (&s_pi_fw_obj,  sizeof(s_pi_fw_obj));
 
     CLARKE_setNumSensors(s_clarke, 3);
     CLARKE_setScaleFactors(s_clarke, MATH_ONE_OVER_THREE, MATH_ONE_OVER_SQRT_THREE);
@@ -209,11 +254,14 @@ void foc_init(void)
     PI_setGains (s_pi_id,  GAIN_KP_ID, GAIN_KI_ID);
     PI_setGains (s_pi_iq,  GAIN_KP_IQ, GAIN_KI_IQ);
     PI_setGains (s_pi_spd, GAIN_KP_SPEED, GAIN_KI_SPEED);
+    PI_setGains (s_pi_fw,  GAIN_KP_FW, GAIN_KI_FW);
 
     float vmax = VDQ_MAX_FRACTION * MOTOR_VBUS_NOM_V * 0.5f;
     PI_setMinMax(s_pi_id,  -vmax, vmax);
     PI_setMinMax(s_pi_iq,  -vmax, vmax);
     PI_setMinMax(s_pi_spd, IQ_REF_MIN_A, IQ_REF_MAX_A);
+    // FW output is a flux-weakening (<= 0) d-axis current in [FW_ID_MIN_A, 0].
+    PI_setMinMax(s_pi_fw,  FW_ID_MIN_A, 0.0f);
 
     s_refs.id_ref    = 0.0f;
     s_refs.iq_ref    = 0.0f;
@@ -224,6 +272,11 @@ void foc_init(void)
     g_dbg_run_iq_meas = 0.0f;
     g_dbg_decouple_en = FOC_DECOUPLE_DEFAULT;
     g_dbg_control_mode = FOC_MODE_TORQUE;
+    g_dbg_fw_en      = FW_DEFAULT;
+    g_dbg_fw_id      = 0.0f;
+    g_dbg_vmag       = 0.0f;
+    g_dbg_iq_lim     = 0.0f;
+    s_fw_id          = 0.0f;
     s_speed_cmd      = 0.0f;
     s_decim          = 0;
 
@@ -243,6 +296,8 @@ float32_t foc_get_gain(foc_gain_id_t which)
     case FOC_GAIN_KI_Q: return PI_getKi(s_pi_iq);
     case FOC_GAIN_KP_W: return PI_getKp(s_pi_spd);
     case FOC_GAIN_KI_W: return PI_getKi(s_pi_spd);
+    case FOC_GAIN_KP_FW: return PI_getKp(s_pi_fw);
+    case FOC_GAIN_KI_FW: return PI_getKi(s_pi_fw);
     default:            return 0.0f;
     }
 }
@@ -257,6 +312,8 @@ void foc_set_gain(foc_gain_id_t which, float32_t value)
     case FOC_GAIN_KI_Q: PI_setKi(s_pi_iq,  value); break;
     case FOC_GAIN_KP_W: PI_setKp(s_pi_spd, value); break;
     case FOC_GAIN_KI_W: PI_setKi(s_pi_spd, value); break;
+    case FOC_GAIN_KP_FW: PI_setKp(s_pi_fw, value); break;
+    case FOC_GAIN_KI_FW: PI_setKi(s_pi_fw, value); break;
     default: break;
     }
 }
@@ -277,6 +334,7 @@ void foc_current_loop_isr(void)
     sensor_update_isr();
 
     if(st == FOC_ALIGN_ROTOR && s_prev_state != FOC_ALIGN_ROTOR) align_reset();
+    if(st == FOC_RUN         && s_prev_state != FOC_RUN)         fw_reset();
     s_prev_state = st;
 
     s_sig.theta_elec = (st == FOC_ALIGN_ROTOR) ? align_step() : sensor_get_elec_angle();
@@ -315,7 +373,22 @@ void foc_current_loop_isr(void)
     if(st == FOC_RUN || st == FOC_ALIGN_ROTOR)
     {
         PI_run(s_pi_id, s_refs.id_ref, s_sig.Idq.value[0], &s_sig.Vdq.value[0]);
-        PI_run(s_pi_iq, s_refs.iq_ref, s_sig.Idq.value[1], &s_sig.Vdq.value[1]);
+
+        // Flux-priority current-circle limit (FW only): id (set by the FW
+        // regulator) gets the current budget first; clamp the q reference to
+        // iq_lim = sqrt(I_peak^2 - id^2) so id^2 + iq^2 <= I_peak^2 and the
+        // magnitude stays under MOTOR_OC_TRIP_A. RUN bit-identical when FW off.
+        float iq_cmd = s_refs.iq_ref;
+        if(st == FOC_RUN && g_dbg_fw_en)
+        {
+            float id_now    = s_refs.id_ref;
+            float iq_lim_sq = (MOTOR_I_PEAK_A * MOTOR_I_PEAK_A) - id_now * id_now;
+            float iq_lim    = foc_fast_sqrt(iq_lim_sq);     // 0 if arg <= 0
+            g_dbg_iq_lim    = iq_lim;
+            iq_cmd = MATH_max(-iq_lim, MATH_min(iq_lim, iq_cmd));
+        }
+
+        PI_run(s_pi_iq, iq_cmd, s_sig.Idq.value[1], &s_sig.Vdq.value[1]);
         s_sig.Vdq.value[0] += ff_d;
         s_sig.Vdq.value[1] += ff_q;
 
@@ -350,6 +423,42 @@ void foc_current_loop_isr(void)
         g_dbg_run_iq_ref  = s_refs.iq_ref;
         g_dbg_run_iq_meas = s_sig.Idq.value[1];
     }
+
+    // 3b. Field-weakening regulator (RUN only). Voltage-feedback: when the
+    //     requested |Vdq| reaches the inverter's voltage budget, wind id
+    //     negative to drop back-EMF and keep the current PIs out of saturation.
+    //     Uses the SQUARED-magnitude error so the path stays sqrt-free, mapped
+    //     onto TI PI_run (ref = vmax_fw^2, fbk = |Vdq|^2): when saturated the
+    //     error goes negative and s_fw_id winds down toward FW_ID_MIN_A; with
+    //     headroom the integrator relaxes it back to 0. The id reference applied
+    //     NEXT tick is ID_REF_NOMINAL_A + s_fw_id (one-sample delay, standard).
+    //     vmax_fw uses the same vbus*0.5 budget as the per-axis PI clamp; with
+    //     FW_VMAX_FRACTION < VDQ_MAX_FRACTION, FW reacts just before the q-clamp.
+    if(st == FOC_RUN)
+    {
+        // |Vdq| telemetry every RUN tick (even with FW off) so the operator can
+        // watch the voltage approach the limit before flipping fw_en on.
+        float vmag_sq = s_sig.Vdq.value[0] * s_sig.Vdq.value[0]
+                      + s_sig.Vdq.value[1] * s_sig.Vdq.value[1];
+        g_dbg_vmag = foc_fast_sqrt(vmag_sq);
+
+        if(g_dbg_fw_en)
+        {
+            float vmax_fw = FW_VMAX_FRACTION * s_refs.vbus * 0.5f;
+            PI_run(s_pi_fw, vmax_fw * vmax_fw, vmag_sq, &s_fw_id);   // s_fw_id <= 0
+            s_refs.id_ref = ID_REF_NOMINAL_A + s_fw_id;
+        }
+        else                           // FW disabled -> hold nominal id
+        {
+            fw_reset();
+            s_refs.id_ref = ID_REF_NOMINAL_A;
+        }
+    }
+    else                               // not running (FW does not touch ALIGN id)
+    {
+        fw_reset();
+    }
+    g_dbg_fw_id = s_fw_id;
 
     // 4. Inverse Park -> SVGEN -> PWM.
     //    Keep vbus fresh every ISR (safety_check_isr() needs it for OV/UV),
@@ -406,7 +515,9 @@ void foc_speed_loop_tick(void)
 
     if(sm_get_state() == FOC_RUN)
     {
-        s_refs.id_ref = ID_REF_NOMINAL_A;
+        // id_ref is owned by the current-loop ISR now: it is ID_REF_NOMINAL_A
+        // plus the field-weakening regulator's contribution (foc_current_loop_isr,
+        // step 3b). The speed loop only shapes the q-axis (torque) reference.
 
         if(g_dbg_control_mode == FOC_MODE_SPEED)
         {

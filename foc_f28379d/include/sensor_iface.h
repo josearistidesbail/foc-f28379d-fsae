@@ -9,6 +9,17 @@
 //   void  sensor_update_isr(void);           // run inside foc_current_loop_isr
 //   float sensor_get_elec_angle(void);       // radians [0, 2*pi)
 //   float sensor_get_elec_speed(void);       // electrical rad/s
+//   bool  sensor_is_lost(void);              // true once feedback is lost
+//   float sensor_get_healthy_speed(void);    // last elec speed while healthy
+//
+// sensor_is_lost() / sensor_get_healthy_speed() are static inline in the
+// backend inline headers (read backend globals). The health state is updated
+// inside the backend's existing per-ISR (resolver) or slow-loop (QEP) routine:
+//   QEP    : drive-vs-response + QEPSTS, in sensor_update_speed_slow()
+//   RM44AC : sin^2+cos^2 magnitude window, in sensor_update_isr()
+// The "healthy speed" is the last electrical speed latched while NOT lost; the
+// fault shutdown uses it to choose active-short vs coast (on loss the live
+// speed estimate is already garbage).
 //=============================================================================
 #ifndef SENSOR_IFACE_H
 #define SENSOR_IFACE_H
