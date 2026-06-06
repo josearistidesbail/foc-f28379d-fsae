@@ -95,7 +95,7 @@ Device_init() → Device_initGPIO() → Interrupt_initModule/VectorTable() → B
   - Iv (ISENSE_B / SO2) → BP28 → **B2** (ADCB SOC1)
   - Iw (ISENSE_C / SO3) → BP29 → **A2** (ADCA SOC2)
   - Vbus (VSENSE_VDD)   → BP26 → **A3** (ADCA SOC3)
-- **Vbus divider**: header says 1/17.74 but bench measurement shows ~1/13.1 (12 V supply → 1248 codes). `VBUS_DIVIDER_RATIO` needs recalibration once Step 4 is fully closed.
+- **Vbus divider**: header says 1/17.74 but bench measurement shows ~1/13.1 (the ratio is a divider property, supply-independent; at the 24 V bench that's ~2496 codes → 24·4096/(3.0·2496) ≈ 13.1). `VBUS_DIVIDER_RATIO` needs recalibration once Step 4 is fully closed.
 - **Gate enable (EN_GATE)**: GPIO124 active-high — stays low until state machine enables it (currently held high in `main.c` for bring-up Step 4)
 - **WAKE**: GPIO125 — driven HIGH by SysConfig `Board_init()` for normal (non-sleep) operation. Keeping WAKE high means the DRV8305 stays awake even when EN_GATE is low, so a latched fault holds nFAULT asserted until explicitly cleared. **This pin is WAKE, not nFAULT** (earlier docs had this wrong).
 - **nFAULT**: **GPIO19** active-low, configured input + pull-up (open-drain fault output from the DRV8305). Earlier docs said GPIO125 — that was the WAKE pin; corrected per bench mapping.

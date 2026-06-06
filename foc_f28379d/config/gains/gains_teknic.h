@@ -66,9 +66,10 @@
 // Ui += Ki*Kp*error), so the effective integral gain is GAIN_KI_FW*GAIN_KP_FW
 // and BOTH must be nonzero. The squared error has units V^2 -> Kp_fw is A/V^2.
 // These are conservative starting points: FW is default-OFF and the gains are
-// live-tunable over serial (kp_fw/ki_fw), so bench-tune once enabled. A 48 V
-// SPM motor on a 12 V bench rarely reaches base speed -- real FW tuning is an
-// EMRAX task; these mostly exist so the shared code compiles and can be A/B'd.
+// live-tunable over serial (kp_fw/ki_fw), so bench-tune once enabled. This
+// SPM motor on the 24 V bench seldom needs field weakening in bring-up -- real
+// FW tuning is an EMRAX task; these mostly exist so the shared code compiles
+// and can be A/B'd.
 #define GAIN_KP_FW              0.01f
 #define GAIN_KI_FW              0.05f
 // Most-negative id the FW regulator may command [A]. Well under I_PEAK (7.1 A).

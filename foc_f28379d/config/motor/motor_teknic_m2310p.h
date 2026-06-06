@@ -34,9 +34,8 @@
 // ---- Fault safe-state threshold (sensor-loss / fault shutdown) ----------
 // Above this ELECTRICAL speed a fault shutdown applies a 3-phase ACTIVE SHORT
 // (low-side on); below it the bridge coasts (tristate). Set high so the
-// low-voltage bench (12 V supply, low back-EMF) always COASTS on a fault --
-// gentle and correct for bring-up. Lower it once running at a bus where
-// back-EMF approaches the rail.
+// 24 V bench (low back-EMF) always COASTS on a fault -- gentle and correct for
+// bring-up. Lower it once running at a bus where back-EMF approaches the rail.
 #define FAULT_ASC_OMEGA_ELEC    6000.0f
 
 #endif // MOTOR_TEKNIC_M2310P_H

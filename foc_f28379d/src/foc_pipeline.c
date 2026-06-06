@@ -348,7 +348,7 @@ void foc_current_loop_isr(void)
 
     // 3. Inner current PIs.
     //    Clamp PI limits to actual VBUS each ISR so anti-windup is effective
-    //    regardless of supply voltage (e.g. 12 V bench vs 48 V rated).
+    //    regardless of supply voltage (e.g. 24 V bench vs 48 V rated).
     //    Cross-coupling / back-EMF feedforward (RUN only, gated by
     //    g_dbg_decouple_en) is folded INTO the clamp: the PI is limited to
     //    +/-vmax_dyn - ff, then ff is added after PI_run, so the final Vd/Vq stay

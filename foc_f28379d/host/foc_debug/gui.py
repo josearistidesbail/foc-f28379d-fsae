@@ -232,6 +232,23 @@ def build(pg, QtCore, QtGui, QtWidgets):
         "speed_loop_ts": 1e-3, "fw_vmax_frac": 0.70, "pole_pairs": 4,
     }
 
+    # Editable motor/loop constants for the "Motor" tab. Each field is shown in a
+    # human-friendly unit; ``scale`` converts the stored SI value to the spinbox
+    # display value (display = SI * scale), so the autotuner keeps working in SI.
+    #   (name, label, scale, decimals, disp_min, disp_max, disp_step)
+    MC_FIELDS = [
+        ("rs_ohm",        "Rs (Ω)",             1.0,   4, 0.0,    100.0,  0.01),
+        ("ld_h",          "Ld (µH)",            1e6,   1, 0.0,    1e6,    1.0),
+        ("lq_h",          "Lq (µH)",            1e6,   1, 0.0,    1e6,    1.0),
+        ("flux_vs",       "λpm (mV·s)",         1e3,   4, 0.0,    1e4,    0.1),
+        ("i_peak_a",      "I_peak (A)",         1.0,   2, 0.0,    1000.0, 0.5),
+        ("vbus",          "Vbus (V)",           1.0,   2, 0.0,    1000.0, 1.0),
+        ("isr_freq_hz",   "ISR freq (Hz)",      1.0,   0, 1.0,    1e6,    1000.0),
+        ("speed_loop_ts", "Speed-loop Ts (ms)", 1e3,   4, 1e-3,   1000.0, 0.1),
+        ("fw_vmax_frac",  "FW Vmax fraction",   1.0,   2, 0.05,   1.0,    0.05),
+        ("pole_pairs",    "Pole pairs",         1.0,   0, 1.0,    50.0,   1.0),
+    ]
+
     # ---- worker-thread experiment helpers (touch only dbg/time) ------------
     def at_wait_state(dbg, target, timeout):
         """Poll sm_state until it equals target. Raises on FAULT or timeout."""
@@ -245,19 +262,43 @@ def build(pg, QtCore, QtGui, QtWidgets):
             time.sleep(0.1)
         raise RuntimeError(f"timed out waiting for state {target}")
 
-    def at_apply_gains(dbg, gains):
-        """Ensure IDLE (stopping a run if needed) then write NEEDS_IDLE gains.
+    def at_ensure_idle(dbg):
+        """Bring the device to IDLE so NEEDS_IDLE params can be written.
 
-        ``gains`` is name->float. Returns name->write-status. Raises if the
-        device is faulted (the operator must clear it first).
+        Stops a run *and* auto-clears a latched fault, so applying gains or
+        running a verify is genuinely one-click. Returns a short note describing
+        what it had to do (for the status bar), e.g. "cleared fault; ".
         """
         st = dbg.sm_state()
+        if st == ST_IDLE:
+            return ""
         if st == ST_FAULT:
-            raise RuntimeError("device in FAULT — clear the fault before applying gains")
-        if st != ST_IDLE:
+            dbg.clear_fault()
+            note = "cleared fault; "
+        else:
             dbg.request_stop()
-            at_wait_state(dbg, ST_IDLE, timeout=3.0)
-        return {name: dbg.write_param(name, float(val)) for name, val in gains.items()}
+            note = "stopped run; "
+        # Poll for IDLE with a tolerant loop. Unlike at_wait_state we do NOT treat
+        # a FAULT/RUN reading as fatal here: we just issued stop/clear, so a
+        # lingering non-IDLE state is the pre-transition state settling (the 1 kHz
+        # SM tick + serial round-trip lag the request). A genuinely stuck fault
+        # (HW condition still asserted) simply times out below.
+        t0 = time.monotonic()
+        while time.monotonic() - t0 < 3.0:
+            if dbg.sm_state() == ST_IDLE:
+                return note
+            time.sleep(0.05)
+        raise RuntimeError("device did not return to IDLE (fault still asserted?)")
+
+    def at_apply_gains(dbg, gains):
+        """Ensure IDLE (stopping a run / clearing a fault as needed) then write
+        the NEEDS_IDLE gains. ``gains`` is name->float. Returns
+        ``(note, name->write-status)``.
+        """
+        note = at_ensure_idle(dbg)
+        statuses = {name: dbg.write_param(name, float(val))
+                    for name, val in gains.items()}
+        return note, statuses
 
     def at_run_step(dbg, *, mode, ref_param, ref_value, mask, decim, isr_freq,
                     pre_gains=None, settle_frac=0.5, run_timeout=8.0):
@@ -269,12 +310,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
         if pre_gains:
             at_apply_gains(dbg, pre_gains)
         else:
-            st = dbg.sm_state()
-            if st == ST_FAULT:
-                raise RuntimeError("device in FAULT — clear the fault first")
-            if st != ST_IDLE:
-                dbg.request_stop()
-                at_wait_state(dbg, ST_IDLE, timeout=3.0)
+            at_ensure_idle(dbg)
         dbg.write_param("control_mode", int(mode))
         dbg.write_param(ref_param, 0.0)
         dbg.scope_config(decim=int(decim), mask=int(mask))
@@ -319,9 +355,16 @@ def build(pg, QtCore, QtGui, QtWidgets):
             # Motor pole-pairs for RPM <-> electrical-rad/s conversion; replaced by
             # the device's read-only "pole_pairs" param once values are refreshed.
             self._pole_pairs = 4
-            # Motor/loop constants for the autotuner, populated from the device's
-            # read-only params each refresh (falls back to MC_DEFAULTS).
+            self._omega_meas_elec = 0.0   # latest omega_meas [elec rad/s] for bumpless switch
+            self._pct_mode = False        # True = spinboxes show % of rated value
+            # Motor/loop constants for the autotuner. `_motor_const` caches the
+            # latest *device* value of each (fallback to MC_DEFAULTS); the Motor
+            # tab exposes them as editable spinboxes. `_mc()` returns the spinbox
+            # value (user override) when present, else the cached device value.
             self._motor_const = dict(MC_DEFAULTS)
+            self._mc_spins = {}            # name -> QDoubleSpinBox (Motor tab)
+            self._mc_scale = {}            # name -> display scale (display = SI*scale)
+            self._mc_user_override = set() # fields the user edited locally
             self._at_measured_km = None    # last measured speed-plant gain
             self._at_last_cap = None       # last verify ScopeCapture (for CSV)
 
@@ -453,15 +496,41 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.mode_combo.activated.connect(self._on_mode_changed)
             modeh.addWidget(self.mode_combo)
             modeh.addSpacing(12)
-            modeh.addWidget(QtWidgets.QLabel("Speed (RPM):"))
+            self.ref_label = QtWidgets.QLabel("Torque (Nm):")
+            modeh.addWidget(self.ref_label)
             self.speed_spin = QtWidgets.QDoubleSpinBox()
             self.speed_spin.setRange(-20000.0, 20000.0)
             self.speed_spin.setDecimals(0)
             self.speed_spin.setSingleStep(50.0)
+            self.speed_spin.hide()   # hidden in default torque mode
             modeh.addWidget(self.speed_spin)
+            self.torque_spin = QtWidgets.QDoubleSpinBox()
+            self.torque_spin.setRange(-500.0, 500.0)
+            self.torque_spin.setDecimals(3)
+            self.torque_spin.setSingleStep(0.01)
+            modeh.addWidget(self.torque_spin)
+            self.pct_chk = QtWidgets.QCheckBox("%")
+            self.pct_chk.setToolTip(
+                "Percentage mode — Speed: % of rated RPM; "
+                "Torque: % of peak torque (i_peak × Kt)"
+            )
+            self.pct_chk.toggled.connect(self._on_pct_toggled)
+            modeh.addWidget(self.pct_chk)
+            self.rated_rpm_lbl = QtWidgets.QLabel("Rated:")
+            modeh.addWidget(self.rated_rpm_lbl)
+            self.rated_rpm_spin = QtWidgets.QDoubleSpinBox()
+            self.rated_rpm_spin.setRange(1.0, 100000.0)
+            self.rated_rpm_spin.setDecimals(0)
+            self.rated_rpm_spin.setSingleStep(100.0)
+            self.rated_rpm_spin.setValue(6000.0)
+            self.rated_rpm_spin.setSuffix(" rpm")
+            modeh.addWidget(self.rated_rpm_spin)
+            # only visible in speed mode with % checked
+            self.rated_rpm_lbl.hide()
+            self.rated_rpm_spin.hide()
             self.speed_apply_btn = QtWidgets.QPushButton("Apply")
-            self.speed_apply_btn.setToolTip("Write omega_ref (RPM converted to electrical rad/s)")
-            self.speed_apply_btn.clicked.connect(self._apply_speed_rpm)
+            self.speed_apply_btn.setToolTip("Torque mode: write iq_ref (Nm / Kt → A)")
+            self.speed_apply_btn.clicked.connect(self._apply_ref)
             modeh.addWidget(self.speed_apply_btn)
             modeh.addStretch(1)
             modeh.addWidget(QtWidgets.QLabel("Measured:"))
@@ -532,6 +601,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 page_lv.addWidget(table, 1)
                 self.tab_widget.addTab(page, tab_label)
 
+            self.tab_widget.addTab(self._build_motor_page(), "Motor")
             self.tab_widget.addTab(self._build_autotune_page(), "Autotune")
 
             lv.addWidget(self.tab_widget, 1)
@@ -697,7 +767,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self.stop_btn, self.clear_btn,
                 self.refresh_vals_btn, self.scope_btn, self.autoread_chk,
                 self.decim_spin, self.interval_spin,
-                self.mode_combo, self.speed_spin, self.speed_apply_btn,
+                self.mode_combo, self.speed_spin, self.torque_spin,
+                self.pct_chk, self.rated_rpm_spin, self.speed_apply_btn,
                 self.at_cur_apply_btn, self.at_cur_verify_btn,
                 self.at_spd_apply_btn, self.at_spd_verify_btn,
                 self.at_spd_measure_btn, self.at_fw_apply_btn,
@@ -829,29 +900,30 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 if scope_name:
                     self._ref_values[scope_name] = float(val)
 
-            # Speed-control widgets: pole-pairs (RPM conversion), measured speed
-            # (electrical rad/s shown as shaft RPM), and the live mode selector.
             val_by_name = {info.name: out.get(info.id) for info in self.params}
-            pp = val_by_name.get("pole_pairs")
-            if pp:
-                self._pole_pairs = int(pp)
-            we_meas = val_by_name.get("omega_meas")
-            if we_meas is not None:
-                self.speed_meas_label.setText(f"{self._elec_to_rpm(we_meas):.0f} rpm")
-            mode = val_by_name.get("control_mode")
-            if mode is not None:
-                self._set_mode_combo(int(mode))
 
-            # Autotuner: cache motor/loop constants from the read-only params and
-            # refresh the computed-gain previews (vbus is live, so this tracks it).
+            # Motor/loop constants -> Motor tab spinboxes + autotuner cache. Each
+            # device value pre-fills its spinbox unless the user has overridden it
+            # locally; vbus is live so it keeps tracking the bus until edited.
             mc_changed = False
             for name in MC_DEFAULTS:
                 v = val_by_name.get(name)
                 if v is not None:
-                    self._motor_const[name] = float(v)
+                    self._mc_set_from_device(name, v)
                     mc_changed = True
+            # Pole-pairs drives the RPM<->electrical conversion (honor any override).
+            self._pole_pairs = int(self._mc("pole_pairs")) or 4
             if mc_changed:
                 self._at_refresh_all_previews()
+
+            # Measured speed (electrical rad/s shown as shaft RPM) + live mode.
+            we_meas = val_by_name.get("omega_meas")
+            if we_meas is not None:
+                self._omega_meas_elec = float(we_meas)
+                self.speed_meas_label.setText(f"{self._elec_to_rpm(we_meas):.0f} rpm")
+            mode = val_by_name.get("control_mode")
+            if mode is not None:
+                self._set_mode_combo(int(mode))
 
         def _set_recon_combo(self, combo, val):
             """Set a recon dropdown without triggering a write signal."""
@@ -1034,10 +1106,34 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.mode_combo.blockSignals(True)
             self.mode_combo.setCurrentIndex(idx)
             self.mode_combo.blockSignals(False)
+            self._update_ref_ui(idx)
 
         def _on_mode_changed(self, idx):
             if not self._connected:
                 return
+            # Bumpless pre-fill: seed the incoming reference spinbox from current state.
+            if idx == 1:  # → Speed: pre-fill with current measured shaft speed
+                rpm = self._elec_to_rpm(self._omega_meas_elec)
+                if self._pct_mode:
+                    rated = self.rated_rpm_spin.value() or 1.0
+                    seed = rpm / rated * 100.0
+                else:
+                    seed = rpm
+                self.speed_spin.blockSignals(True)
+                self.speed_spin.setValue(seed)
+                self.speed_spin.blockSignals(False)
+            else:  # → Torque: pre-fill with iq_ref * Kt
+                iq_now = float(self._ref_values.get("Iq", 0.0))
+                torque_nm = iq_now * self._kt()
+                if self._pct_mode:
+                    rated_nm = self._mc("i_peak_a") * self._kt()
+                    seed = (torque_nm / rated_nm * 100.0) if rated_nm else 0.0
+                else:
+                    seed = torque_nm
+                self.torque_spin.blockSignals(True)
+                self.torque_spin.setValue(seed)
+                self.torque_spin.blockSignals(False)
+            self._update_ref_ui(idx)
             info = next((p for p in self.params if p.name == "control_mode"), None)
             if info is None:
                 self._report("control_mode param not found", logging.WARNING)
@@ -1075,7 +1171,14 @@ def build(pg, QtCore, QtGui, QtWidgets):
             if info is None:
                 self._report("omega_ref param not found", logging.WARNING)
                 return
-            rpm = self.speed_spin.value()
+            val = self.speed_spin.value()
+            if self._pct_mode:
+                rated = self.rated_rpm_spin.value() or 1.0
+                rpm = val / 100.0 * rated
+                disp = f"{val:.1f}% ({rpm:.0f} rpm)"
+            else:
+                rpm = val
+                disp = f"{rpm:.0f} rpm"
             we = self._rpm_to_elec(rpm)
             val_str = f"{we:.6g}"
 
@@ -1090,15 +1193,215 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
             self.worker.submit(
                 "write", fn=do_write,
-                on_done=lambda res, i=info: self._write_done(
-                    i, f"{rpm:.0f} rpm", res),
+                on_done=lambda res, i=info, d=disp: self._write_done(i, d, res),
                 on_fail=lambda m: self._report(m, logging.ERROR),
             )
 
-        # ---- autotune ----------------------------------------------------
+        def _apply_ref(self):
+            """Dispatch Apply to speed or torque handler based on current mode."""
+            if self.mode_combo.currentIndex() == 1:
+                self._apply_speed_rpm()
+            else:
+                self._apply_torque_nm()
+
+        def _apply_torque_nm(self):
+            if not self._connected:
+                self._report("not connected")
+                return
+            info = next((p for p in self.params if p.name == "iq_ref"), None)
+            if info is None:
+                self._report("iq_ref param not found", logging.WARNING)
+                return
+            val = self.torque_spin.value()
+            kt = self._kt()
+            if self._pct_mode:
+                rated_nm = self._mc("i_peak_a") * kt
+                torque_nm = val / 100.0 * rated_nm
+                disp = f"{val:.1f}% ({torque_nm:.3f} Nm, {torque_nm / kt:.4g} A)"
+            else:
+                torque_nm = val
+                disp = f"{torque_nm:.3f} Nm ({torque_nm / kt:.4g} A)"
+            iq_a = torque_nm / kt
+
+            def do_write(dbg, pid=info.id, v=f"{iq_a:.6g}"):
+                st = dbg.write_param(pid, v)
+                rb = None
+                try:
+                    rb = dbg.read_param(pid)
+                except Exception:  # noqa: BLE001
+                    pass
+                return st, rb
+
+            self.worker.submit(
+                "write", fn=do_write,
+                on_done=lambda res, i=info, d=disp: self._write_done(i, d, res),
+                on_fail=lambda m: self._report(m, logging.ERROR),
+            )
+
+        def _kt(self):
+            """Motor torque constant Kt = 1.5 * pole_pairs * flux_vs  [Nm/A]."""
+            pp = float(self._pole_pairs) if self._pole_pairs else 4.0
+            flux = self._mc("flux_vs")
+            kt = 1.5 * pp * flux
+            return kt if kt > 0.0 else 1.0
+
+        def _set_spin_abs_or_pct(self, spin, pct, is_speed):
+            """Reconfigure spin range/step/decimals for absolute vs percentage units."""
+            spin.blockSignals(True)
+            if pct:
+                spin.setRange(-200.0, 200.0)
+                spin.setDecimals(1)
+                spin.setSingleStep(1.0)
+            elif is_speed:
+                spin.setRange(-20000.0, 20000.0)
+                spin.setDecimals(0)
+                spin.setSingleStep(50.0)
+            else:
+                spin.setRange(-500.0, 500.0)
+                spin.setDecimals(3)
+                spin.setSingleStep(0.01)
+            spin.blockSignals(False)
+
+        def _update_ref_ui(self, idx):
+            """Switch reference label, spinbox visibility/range for mode idx."""
+            is_speed = (idx == 1)
+            pct = self._pct_mode
+            if is_speed:
+                self.ref_label.setText("Speed (%):" if pct else "Speed (RPM):")
+                self._set_spin_abs_or_pct(self.speed_spin, pct, is_speed=True)
+            else:
+                self.ref_label.setText("Torque (%):" if pct else "Torque (Nm):")
+                self._set_spin_abs_or_pct(self.torque_spin, pct, is_speed=False)
+            self.speed_spin.setVisible(is_speed)
+            self.torque_spin.setVisible(not is_speed)
+            show_rated = is_speed and pct
+            self.rated_rpm_lbl.setVisible(show_rated)
+            self.rated_rpm_spin.setVisible(show_rated)
+            if is_speed:
+                tip = ("Write omega_ref (% of rated RPM → electrical rad/s)"
+                       if pct else "Write omega_ref (RPM → electrical rad/s)")
+            else:
+                tip = ("Write iq_ref (% of peak torque → A)"
+                       if pct else "Write iq_ref (Nm / Kt → A)")
+            self.speed_apply_btn.setToolTip(tip)
+
+        def _on_pct_toggled(self, checked):
+            """Convert the current spinbox value when toggling percentage mode."""
+            is_speed = (self.mode_combo.currentIndex() == 1)
+            spin = self.speed_spin if is_speed else self.torque_spin
+            cur = spin.value()
+            if is_speed:
+                rated = self.rated_rpm_spin.value() or 1.0
+                new_val = (cur / rated * 100.0) if checked else (cur * rated / 100.0)
+            else:
+                i_peak = self._mc("i_peak_a")
+                rated_nm = i_peak * self._kt()
+                if rated_nm:
+                    new_val = (cur / rated_nm * 100.0) if checked else (cur * rated_nm / 100.0)
+                else:
+                    new_val = 0.0
+            self._pct_mode = checked
+            self._update_ref_ui(self.mode_combo.currentIndex())
+            spin.blockSignals(True)
+            spin.setValue(new_val)
+            spin.blockSignals(False)
+
+        # ---- motor constants (editable) ----------------------------------
         def _mc(self, name):
-            """A motor/loop constant from the device (or its default fallback)."""
+            """Effective motor/loop constant in SI units.
+
+            Returns the Motor-tab spinbox value (the user's editable override,
+            pre-filled from the device) when that field exists, else the cached
+            device value / built-in default.
+            """
+            spin = self._mc_spins.get(name)
+            if spin is not None:
+                scale = self._mc_scale.get(name, 1.0) or 1.0
+                return float(spin.value()) / scale
             return float(self._motor_const.get(name, MC_DEFAULTS.get(name, 0.0)))
+
+        def _build_motor_page(self):
+            page = QtWidgets.QWidget()
+            outer = QtWidgets.QVBoxLayout(page)
+            outer.setContentsMargins(4, 4, 4, 4)
+
+            box = QtWidgets.QGroupBox("Motor & loop constants (used by the autotuner)")
+            grid = QtWidgets.QGridLayout(box)
+            for r, (name, label, scale, dec, lo, hi, step) in enumerate(MC_FIELDS):
+                grid.addWidget(QtWidgets.QLabel(label + ":"), r, 0)
+                spin = QtWidgets.QDoubleSpinBox()
+                spin.setDecimals(dec)
+                spin.setRange(lo, hi)
+                spin.setSingleStep(step)
+                # Seed from the cached device value (defaults until first refresh).
+                base = self._motor_const.get(name, MC_DEFAULTS.get(name, 0.0))
+                spin.setValue(float(base) * scale)
+                # Connect AFTER the seed setValue so it doesn't count as an edit.
+                spin.valueChanged.connect(lambda _v, n=name: self._on_mc_edited(n))
+                grid.addWidget(spin, r, 1)
+                self._mc_spins[name] = spin
+                self._mc_scale[name] = scale
+            grid.setColumnStretch(1, 1)
+            outer.addWidget(box)
+
+            row = QtWidgets.QHBoxLayout()
+            self.mc_reset_btn = QtWidgets.QPushButton("Reset to device values")
+            self.mc_reset_btn.setToolTip(
+                "Drop local edits and reload the values reported by the device.")
+            self.mc_reset_btn.clicked.connect(self._mc_reset_to_device)
+            row.addWidget(self.mc_reset_btn)
+            row.addStretch(1)
+            outer.addLayout(row)
+
+            note = QtWidgets.QLabel(
+                "These are read from the device on connect and feed the Autotune "
+                "tab. Edit any field to override it locally (the firmware is not "
+                "changed); vbus tracks the live bus until you edit it. Use Reset "
+                "to restore the device values.")
+            note.setWordWrap(True)
+            note.setStyleSheet("color: gray;")
+            outer.addWidget(note)
+            outer.addStretch(1)
+            return page
+
+        def _mc_set_from_device(self, name, val):
+            """Cache a device-reported constant and push it into its spinbox,
+            unless the user has overridden that field locally."""
+            self._motor_const[name] = float(val)
+            if name in self._mc_user_override:
+                return
+            spin = self._mc_spins.get(name)
+            if spin is None:
+                return
+            scale = self._mc_scale.get(name, 1.0)
+            spin.blockSignals(True)
+            spin.setValue(float(val) * scale)
+            spin.blockSignals(False)
+
+        def _on_mc_edited(self, name):
+            """A Motor-tab spinbox was edited: mark it overridden and re-preview."""
+            self._mc_user_override.add(name)
+            if name == "pole_pairs":
+                self._pole_pairs = int(self._mc("pole_pairs")) or 4
+            self._at_refresh_all_previews()
+
+        def _mc_reset_to_device(self):
+            """Forget local edits; reload spinboxes from the cached device values
+            (and request a fresh read if connected)."""
+            self._mc_user_override.clear()
+            for name, spin in self._mc_spins.items():
+                scale = self._mc_scale.get(name, 1.0)
+                base = self._motor_const.get(name, MC_DEFAULTS.get(name, 0.0))
+                spin.blockSignals(True)
+                spin.setValue(float(base) * scale)
+                spin.blockSignals(False)
+            self._pole_pairs = int(self._mc("pole_pairs")) or 4
+            self._at_refresh_all_previews()
+            if self._connected:
+                self._refresh_values()
+            self._report("motor constants reset to device values")
+
+        # ---- autotune ----------------------------------------------------
 
         def _build_autotune_page(self):
             page = QtWidgets.QWidget()
@@ -1392,8 +1695,9 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._at_apply("field-weakening", getattr(self, "_at_fw_gains", None))
 
         def _at_apply_done(self, which, res):
-            parts = [f"{k}={proto.PARAM_WR_STR.get(v, v)}" for k, v in res.items()]
-            self._report(f"{which} gains applied: " + ", ".join(parts))
+            note, statuses = res
+            parts = [f"{k}={proto.PARAM_WR_STR.get(v, v)}" for k, v in statuses.items()]
+            self._report(f"{which} gains applied: " + note + ", ".join(parts))
             self._refresh_values()
 
         # ---- verify / measure experiments -------------------------------
