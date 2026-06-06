@@ -19,7 +19,7 @@ typedef MATH_Vec3 FOC_Duty_t;   // per-phase duty in [-0.5, +0.5]
 typedef struct {
     float32_t id_ref;           // d-axis current reference [A]
     float32_t iq_ref;           // q-axis current reference [A]
-    float32_t speed_ref;        // mechanical speed reference [rad/s]
+    float32_t speed_ref;        // electrical speed reference [rad/s] (speed mode)
     float32_t vbus;             // DC bus voltage [V]
 } FOC_Refs_t;
 

@@ -258,6 +258,7 @@ static void handle_sm_cmd(void)
     case SM_OP_RUN:         sm_request_run();   break;
     case SM_OP_STOP:        sm_request_stop();  break;
     case SM_OP_CLEAR_FAULT: sm_clear_fault();   break;
+    case SM_OP_ALIGN:       sm_request_align(); break;
     default: break;
     }
     frame_begin(CMD_SM_CMD, s_p_seq, 1U);

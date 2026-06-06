@@ -32,4 +32,15 @@
 #define MOTOR_OV_TRIP_V         460.0f
 #define MOTOR_UV_TRIP_V         200.0f
 
+// ---- Fault safe-state threshold (sensor-loss / fault shutdown) ----------
+// Above this ELECTRICAL speed a lost-angle / fault shutdown applies a 3-phase
+// ACTIVE SHORT (low-side on) to clamp back-EMF and prevent uncontrolled
+// generation -> DC-link overvoltage; below it the bridge coasts (tristate).
+// ~2600 elec rad/s is roughly where EMRAX back-EMF (lambda_pm*omega_elec)
+// reaches ~50% of the 400 V bus -- the field-weakening danger region. Tune on
+// the bench against the real bus voltage. NOTE: characteristic short-circuit
+// current Isc = lambda_pm/Ld ~= 306 A exceeds MOTOR_OC_TRIP_A (260 A), so a
+// high-speed ASC may re-trip the module's own overcurrent -- size accordingly.
+#define FAULT_ASC_OMEGA_ELEC    2600.0f
+
 #endif // MOTOR_EMRAX_208_H

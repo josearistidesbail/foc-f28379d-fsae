@@ -68,6 +68,7 @@
 #define SM_OP_RUN            1U
 #define SM_OP_STOP           2U
 #define SM_OP_CLEAR_FAULT    3U
+#define SM_OP_ALIGN          4U  // re-run CALIBRATE+ALIGN, then return to IDLE
 
 // ---- NACK error codes ---------------------------------------------------
 #define NACK_BAD_CRC         1U

@@ -31,7 +31,7 @@ import sys
 import threading
 from dataclasses import dataclass
 
-from . import proto
+from . import autotune, proto
 from .api import FocDebug, ParamInfo
 from .link import SerialLink, LinkError, NackError, autodetect_port
 from .log import setup_logging
@@ -213,6 +213,125 @@ def build(pg, QtCore, QtGui, QtWidgets):
     RECON_PARAM_NAME = "isense_recon"
     RECON_LABELS = ["none", "U", "V", "W"]
 
+    # Scope signal → firmware reference param that should be overlaid in red.
+    _SCOPE_TO_REF = {
+        "Id":         "id_ref",
+        "Iq":         "iq_ref",
+        "omega_elec": "omega_ref",
+    }
+    _REF_TO_SCOPE = {v: k for k, v in _SCOPE_TO_REF.items()}
+
+    # Firmware state codes (api.STATE_NAMES).
+    ST_IDLE, ST_RUN, ST_FAULT = 0, 3, 4
+
+    # Fallback motor/loop constants used when the firmware predates the
+    # read-only autotune params (host degrades gracefully; fields stay editable).
+    MC_DEFAULTS = {
+        "rs_ohm": 0.36, "ld_h": 235e-6, "lq_h": 235e-6, "flux_vs": 0.0046,
+        "i_peak_a": 7.1, "vbus": 24.0, "isr_freq_hz": 10000.0,
+        "speed_loop_ts": 1e-3, "fw_vmax_frac": 0.70, "pole_pairs": 4,
+    }
+
+    # Editable motor/loop constants for the "Motor" tab. Each field is shown in a
+    # human-friendly unit; ``scale`` converts the stored SI value to the spinbox
+    # display value (display = SI * scale), so the autotuner keeps working in SI.
+    #   (name, label, scale, decimals, disp_min, disp_max, disp_step)
+    MC_FIELDS = [
+        ("rs_ohm",        "Rs (Ω)",             1.0,   4, 0.0,    100.0,  0.01),
+        ("ld_h",          "Ld (µH)",            1e6,   1, 0.0,    1e6,    1.0),
+        ("lq_h",          "Lq (µH)",            1e6,   1, 0.0,    1e6,    1.0),
+        ("flux_vs",       "λpm (mV·s)",         1e3,   4, 0.0,    1e4,    0.1),
+        ("i_peak_a",      "I_peak (A)",         1.0,   2, 0.0,    1000.0, 0.5),
+        ("vbus",          "Vbus (V)",           1.0,   2, 0.0,    1000.0, 1.0),
+        ("isr_freq_hz",   "ISR freq (Hz)",      1.0,   0, 1.0,    1e6,    1000.0),
+        ("speed_loop_ts", "Speed-loop Ts (ms)", 1e3,   4, 1e-3,   1000.0, 0.1),
+        ("fw_vmax_frac",  "FW Vmax fraction",   1.0,   2, 0.05,   1.0,    0.05),
+        ("pole_pairs",    "Pole pairs",         1.0,   0, 1.0,    50.0,   1.0),
+    ]
+
+    # ---- worker-thread experiment helpers (touch only dbg/time) ------------
+    def at_wait_state(dbg, target, timeout):
+        """Poll sm_state until it equals target. Raises on FAULT or timeout."""
+        t0 = time.monotonic()
+        while time.monotonic() - t0 < timeout:
+            st = dbg.sm_state()
+            if st == target:
+                return
+            if st == ST_FAULT and target != ST_FAULT:
+                raise RuntimeError("device entered FAULT during the experiment")
+            time.sleep(0.1)
+        raise RuntimeError(f"timed out waiting for state {target}")
+
+    def at_ensure_idle(dbg):
+        """Bring the device to IDLE so NEEDS_IDLE params can be written.
+
+        Stops a run *and* auto-clears a latched fault, so applying gains or
+        running a verify is genuinely one-click. Returns a short note describing
+        what it had to do (for the status bar), e.g. "cleared fault; ".
+        """
+        st = dbg.sm_state()
+        if st == ST_IDLE:
+            return ""
+        if st == ST_FAULT:
+            dbg.clear_fault()
+            note = "cleared fault; "
+        else:
+            dbg.request_stop()
+            note = "stopped run; "
+        # Poll for IDLE with a tolerant loop. Unlike at_wait_state we do NOT treat
+        # a FAULT/RUN reading as fatal here: we just issued stop/clear, so a
+        # lingering non-IDLE state is the pre-transition state settling (the 1 kHz
+        # SM tick + serial round-trip lag the request). A genuinely stuck fault
+        # (HW condition still asserted) simply times out below.
+        t0 = time.monotonic()
+        while time.monotonic() - t0 < 3.0:
+            if dbg.sm_state() == ST_IDLE:
+                return note
+            time.sleep(0.05)
+        raise RuntimeError("device did not return to IDLE (fault still asserted?)")
+
+    def at_apply_gains(dbg, gains):
+        """Ensure IDLE (stopping a run / clearing a fault as needed) then write
+        the NEEDS_IDLE gains. ``gains`` is name->float. Returns
+        ``(note, name->write-status)``.
+        """
+        note = at_ensure_idle(dbg)
+        statuses = {name: dbg.write_param(name, float(val))
+                    for name, val in gains.items()}
+        return note, statuses
+
+    def at_run_step(dbg, *, mode, ref_param, ref_value, mask, decim, isr_freq,
+                    pre_gains=None, settle_frac=0.5, run_timeout=8.0):
+        """Apply optional gains, RUN, step one reference param, and snapshot the
+        scope with the edge placed inside the window. Returns (capture, dt).
+
+        Leaves the device stopped (IDLE) with the reference back at 0.
+        """
+        if pre_gains:
+            at_apply_gains(dbg, pre_gains)
+        else:
+            at_ensure_idle(dbg)
+        dbg.write_param("control_mode", int(mode))
+        dbg.write_param(ref_param, 0.0)
+        dbg.scope_config(decim=int(decim), mask=int(mask))
+        dbg.request_run()
+        try:
+            at_wait_state(dbg, ST_RUN, run_timeout)   # may align (~3 s) first
+            time.sleep(0.05)
+            dbg.write_param(ref_param, float(ref_value))
+            window = 128.0 * decim / isr_freq
+            time.sleep(window * settle_frac)
+            cap = dbg.capture_scope(timeout=2.0, retries=1)
+        finally:
+            # Always relax the command and stop the motor, even if the run
+            # never reached RUN (timeout/FAULT) or the capture failed.
+            for op in (lambda: dbg.write_param(ref_param, 0.0), dbg.request_stop):
+                try:
+                    op()
+                except Exception:   # noqa: BLE001 - best-effort safe-down
+                    pass
+        return cap, decim / isr_freq
+
     class MainWindow(QtWidgets.QMainWindow):
         def __init__(self, initial_port=None):
             super().__init__()
@@ -221,8 +340,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
             self.params: list[ParamInfo] = []
             self.row_of_id: dict[int, int] = {}
-            self.recon_combo = None        # QComboBox for the isense_recon row
-            self.recon_row = None          # its table row index
+            self.recon_combo = None        # QComboBox in the Advanced table
+            self.recon_row = None          # its row in the Advanced table
+            # One entry per tab; each dict holds the table and its per-tab
+            # row<->id maps, recon widget, and the name filter (None = all).
+            self._all_tables: list = []
             self._connected = False
             self._conn_port = ""
             self._programmatic = False
@@ -230,6 +352,21 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._last_cap = None
             self._state_pending = False
             self._refresh_pending = False
+            # Motor pole-pairs for RPM <-> electrical-rad/s conversion; replaced by
+            # the device's read-only "pole_pairs" param once values are refreshed.
+            self._pole_pairs = 4
+            self._omega_meas_elec = 0.0   # latest omega_meas [elec rad/s] for bumpless switch
+            self._pct_mode = False        # True = spinboxes show % of rated value
+            # Motor/loop constants for the autotuner. `_motor_const` caches the
+            # latest *device* value of each (fallback to MC_DEFAULTS); the Motor
+            # tab exposes them as editable spinboxes. `_mc()` returns the spinbox
+            # value (user override) when present, else the cached device value.
+            self._motor_const = dict(MC_DEFAULTS)
+            self._mc_spins = {}            # name -> QDoubleSpinBox (Motor tab)
+            self._mc_scale = {}            # name -> display scale (display = SI*scale)
+            self._mc_user_override = set() # fields the user edited locally
+            self._at_measured_km = None    # last measured speed-plant gain
+            self._at_last_cap = None       # last verify ScopeCapture (for CSV)
 
             # Rolling scope buffers (one deque per channel) + dirty flag. The
             # deques are (re)created by _rebuild_plots to match the currently
@@ -238,6 +375,14 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._scope_mask = proto.SCOPE_MASK_V1
             self._ring: list = []
             self._scope_dirty = False
+            # Reference tracking: current value + per-channel history buffer.
+            # _ref_values holds the latest setpoint; _ref_rings mirrors _ring
+            # (None for channels without a reference). Each capture appends the
+            # current setpoint repeated N times so the red trace stays in sync.
+            self._ref_values: dict = {}   # scope_name -> current float value
+            self._ref_rings: list = []    # parallel to _ring; None if no ref
+            self._ref_curves: dict = {}   # scope_name -> red pg.PlotDataItem
+            self._plot_names: list = []   # channel name by ring index
 
             # One serial worker for the whole app lifetime (idles when not
             # connected). The GUI thread never touches the port directly.
@@ -312,26 +457,92 @@ def build(pg, QtCore, QtGui, QtWidgets):
             lv = QtWidgets.QVBoxLayout(left)
 
             sm_box = QtWidgets.QGroupBox("State machine")
-            smh = QtWidgets.QHBoxLayout(sm_box)
+            sm_v = QtWidgets.QVBoxLayout(sm_box)
+            smh = QtWidgets.QHBoxLayout()
             self.state_label = QtWidgets.QLabel("—")
             f = self.state_label.font()
             f.setBold(True)
             self.state_label.setFont(f)
             self.run_btn = QtWidgets.QPushButton("Run")
+            self.calibrate_btn = QtWidgets.QPushButton("Calibrate")
+            self.calibrate_btn.setToolTip(
+                "Re-run offset calibration + rotor alignment, then return to IDLE"
+            )
             self.stop_btn = QtWidgets.QPushButton("Stop")
             self.clear_btn = QtWidgets.QPushButton("Clear fault")
             self.run_btn.clicked.connect(lambda: self._sm("run"))
+            self.calibrate_btn.clicked.connect(lambda: self._sm("calibrate"))
             self.stop_btn.clicked.connect(lambda: self._sm("stop"))
             self.clear_btn.clicked.connect(lambda: self._sm("clear"))
             smh.addWidget(QtWidgets.QLabel("State:"))
             smh.addWidget(self.state_label, 1)
             smh.addWidget(self.run_btn)
+            smh.addWidget(self.calibrate_btn)
             smh.addWidget(self.stop_btn)
             smh.addWidget(self.clear_btn)
+            sm_v.addLayout(smh)
+
+            # Control-mode + speed row. Speed is shown/entered in shaft RPM; the
+            # firmware speed loop works in electrical rad/s, so we convert with the
+            # motor pole-pairs reported by the device (self._pole_pairs).
+            modeh = QtWidgets.QHBoxLayout()
+            modeh.addWidget(QtWidgets.QLabel("Mode:"))
+            self.mode_combo = QtWidgets.QComboBox()
+            self.mode_combo.addItems(["Torque", "Speed"])
+            self.mode_combo.setToolTip(
+                "Torque: iq_ref commanded directly.  Speed: speed PI drives iq_ref "
+                "from the RPM setpoint. Switchable live (bumpless)."
+            )
+            self.mode_combo.activated.connect(self._on_mode_changed)
+            modeh.addWidget(self.mode_combo)
+            modeh.addSpacing(12)
+            self.ref_label = QtWidgets.QLabel("Torque (Nm):")
+            modeh.addWidget(self.ref_label)
+            self.speed_spin = QtWidgets.QDoubleSpinBox()
+            self.speed_spin.setRange(-20000.0, 20000.0)
+            self.speed_spin.setDecimals(0)
+            self.speed_spin.setSingleStep(50.0)
+            self.speed_spin.hide()   # hidden in default torque mode
+            modeh.addWidget(self.speed_spin)
+            self.torque_spin = QtWidgets.QDoubleSpinBox()
+            self.torque_spin.setRange(-500.0, 500.0)
+            self.torque_spin.setDecimals(3)
+            self.torque_spin.setSingleStep(0.01)
+            modeh.addWidget(self.torque_spin)
+            self.pct_chk = QtWidgets.QCheckBox("%")
+            self.pct_chk.setToolTip(
+                "Percentage mode — Speed: % of rated RPM; "
+                "Torque: % of peak torque (i_peak × Kt)"
+            )
+            self.pct_chk.toggled.connect(self._on_pct_toggled)
+            modeh.addWidget(self.pct_chk)
+            self.rated_rpm_lbl = QtWidgets.QLabel("Rated:")
+            modeh.addWidget(self.rated_rpm_lbl)
+            self.rated_rpm_spin = QtWidgets.QDoubleSpinBox()
+            self.rated_rpm_spin.setRange(1.0, 100000.0)
+            self.rated_rpm_spin.setDecimals(0)
+            self.rated_rpm_spin.setSingleStep(100.0)
+            self.rated_rpm_spin.setValue(6000.0)
+            self.rated_rpm_spin.setSuffix(" rpm")
+            modeh.addWidget(self.rated_rpm_spin)
+            # only visible in speed mode with % checked
+            self.rated_rpm_lbl.hide()
+            self.rated_rpm_spin.hide()
+            self.speed_apply_btn = QtWidgets.QPushButton("Apply")
+            self.speed_apply_btn.setToolTip("Torque mode: write iq_ref (Nm / Kt → A)")
+            self.speed_apply_btn.clicked.connect(self._apply_ref)
+            modeh.addWidget(self.speed_apply_btn)
+            modeh.addStretch(1)
+            modeh.addWidget(QtWidgets.QLabel("Measured:"))
+            self.speed_meas_label = QtWidgets.QLabel("— rpm")
+            mf = self.speed_meas_label.font()
+            mf.setBold(True)
+            self.speed_meas_label.setFont(mf)
+            modeh.addWidget(self.speed_meas_label)
+            sm_v.addLayout(modeh)
             lv.addWidget(sm_box)
 
             ph = QtWidgets.QHBoxLayout()
-            ph.addWidget(QtWidgets.QLabel("Parameters"))
             ph.addStretch(1)
             self.autoread_chk = QtWidgets.QCheckBox("Auto-refresh values")
             self.refresh_vals_btn = QtWidgets.QPushButton("Refresh values")
@@ -340,21 +551,64 @@ def build(pg, QtCore, QtGui, QtWidgets):
             ph.addWidget(self.refresh_vals_btn)
             lv.addLayout(ph)
 
-            self.table = QtWidgets.QTableWidget(0, 6)
-            self.table.setHorizontalHeaderLabels(
-                ["id", "name", "type", "flags", "value (edit + Enter)", "status"]
-            )
-            self.table.horizontalHeader().setStretchLastSection(True)
-            self.table.setEditTriggers(
-                QtWidgets.QAbstractItemView.DoubleClicked
-                | QtWidgets.QAbstractItemView.EditKeyPressed
-            )
-            self.table.itemChanged.connect(self._on_item_changed)
-            lv.addWidget(self.table, 1)
+            # Tab definitions: (label, name_filter_set or None=all)
+            _TAB_DEFS = [
+                ("References", {"id_ref", "iq_ref", "omega_ref"}),
+                ("Gains",      {"kp_d", "ki_d", "kp_q", "ki_q", "kp_w", "ki_w"}),
+                ("Config",     {"isense_recon"}),
+                ("Advanced",   None),
+            ]
+            self.tab_widget = QtWidgets.QTabWidget()
+            self._all_tables = []
+            for tab_label, fset in _TAB_DEFS:
+                page = QtWidgets.QWidget()
+                page_lv = QtWidgets.QVBoxLayout(page)
+                page_lv.setContentsMargins(4, 4, 4, 4)
+
+                if tab_label == "Gains":
+                    tune_box = QtWidgets.QGroupBox("Tune D & Q together (current loop — needs IDLE)")
+                    tune_grid = QtWidgets.QGridLayout(tune_box)
+                    tune_grid.addWidget(QtWidgets.QLabel("kp  (D = Q):"), 0, 0)
+                    self.kp_dq_spin = QtWidgets.QDoubleSpinBox()
+                    self.kp_dq_spin.setRange(0.0, 1e6)
+                    self.kp_dq_spin.setDecimals(6)
+                    self.kp_dq_spin.setSingleStep(0.01)
+                    tune_grid.addWidget(self.kp_dq_spin, 0, 1)
+                    _kp_btn = QtWidgets.QPushButton("Apply")
+                    _kp_btn.clicked.connect(self._apply_kp_dq)
+                    tune_grid.addWidget(_kp_btn, 0, 2)
+                    tune_grid.addWidget(QtWidgets.QLabel("ki   (D = Q):"), 1, 0)
+                    self.ki_dq_spin = QtWidgets.QDoubleSpinBox()
+                    self.ki_dq_spin.setRange(0.0, 1e6)
+                    self.ki_dq_spin.setDecimals(6)
+                    self.ki_dq_spin.setSingleStep(0.01)
+                    tune_grid.addWidget(self.ki_dq_spin, 1, 1)
+                    _ki_btn = QtWidgets.QPushButton("Apply")
+                    _ki_btn.clicked.connect(self._apply_ki_dq)
+                    tune_grid.addWidget(_ki_btn, 1, 2)
+                    tune_grid.setColumnStretch(1, 1)
+                    page_lv.addWidget(tune_box)
+
+                table = self._make_param_table()
+                treg = {"table": table, "row_of_id": {}, "id_of_row": {},
+                        "recon_combo": None, "recon_row": None, "filter_set": fset}
+                table.itemChanged.connect(
+                    lambda item, t=treg: self._on_table_item_changed(t, item)
+                )
+                self._all_tables.append(treg)
+                if tab_label == "Advanced":
+                    self.table = table   # backward compat for save/load JSON
+                page_lv.addWidget(table, 1)
+                self.tab_widget.addTab(page, tab_label)
+
+            self.tab_widget.addTab(self._build_motor_page(), "Motor")
+            self.tab_widget.addTab(self._build_autotune_page(), "Autotune")
+
+            lv.addWidget(self.tab_widget, 1)
 
             hint = QtWidgets.QLabel(
-                "Double-click a writable value, type, press Enter to write. "
-                "needs_idle params take only in IDLE."
+                "Double-click a writable value and press Enter to write. "
+                "needs_idle params only accepted in IDLE state."
             )
             hint.setWordWrap(True)
             hint.setStyleSheet("color: gray;")
@@ -431,6 +685,18 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.statusBar().addPermanentWidget(_jab)
 
         # ---- helpers -----------------------------------------------------
+        def _make_param_table(self):
+            t = QtWidgets.QTableWidget(0, 6)
+            t.setHorizontalHeaderLabels(
+                ["id", "name", "type", "flags", "value (edit + Enter)", "status"]
+            )
+            t.horizontalHeader().setStretchLastSection(True)
+            t.setEditTriggers(
+                QtWidgets.QAbstractItemView.DoubleClicked
+                | QtWidgets.QAbstractItemView.EditKeyPressed
+            )
+            return t
+
         def _report(self, msg, level=logging.INFO):
             """Show a message in the status bar and mirror it to the console log."""
             self.statusBar().showMessage(msg)
@@ -497,11 +763,19 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 f"connected: {self._conn_port}" if on else "disconnected"
             )
             for w in (
-                self.ping_btn, self.run_btn, self.stop_btn, self.clear_btn,
-                self.refresh_vals_btn, self.scope_btn, self.table, self.autoread_chk,
+                self.ping_btn, self.run_btn, self.calibrate_btn,
+                self.stop_btn, self.clear_btn,
+                self.refresh_vals_btn, self.scope_btn, self.autoread_chk,
                 self.decim_spin, self.interval_spin,
+                self.mode_combo, self.speed_spin, self.torque_spin,
+                self.pct_chk, self.rated_rpm_spin, self.speed_apply_btn,
+                self.at_cur_apply_btn, self.at_cur_verify_btn,
+                self.at_spd_apply_btn, self.at_spd_verify_btn,
+                self.at_spd_measure_btn, self.at_fw_apply_btn,
             ):
                 w.setEnabled(on)
+            for treg in self._all_tables:
+                treg["table"].setEnabled(on)
             self.port_combo.setEnabled(not on)
             self.refresh_ports_btn.setEnabled(not on)
             if not on:
@@ -517,44 +791,54 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
         def _apply_params(self, params):
             self.params = params
-            self.row_of_id = {}
-            self.recon_combo = None
-            self.recon_row = None
             self._programmatic = True
-            self.table.setRowCount(len(self.params))
-            for row, info in enumerate(self.params):
-                self.row_of_id[info.id] = row
-                self._set_cell(row, COL_ID, f"0x{info.id:04X}", editable=False)
-                self._set_cell(row, COL_NAME, info.name, editable=False)
-                self._set_cell(row, COL_TYPE, info.type_str, editable=False)
-                self._set_cell(row, COL_FLAGS, info.flags_str, editable=False)
-                if info.name == RECON_PARAM_NAME and not info.read_only:
-                    self._make_recon_combo(row, info)
-                else:
-                    self._set_cell(row, COL_VALUE, "", editable=not info.read_only)
-                self._set_cell(row, COL_STATUS, "", editable=False)
+            for treg in self._all_tables:
+                self._populate_table(treg, params)
             self._programmatic = False
-            self.table.resizeColumnsToContents()
+            for treg in self._all_tables:
+                treg["table"].resizeColumnsToContents()
             self._refresh_values()
 
-        def _make_recon_combo(self, row, info):
-            """Render the reconstruct-phase value cell as a labeled dropdown."""
-            combo = QtWidgets.QComboBox()
-            combo.addItems(RECON_LABELS)
-            # `activated` fires only on user selection, never on programmatic
-            # setCurrentIndex — so value refreshes can't trigger a spurious write.
-            combo.activated.connect(
-                lambda idx, info=info, row=row: self._on_recon_changed(info, row, idx)
-            )
-            self.table.setCellWidget(row, COL_VALUE, combo)
-            self.recon_combo = combo
-            self.recon_row = row
+        def _populate_table(self, treg, params):
+            """Fill a tab's QTableWidget with the subset of params it tracks."""
+            table = treg["table"]
+            fset = treg["filter_set"]
+            visible = [p for p in params if fset is None or p.name in fset]
+            treg["row_of_id"] = {}
+            treg["id_of_row"] = {}
+            treg["recon_combo"] = None
+            treg["recon_row"] = None
+            table.setRowCount(len(visible))
+            for row, info in enumerate(visible):
+                treg["row_of_id"][info.id] = row
+                treg["id_of_row"][row] = info.id
+                self._fill_cell(table, row, COL_ID, f"0x{info.id:04X}", editable=False)
+                self._fill_cell(table, row, COL_NAME, info.name, editable=False)
+                self._fill_cell(table, row, COL_TYPE, info.type_str, editable=False)
+                self._fill_cell(table, row, COL_FLAGS, info.flags_str, editable=False)
+                if info.name == RECON_PARAM_NAME and not info.read_only:
+                    combo = QtWidgets.QComboBox()
+                    combo.addItems(RECON_LABELS)
+                    combo.activated.connect(
+                        lambda idx, i=info, r=row, t=treg: self._on_recon_changed(i, r, idx, t)
+                    )
+                    table.setCellWidget(row, COL_VALUE, combo)
+                    treg["recon_combo"] = combo
+                    treg["recon_row"] = row
+                else:
+                    self._fill_cell(table, row, COL_VALUE, "", editable=not info.read_only)
+                self._fill_cell(table, row, COL_STATUS, "", editable=False)
+            # Keep canonical shortcuts pointing at the Advanced table's recon
+            if table is self.table:
+                self.row_of_id = treg["row_of_id"]
+                self.recon_combo = treg["recon_combo"]
+                self.recon_row = treg["recon_row"]
 
-        def _set_cell(self, row, col, text, editable):
+        def _fill_cell(self, table, row, col, text, editable):
             item = QtWidgets.QTableWidgetItem(text)
             if not editable:
                 item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
-            self.table.setItem(row, col, item)
+            table.setItem(row, col, item)
 
         def _fmt(self, info: ParamInfo, val):
             if val is None:
@@ -592,32 +876,81 @@ def build(pg, QtCore, QtGui, QtWidgets):
             try:
                 for info in self.params:
                     val = out.get(info.id)
-                    row = self.row_of_id.get(info.id)
-                    if row is None or val is None:
+                    if val is None:
                         continue
-                    if self.recon_combo is not None and row == self.recon_row:
-                        self._set_recon_index(int(val))
-                    else:
-                        self.table.item(row, COL_VALUE).setText(self._fmt(info, val))
+                    fmt_val = self._fmt(info, val)
+                    for treg in self._all_tables:
+                        row = treg["row_of_id"].get(info.id)
+                        if row is None:
+                            continue
+                        if treg["recon_combo"] is not None and row == treg["recon_row"]:
+                            self._set_recon_combo(treg["recon_combo"], int(val))
+                        else:
+                            item = treg["table"].item(row, COL_VALUE)
+                            if item:
+                                item.setText(fmt_val)
             finally:
                 self._programmatic = False
+            # Update current reference values (used by the next capture fill).
+            for info in self.params:
+                val = out.get(info.id)
+                if val is None:
+                    continue
+                scope_name = _REF_TO_SCOPE.get(info.name)
+                if scope_name:
+                    self._ref_values[scope_name] = float(val)
+
+            val_by_name = {info.name: out.get(info.id) for info in self.params}
+
+            # Motor/loop constants -> Motor tab spinboxes + autotuner cache. Each
+            # device value pre-fills its spinbox unless the user has overridden it
+            # locally; vbus is live so it keeps tracking the bus until edited.
+            mc_changed = False
+            for name in MC_DEFAULTS:
+                v = val_by_name.get(name)
+                if v is not None:
+                    self._mc_set_from_device(name, v)
+                    mc_changed = True
+            # Pole-pairs drives the RPM<->electrical conversion (honor any override).
+            self._pole_pairs = int(self._mc("pole_pairs")) or 4
+            if mc_changed:
+                self._at_refresh_all_previews()
+
+            # Measured speed (electrical rad/s shown as shaft RPM) + live mode.
+            we_meas = val_by_name.get("omega_meas")
+            if we_meas is not None:
+                self._omega_meas_elec = float(we_meas)
+                self.speed_meas_label.setText(f"{self._elec_to_rpm(we_meas):.0f} rpm")
+            mode = val_by_name.get("control_mode")
+            if mode is not None:
+                self._set_mode_combo(int(mode))
+
+        def _set_recon_combo(self, combo, val):
+            """Set a recon dropdown without triggering a write signal."""
+            idx = val if 0 <= val < len(RECON_LABELS) else 0
+            combo.blockSignals(True)
+            combo.setCurrentIndex(idx)
+            combo.blockSignals(False)
 
         def _set_recon_index(self, val):
-            """Point the dropdown at firmware value `val` without emitting a write."""
-            idx = val if 0 <= val < len(RECON_LABELS) else 0
-            self.recon_combo.blockSignals(True)
-            self.recon_combo.setCurrentIndex(idx)
-            self.recon_combo.blockSignals(False)
+            """Backward-compat wrapper; updates the Advanced table's recon combo."""
+            if self.recon_combo is not None:
+                self._set_recon_combo(self.recon_combo, val)
 
         def _refresh_failed(self, msg):
             self._refresh_pending = False
             log.debug("refresh failed: %s", msg)
 
-        def _on_item_changed(self, item):
+        def _on_table_item_changed(self, treg, item):
             if self._programmatic or item.column() != COL_VALUE or not self._connected:
                 return
             row = item.row()
-            info = self.params[row]
+            param_id = treg["id_of_row"].get(row)
+            if param_id is None:
+                return
+            info = next((p for p in self.params if p.id == param_id), None)
+            if info is None:
+                return
             text = item.text().strip()
             if text == "":
                 return
@@ -633,21 +966,34 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
             self.worker.submit(
                 "write", fn=do_write,
-                on_done=lambda res, info=info, row=row, text=text: self._write_done(info, row, text, res),
+                on_done=lambda res, info=info, text=text: self._write_done(info, text, res),
                 on_fail=lambda m: self._report(m, logging.ERROR),
             )
 
-        def _write_done(self, info, row, text, res):
+        def _write_done(self, info, text, res):
             status, val = res
             sstr = proto.PARAM_WR_STR.get(status, f"status{status}")
-            self.table.item(row, COL_STATUS).setText(sstr)
             self._report(f"write {info.name} = {text} → {sstr}")
+            self._programmatic = True
+            for treg in self._all_tables:
+                row = treg["row_of_id"].get(info.id)
+                if row is None:
+                    continue
+                si = treg["table"].item(row, COL_STATUS)
+                if si:
+                    si.setText(sstr)
+                if val is not None:
+                    vi = treg["table"].item(row, COL_VALUE)
+                    if vi:
+                        vi.setText(self._fmt(info, val))
+            self._programmatic = False
+            # Record new reference value; the next capture fill picks it up.
             if val is not None:
-                self._programmatic = True
-                self.table.item(row, COL_VALUE).setText(self._fmt(info, val))
-                self._programmatic = False
+                scope_name = _REF_TO_SCOPE.get(info.name)
+                if scope_name:
+                    self._ref_values[scope_name] = float(val)
 
-        def _on_recon_changed(self, info, row, idx):
+        def _on_recon_changed(self, info, row, idx, treg=None):
             if not self._connected:
                 return
 
@@ -662,25 +1008,65 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
             self.worker.submit(
                 "write", fn=do_write,
-                on_done=lambda res, info=info, row=row, idx=idx: self._recon_write_done(info, row, idx, res),
+                on_done=lambda res, info=info, idx=idx: self._recon_write_done(info, idx, res),
                 on_fail=lambda m: self._report(m, logging.ERROR),
             )
 
-        def _recon_write_done(self, info, row, idx, res):
+        def _recon_write_done(self, info, idx, res):
             status, rb = res
             sstr = proto.PARAM_WR_STR.get(status, f"status{status}")
-            self.table.item(row, COL_STATUS).setText(sstr)
             self._report(f"write {info.name} = {RECON_LABELS[idx]} → {sstr}")
-            # Snap the dropdown to the firmware's actual value so a rejected write
-            # (e.g. needs_idle while running) visibly reverts instead of lying.
-            if rb is not None and self.recon_combo is not None:
-                self._set_recon_index(int(rb))
+            self._programmatic = True
+            for treg in self._all_tables:
+                row = treg["row_of_id"].get(info.id)
+                if row is None:
+                    continue
+                si = treg["table"].item(row, COL_STATUS)
+                if si:
+                    si.setText(sstr)
+                if rb is not None and treg["recon_combo"] is not None:
+                    self._set_recon_combo(treg["recon_combo"], int(rb))
+            self._programmatic = False
+
+        # ---- tune-both gain helpers -------------------------------------
+        def _apply_kp_dq(self):
+            self._apply_gain_pair("kp_d", "kp_q", self.kp_dq_spin.value())
+
+        def _apply_ki_dq(self):
+            self._apply_gain_pair("ki_d", "ki_q", self.ki_dq_spin.value())
+
+        def _apply_gain_pair(self, name_a, name_b, val):
+            if not self._connected:
+                self._report("not connected")
+                return
+            val_str = f"{val:.6g}"
+            for name in (name_a, name_b):
+                info = next((p for p in self.params if p.name == name), None)
+                if info is None:
+                    self._report(f"param '{name}' not found", logging.WARNING)
+                    continue
+
+                def do_write(dbg, pid=info.id, v=val_str):
+                    st = dbg.write_param(pid, v)
+                    rb = None
+                    try:
+                        rb = dbg.read_param(pid)
+                    except Exception:  # noqa: BLE001
+                        pass
+                    return st, rb
+
+                self.worker.submit(
+                    "write", fn=do_write,
+                    on_done=lambda res, i=info, v=val_str: self._write_done(i, v, res),
+                    on_fail=lambda m: self._report(m, logging.ERROR),
+                )
 
         # ---- state machine ----------------------------------------------
         def _sm(self, op):
             if not self._connected:
                 return
             fn = {"run": lambda d: d.request_run(),
+                  "calibrate": lambda d: d.request_align(),
                   "stop": lambda d: d.request_stop(),
                   "clear": lambda d: d.clear_fault()}[op]
             self.worker.submit(
@@ -703,6 +1089,762 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 on_fail=lambda m: self._report(m, logging.ERROR),
             )
 
+        # ---- control mode + speed (RPM) ----------------------------------
+        def _elec_to_rpm(self, we):
+            """Electrical rad/s -> shaft RPM using the reported pole-pairs."""
+            pp = self._pole_pairs if self._pole_pairs else 4
+            return float(we) * 60.0 / (2.0 * np.pi) / pp
+
+        def _rpm_to_elec(self, rpm):
+            """Shaft RPM -> electrical rad/s using the reported pole-pairs."""
+            pp = self._pole_pairs if self._pole_pairs else 4
+            return float(rpm) * (2.0 * np.pi) / 60.0 * pp
+
+        def _set_mode_combo(self, val):
+            """Reflect the device control_mode (0=torque,1=speed) without a write."""
+            idx = 1 if int(val) == 1 else 0
+            self.mode_combo.blockSignals(True)
+            self.mode_combo.setCurrentIndex(idx)
+            self.mode_combo.blockSignals(False)
+            self._update_ref_ui(idx)
+
+        def _on_mode_changed(self, idx):
+            if not self._connected:
+                return
+            # Bumpless pre-fill: seed the incoming reference spinbox from current state.
+            if idx == 1:  # → Speed: pre-fill with current measured shaft speed
+                rpm = self._elec_to_rpm(self._omega_meas_elec)
+                if self._pct_mode:
+                    rated = self.rated_rpm_spin.value() or 1.0
+                    seed = rpm / rated * 100.0
+                else:
+                    seed = rpm
+                self.speed_spin.blockSignals(True)
+                self.speed_spin.setValue(seed)
+                self.speed_spin.blockSignals(False)
+            else:  # → Torque: pre-fill with iq_ref * Kt
+                iq_now = float(self._ref_values.get("Iq", 0.0))
+                torque_nm = iq_now * self._kt()
+                if self._pct_mode:
+                    rated_nm = self._mc("i_peak_a") * self._kt()
+                    seed = (torque_nm / rated_nm * 100.0) if rated_nm else 0.0
+                else:
+                    seed = torque_nm
+                self.torque_spin.blockSignals(True)
+                self.torque_spin.setValue(seed)
+                self.torque_spin.blockSignals(False)
+            self._update_ref_ui(idx)
+            info = next((p for p in self.params if p.name == "control_mode"), None)
+            if info is None:
+                self._report("control_mode param not found", logging.WARNING)
+                return
+            val = 1 if idx == 1 else 0
+
+            def do_write(dbg, pid=info.id, v=val):
+                st = dbg.write_param(pid, v)
+                rb = None
+                try:
+                    rb = dbg.read_param(pid)
+                except Exception:  # noqa: BLE001
+                    pass
+                return st, rb
+
+            self.worker.submit(
+                "write", fn=do_write,
+                on_done=lambda res: self._mode_write_done(res),
+                on_fail=lambda m: self._report(m, logging.ERROR),
+            )
+
+        def _mode_write_done(self, res):
+            status, rb = res
+            sstr = proto.PARAM_WR_STR.get(status, f"status{status}")
+            label = "Speed" if (rb == 1) else "Torque"
+            self._report(f"control mode → {label} ({sstr})")
+            if rb is not None:
+                self._set_mode_combo(int(rb))
+
+        def _apply_speed_rpm(self):
+            if not self._connected:
+                self._report("not connected")
+                return
+            info = next((p for p in self.params if p.name == "omega_ref"), None)
+            if info is None:
+                self._report("omega_ref param not found", logging.WARNING)
+                return
+            val = self.speed_spin.value()
+            if self._pct_mode:
+                rated = self.rated_rpm_spin.value() or 1.0
+                rpm = val / 100.0 * rated
+                disp = f"{val:.1f}% ({rpm:.0f} rpm)"
+            else:
+                rpm = val
+                disp = f"{rpm:.0f} rpm"
+            we = self._rpm_to_elec(rpm)
+            val_str = f"{we:.6g}"
+
+            def do_write(dbg, pid=info.id, v=val_str):
+                st = dbg.write_param(pid, v)
+                rb = None
+                try:
+                    rb = dbg.read_param(pid)
+                except Exception:  # noqa: BLE001
+                    pass
+                return st, rb
+
+            self.worker.submit(
+                "write", fn=do_write,
+                on_done=lambda res, i=info, d=disp: self._write_done(i, d, res),
+                on_fail=lambda m: self._report(m, logging.ERROR),
+            )
+
+        def _apply_ref(self):
+            """Dispatch Apply to speed or torque handler based on current mode."""
+            if self.mode_combo.currentIndex() == 1:
+                self._apply_speed_rpm()
+            else:
+                self._apply_torque_nm()
+
+        def _apply_torque_nm(self):
+            if not self._connected:
+                self._report("not connected")
+                return
+            info = next((p for p in self.params if p.name == "iq_ref"), None)
+            if info is None:
+                self._report("iq_ref param not found", logging.WARNING)
+                return
+            val = self.torque_spin.value()
+            kt = self._kt()
+            if self._pct_mode:
+                rated_nm = self._mc("i_peak_a") * kt
+                torque_nm = val / 100.0 * rated_nm
+                disp = f"{val:.1f}% ({torque_nm:.3f} Nm, {torque_nm / kt:.4g} A)"
+            else:
+                torque_nm = val
+                disp = f"{torque_nm:.3f} Nm ({torque_nm / kt:.4g} A)"
+            iq_a = torque_nm / kt
+
+            def do_write(dbg, pid=info.id, v=f"{iq_a:.6g}"):
+                st = dbg.write_param(pid, v)
+                rb = None
+                try:
+                    rb = dbg.read_param(pid)
+                except Exception:  # noqa: BLE001
+                    pass
+                return st, rb
+
+            self.worker.submit(
+                "write", fn=do_write,
+                on_done=lambda res, i=info, d=disp: self._write_done(i, d, res),
+                on_fail=lambda m: self._report(m, logging.ERROR),
+            )
+
+        def _kt(self):
+            """Motor torque constant Kt = 1.5 * pole_pairs * flux_vs  [Nm/A]."""
+            pp = float(self._pole_pairs) if self._pole_pairs else 4.0
+            flux = self._mc("flux_vs")
+            kt = 1.5 * pp * flux
+            return kt if kt > 0.0 else 1.0
+
+        def _set_spin_abs_or_pct(self, spin, pct, is_speed):
+            """Reconfigure spin range/step/decimals for absolute vs percentage units."""
+            spin.blockSignals(True)
+            if pct:
+                spin.setRange(-200.0, 200.0)
+                spin.setDecimals(1)
+                spin.setSingleStep(1.0)
+            elif is_speed:
+                spin.setRange(-20000.0, 20000.0)
+                spin.setDecimals(0)
+                spin.setSingleStep(50.0)
+            else:
+                spin.setRange(-500.0, 500.0)
+                spin.setDecimals(3)
+                spin.setSingleStep(0.01)
+            spin.blockSignals(False)
+
+        def _update_ref_ui(self, idx):
+            """Switch reference label, spinbox visibility/range for mode idx."""
+            is_speed = (idx == 1)
+            pct = self._pct_mode
+            if is_speed:
+                self.ref_label.setText("Speed (%):" if pct else "Speed (RPM):")
+                self._set_spin_abs_or_pct(self.speed_spin, pct, is_speed=True)
+            else:
+                self.ref_label.setText("Torque (%):" if pct else "Torque (Nm):")
+                self._set_spin_abs_or_pct(self.torque_spin, pct, is_speed=False)
+            self.speed_spin.setVisible(is_speed)
+            self.torque_spin.setVisible(not is_speed)
+            show_rated = is_speed and pct
+            self.rated_rpm_lbl.setVisible(show_rated)
+            self.rated_rpm_spin.setVisible(show_rated)
+            if is_speed:
+                tip = ("Write omega_ref (% of rated RPM → electrical rad/s)"
+                       if pct else "Write omega_ref (RPM → electrical rad/s)")
+            else:
+                tip = ("Write iq_ref (% of peak torque → A)"
+                       if pct else "Write iq_ref (Nm / Kt → A)")
+            self.speed_apply_btn.setToolTip(tip)
+
+        def _on_pct_toggled(self, checked):
+            """Convert the current spinbox value when toggling percentage mode."""
+            is_speed = (self.mode_combo.currentIndex() == 1)
+            spin = self.speed_spin if is_speed else self.torque_spin
+            cur = spin.value()
+            if is_speed:
+                rated = self.rated_rpm_spin.value() or 1.0
+                new_val = (cur / rated * 100.0) if checked else (cur * rated / 100.0)
+            else:
+                i_peak = self._mc("i_peak_a")
+                rated_nm = i_peak * self._kt()
+                if rated_nm:
+                    new_val = (cur / rated_nm * 100.0) if checked else (cur * rated_nm / 100.0)
+                else:
+                    new_val = 0.0
+            self._pct_mode = checked
+            self._update_ref_ui(self.mode_combo.currentIndex())
+            spin.blockSignals(True)
+            spin.setValue(new_val)
+            spin.blockSignals(False)
+
+        # ---- motor constants (editable) ----------------------------------
+        def _mc(self, name):
+            """Effective motor/loop constant in SI units.
+
+            Returns the Motor-tab spinbox value (the user's editable override,
+            pre-filled from the device) when that field exists, else the cached
+            device value / built-in default.
+            """
+            spin = self._mc_spins.get(name)
+            if spin is not None:
+                scale = self._mc_scale.get(name, 1.0) or 1.0
+                return float(spin.value()) / scale
+            return float(self._motor_const.get(name, MC_DEFAULTS.get(name, 0.0)))
+
+        def _build_motor_page(self):
+            page = QtWidgets.QWidget()
+            outer = QtWidgets.QVBoxLayout(page)
+            outer.setContentsMargins(4, 4, 4, 4)
+
+            box = QtWidgets.QGroupBox("Motor & loop constants (used by the autotuner)")
+            grid = QtWidgets.QGridLayout(box)
+            for r, (name, label, scale, dec, lo, hi, step) in enumerate(MC_FIELDS):
+                grid.addWidget(QtWidgets.QLabel(label + ":"), r, 0)
+                spin = QtWidgets.QDoubleSpinBox()
+                spin.setDecimals(dec)
+                spin.setRange(lo, hi)
+                spin.setSingleStep(step)
+                # Seed from the cached device value (defaults until first refresh).
+                base = self._motor_const.get(name, MC_DEFAULTS.get(name, 0.0))
+                spin.setValue(float(base) * scale)
+                # Connect AFTER the seed setValue so it doesn't count as an edit.
+                spin.valueChanged.connect(lambda _v, n=name: self._on_mc_edited(n))
+                grid.addWidget(spin, r, 1)
+                self._mc_spins[name] = spin
+                self._mc_scale[name] = scale
+            grid.setColumnStretch(1, 1)
+            outer.addWidget(box)
+
+            row = QtWidgets.QHBoxLayout()
+            self.mc_reset_btn = QtWidgets.QPushButton("Reset to device values")
+            self.mc_reset_btn.setToolTip(
+                "Drop local edits and reload the values reported by the device.")
+            self.mc_reset_btn.clicked.connect(self._mc_reset_to_device)
+            row.addWidget(self.mc_reset_btn)
+            row.addStretch(1)
+            outer.addLayout(row)
+
+            note = QtWidgets.QLabel(
+                "These are read from the device on connect and feed the Autotune "
+                "tab. Edit any field to override it locally (the firmware is not "
+                "changed); vbus tracks the live bus until you edit it. Use Reset "
+                "to restore the device values.")
+            note.setWordWrap(True)
+            note.setStyleSheet("color: gray;")
+            outer.addWidget(note)
+            outer.addStretch(1)
+            return page
+
+        def _mc_set_from_device(self, name, val):
+            """Cache a device-reported constant and push it into its spinbox,
+            unless the user has overridden that field locally."""
+            self._motor_const[name] = float(val)
+            if name in self._mc_user_override:
+                return
+            spin = self._mc_spins.get(name)
+            if spin is None:
+                return
+            scale = self._mc_scale.get(name, 1.0)
+            spin.blockSignals(True)
+            spin.setValue(float(val) * scale)
+            spin.blockSignals(False)
+
+        def _on_mc_edited(self, name):
+            """A Motor-tab spinbox was edited: mark it overridden and re-preview."""
+            self._mc_user_override.add(name)
+            if name == "pole_pairs":
+                self._pole_pairs = int(self._mc("pole_pairs")) or 4
+            self._at_refresh_all_previews()
+
+        def _mc_reset_to_device(self):
+            """Forget local edits; reload spinboxes from the cached device values
+            (and request a fresh read if connected)."""
+            self._mc_user_override.clear()
+            for name, spin in self._mc_spins.items():
+                scale = self._mc_scale.get(name, 1.0)
+                base = self._motor_const.get(name, MC_DEFAULTS.get(name, 0.0))
+                spin.blockSignals(True)
+                spin.setValue(float(base) * scale)
+                spin.blockSignals(False)
+            self._pole_pairs = int(self._mc("pole_pairs")) or 4
+            self._at_refresh_all_previews()
+            if self._connected:
+                self._refresh_values()
+            self._report("motor constants reset to device values")
+
+        # ---- autotune ----------------------------------------------------
+
+        def _build_autotune_page(self):
+            page = QtWidgets.QWidget()
+            outer = QtWidgets.QVBoxLayout(page)
+            outer.setContentsMargins(4, 4, 4, 4)
+
+            scroll = QtWidgets.QScrollArea()
+            scroll.setWidgetResizable(True)
+            inner = QtWidgets.QWidget()
+            iv = QtWidgets.QVBoxLayout(inner)
+            iv.addWidget(self._build_at_current_box())
+            iv.addWidget(self._build_at_speed_box())
+            iv.addWidget(self._build_at_fw_box())
+            iv.addStretch(1)
+            scroll.setWidget(inner)
+            outer.addWidget(scroll, 1)
+
+            res_box = QtWidgets.QGroupBox("Last verify (step response)")
+            res_v = QtWidgets.QVBoxLayout(res_box)
+            self.at_plot = pg.PlotWidget()
+            self.at_plot.showGrid(x=True, y=True, alpha=0.3)
+            self.at_plot.setMaximumHeight(200)
+            self.at_meas_curve = self.at_plot.plot(pen=pg.mkPen(width=1))
+            self.at_ref_curve = self.at_plot.plot(
+                pen=pg.mkPen(color=(220, 60, 60), width=1.5, style=QtCore.Qt.DashLine))
+            res_v.addWidget(self.at_plot)
+            self.at_metrics_lbl = QtWidgets.QLabel("—")
+            self.at_metrics_lbl.setWordWrap(True)
+            res_v.addWidget(self.at_metrics_lbl)
+            outer.addWidget(res_box)
+
+            self._at_refresh_all_previews()
+            return page
+
+        def _build_at_current_box(self):
+            box = QtWidgets.QGroupBox("Current loop (Id/Iq) — model-based, exact")
+            g = QtWidgets.QGridLayout(box)
+            r = 0
+            g.addWidget(QtWidgets.QLabel("Target bandwidth (Hz):"), r, 0)
+            self.at_cur_bw = QtWidgets.QDoubleSpinBox()
+            self.at_cur_bw.setRange(10.0, 5000.0)
+            self.at_cur_bw.setDecimals(0)
+            self.at_cur_bw.setSingleStep(50.0)
+            self.at_cur_bw.setValue(600.0)
+            self.at_cur_bw.valueChanged.connect(lambda _v: self._at_current_preview())
+            g.addWidget(self.at_cur_bw, r, 1)
+            self.at_cur_ceil_lbl = QtWidgets.QLabel("")
+            g.addWidget(self.at_cur_ceil_lbl, r, 2)
+            r += 1
+            self.at_cur_plant_lbl = QtWidgets.QLabel("")
+            self.at_cur_plant_lbl.setStyleSheet("color: gray;")
+            g.addWidget(self.at_cur_plant_lbl, r, 0, 1, 3)
+            r += 1
+            self.at_cur_preview_lbl = QtWidgets.QLabel("—")
+            g.addWidget(self.at_cur_preview_lbl, r, 0, 1, 3)
+            r += 1
+            self.at_cur_apply_btn = QtWidgets.QPushButton("Apply current gains")
+            self.at_cur_apply_btn.clicked.connect(self._at_apply_current)
+            g.addWidget(self.at_cur_apply_btn, r, 0)
+            g.addWidget(QtWidgets.QLabel("iq step (A):"), r, 1)
+            self.at_cur_step = QtWidgets.QDoubleSpinBox()
+            self.at_cur_step.setRange(0.05, 5.0)
+            self.at_cur_step.setDecimals(2)
+            self.at_cur_step.setSingleStep(0.1)
+            self.at_cur_step.setValue(0.5)
+            g.addWidget(self.at_cur_step, r, 2)
+            r += 1
+            self.at_cur_verify_btn = QtWidgets.QPushButton("Apply + Verify (step iq)")
+            self.at_cur_verify_btn.setToolTip(
+                "Applies the gains (needs IDLE), runs in torque mode, steps iq, "
+                "and captures the response. The first Run after boot auto-aligns "
+                "(~3 s spin). Energizes the motor — keep the shaft clear.")
+            self.at_cur_verify_btn.clicked.connect(self._at_verify_current)
+            g.addWidget(self.at_cur_verify_btn, r, 0, 1, 3)
+            g.setColumnStretch(0, 1)
+            return box
+
+        def _build_at_speed_box(self):
+            box = QtWidgets.QGroupBox("Speed loop — symmetric optimum")
+            g = QtWidgets.QGridLayout(box)
+            r = 0
+            g.addWidget(QtWidgets.QLabel("SO factor a (2–4):"), r, 0)
+            self.at_spd_a = QtWidgets.QDoubleSpinBox()
+            self.at_spd_a.setRange(1.5, 6.0)
+            self.at_spd_a.setDecimals(2)
+            self.at_spd_a.setSingleStep(0.25)
+            self.at_spd_a.setValue(2.5)
+            self.at_spd_a.valueChanged.connect(lambda _v: self._at_speed_preview())
+            g.addWidget(self.at_spd_a, r, 1)
+            r += 1
+            g.addWidget(QtWidgets.QLabel("Inertia J (kg·m²):"), r, 0)
+            self.at_spd_j = QtWidgets.QDoubleSpinBox()
+            self.at_spd_j.setRange(1e-7, 1.0)
+            self.at_spd_j.setDecimals(8)
+            self.at_spd_j.setSingleStep(1e-6)
+            self.at_spd_j.setValue(1e-5)
+            self.at_spd_j.valueChanged.connect(self._on_at_j_changed)
+            g.addWidget(self.at_spd_j, r, 1)
+            self.at_spd_measure_btn = QtWidgets.QPushButton("Measure Km…")
+            self.at_spd_measure_btn.setToolTip(
+                "Briefly spins the motor (torque step) to estimate the speed "
+                "plant gain Km and back out J. Keep the shaft free; start small.")
+            self.at_spd_measure_btn.clicked.connect(self._at_measure_km)
+            g.addWidget(self.at_spd_measure_btn, r, 2)
+            r += 1
+            g.addWidget(QtWidgets.QLabel("Km probe iq (A):"), r, 0)
+            self.at_spd_km_iq = QtWidgets.QDoubleSpinBox()
+            self.at_spd_km_iq.setRange(0.05, 3.0)
+            self.at_spd_km_iq.setDecimals(2)
+            self.at_spd_km_iq.setSingleStep(0.1)
+            self.at_spd_km_iq.setValue(0.3)
+            g.addWidget(self.at_spd_km_iq, r, 1)
+            self.at_spd_km_lbl = QtWidgets.QLabel("Km: (from J)")
+            self.at_spd_km_lbl.setStyleSheet("color: gray;")
+            g.addWidget(self.at_spd_km_lbl, r, 2)
+            r += 1
+            self.at_spd_preview_lbl = QtWidgets.QLabel("—")
+            g.addWidget(self.at_spd_preview_lbl, r, 0, 1, 3)
+            r += 1
+            self.at_spd_apply_btn = QtWidgets.QPushButton("Apply speed gains")
+            self.at_spd_apply_btn.clicked.connect(self._at_apply_speed)
+            g.addWidget(self.at_spd_apply_btn, r, 0)
+            g.addWidget(QtWidgets.QLabel("RPM step:"), r, 1)
+            self.at_spd_step = QtWidgets.QDoubleSpinBox()
+            self.at_spd_step.setRange(-10000.0, 10000.0)
+            self.at_spd_step.setDecimals(0)
+            self.at_spd_step.setSingleStep(50.0)
+            self.at_spd_step.setValue(500.0)
+            g.addWidget(self.at_spd_step, r, 2)
+            r += 1
+            self.at_spd_verify_btn = QtWidgets.QPushButton("Apply + Verify (step RPM)")
+            self.at_spd_verify_btn.setToolTip(
+                "Applies the gains (needs IDLE), runs in speed mode, steps the "
+                "RPM setpoint, and captures omega. Spins the motor — shaft clear.")
+            self.at_spd_verify_btn.clicked.connect(self._at_verify_speed)
+            g.addWidget(self.at_spd_verify_btn, r, 0, 1, 3)
+            g.setColumnStretch(0, 1)
+            return box
+
+        def _build_at_fw_box(self):
+            box = QtWidgets.QGroupBox("Field weakening — estimate only")
+            g = QtWidgets.QGridLayout(box)
+            r = 0
+            g.addWidget(QtWidgets.QLabel("Target FW bandwidth (Hz):"), r, 0)
+            self.at_fw_bw = QtWidgets.QDoubleSpinBox()
+            self.at_fw_bw.setRange(1.0, 200.0)
+            self.at_fw_bw.setDecimals(1)
+            self.at_fw_bw.setSingleStep(1.0)
+            self.at_fw_bw.setValue(10.0)
+            self.at_fw_bw.valueChanged.connect(lambda _v: self._at_fw_preview())
+            g.addWidget(self.at_fw_bw, r, 1)
+            r += 1
+            g.addWidget(QtWidgets.QLabel("Vmax fraction:"), r, 0)
+            self.at_fw_frac = QtWidgets.QDoubleSpinBox()
+            self.at_fw_frac.setRange(0.10, 1.0)
+            self.at_fw_frac.setDecimals(2)
+            self.at_fw_frac.setSingleStep(0.05)
+            self.at_fw_frac.setValue(0.70)
+            self.at_fw_frac.valueChanged.connect(lambda _v: self._at_fw_preview())
+            g.addWidget(self.at_fw_frac, r, 1)
+            r += 1
+            self.at_fw_plant_lbl = QtWidgets.QLabel("")
+            self.at_fw_plant_lbl.setStyleSheet("color: gray;")
+            g.addWidget(self.at_fw_plant_lbl, r, 0, 1, 3)
+            r += 1
+            self.at_fw_preview_lbl = QtWidgets.QLabel("—")
+            g.addWidget(self.at_fw_preview_lbl, r, 0, 1, 3)
+            r += 1
+            self.at_fw_apply_btn = QtWidgets.QPushButton("Apply FW gains")
+            self.at_fw_apply_btn.clicked.connect(self._at_apply_fw)
+            g.addWidget(self.at_fw_apply_btn, r, 0)
+            r += 1
+            cav = QtWidgets.QLabel(
+                "FW gains are a starting estimate: the loop engages only above "
+                "base speed and its gain scales with speed — verify on hardware.")
+            cav.setWordWrap(True)
+            cav.setStyleSheet("color: #a06000;")
+            g.addWidget(cav, r, 0, 1, 3)
+            g.setColumnStretch(0, 1)
+            return box
+
+        def _at_refresh_all_previews(self):
+            if not hasattr(self, "at_cur_bw"):
+                return
+            self._at_current_preview()
+            self._at_speed_preview()
+            self._at_fw_preview()
+
+        # ---- preview (compute) handlers ---------------------------------
+        def _at_current_preview(self):
+            R, Ld, Lq = self._mc("rs_ohm"), self._mc("ld_h"), self._mc("lq_h")
+            f_isr = self._mc("isr_freq_hz")
+            Ts = 1.0 / f_isr if f_isr > 0 else 1e-4
+            ceil = autotune.current_bw_ceiling(f_isr)
+            self.at_cur_ceil_lbl.setText(f"≤ {ceil:.0f} Hz")
+            self.at_cur_plant_lbl.setText(
+                f"R={R:.4g} Ω   Ld={Ld * 1e6:.1f} µH   Lq={Lq * 1e6:.1f} µH   "
+                f"Ts={Ts * 1e6:.0f} µs")
+            f_bw = self.at_cur_bw.value()
+            try:
+                gains = autotune.current_loop_gains_dq(R, Ld, Lq, Ts, f_bw)
+            except ValueError as e:
+                self.at_cur_preview_lbl.setText(f"invalid: {e}")
+                self._at_cur_gains = None
+                return
+            self._at_cur_gains = gains
+            warn = "   ⚠ above ISR/10" if f_bw > ceil else ""
+            self.at_cur_preview_lbl.setText(
+                f"kp_d={gains['kp_d']:.4g}  ki_d={gains['ki_d']:.4g}    "
+                f"kp_q={gains['kp_q']:.4g}  ki_q={gains['ki_q']:.4g}{warn}")
+
+        def _at_km_value(self):
+            if self._at_measured_km:
+                return self._at_measured_km
+            try:
+                return autotune.km_from_j(
+                    self.at_spd_j.value(), int(self._mc("pole_pairs")) or 4,
+                    self._mc("flux_vs"))
+            except ValueError:
+                return 0.0
+
+        def _at_speed_preview(self):
+            a = self.at_spd_a.value()
+            f_bw_cur = self.at_cur_bw.value() if hasattr(self, "at_cur_bw") else 600.0
+            T_eq = 1.0 / (2.0 * np.pi * f_bw_cur) if f_bw_cur > 0 else 0.0
+            Ts_spd = self._mc("speed_loop_ts")
+            Km = self._at_km_value()
+            try:
+                kp, ki = autotune.speed_loop_gains(Km, T_eq, Ts_spd, a)
+            except ValueError as e:
+                self.at_spd_preview_lbl.setText(f"invalid: {e}")
+                self._at_spd_gains = None
+                return
+            self._at_spd_gains = {"kp_w": kp, "ki_w": ki}
+            src = "measured" if self._at_measured_km else "from J"
+            self.at_spd_preview_lbl.setText(
+                f"Km={Km:.4g} ({src})  T_eq={T_eq * 1e3:.3f} ms  →  "
+                f"kp_w={kp:.4g}  ki_w={ki:.4g}")
+
+        def _on_at_j_changed(self, _val=None):
+            # Editing J means "use J", not a previously measured Km.
+            self._at_measured_km = None
+            self.at_spd_km_lbl.setText("Km: (from J)")
+            self._at_speed_preview()
+
+        def _at_fw_preview(self):
+            vbus, Ld, flux = self._mc("vbus"), self._mc("ld_h"), self._mc("flux_vs")
+            f_isr = self._mc("isr_freq_hz")
+            Ts = 1.0 / f_isr if f_isr > 0 else 1e-4
+            frac = self.at_fw_frac.value()
+            f_fw = self.at_fw_bw.value()
+            vmax_fw = frac * vbus * 0.5
+            try:
+                we_ref = autotune.fw_base_speed_elec(vmax_fw, flux)
+                kp, ki = autotune.fw_loop_gains(vmax_fw, we_ref, Ld, Ts, f_fw)
+            except ValueError as e:
+                self.at_fw_preview_lbl.setText(f"invalid: {e}")
+                self._at_fw_gains = None
+                return
+            self._at_fw_gains = {"kp_fw": kp, "ki_fw": ki}
+            pp = int(self._mc("pole_pairs")) or 4
+            base_rpm = we_ref * 60.0 / (2.0 * np.pi) / pp
+            self.at_fw_plant_lbl.setText(
+                f"vbus={vbus:.1f} V   vmax_fw={vmax_fw:.2f} V   "
+                f"base≈{we_ref:.0f} elec rad/s (~{base_rpm:.0f} rpm)")
+            self.at_fw_preview_lbl.setText(f"kp_fw={kp:.4g}   ki_fw={ki:.4g}")
+
+        # ---- apply handlers ---------------------------------------------
+        def _at_apply(self, which, gains):
+            if not self._connected:
+                self._report("not connected")
+                return
+            if not gains:
+                self._report(f"no valid {which} gains computed", logging.WARNING)
+                return
+            self.worker.submit(
+                "at_apply", fn=lambda d, g=dict(gains): at_apply_gains(d, g),
+                on_done=lambda res, w=which: self._at_apply_done(w, res),
+                on_fail=lambda m: self._report(f"apply failed: {m}", logging.ERROR))
+
+        def _at_apply_current(self):
+            self._at_current_preview()
+            self._at_apply("current", getattr(self, "_at_cur_gains", None))
+
+        def _at_apply_speed(self):
+            self._at_speed_preview()
+            self._at_apply("speed", getattr(self, "_at_spd_gains", None))
+
+        def _at_apply_fw(self):
+            self._at_fw_preview()
+            self._at_apply("field-weakening", getattr(self, "_at_fw_gains", None))
+
+        def _at_apply_done(self, which, res):
+            note, statuses = res
+            parts = [f"{k}={proto.PARAM_WR_STR.get(v, v)}" for k, v in statuses.items()]
+            self._report(f"{which} gains applied: " + note + ", ".join(parts))
+            self._refresh_values()
+
+        # ---- verify / measure experiments -------------------------------
+        def _at_set_busy(self, on):
+            for w in (self.at_cur_verify_btn, self.at_spd_verify_btn,
+                      self.at_spd_measure_btn, self.at_cur_apply_btn,
+                      self.at_spd_apply_btn, self.at_fw_apply_btn):
+                w.setEnabled((not on) and self._connected)
+
+        def _at_verify_current(self):
+            if not self._connected:
+                self._report("not connected")
+                return
+            self._at_current_preview()
+            gains = getattr(self, "_at_cur_gains", None)
+            if not gains:
+                self._report("no valid current gains computed", logging.WARNING)
+                return
+            iq = self.at_cur_step.value()
+            isr = self._mc("isr_freq_hz")
+            mask = proto.names_to_mask(["Id", "Iq"])
+            self._report("current verify: applying gains + stepping iq…")
+            self._at_set_busy(True)
+            self.worker.submit(
+                "at_verify_cur",
+                fn=lambda d, g=dict(gains): at_run_step(
+                    d, mode=0, ref_param="iq_ref", ref_value=iq, mask=mask,
+                    decim=3, isr_freq=isr, pre_gains=g, settle_frac=0.5),
+                on_done=lambda res, iq=iq: self._at_verify_done(
+                    "Iq", res, 0.0, iq, "current"),
+                on_fail=self._at_verify_failed)
+
+        def _at_verify_speed(self):
+            if not self._connected:
+                self._report("not connected")
+                return
+            self._at_speed_preview()
+            gains = getattr(self, "_at_spd_gains", None)
+            if not gains:
+                self._report("no valid speed gains computed", logging.WARNING)
+                return
+            rpm = self.at_spd_step.value()
+            we = self._rpm_to_elec(rpm)
+            isr = self._mc("isr_freq_hz")
+            # Size the window ~1.6x the firmware accel ramp (SPEED_RAMP_RAD_S2~500)
+            # so the ramp + overshoot fit inside the 128-sample snapshot.
+            ramp_t = abs(we) / 500.0
+            total_t = ramp_t * 1.6 + 0.1
+            decim = int(max(20, min(200, round(total_t * isr / 128.0))))
+            mask = proto.names_to_mask(["omega_elec"])
+            self._report("speed verify: applying gains + stepping RPM…")
+            self._at_set_busy(True)
+            self.worker.submit(
+                "at_verify_spd",
+                fn=lambda d, g=dict(gains): at_run_step(
+                    d, mode=1, ref_param="omega_ref", ref_value=we, mask=mask,
+                    decim=decim, isr_freq=isr, pre_gains=g, settle_frac=0.55),
+                on_done=lambda res, we=we: self._at_verify_done(
+                    "omega_elec", res, 0.0, we, "speed"),
+                on_fail=self._at_verify_failed)
+
+        def _at_measure_km(self):
+            if not self._connected:
+                self._report("not connected")
+                return
+            iq = self.at_spd_km_iq.value()
+            isr = self._mc("isr_freq_hz")
+            mask = proto.names_to_mask(["omega_elec"])
+            self._report("measuring Km: torque ramp…")
+            self._at_set_busy(True)
+            self.worker.submit(
+                "at_km",
+                fn=lambda d: at_run_step(
+                    d, mode=0, ref_param="iq_ref", ref_value=iq, mask=mask,
+                    decim=12, isr_freq=isr, pre_gains=None, settle_frac=0.9),
+                on_done=lambda res, iq=iq: self._at_km_done(res, iq),
+                on_fail=self._at_verify_failed)
+
+        def _at_verify_failed(self, msg):
+            self._at_set_busy(False)
+            self._report(f"experiment failed: {msg}", logging.ERROR)
+
+        def _at_verify_done(self, chan, res, ref0, ref1, which):
+            self._at_set_busy(False)
+            cap, dt = res
+            self._at_last_cap = cap
+            if chan not in cap.names:
+                self._report(f"verify: channel {chan} not in capture", logging.ERROR)
+                return
+            y = cap.data[cap.names.index(chan)]
+            m = autotune.step_metrics(y, dt, ref0=ref0, ref1=ref1)
+            xs = np.arange(len(y)) * dt * 1e3
+            self.at_meas_curve.setData(xs, np.asarray(y, dtype=float))
+            self.at_ref_curve.setData([float(xs[0]), float(xs[-1])], [ref1, ref1])
+            self.at_plot.setTitle(f"{which} verify — {chan}")
+            self.at_plot.setLabel("bottom", "t (ms)")
+            if m.ok:
+                self.at_metrics_lbl.setText(
+                    f"rise(10–90%)={m.t_rise * 1e3:.2f} ms   "
+                    f"overshoot={m.overshoot_pct:.1f}%   "
+                    f"settle={m.t_settle * 1e3:.2f} ms   "
+                    f"eff.BW≈{m.bw_hz:.0f} Hz")
+                self._report(
+                    f"{which} verify: overshoot {m.overshoot_pct:.1f}%, "
+                    f"rise {m.t_rise * 1e3:.2f} ms")
+            else:
+                self.at_metrics_lbl.setText(
+                    f"could not analyze step ({m.reason}) — try a larger step "
+                    "or different decimation")
+                self._report(f"{which} verify: {m.reason}", logging.WARNING)
+            self._refresh_values()
+
+        def _at_km_done(self, res, iq):
+            self._at_set_busy(False)
+            cap, dt = res
+            self._at_last_cap = cap
+            if "omega_elec" not in cap.names:
+                self._report("Km: omega channel missing from capture", logging.ERROR)
+                return
+            y = cap.data[cap.names.index("omega_elec")]
+            n = len(y)
+            slope = autotune.fit_slope(y, dt, i0=int(n * 0.3), i1=n)
+            if iq <= 0 or slope <= 0:
+                self._report(
+                    "Km measure: no usable ramp (is the shaft free? try larger iq)",
+                    logging.WARNING)
+                return
+            Km = slope / iq
+            self._at_measured_km = Km
+            try:
+                J = autotune.j_from_km(Km, int(self._mc("pole_pairs")) or 4,
+                                       self._mc("flux_vs"))
+            except ValueError:
+                J = 0.0
+            self.at_spd_km_lbl.setText(f"Km={Km:.4g} (measured)")
+            self.at_spd_j.blockSignals(True)   # reflect implied J, keep measured Km
+            if J > 0:
+                self.at_spd_j.setValue(J)
+            self.at_spd_j.blockSignals(False)
+            self._at_speed_preview()
+            xs = np.arange(n) * dt * 1e3
+            self.at_meas_curve.setData(xs, np.asarray(y, dtype=float))
+            self.at_ref_curve.setData([], [])
+            self.at_plot.setTitle("Km measure — omega ramp")
+            self.at_plot.setLabel("bottom", "t (ms)")
+            self._report(f"Km measured: {Km:.4g} (rad/s²/A), implied J≈{J:.3g} kg·m²")
+
         # ---- scope -------------------------------------------------------
         def _selected_names(self):
             """Checked catalog signal names, in ascending bit (= wire) order."""
@@ -714,12 +1856,23 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.glw.clear()
             self.plots = []
             self.curves = []
+            self._ref_curves = {}
+            self._plot_names = list(names)
+            _ref_pen = pg.mkPen(color=(220, 60, 60), width=1.5,
+                                style=QtCore.Qt.DashLine)
             for r, name in enumerate(names):
                 pl = self.glw.addPlot(row=r, col=0, title=name)
                 pl.showGrid(x=True, y=True, alpha=0.3)
                 self.curves.append(pl.plot(pen=pg.mkPen(width=1)))
                 self.plots.append(pl)
+                if name in _SCOPE_TO_REF:
+                    ref_curve = pl.plot(pen=_ref_pen, name=_SCOPE_TO_REF[name])
+                    self._ref_curves[name] = ref_curve
             self._ring = [collections.deque(maxlen=self._history) for _ in names]
+            self._ref_rings = [
+                collections.deque(maxlen=self._history) if name in _SCOPE_TO_REF else None
+                for name in names
+            ]
             self._scope_dirty = True
 
         def _on_signal_toggled(self, _checked=False):
@@ -751,12 +1904,21 @@ def build(pg, QtCore, QtGui, QtWidgets):
         def _apply_history(self, val):
             self._history = val
             self._ring = [collections.deque(buf, maxlen=val) for buf in self._ring]
+            self._ref_rings = [
+                collections.deque(buf, maxlen=val) if buf is not None else None
+                for buf in self._ref_rings
+            ]
             self._scope_dirty = True
 
         def _clear_scope(self):
             for buf in self._ring:
                 buf.clear()
+            for buf in self._ref_rings:
+                if buf is not None:
+                    buf.clear()
             for cur in self.curves:
+                cur.setData([], [])
+            for cur in self._ref_curves.values():
                 cur.setData([], [])
             self._scope_dirty = False
 
@@ -804,6 +1966,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._last_cap = cap
             for c in range(min(len(self._ring), cap.n_channels)):
                 self._ring[c].extend(cap.data[c])
+                if c < len(self._ref_rings) and self._ref_rings[c] is not None:
+                    name = self._plot_names[c] if c < len(self._plot_names) else None
+                    if name is not None:
+                        val = self._ref_values.get(name, 0.0)
+                        self._ref_rings[c].extend([val] * len(cap.data[c]))
             self._scope_dirty = True
 
         def _render_scope(self):
@@ -819,6 +1986,18 @@ def build(pg, QtCore, QtGui, QtWidgets):
                     self.curves[c].setData(np.arange(n), y)
                 else:
                     self.curves[c].setData([], [])
+            for c, ref_buf in enumerate(self._ref_rings):
+                if ref_buf is None:
+                    continue
+                name = self._plot_names[c] if c < len(self._plot_names) else None
+                if name is None or name not in self._ref_curves:
+                    continue
+                n = len(ref_buf)
+                if n:
+                    y = np.fromiter(ref_buf, dtype=float, count=n)
+                    self._ref_curves[name].setData(np.arange(n), y)
+                else:
+                    self._ref_curves[name].setData([], [])
 
         def _save_csv(self):
             if not self._last_cap:
@@ -896,38 +2075,43 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 if info is None:
                     skipped += 1
                     continue
-                row = self.row_of_id.get(info.id)
-                if row is None:
-                    skipped += 1
-                    continue
-                # Update table display without triggering _on_item_changed writes
-                self._programmatic = True
-                if self.recon_combo is not None and row == self.recon_row:
+                is_recon = info.name == RECON_PARAM_NAME
+                if is_recon:
                     try:
-                        idx = RECON_LABELS.index(val)
-                        self._set_recon_index(idx)
+                        recon_idx = RECON_LABELS.index(val)
                     except ValueError:
-                        self._programmatic = False
                         skipped += 1
                         continue
+                # Pre-fill all tables without triggering writes
+                self._programmatic = True
+                if is_recon:
+                    for treg in self._all_tables:
+                        if treg["recon_combo"] is not None:
+                            self._set_recon_combo(treg["recon_combo"], recon_idx)
                 else:
-                    item = self.table.item(row, COL_VALUE)
-                    if item:
-                        item.setText(val)
+                    for treg in self._all_tables:
+                        r = treg["row_of_id"].get(info.id)
+                        if r is not None:
+                            it = treg["table"].item(r, COL_VALUE)
+                            if it:
+                                it.setText(val)
                 self._programmatic = False
                 # Write to device if connected
                 if self._connected:
-                    if self.recon_combo is not None and row == self.recon_row:
-                        try:
-                            idx = RECON_LABELS.index(val)
-                            self._on_recon_changed(info, row, idx)
-                        except ValueError:
-                            pass
+                    if is_recon:
+                        self._on_recon_changed(info, recon_idx, recon_idx)
                     else:
                         def do_write(dbg, pid=info.id, v=val):
-                            return dbg.write_param(pid, v), None
+                            st = dbg.write_param(pid, v)
+                            rb = None
+                            try:
+                                rb = dbg.read_param(pid)
+                            except Exception:  # noqa: BLE001
+                                pass
+                            return st, rb
                         self.worker.submit(
                             "write", fn=do_write,
+                            on_done=lambda res, i=info, v=val: self._write_done(i, v, res),
                             on_fail=lambda m: self._report(m, logging.ERROR),
                         )
                 written += 1
@@ -935,7 +2119,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             if skipped:
                 msg += f", {skipped} skipped"
             if not self._connected and written:
-                msg += " (table pre-filled; connect + write to send to device)"
+                msg += " (table pre-filled; connect to write to device)"
             self._report(msg)
 
         # ---- periodic refresh -------------------------------------------

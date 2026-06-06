@@ -16,4 +16,36 @@
 SECTIONS
 {
     .ebss : >> RAMGS4 | RAMGS5 | RAMGS6 | RAMGS7   PAGE = 1
+
+    /* The SDK device .cmd pins both .text (>> FLASHB|FLASHC|...) and .cinit
+     * (> FLASHB only) into FLASHB. .text grew to fill FLASHB exactly, leaving no
+     * room for .cinit -> link failed with #10099 (".cinit FAILED TO ALLOCATE",
+     * FLASHB free 0x15 < .cinit 0x34). FLASHA is otherwise unused, so relocate
+     * the large align_step() function (~0x240 words) there to free FLASHB.
+     * Functions are split into .text:<name> subsections (--gen_func_subsections),
+     * so this explicit placement does NOT clash with the SDK's catch-all .text;
+     * the named subsection simply wins for this one function. */
+    .text:align_step : > FLASHA   PAGE = 0, ALIGN(8)
+
+    /* Step 11 (field weakening) pushed .text past the end of FLASHB again
+     * (#10099: .cinit 0x34 could not be placed, FLASHB 0 free). Relocate a few
+     * more non-hot functions to the otherwise-empty FLASHA to free FLASHB for
+     * .cinit. All chosen functions are one-time init or 1 kHz slow-loop code --
+     * NOT the 10 kHz current-loop ISR -- so flash wait-state is irrelevant, and
+     * none are candidates for .TI.ramfunc (so no future placement clash). Named
+     * .text:<func> subsections (--gen_func_subsections) win over the SDK's
+     * catch-all .text without conflicting with it. */
+    .text:foc_init            : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:foc_speed_loop_tick : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:sm_tick_1khz        : > FLASHA   PAGE = 0, ALIGN(8)
+
+    /* The read-only motor/loop autotune params (rs_ohm/ld_h/.../fw_vmax_frac in
+     * debug_params.c) grew .text + the const param table just enough to spill
+     * .cinit out of FLASHB again (#10099: .cinit 0x34, FLASHB 0x32 free).
+     * Relocate the serial-command param accessors to FLASHA -- they run only on
+     * a host request (PARAM_READ/WRITE/LIST), never in the 10 kHz ISR, so flash
+     * wait-state is irrelevant and there is no .TI.ramfunc placement clash. */
+    .text:param_find  : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:param_read  : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:param_write : > FLASHA   PAGE = 0, ALIGN(8)
 }

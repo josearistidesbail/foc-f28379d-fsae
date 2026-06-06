@@ -11,6 +11,7 @@
 #define SENSOR_RM44AC_INLINE_H
 
 #include <math.h>
+#include <stdbool.h>
 #include "build_config.h"
 #include "libraries/math/include/math.h"
 #include "adc_iface.h"
@@ -23,11 +24,32 @@ extern volatile float32_t   g_resolver_theta_elec;   // [0, 2*pi)
 extern volatile float32_t   g_resolver_omega_elec;
 extern volatile float32_t   g_resolver_elec_offset;  // captured at ALIGN_ROTOR
 extern volatile float32_t   g_resolver_last_theta;   // for differentiation
+extern volatile float32_t   g_resolver_omega_healthy;// last speed while in-window
+extern volatile uint16_t    g_resolver_lost;         // 1 once signal is lost
+extern volatile uint16_t    g_resolver_loss_count;   // out-of-window ISR debounce
+extern volatile float32_t   g_dbg_resolver_mag;      // latest sin^2+cos^2
 
 static inline void sensor_update_isr(void)
 {
     float32_t sn, cs;
     adc_read_sin_cos(&sn, &cs);
+
+    // ---- Loss of signal: sin^2 + cos^2 should stay ~1 at every angle -----
+    // A collapsed (unplugged) channel drops the magnitude toward 0; a stuck or
+    // railed channel pushes it out the top. Either, sustained for LOSS_TICKS
+    // ISRs, flags the sensor lost. Done before atan2 so a dead vector cannot
+    // masquerade as a valid angle.
+    float32_t mag = sn * sn + cs * cs;
+    g_dbg_resolver_mag = mag;
+    if(mag < SENSOR_RES_MAG_LOW || mag > SENSOR_RES_MAG_HIGH)
+    {
+        if(g_resolver_loss_count < 0xFFFFU) g_resolver_loss_count++;
+        if(g_resolver_loss_count >= SENSOR_RES_LOSS_TICKS) g_resolver_lost = 1U;
+    }
+    else
+    {
+        g_resolver_loss_count = 0U;
+    }
 
     // Mechanical angle from atan2: range [-pi, +pi) -> shift to [0, 2*pi)
     float32_t th = atan2f(sn, cs);
@@ -51,9 +73,15 @@ static inline void sensor_update_isr(void)
     if(e < 0.0f) e += TWO_PI_F;
     g_resolver_theta_elec = e;
     g_resolver_omega_elec = g_resolver_omega_mech * (float32_t)MOTOR_POLE_PAIRS;
+
+    // Latch the speed only while the signal is in-window; the fault shutdown
+    // reads this (not the live, now-garbage estimate) to pick active-short/coast.
+    if(!g_resolver_lost) g_resolver_omega_healthy = g_resolver_omega_elec;
 }
 
 static inline float32_t sensor_get_elec_angle(void) { return g_resolver_theta_elec; }
 static inline float32_t sensor_get_elec_speed(void) { return g_resolver_omega_elec; }
+static inline bool      sensor_is_lost(void)        { return g_resolver_lost != 0U; }
+static inline float32_t sensor_get_healthy_speed(void) { return g_resolver_omega_healthy; }
 
 #endif // SENSOR_RM44AC_INLINE_H

@@ -59,11 +59,12 @@
 
 // ---- VBUS sense ---------------------------------------------------------
 // Nominal BoosterPack divider 4.7k / (4.7k + 78.7k) = 1/17.74. Bench measurement
-// disagrees: a 12 V supply reads 1248 codes -> effective ratio
-// 12*4096/(3.0*1248) = 13.13. Using the measured value so firmware vbus tracks
-// the real supply (and SVGEN modulation, which divides applied volts by vbus, is
-// correct). The nominal 17.74 over-reads vbus, which both falsely tripped the
-// 18 V undervoltage check in RUN and crushed SVGEN modulation during ALIGN.
+// disagrees: the effective ratio is ~13.13 (a divider property, independent of
+// supply). At the 24 V bench that reads ~2496 codes -> 24*4096/(3.0*2496) =
+// 13.13. Using the measured value so firmware vbus tracks the real supply (and
+// SVGEN modulation, which divides applied volts by vbus, is correct). The
+// nominal 17.74 over-reads vbus, which both falsely tripped the 18 V
+// undervoltage check in RUN and crushed SVGEN modulation during ALIGN.
 // Re-verify against a meter at the bench supply voltage; tweak if firmware vbus
 // disagrees with the supply readout.
 #define VBUS_DIVIDER_RATIO      13.13f

@@ -62,8 +62,30 @@
 // ---- GPIO -------------------------------------------------------------
 // TODO[control_v2]: confirm GPIO numbers
 #define GATE_DRV_EN_GPIO        22U
-#define GATE_DRV_NFAULT_GPIO    23U
 #define LED_STATUS_GPIO         31U
 #define SCOPE_PIN_ISR_GPIO      67U
+
+// ---- Power-module digital fault flags (6PS04512E43W39693) --------------
+// The intelligent power module exposes discrete fault outputs (one per phase
+// overcurrent, plus overtemperature and DC-link overvoltage) instead of a
+// single nFAULT. These same pins are routed into the ePWM trip-zone via the
+// Input X-BAR (SysConfig) for a CPU-independent HW shutdown; firmware also
+// reads them here as a software backstop and for diagnostics.
+// TODO[control_v2]: set the GPIO numbers AND polarity from the schematic.
+// MODULE_FAULT_ACTIVE_LOW = 1 -> a fault pulls the line LOW (open-collector);
+// the Input X-BAR inversion configured in SysConfig must match this.
+#define MODULE_OC_A_GPIO        24U     // phase-A overcurrent
+#define MODULE_OC_B_GPIO        25U     // phase-B overcurrent
+#define MODULE_OC_C_GPIO        26U     // phase-C overcurrent
+#define MODULE_OT_GPIO          27U     // overtemperature
+#define MODULE_DCOV_GPIO        28U     // DC-link overvoltage
+#define MODULE_FAULT_ACTIVE_LOW 1U      // 1 = asserted when pin LOW
+
+// Bit positions returned by inverter_fault_status() / snapshotted on a fault.
+#define MODULE_FLT_OC_A         (1U << 0)
+#define MODULE_FLT_OC_B         (1U << 1)
+#define MODULE_FLT_OC_C         (1U << 2)
+#define MODULE_FLT_OT           (1U << 3)
+#define MODULE_FLT_DCOV         (1U << 4)
 
 #endif // HW_CONTROL_V2_H

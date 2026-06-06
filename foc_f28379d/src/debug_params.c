@@ -17,6 +17,19 @@ extern volatile uint32_t  g_isr_count;    // src/isr.c
 // KCL phase-current reconstruction selector (0=none,1=U,2=V,3=W).
 extern volatile uint16_t  g_isense_reconstruct_phase;   // src/adc_iface.c
 
+// Cross-coupling/back-EMF feedforward toggle + captured alignment offset [deg].
+extern volatile uint16_t  g_dbg_decouple_en;            // src/foc_pipeline.c
+extern volatile float32_t g_dbg_align_offset_elec;      // src/foc_pipeline.c
+
+// Outer-loop control mode (0=torque, 1=speed). See FOC_MODE_* in build_config.h.
+extern volatile uint16_t  g_dbg_control_mode;           // src/foc_pipeline.c
+
+// Field weakening (Step 11): runtime enable + telemetry of the applied weakening
+// current and the requested voltage magnitude.
+extern volatile uint16_t  g_dbg_fw_en;                  // src/foc_pipeline.c
+extern volatile float32_t g_dbg_fw_id;                  // src/foc_pipeline.c
+extern volatile float32_t g_dbg_vmag;                   // src/foc_pipeline.c
+
 // ---- raw <-> float bit-cast helpers (C28x: float32_t and uint32_t are 32b) --
 static inline uint32_t f32_to_raw(float32_t f)
 {
@@ -41,6 +54,8 @@ static void set_id_ref(uint32_t  r){ foc_get_refs()->id_ref = raw_to_f32(r); }
 static void get_iq_ref(uint32_t *r){ *r = f32_to_raw(g_dbg_iq_ref); }
 static void set_iq_ref(uint32_t  r){ g_dbg_iq_ref = raw_to_f32(r); }
 
+// omega_ref is the electrical speed setpoint [rad/s] consumed by the speed PI in
+// FOC_MODE_SPEED. The GUI converts to/from shaft RPM using pole_pairs.
 static void get_omega_ref(uint32_t *r){ *r = f32_to_raw(foc_get_refs()->speed_ref); }
 static void set_omega_ref(uint32_t  r){ foc_get_refs()->speed_ref = raw_to_f32(r); }
 
@@ -57,6 +72,10 @@ static void get_kp_w(uint32_t *r){ *r = f32_to_raw(foc_get_gain(FOC_GAIN_KP_W));
 static void set_kp_w(uint32_t  r){ foc_set_gain(FOC_GAIN_KP_W, raw_to_f32(r)); }
 static void get_ki_w(uint32_t *r){ *r = f32_to_raw(foc_get_gain(FOC_GAIN_KI_W)); }
 static void set_ki_w(uint32_t  r){ foc_set_gain(FOC_GAIN_KI_W, raw_to_f32(r)); }
+static void get_kp_fw(uint32_t *r){ *r = f32_to_raw(foc_get_gain(FOC_GAIN_KP_FW)); }
+static void set_kp_fw(uint32_t  r){ foc_set_gain(FOC_GAIN_KP_FW, raw_to_f32(r)); }
+static void get_ki_fw(uint32_t *r){ *r = f32_to_raw(foc_get_gain(FOC_GAIN_KI_FW)); }
+static void set_ki_fw(uint32_t  r){ foc_set_gain(FOC_GAIN_KI_FW, raw_to_f32(r)); }
 
 // ---- Hardware / diagnostic config (needs_idle) ---------------------------
 // Reconstruct selector clamps to the valid 0..3 range; out-of-range writes are
@@ -64,9 +83,50 @@ static void set_ki_w(uint32_t  r){ foc_set_gain(FOC_GAIN_KI_W, raw_to_f32(r)); }
 static void get_recon(uint32_t *r){ *r = (uint32_t)g_isense_reconstruct_phase; }
 static void set_recon(uint32_t  r){ if(r <= 3U) g_isense_reconstruct_phase = (uint16_t)r; }
 
+// Decoupling feedforward toggle. Live (no NEEDS_IDLE) so it can be A/B'd in RUN.
+static void get_decouple(uint32_t *r){ *r = (uint32_t)g_dbg_decouple_en; }
+static void set_decouple(uint32_t  r){ g_dbg_decouple_en = (uint16_t)(r ? 1U : 0U); }
+
+// Control mode: 0=torque, 1=speed. Live (no NEEDS_IDLE) — the speed loop makes
+// the switch bumpless. Out-of-range writes clamp to torque.
+static void get_mode(uint32_t *r){ *r = (uint32_t)g_dbg_control_mode; }
+static void set_mode(uint32_t  r){ g_dbg_control_mode = (r == FOC_MODE_SPEED)
+                                                        ? FOC_MODE_SPEED : FOC_MODE_TORQUE; }
+
+// Field-weakening enable. Live (no NEEDS_IDLE) so it can be A/B'd in RUN; the
+// regulator resets cleanly each RUN entry and when toggled off.
+static void get_fw_en(uint32_t *r){ *r = (uint32_t)g_dbg_fw_en; }
+static void set_fw_en(uint32_t  r){ g_dbg_fw_en = (uint16_t)(r ? 1U : 0U); }
+
 // ---- Read-only telemetry -------------------------------------------------
 static void get_state(uint32_t *r){ *r = (uint32_t)(uint16_t)sm_get_state(); }
 static void get_isr_count(uint32_t *r){ *r = g_isr_count; }
+static void get_align_off(uint32_t *r){ *r = f32_to_raw(g_dbg_align_offset_elec); }
+
+// Motor pole-pairs (compile-time constant) — lets the GUI convert shaft RPM
+// <-> electrical rad/s for the speed setpoint and the measured-speed readout.
+static void get_pole_pairs(uint32_t *r){ *r = (uint32_t)MOTOR_POLE_PAIRS; }
+// Live measured electrical speed [rad/s]; GUI displays it as shaft RPM.
+static void get_omega_meas(uint32_t *r){ *r = f32_to_raw(foc_get_signals()->omega_elec); }
+
+// Field-weakening telemetry: applied weakening current [A] (<=0) and the
+// requested voltage magnitude |Vdq| [V] the regulator is holding to its limit.
+static void get_fw_id(uint32_t *r){ *r = f32_to_raw(g_dbg_fw_id); }
+static void get_vmag(uint32_t *r) { *r = f32_to_raw(g_dbg_vmag); }
+
+// ---- Motor / loop constants (read-only, for the host PI autotuner) --------
+// The autotuner derives gains from the plant (R, L), the loop timestep, and the
+// DC bus, so it reads these instead of hardcoding motor-specific numbers. All
+// but vbus are compile-time constants; vbus is the live ISR-updated bus voltage.
+static void get_rs_ohm(uint32_t *r)      { *r = f32_to_raw(MOTOR_RS_OHM); }
+static void get_ld_h(uint32_t *r)        { *r = f32_to_raw(MOTOR_LD_H); }
+static void get_lq_h(uint32_t *r)        { *r = f32_to_raw(MOTOR_LQ_H); }
+static void get_flux_vs(uint32_t *r)     { *r = f32_to_raw(MOTOR_FLUX_VS); }
+static void get_i_peak_a(uint32_t *r)    { *r = f32_to_raw(MOTOR_I_PEAK_A); }
+static void get_vbus(uint32_t *r)        { *r = f32_to_raw(foc_get_refs()->vbus); }
+static void get_isr_freq_hz(uint32_t *r) { *r = f32_to_raw(FOC_ISR_FREQ_HZ); }
+static void get_speed_loop_ts(uint32_t *r){ *r = f32_to_raw((float32_t)SPEED_LOOP_TS); }
+static void get_fw_vmax_frac(uint32_t *r){ *r = f32_to_raw(FW_VMAX_FRACTION); }
 
 //=============================================================================
 const param_entry_t g_param_table[] =
@@ -81,11 +141,32 @@ const param_entry_t g_param_table[] =
     { 0x0013U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "ki_q",      get_ki_q,      set_ki_q      },
     { 0x0020U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "kp_w",      get_kp_w,      set_kp_w      },
     { 0x0021U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "ki_w",      get_ki_w,      set_ki_w      },
+    { 0x0014U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "kp_fw",     get_kp_fw,     set_kp_fw     },
+    { 0x0015U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "ki_fw",     get_ki_fw,     set_ki_fw     },
 
     { 0x0030U, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "isense_recon", get_recon,  set_recon     },
+    { 0x0031U, PARAM_TYPE_U16, 0,                     "decouple_en",  get_decouple, set_decouple },
+    { 0x0032U, PARAM_TYPE_U16, 0,                     "control_mode", get_mode,     set_mode     },
+    { 0x0033U, PARAM_TYPE_U16, 0,                     "fw_en",        get_fw_en,    set_fw_en    },
 
-    { 0x0100U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "state",     get_state,     0             },
-    { 0x0101U, PARAM_TYPE_U32, PARAM_FLAG_RO,         "isr_count", get_isr_count, 0             },
+    { 0x0100U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "state",      get_state,     0            },
+    { 0x0101U, PARAM_TYPE_U32, PARAM_FLAG_RO,         "isr_count",  get_isr_count, 0            },
+    { 0x0102U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "align_offset", get_align_off, 0          },
+    { 0x0103U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "pole_pairs", get_pole_pairs, 0           },
+    { 0x0104U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "omega_meas", get_omega_meas, 0           },
+    { 0x0105U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "fw_id",      get_fw_id,     0            },
+    { 0x0106U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "vmag",       get_vmag,      0            },
+
+    // Motor / loop constants the host PI autotuner reads to compute gains.
+    { 0x0110U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "rs_ohm",        get_rs_ohm,        0       },
+    { 0x0111U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "ld_h",          get_ld_h,          0       },
+    { 0x0112U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "lq_h",          get_lq_h,          0       },
+    { 0x0113U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "flux_vs",       get_flux_vs,       0       },
+    { 0x0114U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "i_peak_a",      get_i_peak_a,      0       },
+    { 0x0115U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "vbus",          get_vbus,          0       },
+    { 0x0116U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "isr_freq_hz",   get_isr_freq_hz,   0       },
+    { 0x0117U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "speed_loop_ts", get_speed_loop_ts, 0       },
+    { 0x0118U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "fw_vmax_frac",  get_fw_vmax_frac,  0       },
 };
 
 const uint16_t g_param_count = (uint16_t)(sizeof(g_param_table) / sizeof(g_param_table[0]));

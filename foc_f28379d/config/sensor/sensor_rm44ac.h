@@ -23,4 +23,14 @@
 // Persist to flash later if you want repeatable boots.
 #define SENSOR_RES_DEFAULT_OFFSET   0.0f
 
+// ---- Sensor-loss detection (sin^2 + cos^2 magnitude window) ------------
+// Va/Vb are bias-removed and scaled to ~[-1, +1], so a healthy sin/cos pair
+// gives sin^2 + cos^2 ~= 1 at EVERY angle. A broken/unplugged channel collapses
+// the vector (mag -> ~0) or rails it (mag large); either leaves the window. We
+// debounce over LOSS_TICKS ISRs (~tens of microseconds each) to ride out noise.
+// This is the standard loss-of-signal check for resolver / sin-cos sensors.
+#define SENSOR_RES_MAG_LOW          0.25f   // amplitude < ~0.5 of nominal -> lost
+#define SENSOR_RES_MAG_HIGH         2.25f   // amplitude > ~1.5 of nominal -> lost
+#define SENSOR_RES_LOSS_TICKS       5       // consecutive out-of-window ISRs (0.5 ms)
+
 #endif // SENSOR_RM44AC_H

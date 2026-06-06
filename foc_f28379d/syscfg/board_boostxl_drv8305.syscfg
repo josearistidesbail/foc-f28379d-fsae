@@ -9,27 +9,29 @@
 /**
  * Import the modules used in this configuration.
  */
-const adc   = scripting.addModule("/driverlib/adc.js", {}, false);
-const adc1  = adc.addInstance();
-const adc2  = adc.addInstance();
-const adc3  = adc.addInstance();
-const led   = scripting.addModule("/driverlib/board_components/led", {}, false);
-const led1  = led.addInstance();
-const epwm  = scripting.addModule("/driverlib/epwm.js", {}, false);
-const epwm1 = epwm.addInstance();
-const epwm2 = epwm.addInstance();
-const epwm3 = epwm.addInstance();
-const eqep  = scripting.addModule("/driverlib/eqep.js", {}, false);
-const eqep1 = eqep.addInstance();
-const gpio  = scripting.addModule("/driverlib/gpio.js", {}, false);
-const gpio2 = gpio.addInstance();
-const gpio3 = gpio.addInstance();
-const gpio4 = gpio.addInstance();
-const gpio5 = gpio.addInstance();
-const sci   = scripting.addModule("/driverlib/sci.js", {}, false);
-const sci1  = sci.addInstance();
-const spi   = scripting.addModule("/driverlib/spi.js", {}, false);
-const spi1  = spi.addInstance();
+const adc              = scripting.addModule("/driverlib/adc.js", {}, false);
+const adc1             = adc.addInstance();
+const adc2             = adc.addInstance();
+const adc3             = adc.addInstance();
+const led              = scripting.addModule("/driverlib/board_components/led", {}, false);
+const led1             = led.addInstance();
+const epwm             = scripting.addModule("/driverlib/epwm.js", {}, false);
+const epwm1            = epwm.addInstance();
+const epwm2            = epwm.addInstance();
+const epwm3            = epwm.addInstance();
+const eqep             = scripting.addModule("/driverlib/eqep.js", {}, false);
+const eqep1            = eqep.addInstance();
+const gpio             = scripting.addModule("/driverlib/gpio.js", {}, false);
+const gpio2            = gpio.addInstance();
+const gpio3            = gpio.addInstance();
+const gpio4            = gpio.addInstance();
+const gpio5            = gpio.addInstance();
+const inputxbar_input  = scripting.addModule("/driverlib/inputxbar_input.js", {}, false);
+const inputxbar_input1 = inputxbar_input.addInstance();
+const sci              = scripting.addModule("/driverlib/sci.js", {}, false);
+const sci1             = sci.addInstance();
+const spi              = scripting.addModule("/driverlib/spi.js", {}, false);
+const spi1             = spi.addInstance();
 
 /**
  * Write custom configuration values to the imported modules.
@@ -88,9 +90,16 @@ epwm1.epwmDeadband_polarityFED                                   = "EPWM_DB_POLA
 epwm1.epwmEventTrigger_EPWM_SOC_A_triggerSource                  = "EPWM_SOC_TBCTR_ZERO";
 epwm1.epwmEventTrigger_EPWM_SOC_A_triggerEventPrescalar          = "1";
 epwm1.$name                                                      = "PWM_U";
+epwm1.epwmTripZone_oneShotSource                                 = ["EPWM_TZ_SIGNAL_OSHT1"];
+epwm1.epwmTripZone_EPWM_TZ_ACTION_EVENT_TZA                      = "EPWM_TZ_ACTION_LOW";
+epwm1.epwmTripZone_EPWM_TZ_ACTION_EVENT_TZB                      = "EPWM_TZ_ACTION_HIGH";
+epwm1.epwmTripZone_tzInterruptSource                             = ["EPWM_TZ_INTERRUPT_OST"];
+epwm1.epwmTripZone_registerInterrupts                            = true;
 epwm1.epwm.$assign                                               = "EPWM1";
 epwm1.epwm.epwm_aPin.$assign                                     = "GPIO0";
 epwm1.epwm.epwm_bPin.$assign                                     = "GPIO1";
+epwm1.epwmTZInt.interruptHandler                                 = "epwm_tz_isr";
+epwm1.epwmTZInt.enableInterrupt                                  = true;
 
 epwm2.$name                                                      = "PWM_V";
 epwm2.epwmTimebase_counterMode                                   = "EPWM_COUNTER_MODE_UP_DOWN";
@@ -107,6 +116,9 @@ epwm2.epwmDeadband_delayRED                                      = 50;
 epwm2.epwmDeadband_delayFED                                      = 50;
 epwm2.epwmDeadband_polarityFED                                   = "EPWM_DB_POLARITY_ACTIVE_LOW";
 epwm2.epwmTimebase_counterModeAfterSync                          = "EPWM_COUNT_MODE_UP_AFTER_SYNC";
+epwm2.epwmTripZone_oneShotSource                                 = ["EPWM_TZ_SIGNAL_OSHT1"];
+epwm2.epwmTripZone_EPWM_TZ_ACTION_EVENT_TZA                      = "EPWM_TZ_ACTION_LOW";
+epwm2.epwmTripZone_EPWM_TZ_ACTION_EVENT_TZB                      = "EPWM_TZ_ACTION_HIGH";
 epwm2.epwm.$assign                                               = "EPWM2";
 epwm2.epwm.epwm_aPin.$assign                                     = "GPIO2";
 epwm2.epwm.epwm_bPin.$assign                                     = "GPIO3";
@@ -126,6 +138,9 @@ epwm3.epwmDeadband_delayFED                                      = 50;
 epwm3.epwmDeadband_polarityFED                                   = "EPWM_DB_POLARITY_ACTIVE_LOW";
 epwm3.epwmTimebase_counterModeAfterSync                          = "EPWM_COUNT_MODE_UP_AFTER_SYNC";
 epwm3.$name                                                      = "PWM_W";
+epwm3.epwmTripZone_oneShotSource                                 = ["EPWM_TZ_SIGNAL_OSHT1"];
+epwm3.epwmTripZone_EPWM_TZ_ACTION_EVENT_TZA                      = "EPWM_TZ_ACTION_LOW";
+epwm3.epwmTripZone_EPWM_TZ_ACTION_EVENT_TZB                      = "EPWM_TZ_ACTION_HIGH";
 epwm3.epwm.$assign                                               = "EPWM3";
 epwm3.epwm.epwm_aPin.$assign                                     = "GPIO4";
 epwm3.epwm.epwm_bPin.$assign                                     = "GPIO5";
@@ -160,6 +175,9 @@ gpio5.direction         = "GPIO_DIR_MODE_OUT";
 gpio5.writeInitialValue = true;
 gpio5.initialValue      = 1;
 gpio5.gpioPin.$assign   = "GPIO125";
+
+inputxbar_input1.$name         = "TRIP_NFAULT";
+inputxbar_input1.inputxbarGpio = "GPIO19";
 
 sci1.$name                      = "UART_DEBUG";
 sci1.useCase                    = "CUSTOM";
