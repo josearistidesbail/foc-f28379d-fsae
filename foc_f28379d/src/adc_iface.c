@@ -29,15 +29,10 @@ volatile uint16_t g_dbg_iv_raw;
 volatile uint16_t g_dbg_iw_raw;
 volatile uint16_t g_dbg_vbus_raw;
 
-// Helpers for the C28x driverlib ADC RESULT register access. SysConfig binds
-// these SOC indices; using SOC 0/1/2/3 here as a convention - update if your
-// SysConfig allocates differently.
-#define SOC_IU      0U
-#define SOC_IV      1U
-#define SOC_IW      2U
-#define SOC_VBUS    3U
-#define SOC_SIN     4U
-#define SOC_COS     5U
+// The (result-register, SOC-index) pair for each signal, plus the EOC interrupt
+// that fires the ISR, come from the active hw_*.h (ADC_RESULT_BASE_*/ADC_SOC_*,
+// ADC_ISR_INT_BASE/NUMBER). Those MUST mirror the SysConfig SOC allocation. This
+// keeps adc_iface.c variant-agnostic instead of hardcoding the BOOSTXL layout.
 
 void adc_init(void)
 {
@@ -52,9 +47,9 @@ static inline float code_to_amps(int32_t code, uint16_t offset, float sign)
 
 void adc_read_phase_currents(FOC_Iabc_t *out)
 {
-    uint16_t cu = ADC_readResult(ADCCRESULT_BASE, SOC_IU);
-    uint16_t cv = ADC_readResult(ADCBRESULT_BASE, SOC_IV);
-    uint16_t cw = ADC_readResult(ADCARESULT_BASE, SOC_IW);
+    uint16_t cu = ADC_readResult(ADC_RESULT_BASE_IU, ADC_SOC_IU);
+    uint16_t cv = ADC_readResult(ADC_RESULT_BASE_IV, ADC_SOC_IV);
+    uint16_t cw = ADC_readResult(ADC_RESULT_BASE_IW, ADC_SOC_IW);
 
     g_dbg_iu_raw = cu;
     g_dbg_iv_raw = cv;
@@ -81,7 +76,7 @@ void adc_read_phase_currents(FOC_Iabc_t *out)
 
 float adc_read_vbus(void)
 {
-    uint16_t c = ADC_readResult(ADCARESULT_BASE, SOC_VBUS);
+    uint16_t c = ADC_readResult(ADC_RESULT_BASE_VBUS, ADC_SOC_VBUS);
     g_dbg_vbus_raw = c;
     return (float)c * VBUS_VOLTS_PER_CODE;
 }
@@ -89,11 +84,13 @@ float adc_read_vbus(void)
 #if SENSOR_BACKEND_RM44AC
 void adc_read_sin_cos(float *out_sin, float *out_cos)
 {
-    int32_t cs = (int32_t)ADC_readResult(ADCBRESULT_BASE, SOC_SIN);
-    int32_t cc = (int32_t)ADC_readResult(ADCCRESULT_BASE, SOC_COS);
-    // Bias-removed, scaled into ~[-1, +1]
-    *out_sin = (float)(cs - 2048) * (1.0f / 2048.0f);
-    *out_cos = (float)(cc - 2048) * (1.0f / 2048.0f);
+    int32_t cs = (int32_t)ADC_readResult(ADC_RESULT_BASE_SIN, ADC_SOC_SIN);
+    int32_t cc = (int32_t)ADC_readResult(ADC_RESULT_BASE_COS, ADC_SOC_COS);
+    // Bias-removed and scaled to ~[-1, +1] using the board's sin/cos bias and
+    // amplitude (codes). atan2 is amplitude-independent; the magnitude only
+    // feeds loss-of-signal, so an approximate amplitude is fine.
+    *out_sin = ((float)cs - RES_SINCOS_BIAS_CODE) * (1.0f / RES_SINCOS_AMPL_CODE);
+    *out_cos = ((float)cc - RES_SINCOS_BIAS_CODE) * (1.0f / RES_SINCOS_AMPL_CODE);
 }
 #endif
 
@@ -107,12 +104,12 @@ void adc_calibrate_offsets(uint16_t n)
     {
         // Wait for the next EOC. SysConfig generates an INT flag; here we
         // spin on it for the calibration window.
-        while(ADC_getInterruptStatus(ADCA_BASE, ADC_INT_NUMBER1) == false) { }
-        ADC_clearInterruptStatus(ADCA_BASE, ADC_INT_NUMBER1);
+        while(ADC_getInterruptStatus(ADC_ISR_INT_BASE, ADC_ISR_INT_NUMBER) == false) { }
+        ADC_clearInterruptStatus(ADC_ISR_INT_BASE, ADC_ISR_INT_NUMBER);
 
-        su += ADC_readResult(ADCCRESULT_BASE, SOC_IU);
-        sv += ADC_readResult(ADCBRESULT_BASE, SOC_IV);
-        sw += ADC_readResult(ADCARESULT_BASE, SOC_IW);
+        su += ADC_readResult(ADC_RESULT_BASE_IU, ADC_SOC_IU);
+        sv += ADC_readResult(ADC_RESULT_BASE_IV, ADC_SOC_IV);
+        sw += ADC_readResult(ADC_RESULT_BASE_IW, ADC_SOC_IW);
     }
     s_iu_offset = (uint16_t)(su / n);
     s_iv_offset = (uint16_t)(sv / n);

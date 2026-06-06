@@ -26,8 +26,9 @@ __interrupt void adcA1_isr(void)
     g_isr_count++;
     foc_current_loop_isr();
 
-    // Clear ADC INT flag and PIE ack.
-    ADC_clearInterruptStatus(ADCA_BASE, ADC_INT_NUMBER1);
+    // Clear ADC INT flag and PIE ack. ADC_ISR_INT_BASE is ADCA (Debug) or ADCC
+    // (Control_V2) depending on which ADC carries the EOC interrupt.
+    ADC_clearInterruptStatus(ADC_ISR_INT_BASE, ADC_ISR_INT_NUMBER);
     Interrupt_clearACKGroup(INTERRUPT_ACK_GROUP1);
 }
 

@@ -21,11 +21,17 @@ volatile uint16_t g_dbg_module_fault;
 
 void inverter_init(void)
 {
-    GPIO_writePin(GATE_DRV_EN_GPIO, 0);
+    // Control_V2 has two enables: the auxiliary enable comes up once and stays
+    // on for the session; the master enable stays de-asserted until the state
+    // machine drives RUN. (Both assumed active-high -- see hw_control_v2.h.)
+    GPIO_writePin(GATE_DRV_EN2_GPIO, 1);    // aux enable: always on
+    GPIO_writePin(GATE_DRV_EN_GPIO, 0);     // master enable: off until RUN
     DEVICE_DELAY_US(5000);
-    // Add: SPI / I2C register setup for your gate driver IC here.
+    // No SPI/I2C gate-driver config on this board (discrete EN + fault GPIOs).
 }
 
+// Only the master enable is gated by the state machine; the aux enable set in
+// inverter_init() is left on.
 void inverter_enable_gate(void)  { GPIO_writePin(GATE_DRV_EN_GPIO, 1); }
 void inverter_disable_gate(void) { GPIO_writePin(GATE_DRV_EN_GPIO, 0); }
 
@@ -59,11 +65,10 @@ bool inverter_is_faulted(void)
 
 void inverter_clear_faults(void)
 {
-    // The module's fault outputs are level signals (no latch to clear over a
-    // bus). The latched ePWM trip-zone is released by pwm_clear_trip() when the
-    // state machine returns to IDLE.
-    // TODO[control_v2]: if your gate-driver supply needs a fault-reset strobe,
-    // pulse it here.
+    // Nothing to do: Control_V2 has no fault-reset line, and the module's fault
+    // outputs are level signals (they self-clear when the condition goes away).
+    // The latched ePWM trip-zone is released by pwm_clear_trip() when the state
+    // machine returns to IDLE.
 }
 
 void inverter_snapshot_fault_regs(void)

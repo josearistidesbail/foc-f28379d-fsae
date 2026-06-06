@@ -120,6 +120,11 @@ Device_init() → Device_initGPIO() → Interrupt_initModule/VectorTable() → B
 
 ## Bring-Up Status
 
+> The steps below are the **Debug** (BOOSTXL/Teknic/QEP) bring-up. For the
+> **Production** (Control_V2/EMRAX/RM44AC) variant see `foc_f28379d/docs/production_bringup.md`
+> (ordered sequence + bench-calibration) and `foc_f28379d/docs/control_v2_pinmap.md`
+> (schematic pin/parameter map to fill).
+
 - [x] Step 1 — LED heartbeat blink — confirmed on hardware
 - [x] Step 2 — ePWM + ADC pipeline — ISR confirmed firing at 10 kHz
 - [~] Step 3 — eQEP1: QPOSCNT changes with rotation ✓, but **`QEPSTS` first-index bit and `QPOSILAT` stay at 0** (likely Z wire / differential routing issue), and **direction flag flips while spinning steadily one way** (likely hand-dither at quadrature edges or A/B phase issue). Resume by physically verifying Z wire to J14 index pin, optionally toggle SysConfig `inputPolarity` "Invert Index", and watch `g_dbg_qep_status` bits 0x01 (POS_CNT_ERROR) and 0x04 (CAP_DIR_ERROR) for HW-flagged quadrature errors.
