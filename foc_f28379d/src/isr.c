@@ -42,7 +42,11 @@ __interrupt void adcA1_isr(void)
 __interrupt void epwm_tz_isr(void)
 {
     g_dbg_tz_trip++;
-    sm_raise_fault(FAULT_OVERCURRENT);   // latches + flags FAULT for next tick
+    // Bench bypass: count the event but don't latch a fault when module-fault
+    // protection is disabled (no power stage). pwm_apply_module_tz() also drops
+    // the OSHT sources in that mode, so this ISR normally won't even fire then.
+    if(g_module_faults_en)
+        sm_raise_fault(FAULT_OVERCURRENT);   // latches + flags FAULT for next tick
 
     EPWM_clearTripZoneFlag(PWM_U_BASE, EPWM_TZ_INTERRUPT);
     Interrupt_clearACKGroup(INTERRUPT_ACK_GROUP2);

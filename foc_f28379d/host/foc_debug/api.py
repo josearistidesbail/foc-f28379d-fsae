@@ -22,7 +22,40 @@ STATE_NAMES = {
     2: "ALIGN_ROTOR",
     3: "RUN",
     4: "FAULT",
+    5: "OPENLOOP",
 }
+
+# Latched fault bits, mirrors Fault_Bits_t in firmware safety.h. The device
+# exposes the live mask via the read-only "fault_code" param; the GUI decodes it
+# next to the state label so a FOC_FAULT shows *why* it tripped.
+FAULT_BITS = (
+    (1 << 0, "OVERCURRENT"),
+    (1 << 1, "OVERVOLTAGE"),
+    (1 << 2, "UNDERVOLTAGE"),
+    (1 << 3, "OVERTEMP"),
+    (1 << 4, "GATE_DRIVER"),
+    (1 << 5, "SENSOR_LOSS"),
+    (1 << 6, "WATCHDOG"),
+)
+
+
+def fault_reason(code: int) -> str:
+    """Decode a latched fault mask to a human-readable ' | '-joined string.
+
+    Returns "none" for 0. Any bits outside FAULT_BITS are appended as hex so an
+    unexpected mask is still visible rather than silently dropped.
+    """
+    code = int(code) & 0xFFFF
+    if code == 0:
+        return "none"
+    names = [name for bit, name in FAULT_BITS if code & bit]
+    known = 0
+    for bit, _ in FAULT_BITS:
+        known |= bit
+    extra = code & ~known
+    if extra:
+        names.append(f"0x{extra:X}")
+    return " | ".join(names)
 
 
 @dataclass

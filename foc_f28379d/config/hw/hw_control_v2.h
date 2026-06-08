@@ -168,4 +168,16 @@
 #define MODULE_FLT_OT           (1U << 3)
 #define MODULE_FLT_DCOV         (1U << 4)
 
+// ---- Bench bring-up WITHOUT the power module connected -----------------
+// With no power stage, the module's discrete OC/OT/DC-OV protection lines (and
+// the on-board gate drivers that feed them) are unpowered, so they sit asserted
+// and continuously trip BOTH the HW trip-zone (epwm_tz_isr -> FAULT_OVERCURRENT,
+// fires in ANY state incl. IDLE) and the SW gate-driver check (inverter_is_
+// faulted -> FAULT_GATE_DRIVER). Set to 1 to ignore those module-fault paths so
+// the board stays in IDLE for control-board-only testing: it seeds the runtime
+// g_module_faults_en flag (live-toggle via the "module_faults_en" serial param)
+// and pwm_init() drops the OSHT trip-zone sources.
+//   *** SET BACK TO 0 BEFORE CONNECTING THE INVERTER / POWER STAGE. ***
+#define BENCH_NO_POWER_STAGE    1U
+
 #endif // HW_CONTROL_V2_H

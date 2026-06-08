@@ -57,4 +57,11 @@
 #define FOC_MODE_TORQUE         0U   // iq_ref commanded directly (bring-up)
 #define FOC_MODE_SPEED          1U   // iq_ref from the speed PI (omega_ref)
 
+//----- Bench bypass default ----------------------------------------------
+// Only the Control_V2 header defines this (set to 1 during power-stage-less
+// bring-up). Everything else defaults to 0 = module-fault protection ACTIVE.
+#ifndef BENCH_NO_POWER_STAGE
+#define BENCH_NO_POWER_STAGE    0U
+#endif
+
 #endif // BUILD_CONFIG_H

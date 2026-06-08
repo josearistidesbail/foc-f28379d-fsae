@@ -71,6 +71,14 @@ static void enter(FOC_State_t next)
         // (foc_current_loop_isr step 3b, gated by g_dbg_fw_en).
         foc_get_refs()->id_ref = ID_REF_NOMINAL_A;
         break;
+    case FOC_OPENLOOP:
+        // Bench-only open-loop PWM (no power stage): enable the gate and clear any
+        // stale gate-driver latch. The rotating voltage vector is generated in the
+        // current-loop ISR; no current loop, sensor, or RUN-only fault check runs
+        // in this state, so it cannot fault on the missing bus/resolver/currents.
+        inverter_enable_gate();
+        inverter_clear_faults();
+        break;
     case FOC_FAULT:
         inverter_snapshot_fault_regs(); // read while EN_GATE still high — tells us what fired
         {
@@ -111,6 +119,7 @@ FOC_State_t sm_get_state(void) { return s_state; }
 
 void sm_request_run(void)    { s_align_only = false; s_requested = FOC_RUN; }
 void sm_request_align(void)  { s_align_only = true;  s_requested = FOC_ALIGN_ROTOR; }
+void sm_request_openloop(void){ s_requested = FOC_OPENLOOP; }
 void sm_request_stop(void)   { s_requested = FOC_IDLE; }
 void sm_clear_fault(void)    { if(s_state == FOC_FAULT) { safety_clear(); s_requested = FOC_IDLE; } }
 void sm_raise_fault(uint16_t code) { safety_latch(code); s_fault_pending = true; }
@@ -127,6 +136,7 @@ static void poll_debug_cmd(void)
     case 2: sm_request_run();     break;
     case 3: sm_request_stop();    break;
     case 4: sm_clear_fault();     break;
+    case 5: sm_request_openloop(); break;
     default: break;
     }
 }
@@ -153,6 +163,10 @@ void sm_tick_1khz(void)
         // "Stop then Run faults immediately").
         if(s_requested == FOC_ALIGN_ROTOR || s_requested == FOC_RUN)
             enter(FOC_CALIBRATE_OFFSETS);
+        else if(s_requested == FOC_OPENLOOP && !g_module_faults_en)
+            enter(FOC_OPENLOOP);            // bench-only diagnostic, no CALIBRATE
+        else if(s_requested == FOC_OPENLOOP)
+            s_requested = FOC_IDLE;         // protection active -> openloop blocked
         break;
 
     case FOC_CALIBRATE_OFFSETS:
@@ -185,6 +199,11 @@ void sm_tick_1khz(void)
         break;
 
     case FOC_RUN:
+        if(s_requested == FOC_IDLE)
+            enter(FOC_IDLE);
+        break;
+
+    case FOC_OPENLOOP:
         if(s_requested == FOC_IDLE)
             enter(FOC_IDLE);
         break;

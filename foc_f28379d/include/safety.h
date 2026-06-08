@@ -28,4 +28,9 @@ extern bool     safety_is_clear(void);
 extern uint16_t safety_get_latched(void);
 extern void     safety_clear(void);              // only callable from IDLE
 
+// Bench bypass: when 0, the module-fault paths (HW trip-zone OVERCURRENT +
+// SW gate-driver check) are ignored so a board with no power stage stays in
+// IDLE. Seeded from BENCH_NO_POWER_STAGE; live-toggled via "module_faults_en".
+extern volatile uint16_t g_module_faults_en;
+
 #endif // SAFETY_H

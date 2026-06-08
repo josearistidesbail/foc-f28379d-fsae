@@ -15,6 +15,11 @@
 
 static volatile uint16_t s_latched;
 
+// Bench bypass for module-fault protection (HW trip-zone OVERCURRENT + SW
+// gate-driver check). Seeded from BENCH_NO_POWER_STAGE: 1 (bench) => disabled.
+// Live-toggled via the "module_faults_en" serial param + pwm_apply_module_tz().
+volatile uint16_t g_module_faults_en = (BENCH_NO_POWER_STAGE ? 0U : 1U);
+
 // TODO: Debugging Step 6, remove after. Mirrors the latched fault mask so the
 // reason for a FOC_FAULT is visible in the CCS Expressions view without having
 // to inspect the file-static s_latched. Bits are Fault_Bits_t from safety.h:

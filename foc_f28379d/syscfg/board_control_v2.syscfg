@@ -1,15 +1,210 @@
 /**
- * board_control_v2.syscfg
- *
- * SysConfig for the Production variant: Custom Control_Board_v2 + EMRAX 208.
- * Open this file in CCS (double-click) to use the SysConfig GUI.
- *
- * Modules you need to add and configure (see README "SysConfig setup"):
- *   - ePWM1/2/3 phase U/V/W, 10-20 kHz, deadband 1500 ns, SOC at period
- *   - ADC: phase currents (LEM/shunt), VBUS, RM44AC SIN, RM44AC COS
- *     (RM44AC outputs already-demodulated sin/cos -- no excitation needed)
- *   - CMPSS for HV overcurrent -> ePWM TZ
- *   - GPIO: gate-driver EN, nFAULT, status LED, scope pin
- *
- * @cliArgs --device "F2837xD" --package "337ZWT" --part "F2837xD_337ZWT"
+ * These arguments were used when this file was generated. They will be automatically applied on subsequent loads
+ * via the GUI or CLI. Run CLI with '--help' for additional information on how to override these arguments.
+ * @cliArgs --device "F2837xD" --part "F2837xD_337ZWT" --package "F2837xD_337ZWT" --context "CPU1" --product "C2000WARE@26.01.00.00"
+ * @v2CliArgs --device "TMS320F28379D" --package "337ZWT" --context "CPU1" --product "C2000WARE@26.01.00.00"
+ * @versions {"tool":"1.27.1+4634"}
  */
+
+/**
+ * Import the modules used in this configuration.
+ */
+const adc              = scripting.addModule("/driverlib/adc.js", {}, false);
+const adc1             = adc.addInstance();
+const adc2             = adc.addInstance();
+const adc3             = adc.addInstance();
+const led              = scripting.addModule("/driverlib/board_components/led", {}, false);
+const led1             = led.addInstance();
+const epwm             = scripting.addModule("/driverlib/epwm.js", {}, false);
+const epwm1            = epwm.addInstance();
+const epwm2            = epwm.addInstance();
+const epwm3            = epwm.addInstance();
+const gpio             = scripting.addModule("/driverlib/gpio.js", {}, false);
+const gpio1            = gpio.addInstance();
+const gpio2            = gpio.addInstance();
+const gpio3            = gpio.addInstance();
+const gpio4            = gpio.addInstance();
+const gpio5            = gpio.addInstance();
+const gpio6            = gpio.addInstance();
+const gpio7            = gpio.addInstance();
+const inputxbar_input  = scripting.addModule("/driverlib/inputxbar_input.js", {}, false);
+const inputxbar_input1 = inputxbar_input.addInstance();
+const inputxbar_input2 = inputxbar_input.addInstance();
+const inputxbar_input3 = inputxbar_input.addInstance();
+const sci              = scripting.addModule("/driverlib/sci.js", {}, false);
+const sci1             = sci.addInstance();
+
+/**
+ * Write custom configuration values to the imported modules.
+ */
+adc1.$name             = "myADCA";
+adc1.adcClockPrescaler = "ADC_CLK_DIV_4_0";
+adc1.enabledSOCs       = ["ADC_SOC_NUMBER0"];
+adc1.soc0Trigger       = "ADC_TRIGGER_EPWM4_SOCA";
+adc1.soc0Channel       = "ADC_CH_ADCIN2";
+adc1.soc0SampleWindow  = 15;
+
+adc2.$name             = "myADCB";
+adc2.adcBase           = "ADCB_BASE";
+adc2.adcClockPrescaler = "ADC_CLK_DIV_4_0";
+adc2.enabledSOCs       = ["ADC_SOC_NUMBER0","ADC_SOC_NUMBER1"];
+adc2.soc0Trigger       = "ADC_TRIGGER_EPWM4_SOCA";
+adc2.soc0Channel       = "ADC_CH_ADCIN4";
+adc2.soc0SampleWindow  = 15;
+adc2.soc1Trigger       = "ADC_TRIGGER_EPWM4_SOCA";
+adc2.soc1Channel       = "ADC_CH_ADCIN2";
+adc2.soc1SampleWindow  = 15;
+
+adc3.$name                    = "myADCC";
+adc3.adcBase                  = "ADCC_BASE";
+adc3.adcClockPrescaler        = "ADC_CLK_DIV_4_0";
+adc3.enabledSOCs              = ["ADC_SOC_NUMBER0","ADC_SOC_NUMBER1"];
+adc3.soc0Trigger              = "ADC_TRIGGER_EPWM4_SOCA";
+adc3.soc0Channel              = "ADC_CH_ADCIN4";
+adc3.soc0SampleWindow         = 15;
+adc3.soc1Trigger              = "ADC_TRIGGER_EPWM4_SOCA";
+adc3.soc1Channel              = "ADC_CH_ADCIN2";
+adc3.soc1SampleWindow         = 15;
+adc3.enabledInts              = ["ADC_INT_NUMBER1"];
+adc3.interruptPulseMode       = "ADC_PULSE_END_OF_CONV";
+adc3.enableInterrupt1         = true;
+adc3.interrupt1SOCSource      = "ADC_SOC_NUMBER1";
+adc3.registerInterrupts       = ["1"];
+adc3.adcInt1.enableInterrupt  = true;
+adc3.adcInt1.interruptHandler = "adcA1_isr";
+
+led1.$name                = "LED_STATUS";
+led1.gpio.gpioPin.$assign = "GPIO31";
+
+epwm1.$name                                                      = "PWM_U";
+epwm1.epwmTimebase_counterMode                                   = "EPWM_COUNTER_MODE_UP_DOWN";
+epwm1.epwmTimebase_hsClockDiv                                    = "EPWM_HSCLOCK_DIVIDER_1";
+epwm1.epwmTimebase_period                                        = 5000;
+epwm1.epwmTimebase_syncOutPulseMode                              = "EPWM_SYNC_OUT_PULSE_ON_COUNTER_ZERO";
+epwm1.epwmCounterCompare_cmpA                                    = 2500;
+epwm1.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_UP_CMPA   = "EPWM_AQ_OUTPUT_HIGH";
+epwm1.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_DOWN_CMPA = "EPWM_AQ_OUTPUT_LOW";
+epwm1.epwmDeadband_enableRED                                     = true;
+epwm1.epwmDeadband_enableFED                                     = true;
+epwm1.epwmDeadband_delayRED                                      = 150;
+epwm1.epwmDeadband_delayFED                                      = 150;
+epwm1.epwmDeadband_polarityFED                                   = "EPWM_DB_POLARITY_ACTIVE_LOW";
+epwm1.epwmEventTrigger_EPWM_SOC_A_triggerEnable                  = true;
+epwm1.epwmEventTrigger_EPWM_SOC_A_triggerSource                  = "EPWM_SOC_TBCTR_ZERO";
+epwm1.epwmEventTrigger_EPWM_SOC_A_triggerEventPrescalar          = "1";
+epwm1.epwmTripZone_oneShotSource                                 = ["EPWM_TZ_SIGNAL_OSHT1","EPWM_TZ_SIGNAL_OSHT2","EPWM_TZ_SIGNAL_OSHT3"];
+epwm1.epwmTripZone_EPWM_TZ_ACTION_EVENT_TZA                      = "EPWM_TZ_ACTION_LOW";
+epwm1.epwmTripZone_EPWM_TZ_ACTION_EVENT_TZB                      = "EPWM_TZ_ACTION_HIGH";
+epwm1.epwmTripZone_tzInterruptSource                             = ["EPWM_TZ_INTERRUPT_OST"];
+epwm1.epwmTripZone_registerInterrupts                            = true;
+epwm1.epwm.$assign                                               = "EPWM4";
+epwm1.epwm.epwm_aPin.$assign                                     = "GPIO6";
+epwm1.epwm.epwm_bPin.$assign                                     = "GPIO7";
+epwm1.epwmTZInt.interruptHandler                                 = "epwm_tz_isr";
+epwm1.epwmTZInt.enableInterrupt                                  = true;
+
+epwm2.$name                                                      = "PWM_V";
+epwm2.epwmTimebase_counterMode                                   = "EPWM_COUNTER_MODE_UP_DOWN";
+epwm2.epwmTimebase_hsClockDiv                                    = "EPWM_HSCLOCK_DIVIDER_1";
+epwm2.epwmTimebase_period                                        = 5000;
+epwm2.epwmTimebase_syncOutPulseMode                              = "EPWM_SYNC_OUT_PULSE_ON_EPWMxSYNCIN";
+epwm2.epwmTimebase_phaseEnable                                   = true;
+epwm2.epwmTimebase_counterModeAfterSync                          = "EPWM_COUNT_MODE_UP_AFTER_SYNC";
+epwm2.epwmCounterCompare_cmpA                                    = 2500;
+epwm2.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_UP_CMPA   = "EPWM_AQ_OUTPUT_HIGH";
+epwm2.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_DOWN_CMPA = "EPWM_AQ_OUTPUT_LOW";
+epwm2.epwmDeadband_enableRED                                     = true;
+epwm2.epwmDeadband_enableFED                                     = true;
+epwm2.epwmDeadband_delayRED                                      = 150;
+epwm2.epwmDeadband_delayFED                                      = 150;
+epwm2.epwmDeadband_polarityFED                                   = "EPWM_DB_POLARITY_ACTIVE_LOW";
+epwm2.epwmTripZone_oneShotSource                                 = ["EPWM_TZ_SIGNAL_OSHT1","EPWM_TZ_SIGNAL_OSHT2","EPWM_TZ_SIGNAL_OSHT3"];
+epwm2.epwmTripZone_EPWM_TZ_ACTION_EVENT_TZA                      = "EPWM_TZ_ACTION_LOW";
+epwm2.epwmTripZone_EPWM_TZ_ACTION_EVENT_TZB                      = "EPWM_TZ_ACTION_HIGH";
+epwm2.epwm.$assign                                               = "EPWM5";
+epwm2.epwm.epwm_aPin.$assign                                     = "GPIO8";
+epwm2.epwm.epwm_bPin.$assign                                     = "GPIO9";
+
+epwm3.$name                                                      = "PWM_W";
+epwm3.epwmTimebase_counterMode                                   = "EPWM_COUNTER_MODE_UP_DOWN";
+epwm3.epwmTimebase_hsClockDiv                                    = "EPWM_HSCLOCK_DIVIDER_1";
+epwm3.epwmTimebase_period                                        = 5000;
+epwm3.epwmTimebase_syncOutPulseMode                              = "EPWM_SYNC_OUT_PULSE_ON_EPWMxSYNCIN";
+epwm3.epwmTimebase_phaseEnable                                   = true;
+epwm3.epwmTimebase_counterModeAfterSync                          = "EPWM_COUNT_MODE_UP_AFTER_SYNC";
+epwm3.epwmCounterCompare_cmpA                                    = 2500;
+epwm3.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_UP_CMPA   = "EPWM_AQ_OUTPUT_HIGH";
+epwm3.epwmActionQualifier_EPWM_AQ_OUTPUT_A_ON_TIMEBASE_DOWN_CMPA = "EPWM_AQ_OUTPUT_LOW";
+epwm3.epwmDeadband_enableRED                                     = true;
+epwm3.epwmDeadband_enableFED                                     = true;
+epwm3.epwmDeadband_delayRED                                      = 150;
+epwm3.epwmDeadband_delayFED                                      = 150;
+epwm3.epwmDeadband_polarityFED                                   = "EPWM_DB_POLARITY_ACTIVE_LOW";
+epwm3.epwmTripZone_oneShotSource                                 = ["EPWM_TZ_SIGNAL_OSHT1","EPWM_TZ_SIGNAL_OSHT2","EPWM_TZ_SIGNAL_OSHT3"];
+epwm3.epwmTripZone_EPWM_TZ_ACTION_EVENT_TZA                      = "EPWM_TZ_ACTION_LOW";
+epwm3.epwmTripZone_EPWM_TZ_ACTION_EVENT_TZB                      = "EPWM_TZ_ACTION_HIGH";
+epwm3.epwm.$assign                                               = "EPWM6";
+
+gpio1.$name             = "GATE_DRV_EN";
+gpio1.direction         = "GPIO_DIR_MODE_OUT";
+gpio1.writeInitialValue = true;
+gpio1.gpioPin.$assign   = "GPIO66";
+
+gpio2.$name             = "GATE_DRV_EN2";
+gpio2.direction         = "GPIO_DIR_MODE_OUT";
+gpio2.writeInitialValue = true;
+gpio2.initialValue      = 1;
+gpio2.gpioPin.$assign   = "GPIO131";
+
+gpio3.$name           = "MODULE_OC_A";
+gpio3.padConfig       = "PULLUP";
+gpio3.gpioPin.$assign = "GPIO25";
+
+gpio4.$name           = "MODULE_OC_B";
+gpio4.padConfig       = "PULLUP";
+gpio4.gpioPin.$assign = "GPIO27";
+
+gpio5.$name           = "MODULE_OC_C";
+gpio5.padConfig       = "PULLUP";
+gpio5.gpioPin.$assign = "GPIO26";
+
+gpio6.$name           = "MODULE_OT";
+gpio6.padConfig       = "PULLUP";
+gpio6.gpioPin.$assign = "GPIO64";
+
+gpio7.$name           = "MODULE_DCOV";
+gpio7.padConfig       = "PULLUP";
+gpio7.gpioPin.$assign = "GPIO52";
+
+inputxbar_input1.$name         = "TRIP_OC_A";
+inputxbar_input1.inputxbarGpio = "GPIO25";
+
+inputxbar_input2.$name          = "TRIP_OC_B";
+inputxbar_input2.inputxbarInput = "XBAR_INPUT2";
+inputxbar_input2.inputxbarGpio  = "GPIO27";
+
+inputxbar_input3.$name          = "TRIP_OC_C";
+inputxbar_input3.inputxbarInput = "XBAR_INPUT3";
+inputxbar_input3.inputxbarGpio  = "GPIO26";
+
+sci1.$name                      = "UART_DEBUG";
+sci1.useCase                    = "CUSTOM";
+sci1.selectRegisteredInterrupts = ["registerRxInt"];
+sci1.enabledFIFOInterrupts      = ["SCI_INT_RXFF"];
+sci1.useInterfacePins           = ["SCIRXD@","SCITXD@"];
+sci1.rxFifo                     = "SCI_FIFO_RX1";
+sci1.sciRXInt.interruptHandler  = "sciA_rx_isr";
+sci1.sciRXInt.enableInterrupt   = true;
+sci1.sci.scirxdPin.$assign      = "GPIO43";
+sci1.sci.scitxdPin.$assign      = "GPIO42";
+sci1.rxQual.$name               = "myGPIOQUAL0";
+sci1.txQual.$name               = "myGPIOQUAL1";
+
+/**
+ * Pinmux solution for unlocked pins/peripherals. This ensures that minor changes to the automatic solver in a future
+ * version of the tool will not impact the pinmux you originally saw.  These lines can be completely deleted in order to
+ * re-solve from scratch.
+ */
+epwm3.epwm.epwm_aPin.$suggestSolution = "GPIO10";
+epwm3.epwm.epwm_bPin.$suggestSolution = "GPIO11";
+sci1.sci.$suggestSolution             = "SCIA";

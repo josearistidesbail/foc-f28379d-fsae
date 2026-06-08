@@ -14,6 +14,7 @@
 #if defined(HW_CONTROL_BOARD_V2)
 
 #include "inverter_iface.h"
+#include "safety.h"     // g_module_faults_en (bench bypass)
 
 // TODO: Debugging Step 9, remove after. Bitfield of which module fault flags
 // were asserted at the moment FOC_FAULT was entered (MODULE_FLT_* bits).
@@ -60,6 +61,9 @@ static uint16_t module_fault_bits(void)
 
 bool inverter_is_faulted(void)
 {
+    // Bench bypass: with no power stage the protection lines float/assert
+    // spuriously; ignore them so the board doesn't latch FAULT_GATE_DRIVER.
+    if(!g_module_faults_en) return false;
     return module_fault_bits() != 0U;
 }
 

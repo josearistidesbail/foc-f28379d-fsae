@@ -48,6 +48,63 @@ control or hide a fault:
 5. **Two gate enables, no fault-reset** → aux EN (GPIO131) on at init, master EN
    (GPIO66) gated by RUN; both assumed active-high (`inverter_custom_v2.c`).
 
+## Control-board-only bench (no inverter / motor / resolver)
+
+Before the power module, EMRAX, and RM44AC arrive you can still exercise Steps
+1–3 plus the enable logic and the gate-drive PWM chain with just the Control_V2
+PCB. Two firmware mechanisms make this safe and useful. **Both are bench aids
+that must be reverted before the power stage is connected.**
+
+### Reading faults from the GUI
+
+`fault_code` (RO param) mirrors the latched mask; the host GUI decodes it next to
+the **State** line (red), e.g. `FAULT — OVERCURRENT | GATE_DRIVER`. `tz_trip` and
+`module_fault` (RO params) expose the HW trip-zone event count and the live
+`MODULE_FLT_*` bitfield so you can see *which* protection line is asserting.
+
+### Module-fault bypass (`BENCH_NO_POWER_STAGE` / `module_faults_en`)
+
+With no power stage, the module's discrete OC/OT/DC-OV lines (and the on-board
+gate drivers feeding them) are unpowered and sit asserted. That trips **two**
+independent paths in *any* state, including IDLE:
+
+- the **HW trip-zone** ISR `epwm_tz_isr` → `FAULT_OVERCURRENT` (this, not the
+  software phase-OC check, is why a bare board faults OVERCURRENT while idle —
+  the SW check is RUN/ALIGN-only), and
+- the SW gate-driver check `inverter_is_faulted()` → `FAULT_GATE_DRIVER`.
+
+`BENCH_NO_POWER_STAGE` (in `hw_control_v2.h`, currently **1**) seeds the runtime
+flag `g_module_faults_en` (0 = bypass). When bypassed, `pwm_init()` drops the
+OSHT trip-zone sources (`pwm_apply_module_tz()`), `inverter_is_faulted()` returns
+false, and `epwm_tz_isr` counts but doesn't latch — so the board stays in IDLE.
+Toggle live from the GUI via the `module_faults_en` param (NEEDS_IDLE).
+
+### Open-loop PWM test mode (`FOC_OPENLOOP`)
+
+Scopes the gate waveforms with nothing connected. A dedicated state drives a
+rotating voltage vector (Vd=0, Vq=`ol_mod`) at `ol_freq` Hz straight through
+IPARK/SVGEN/PWM using a **synthetic unity DC-bus** (the bench vbus≈0 would blow
+up the real 1/vbus normalization). No current loop, no sensor; every dangerous
+check is RUN/ALIGN-gated so it cannot fault on the missing bus/resolver/currents.
+
+| Param | Meaning |
+|---|---|
+| `ol_run` | write 1 = enter FOC_OPENLOOP (gate enables), 0 = stop → IDLE. Reads back the live state. |
+| `ol_freq` | electrical frequency [Hz], default 5 |
+| `ol_mod` | q-axis drive ≈ peak duty deviation, 0–0.5, default 0.20 |
+
+Scope EPWM4/5/6 A/B at the gate connector: verify complementary A/B, the 1500 ns
+deadband, and 120° U/V/W phasing + sync. **Safety interlock:** entry is only
+honored in bench mode (`g_module_faults_en == 0`) — open-loop has no current
+limit, so the request is silently ignored on real hardware.
+
+### ⚠️ Revert before connecting the power stage
+
+Set `BENCH_NO_POWER_STAGE` back to **0** in `hw_control_v2.h` (or set
+`module_faults_en = 1` live) before wiring the inverter. That re-arms the
+trip-zone + gate-driver protection **and** disables the open-loop test mode in
+one move.
+
 ## How this differs from the Debug (BOOSTXL) bring-up
 
 | Aspect | Debug (BOOSTXL) | Production (Control_V2) |
@@ -92,6 +149,8 @@ Each value has a home in code; capture the real number on the bench and commit i
    window. Confirm `foc_atan2` direction matches rotation.
 5. **Gate enable / fault** — EN asserts; module fault GPIO(s) read "OK"; no
    spurious trip. Verify `inverter_is_faulted()` reflects a deliberately forced flag.
+   *(First revert the bench bypass — `BENCH_NO_POWER_STAGE = 0` — so the trip-zone
+   + gate-driver protection is armed; see "Control-board-only bench" above.)*
 6. **Rotor alignment** — `g_dbg_sm_cmd=1`; ALIGN injects Id at θ=0, captures the
    electrical offset; verify it repeats within a few degrees across start positions.
 7. **Closed-loop current** — small `iq_ref` in TORQUE mode; Id≈0, Iq tracks;

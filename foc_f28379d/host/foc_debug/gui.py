@@ -32,7 +32,7 @@ import threading
 from dataclasses import dataclass
 
 from . import autotune, proto
-from .api import FocDebug, ParamInfo
+from .api import FocDebug, ParamInfo, fault_reason
 from .link import SerialLink, LinkError, NackError, autodetect_port
 from .log import setup_logging
 
@@ -1077,6 +1077,9 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
         def _sm_done(self, op, st):
             name = FocDebug.state_name(st)
+            # Clear the red fault styling immediately on a successful clear/stop;
+            # the 500 ms poll will re-decorate (with the reason) if still faulted.
+            self.state_label.setStyleSheet("color: #d33;" if st == ST_FAULT else "")
             self.state_label.setText(name)
             self._report(f"{op} → {name}")
 
@@ -2133,16 +2136,33 @@ def build(pg, QtCore, QtGui, QtWidgets):
                     p = d.link.transact(
                         proto.CMD_SM_STATE, b"", timeout=0.4, retries=1
                     ).payload
-                    return p[0] if p else 0xFF
+                    st = p[0] if p else 0xFF
+                    # Only pay for the extra fault-code read when actually faulted;
+                    # tolerate firmware that predates the "fault_code" param.
+                    fault = 0
+                    if st == ST_FAULT:
+                        try:
+                            fault = int(d.read_param("fault_code"))
+                        except Exception:
+                            fault = 0
+                    return (st, fault)
 
                 self.worker.submit("state", fn=poll_state,
                                    on_done=self._state_done, on_fail=self._state_failed)
             if self.autoread_chk.isChecked():
                 self._refresh_values()
 
-        def _state_done(self, st):
+        def _state_done(self, res):
             self._state_pending = False
-            self.state_label.setText(FocDebug.state_name(st))
+            st, fault = res
+            text = FocDebug.state_name(st)
+            if st == ST_FAULT:
+                if fault:
+                    text += "  —  " + fault_reason(fault)
+                self.state_label.setStyleSheet("color: #d33;")
+            else:
+                self.state_label.setStyleSheet("")
+            self.state_label.setText(text)
 
         def _state_failed(self, msg):
             self._state_pending = False

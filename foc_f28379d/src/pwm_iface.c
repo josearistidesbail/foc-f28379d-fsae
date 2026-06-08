@@ -9,6 +9,7 @@
 #include "device.h"
 #include "build_config.h"
 #include "pwm_iface.h"
+#include "safety.h"     // g_module_faults_en (bench bypass)
 
 // SysConfig owns period and deadband; we keep the period for the duty math.
 extern uint16_t g_pwm_period_count;     // defined by SysConfig glue or below
@@ -21,7 +22,38 @@ uint16_t g_pwm_period_count = (uint16_t)((SYS_CLK_HZ / 2U) / (uint32_t)PWM_FREQ_
 
 void pwm_init(void)
 {
-    // SysConfig has already configured ePWM modules. Nothing else.
+    // SysConfig has already configured ePWM modules. Apply the bench bypass:
+    // if module-fault protection is disabled, drop the OSHT trip sources now
+    // (this runs after Board_init, so it undoes the SysConfig TZ enable).
+    pwm_apply_module_tz();
+}
+
+// (Re)arm or disarm the module-fault one-shot trip-zone sources to match
+// g_module_faults_en. Control_V2 only: SysConfig wires the module OC lines to
+// OSHT1/2/3 on all three half-bridges. With no power stage those lines assert
+// spuriously and trip the bridge in any state, so bench mode disables them and
+// clears any latched one-shot. No-op on other variants (their TZ is untouched).
+void pwm_apply_module_tz(void)
+{
+#if defined(HW_CONTROL_BOARD_V2)
+    const uint16_t sig = EPWM_TZ_SIGNAL_OSHT1 | EPWM_TZ_SIGNAL_OSHT2
+                       | EPWM_TZ_SIGNAL_OSHT3;
+    if(g_module_faults_en)
+    {
+        EPWM_enableTripZoneSignals(PWM_U_BASE, sig);
+        EPWM_enableTripZoneSignals(PWM_V_BASE, sig);
+        EPWM_enableTripZoneSignals(PWM_W_BASE, sig);
+    }
+    else
+    {
+        EPWM_disableTripZoneSignals(PWM_U_BASE, sig);
+        EPWM_disableTripZoneSignals(PWM_V_BASE, sig);
+        EPWM_disableTripZoneSignals(PWM_W_BASE, sig);
+        EPWM_clearTripZoneFlag(PWM_U_BASE, EPWM_TZ_FLAG_OST | EPWM_TZ_INTERRUPT);
+        EPWM_clearTripZoneFlag(PWM_V_BASE, EPWM_TZ_FLAG_OST | EPWM_TZ_INTERRUPT);
+        EPWM_clearTripZoneFlag(PWM_W_BASE, EPWM_TZ_FLAG_OST | EPWM_TZ_INTERRUPT);
+    }
+#endif
 }
 
 void pwm_force_safe(void)

@@ -115,6 +115,16 @@ static float32_t   s_fw_id;
 // Reset to 0 in foc_init() and whenever the state machine is not in FOC_RUN.
 static float32_t   s_speed_cmd;
 
+// Open-loop PWM test mode (bench, no power stage). A synthetic electrical angle
+// rotates at g_ol_freq_hz while a fixed q-axis "voltage" g_ol_mod is pushed
+// straight through IPARK/SVGEN/PWM -- no current loop, no sensor, no vbus
+// dependence (oneOverDcBus forced to 1 so g_ol_mod is ~peak duty deviation).
+// Used to scope the gate waveforms / deadband / sync with nothing connected;
+// entered only in bench mode (g_module_faults_en == 0) via the FOC_OPENLOOP state.
+volatile float32_t g_ol_freq_hz = 5.0f;    // electrical frequency [Hz]
+volatile float32_t g_ol_mod     = 0.20f;   // q-axis drive (~peak duty deviation, 0..0.5)
+static   float32_t s_ol_theta;             // synthetic electrical angle [rad]
+
 //-----------------------------------------------------------------------------
 // Trig/RTS-free square root for the flux-priority current-circle limit. The SDK
 // <math.h> resolves to the motor-control math header (no C99 sqrtf), and pulling
@@ -164,6 +174,11 @@ static void fw_reset(void)
 
 static FOC_State_t s_prev_state    = FOC_IDLE;
 static uint32_t    s_align_ticks;
+static bool        s_align_done;
+#if SENSOR_BACKEND_QEP
+// QEP ramp-and-average offset-capture state. The resolver backend is absolute
+// and captures in a single shot, so these are QEP-only (guarded to avoid
+// set-but-unused warnings in the resolver build).
 static float32_t   s_align_carrier;     // commanded electrical angle during ALIGN
 // Trig-free circular mean of (encoder_raw - commanded). The samples cluster
 // tightly around the true offset (constant offset + small cogging ripple), so we
@@ -172,16 +187,18 @@ static float32_t   s_align_carrier;     // commanded electrical angle during ALI
 static float32_t   s_align_ref;         // first (raw - carrier) sample
 static float32_t   s_align_sum;         // sum of wrapped deviations from ref
 static uint32_t    s_align_n;
-static bool        s_align_done;
+#endif
 
 static void align_reset(void)
 {
     s_align_ticks   = 0;
+    s_align_done    = false;
+#if SENSOR_BACKEND_QEP
     s_align_carrier = 0.0f;
     s_align_ref     = 0.0f;
     s_align_sum     = 0.0f;
     s_align_n       = 0;
-    s_align_done    = false;
+#endif
 }
 
 // Advance the controller one ISR and return the electrical angle to drive into
@@ -233,6 +250,17 @@ static float32_t align_step(void)
 }
 
 bool foc_align_done(void) { return s_align_done; }
+
+// Open-loop PWM test: advance the synthetic electrical angle at g_ol_freq_hz.
+// A fixed Vq = g_ol_mod then rotates through IPARK/SVGEN producing a balanced
+// 3-phase duty set, no current loop or sensor involved.
+static float32_t openloop_step(void)
+{
+    s_ol_theta += (2.0f * MATH_PI * FOC_ISR_TS) * g_ol_freq_hz;
+    if(s_ol_theta >= 2.0f * MATH_PI) s_ol_theta -= 2.0f * MATH_PI;
+    if(s_ol_theta <  0.0f)           s_ol_theta += 2.0f * MATH_PI;
+    return s_ol_theta;
+}
 
 void foc_init(void)
 {
@@ -335,9 +363,12 @@ void foc_current_loop_isr(void)
 
     if(st == FOC_ALIGN_ROTOR && s_prev_state != FOC_ALIGN_ROTOR) align_reset();
     if(st == FOC_RUN         && s_prev_state != FOC_RUN)         fw_reset();
+    if(st == FOC_OPENLOOP    && s_prev_state != FOC_OPENLOOP)    s_ol_theta = 0.0f;
     s_prev_state = st;
 
-    s_sig.theta_elec = (st == FOC_ALIGN_ROTOR) ? align_step() : sensor_get_elec_angle();
+    if(st == FOC_ALIGN_ROTOR)   s_sig.theta_elec = align_step();
+    else if(st == FOC_OPENLOOP) s_sig.theta_elec = openloop_step();
+    else                        s_sig.theta_elec = sensor_get_elec_angle();
     s_sig.omega_elec = sensor_get_elec_speed();
 
     // 2. Phase currents -> Clarke -> Park
@@ -412,6 +443,14 @@ void foc_current_loop_isr(void)
         PI_setUi(s_pi_iq, 0.0f);
     }
 
+    // Open-loop PWM test: override with a fixed rotating vector (Vd=0, Vq=mod).
+    // PI integrators are already held at 0 by the else-branch above.
+    if(st == FOC_OPENLOOP)
+    {
+        s_sig.Vdq.value[0] = 0.0f;
+        s_sig.Vdq.value[1] = g_ol_mod;
+    }
+
     if(st == FOC_ALIGN_ROTOR)
     {
         g_dbg_align_id_meas = s_sig.Idq.value[0];
@@ -469,9 +508,14 @@ void foc_current_loop_isr(void)
     //    safe-force, so calling it here would switch all three half-bridges and
     //    trip DRV8305 high-side VDS over-current (nFAULT) while "idle".
     s_refs.vbus = adc_read_vbus();
-    SVGEN_setOneOverDcBus_invV(s_svgen, 1.0f / s_refs.vbus);
+    // Open-loop test uses a synthetic unity bus so g_ol_mod maps directly to duty
+    // (the bench has vbus~=0, which would blow up the real 1/vbus normalization).
+    if(st == FOC_OPENLOOP)
+        SVGEN_setOneOverDcBus_invV(s_svgen, 1.0f);
+    else
+        SVGEN_setOneOverDcBus_invV(s_svgen, 1.0f / s_refs.vbus);
 
-    if(st == FOC_RUN || st == FOC_ALIGN_ROTOR)
+    if(st == FOC_RUN || st == FOC_ALIGN_ROTOR || st == FOC_OPENLOOP)
     {
         IPARK_setup(s_ipark, s_sig.theta_elec);
         IPARK_run  (s_ipark, &s_sig.Vdq, &s_sig.Vab);

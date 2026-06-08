@@ -9,10 +9,14 @@
 #include "debug_proto.h"
 #include "foc_pipeline.h"
 #include "foc_state_machine.h"
+#include "safety.h"
+#include "pwm_iface.h"
+#include "inverter_iface.h"
 
 // Live torque command consumed by foc_speed_loop_tick() while in FOC_RUN.
 extern volatile float32_t g_dbg_iq_ref;   // src/foc_pipeline.c
 extern volatile uint32_t  g_isr_count;    // src/isr.c
+extern volatile uint32_t  g_dbg_tz_trip;  // src/isr.c (HW trip-zone event count)
 
 // KCL phase-current reconstruction selector (0=none,1=U,2=V,3=W).
 extern volatile uint16_t  g_isense_reconstruct_phase;   // src/adc_iface.c
@@ -29,6 +33,12 @@ extern volatile uint16_t  g_dbg_control_mode;           // src/foc_pipeline.c
 extern volatile uint16_t  g_dbg_fw_en;                  // src/foc_pipeline.c
 extern volatile float32_t g_dbg_fw_id;                  // src/foc_pipeline.c
 extern volatile float32_t g_dbg_vmag;                   // src/foc_pipeline.c
+
+// Open-loop PWM test mode (bench, no power stage): rotating-vector frequency and
+// q-axis drive magnitude. The FOC_OPENLOOP state itself is started/stopped via
+// the "ol_run" param below.
+extern volatile float32_t g_ol_freq_hz;                 // src/foc_pipeline.c
+extern volatile float32_t g_ol_mod;                     // src/foc_pipeline.c
 
 // ---- raw <-> float bit-cast helpers (C28x: float32_t and uint32_t are 32b) --
 static inline uint32_t f32_to_raw(float32_t f)
@@ -98,6 +108,27 @@ static void set_mode(uint32_t  r){ g_dbg_control_mode = (r == FOC_MODE_SPEED)
 static void get_fw_en(uint32_t *r){ *r = (uint32_t)g_dbg_fw_en; }
 static void set_fw_en(uint32_t  r){ g_dbg_fw_en = (uint16_t)(r ? 1U : 0U); }
 
+// Bench bypass for module-fault protection (1 = protection active, 0 = ignored
+// for a board with no power stage). NEEDS_IDLE: the write re-arms/disarms the
+// OSHT trip-zone sources via pwm_apply_module_tz() in addition to gating the SW
+// gate-driver + trip-zone fault latches.
+static void get_mfen(uint32_t *r){ *r = (uint32_t)g_module_faults_en; }
+static void set_mfen(uint32_t  r){ g_module_faults_en = (uint16_t)(r ? 1U : 0U);
+                                   pwm_apply_module_tz(); }
+
+// Open-loop PWM test mode (bench, no power stage). "ol_run" starts/stops the
+// FOC_OPENLOOP state (entry only honored in bench mode, g_module_faults_en==0);
+// it reads back the live state so the GUI shows whether the mode actually
+// engaged. ol_freq/ol_mod tune the rotating vector live while it runs.
+static void get_ol_run(uint32_t *r){ *r = (sm_get_state() == FOC_OPENLOOP) ? 1U : 0U; }
+static void set_ol_run(uint32_t  r){ if(r) sm_request_openloop(); else sm_request_stop(); }
+static void get_ol_freq(uint32_t *r){ *r = f32_to_raw(g_ol_freq_hz); }
+static void set_ol_freq(uint32_t  r){ g_ol_freq_hz = raw_to_f32(r); }
+static void get_ol_mod(uint32_t *r){ *r = f32_to_raw(g_ol_mod); }
+static void set_ol_mod(uint32_t  r){ float32_t m = raw_to_f32(r);
+                                     if(m < 0.0f) m = 0.0f; if(m > 0.5f) m = 0.5f;
+                                     g_ol_mod = m; }
+
 // ---- Read-only telemetry -------------------------------------------------
 static void get_state(uint32_t *r){ *r = (uint32_t)(uint16_t)sm_get_state(); }
 static void get_isr_count(uint32_t *r){ *r = g_isr_count; }
@@ -113,6 +144,18 @@ static void get_omega_meas(uint32_t *r){ *r = f32_to_raw(foc_get_signals()->omeg
 // requested voltage magnitude |Vdq| [V] the regulator is holding to its limit.
 static void get_fw_id(uint32_t *r){ *r = f32_to_raw(g_dbg_fw_id); }
 static void get_vmag(uint32_t *r) { *r = f32_to_raw(g_dbg_vmag); }
+
+// Latched fault mask (Fault_Bits_t in safety.h): 0 = clear. Lets the host GUI
+// decode *why* the device is in FOC_FAULT (OVERCURRENT / GATE_DRIVER / ...)
+// instead of only showing the bare "FAULT" state.
+static void get_fault_code(uint32_t *r){ *r = (uint32_t)safety_get_latched(); }
+
+// HW trip-zone event counter and the live module-fault bitfield. With the bench
+// bypass active these tell you whether the disconnected module lines are still
+// asserting (tz_trip stops incrementing once OSHT is disarmed; module_fault
+// shows the raw MODULE_FLT_* bits the gate drivers are pulling).
+static void get_tz_trip(uint32_t *r)      { *r = g_dbg_tz_trip; }
+static void get_module_fault(uint32_t *r) { *r = (uint32_t)inverter_fault_status(); }
 
 // ---- Motor / loop constants (read-only, for the host PI autotuner) --------
 // The autotuner derives gains from the plant (R, L), the loop timestep, and the
@@ -148,6 +191,10 @@ const param_entry_t g_param_table[] =
     { 0x0031U, PARAM_TYPE_U16, 0,                     "decouple_en",  get_decouple, set_decouple },
     { 0x0032U, PARAM_TYPE_U16, 0,                     "control_mode", get_mode,     set_mode     },
     { 0x0033U, PARAM_TYPE_U16, 0,                     "fw_en",        get_fw_en,    set_fw_en    },
+    { 0x0034U, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "module_faults_en", get_mfen, set_mfen     },
+    { 0x0040U, PARAM_TYPE_U16, 0,                     "ol_run",     get_ol_run,   set_ol_run    },
+    { 0x0041U, PARAM_TYPE_F32, 0,                     "ol_freq",    get_ol_freq,  set_ol_freq   },
+    { 0x0042U, PARAM_TYPE_F32, 0,                     "ol_mod",     get_ol_mod,   set_ol_mod    },
 
     { 0x0100U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "state",      get_state,     0            },
     { 0x0101U, PARAM_TYPE_U32, PARAM_FLAG_RO,         "isr_count",  get_isr_count, 0            },
@@ -156,6 +203,9 @@ const param_entry_t g_param_table[] =
     { 0x0104U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "omega_meas", get_omega_meas, 0           },
     { 0x0105U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "fw_id",      get_fw_id,     0            },
     { 0x0106U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "vmag",       get_vmag,      0            },
+    { 0x0107U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "fault_code", get_fault_code, 0           },
+    { 0x0108U, PARAM_TYPE_U32, PARAM_FLAG_RO,         "tz_trip",    get_tz_trip,    0            },
+    { 0x0109U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "module_fault", get_module_fault, 0        },
 
     // Motor / loop constants the host PI autotuner reads to compute gains.
     { 0x0110U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "rs_ohm",        get_rs_ohm,        0       },
