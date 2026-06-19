@@ -37,10 +37,15 @@
       "Bash(./.venv/bin/python -c 'from foc_debug.api import fault_reason as fr *)",
       "Bash(./.venv/bin/python -m py_compile foc_debug/gui.py)",
       "Bash(./.venv/bin/python -m py_compile foc_debug/api.py foc_debug/gui.py)",
+      "Bash(awk '/MEMORY CONFIGURATION/{f=1} f{print} /SEGMENT ALLOCATION MAP/{exit}' foc_f28379d.map)",
+      "Bash(awk '{print $2, $3, $4}')",
+      "Bash(sort -k1 -r)",
       "mcp__ccs-debug",
       "mcp__ccs-project",
       "mcp__ccs-sysconfig",
-      "mcp__ccs-serial"
+      "mcp__ccs-serial",
+      "Bash(grep -v -E '\\\\.\\(obj|lst|d|asm\\)$')",
+      "Bash(grep -iE '\\\\.\\(py|js|ts|tsx|jsx|qml\\)$')"
     ],
     "ask": [
       "mcp__ccs-project__changeSysConfigVersion"

@@ -33,4 +33,10 @@ extern void     safety_clear(void);              // only callable from IDLE
 // IDLE. Seeded from BENCH_NO_POWER_STAGE; live-toggled via "module_faults_en".
 extern volatile uint16_t g_module_faults_en;
 
+// Bench bypass for the SW undervoltage trip: when 0, the VBUS undervoltage check
+// is skipped (use when the VBUS sense is disconnected, so the ~0 reading would
+// false-trip UV in RUN). Seeded from BENCH_NO_POWER_STAGE; live-toggled via the
+// "uv_en" serial param. OV stays armed (a ~0 reading can't false-trip it).
+extern volatile uint16_t g_uv_fault_en;
+
 #endif // SAFETY_H

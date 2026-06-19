@@ -20,6 +20,14 @@ static volatile uint16_t s_latched;
 // Live-toggled via the "module_faults_en" serial param + pwm_apply_module_tz().
 volatile uint16_t g_module_faults_en = (BENCH_NO_POWER_STAGE ? 0U : 1U);
 
+// Bench bypass for the SW undervoltage trip. When the VBUS sense is physically
+// disconnected the reading sits near 0 and would false-trip UV the instant we
+// enter RUN. Seeded from BENCH_NO_POWER_STAGE: 1 (bench, no real bus) => UV check
+// disabled. Live-toggled via the "uv_en" serial param. OV is intentionally NOT
+// gated: a disconnected/floating sense reads ~0, well below the OV threshold, so
+// it can't false-trip — and leaving OV armed keeps real overvoltage protected.
+volatile uint16_t g_uv_fault_en = (BENCH_NO_POWER_STAGE ? 0U : 1U);
+
 // TODO: Debugging Step 6, remove after. Mirrors the latched fault mask so the
 // reason for a FOC_FAULT is visible in the CCS Expressions view without having
 // to inspect the file-static s_latched. Bits are Fault_Bits_t from safety.h:
@@ -77,7 +85,7 @@ void safety_check_isr(void)
 
     float vbus = foc_get_refs()->vbus;
     if(vbus > MOTOR_OV_TRIP_V) safety_latch(FAULT_OVERVOLTAGE);
-    if(vbus < MOTOR_UV_TRIP_V && st == FOC_RUN)
+    if(g_uv_fault_en && vbus < MOTOR_UV_TRIP_V && st == FOC_RUN)
         safety_latch(FAULT_UNDERVOLTAGE);
 
     if(inverter_is_faulted()) safety_latch(FAULT_GATE_DRIVER);

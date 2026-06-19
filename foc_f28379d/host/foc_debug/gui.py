@@ -551,6 +551,24 @@ def build(pg, QtCore, QtGui, QtWidgets):
             ph.addWidget(self.refresh_vals_btn)
             lv.addLayout(ph)
 
+            # Parameter filter — hides non-matching rows across every param tab so
+            # finding a setting by name is quick. Ctrl+F focuses this box (see the
+            # QShortcut below). Matches name / id / type, case-insensitive.
+            filt_h = QtWidgets.QHBoxLayout()
+            filt_h.addWidget(QtWidgets.QLabel("Filter:"))
+            self.param_filter = QtWidgets.QLineEdit()
+            self.param_filter.setPlaceholderText(
+                "Type to filter parameters by name…  (Ctrl+F)"
+            )
+            self.param_filter.setClearButtonEnabled(True)
+            self.param_filter.textChanged.connect(self._apply_param_filter)
+            filt_h.addWidget(self.param_filter, 1)
+            lv.addLayout(filt_h)
+
+            # Ctrl+F from anywhere in the window jumps to the filter box.
+            _find_sc = QtGui.QShortcut(QtGui.QKeySequence.Find, self)
+            _find_sc.activated.connect(self._focus_param_filter)
+
             # Tab definitions: (label, name_filter_set or None=all)
             _TAB_DEFS = [
                 ("References", {"id_ref", "iq_ref", "omega_ref"}),
@@ -684,6 +702,44 @@ def build(pg, QtCore, QtGui, QtWidgets):
             _jab.setToolTip("Jose Aristides Bail")
             self.statusBar().addPermanentWidget(_jab)
 
+        # ---- parameter filter -------------------------------------------
+        def _focus_param_filter(self):
+            """Ctrl+F handler: focus + select the filter box for quick typing.
+
+            If the user is parked on a non-param tab (Motor/Autotune), hop to the
+            Advanced tab first so the filtered results are actually visible.
+            """
+            page = self.tab_widget.currentWidget()
+            if not any(t["table"].parentWidget() is page for t in self._all_tables):
+                for i in range(self.tab_widget.count()):
+                    if self.tab_widget.tabText(i) == "Advanced":
+                        self.tab_widget.setCurrentIndex(i)
+                        break
+            self.param_filter.setFocus(QtCore.Qt.ShortcutFocusReason)
+            self.param_filter.selectAll()
+
+        def _apply_param_filter(self, _text=None):
+            """Show only rows whose name / id / type contains the filter text.
+
+            Applied to every param tab's table (case-insensitive substring) so the
+            filter persists when switching tabs. Empty text shows everything.
+            """
+            needle = self.param_filter.text().strip().lower()
+            info_by_id = {p.id: p for p in self.params}
+            for treg in self._all_tables:
+                table = treg["table"]
+                id_of_row = treg["id_of_row"]
+                for row in range(table.rowCount()):
+                    if not needle:
+                        table.setRowHidden(row, False)
+                        continue
+                    info = info_by_id.get(id_of_row.get(row))
+                    hay = (
+                        f"{info.name} 0x{info.id:04x} {info.type_str}".lower()
+                        if info is not None else ""
+                    )
+                    table.setRowHidden(row, needle not in hay)
+
         # ---- helpers -----------------------------------------------------
         def _make_param_table(self):
             t = QtWidgets.QTableWidget(0, 6)
@@ -797,6 +853,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._programmatic = False
             for treg in self._all_tables:
                 treg["table"].resizeColumnsToContents()
+            self._apply_param_filter()   # re-apply any active filter to fresh rows
             self._refresh_values()
 
         def _populate_table(self, treg, params):

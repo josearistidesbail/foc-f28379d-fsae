@@ -49,18 +49,33 @@ extern volatile float32_t   g_resolver_last_theta;   // for differentiation
 extern volatile float32_t   g_resolver_omega_healthy;// last speed while in-window
 extern volatile uint16_t    g_resolver_lost;         // 1 once signal is lost
 extern volatile uint16_t    g_resolver_loss_count;   // out-of-window ISR debounce
-extern volatile float32_t   g_dbg_resolver_mag;      // latest sin^2+cos^2
+extern volatile float32_t   g_dbg_resolver_mag;      // latest sin^2+cos^2 (RAW)
+
+// SIN/COS input low-pass (software noise reduction). en/alpha owned by the .c and
+// the host params; *_filt are the per-channel IIR state. See sensor_rm44ac.h.
+extern volatile uint16_t    g_resolver_filt_en;      // 0 = bypass, 1 = filter angle
+extern volatile float32_t   g_resolver_filt_alpha;   // IIR coefficient in (0, 1]
+extern volatile float32_t   g_resolver_sin_filt;     // IIR state, sin channel
+extern volatile float32_t   g_resolver_cos_filt;     // IIR state, cos channel
 
 static inline void sensor_update_isr(void)
 {
     float32_t sn, cs;
     adc_read_sin_cos(&sn, &cs);
 
+    // ---- Input low-pass (software noise reduction) -----------------------
+    // Run the matched 1st-order IIR on each channel EVERY ISR so the state stays
+    // primed (toggling g_resolver_filt_en is then bumpless). The enable flag only
+    // selects filtered-vs-raw for the angle below; loss-of-signal still uses raw.
+    g_resolver_sin_filt += g_resolver_filt_alpha * (sn - g_resolver_sin_filt);
+    g_resolver_cos_filt += g_resolver_filt_alpha * (cs - g_resolver_cos_filt);
+
     // ---- Loss of signal: sin^2 + cos^2 should stay ~1 at every angle -----
     // A collapsed (unplugged) channel drops the magnitude toward 0; a stuck or
     // railed channel pushes it out the top. Either, sustained for LOSS_TICKS
     // ISRs, flags the sensor lost. Done before atan2 so a dead vector cannot
-    // masquerade as a valid angle.
+    // masquerade as a valid angle. Computed on RAW sin/cos so the filter can't
+    // mask a real dropout (and its boot ramp can't false-trip loss at low fc).
     float32_t mag = sn * sn + cs * cs;
     g_dbg_resolver_mag = mag;
     if(mag < SENSOR_RES_MAG_LOW || mag > SENSOR_RES_MAG_HIGH)
@@ -73,8 +88,11 @@ static inline void sensor_update_isr(void)
         g_resolver_loss_count = 0U;
     }
 
-    // Mechanical angle from atan2: range [-pi, +pi] -> shift to [0, 2*pi)
-    float32_t th = foc_atan2(sn, cs);
+    // Mechanical angle from atan2: range [-pi, +pi] -> shift to [0, 2*pi).
+    // Use the filtered sin/cos when enabled, else the raw pair (passthrough).
+    float32_t asn = g_resolver_filt_en ? g_resolver_sin_filt : sn;
+    float32_t acs = g_resolver_filt_en ? g_resolver_cos_filt : cs;
+    float32_t th = foc_atan2(asn, acs);
     if(th < 0.0f) th += TWO_PI_F;
 
     // Speed: wrap angle difference into [-pi, +pi), differentiate, LPF.

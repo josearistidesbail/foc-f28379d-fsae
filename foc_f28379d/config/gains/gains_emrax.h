@@ -32,8 +32,8 @@
 // ---- Alignment current --------------------------------------------------
 // Resolver alignment uses a position-capture approach, not Id injection
 // at scale - keep injection modest.
-#define ALIGN_ID_INJECT_A       8.0f
-#define ALIGN_DURATION_S        2.0f
+#define ALIGN_ID_INJECT_A       1.0f
+#define ALIGN_DURATION_S        5.0f
 
 // ---- Cross-coupling / back-EMF feedforward ------------------------------
 // Compile-time default for g_dbg_decouple_en (see gains_teknic.h for the full

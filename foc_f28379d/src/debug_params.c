@@ -40,6 +40,14 @@ extern volatile float32_t g_dbg_vmag;                   // src/foc_pipeline.c
 extern volatile float32_t g_ol_freq_hz;                 // src/foc_pipeline.c
 extern volatile float32_t g_ol_mod;                     // src/foc_pipeline.c
 
+#if SENSOR_BACKEND_RM44AC
+// RM44AC SIN/COS input low-pass: runtime enable + cutoff [Hz]. The hz setter
+// recomputes the IIR coefficient (g_resolver_filt_alpha). See sensor_rm44ac.c.
+extern volatile uint16_t  g_resolver_filt_en;           // src/sensor_rm44ac.c
+extern volatile float32_t g_resolver_filt_hz;           // src/sensor_rm44ac.c
+extern volatile float32_t g_resolver_filt_alpha;        // src/sensor_rm44ac.c
+#endif
+
 // ---- raw <-> float bit-cast helpers (C28x: float32_t and uint32_t are 32b) --
 static inline uint32_t f32_to_raw(float32_t f)
 {
@@ -116,6 +124,12 @@ static void get_mfen(uint32_t *r){ *r = (uint32_t)g_module_faults_en; }
 static void set_mfen(uint32_t  r){ g_module_faults_en = (uint16_t)(r ? 1U : 0U);
                                    pwm_apply_module_tz(); }
 
+// SW undervoltage-trip enable. Live (no NEEDS_IDLE) — a pure SW latch gate with
+// no HW side-effect, so it can be flipped on a running bench. Set 0 when the
+// VBUS sense is disconnected (the ~0 reading would otherwise false-trip UV).
+static void get_uv_en(uint32_t *r){ *r = (uint32_t)g_uv_fault_en; }
+static void set_uv_en(uint32_t  r){ g_uv_fault_en = (uint16_t)(r ? 1U : 0U); }
+
 // Open-loop PWM test mode (bench, no power stage). "ol_run" starts/stops the
 // FOC_OPENLOOP state (entry only honored in bench mode, g_module_faults_en==0);
 // it reads back the live state so the GUI shows whether the mode actually
@@ -128,6 +142,23 @@ static void get_ol_mod(uint32_t *r){ *r = f32_to_raw(g_ol_mod); }
 static void set_ol_mod(uint32_t  r){ float32_t m = raw_to_f32(r);
                                      if(m < 0.0f) m = 0.0f; if(m > 0.5f) m = 0.5f;
                                      g_ol_mod = m; }
+
+#if SENSOR_BACKEND_RM44AC
+// RM44AC SIN/COS input low-pass. Live (no NEEDS_IDLE) so it can be A/B'd on the
+// bench; the IIR state stays primed every ISR so toggling en is bumpless.
+static void get_res_filt_en(uint32_t *r){ *r = (uint32_t)g_resolver_filt_en; }
+static void set_res_filt_en(uint32_t  r){ g_resolver_filt_en = (uint16_t)(r ? 1U : 0U); }
+// Cutoff in Hz -> IIR coefficient alpha = clamp(2*pi*fc*Ts, 0..1). Negative
+// requests floor to 0 (full smoothing/freeze); huge requests saturate at 1 (off).
+static void get_res_filt_hz(uint32_t *r){ *r = f32_to_raw(g_resolver_filt_hz); }
+static void set_res_filt_hz(uint32_t  r){ float32_t hz = raw_to_f32(r);
+                                          if(hz < 0.0f) hz = 0.0f;
+                                          float32_t a = SENSOR_RES_FILT_ALPHA(hz);
+                                          if(a > 1.0f) a = 1.0f;
+                                          if(a < 0.0f) a = 0.0f;
+                                          g_resolver_filt_hz    = hz;
+                                          g_resolver_filt_alpha = a; }
+#endif
 
 // ---- Read-only telemetry -------------------------------------------------
 static void get_state(uint32_t *r){ *r = (uint32_t)(uint16_t)sm_get_state(); }
@@ -192,9 +223,15 @@ const param_entry_t g_param_table[] =
     { 0x0032U, PARAM_TYPE_U16, 0,                     "control_mode", get_mode,     set_mode     },
     { 0x0033U, PARAM_TYPE_U16, 0,                     "fw_en",        get_fw_en,    set_fw_en    },
     { 0x0034U, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "module_faults_en", get_mfen, set_mfen     },
+    { 0x0037U, PARAM_TYPE_U16, 0,                     "uv_en",        get_uv_en,    set_uv_en    },
     { 0x0040U, PARAM_TYPE_U16, 0,                     "ol_run",     get_ol_run,   set_ol_run    },
     { 0x0041U, PARAM_TYPE_F32, 0,                     "ol_freq",    get_ol_freq,  set_ol_freq   },
     { 0x0042U, PARAM_TYPE_F32, 0,                     "ol_mod",     get_ol_mod,   set_ol_mod    },
+
+#if SENSOR_BACKEND_RM44AC
+    { 0x0035U, PARAM_TYPE_U16, 0,                     "res_filt_en", get_res_filt_en, set_res_filt_en },
+    { 0x0036U, PARAM_TYPE_F32, 0,                     "res_filt_hz", get_res_filt_hz, set_res_filt_hz },
+#endif
 
     { 0x0100U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "state",      get_state,     0            },
     { 0x0101U, PARAM_TYPE_U32, PARAM_FLAG_RO,         "isr_count",  get_isr_count, 0            },

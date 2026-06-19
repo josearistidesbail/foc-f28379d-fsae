@@ -48,4 +48,17 @@ SECTIONS
     .text:param_find  : > FLASHA   PAGE = 0, ALIGN(8)
     .text:param_read  : > FLASHA   PAGE = 0, ALIGN(8)
     .text:param_write : > FLASHA   PAGE = 0, ALIGN(8)
+
+    /* Production branch ("production settings" + "open-loop bypass for testing")
+     * grew .text until it filled FLASHB to 100% (unused 0x0), so .cinit (0x3a)
+     * had nowhere to land (#10099). FLASHA still had ~0x1bb6 free, so relocate
+     * the largest one-time *startup* functions there. None run in the 10 kHz
+     * current loop -- EPWM_init/PinMux_init/Device_enableAllPeripherals run once
+     * in Board_init/Device_init, inverter_init runs once at bring-up -- so flash
+     * wait-state is irrelevant and none are .TI.ramfunc (no placement clash).
+     * Frees ~0x4d0 from FLASHB for lasting headroom as production code grows. */
+    .text:EPWM_init                   : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:PinMux_init                 : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:Device_enableAllPeripherals : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:inverter_init               : > FLASHA   PAGE = 0, ALIGN(8)
 }
