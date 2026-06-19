@@ -201,6 +201,13 @@ volatile uint16_t  g_dbg_control_mode;      // 0=torque (direct iq_ref), 1=speed
 //   RO serial params added for the GUI's RPM conversion: pole_pairs (u16), omega_meas (f32 = signals.omega_elec, elec rad/s)
 //   s_speed_cmd (static) = accel-ramped electrical setpoint; FOC_MODE_TORQUE/SPEED live in build_config.h
 
+// src/foc_pipeline.c        (current-loop bypass / open-loop resistive voltage mode)
+volatile uint16_t  g_dbg_iloop_en;          // 1=current PIs enforced (default FOC_ILOOP_DEFAULT=1), 0=open-loop resistive; "iloop_en" param; live toggle
+//   When 0 (RUN only): the d/q PIs are bypassed and the operator's id_ref/iq_ref (still AMPS) are applied as
+//   Vd=MOTOR_RS_OHM*id_ref, Vq=MOTOR_RS_OHM*iq_ref using the live sensor angle — no PI, no integrator, NO back-EMF FF.
+//   Use control_mode=torque so iq_ref flows directly. id_ref is NOT overwritten by the FW/id-ownership block while open-loop.
+//   Vd/Vq clamped to the inverter budget; phase OC trip stays armed. WARNING: ignores back-EMF — low/zero speed ONLY.
+
 // src/isr.c                 (Step 9 — HW trip-zone)
 volatile uint32_t g_dbg_tz_trip;        // count of ePWM one-shot trip-zone events (nFAULT→TZ1)
 

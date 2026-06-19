@@ -96,6 +96,19 @@ volatile float32_t g_dbg_ff_q;
 // Switchable live; foc_speed_loop_tick() makes the transfer bumpless.
 volatile uint16_t  g_dbg_control_mode;
 
+// Inner current-loop enable (also the "iloop_en" serial param); default
+// FOC_ILOOP_DEFAULT=1. 1 = the d/q current PIs are enforced (normal closed-loop
+// FOC). 0 = open-loop resistive voltage mode (RUN only): the PIs are bypassed and
+// the operator's id_ref/iq_ref (still in AMPS) are applied as the DC voltage that
+// would drive that current through the winding resistance,
+//   Vd = MOTOR_RS_OHM * id_ref,  Vq = MOTOR_RS_OHM * iq_ref,
+// using the live position-sensor angle. No PI, no integrator, and NO back-EMF
+// feedforward. WARNING: ignoring back-EMF is only valid at low/zero speed -- at
+// speed the small applied Vq vs a large back-EMF can drive strong braking/
+// generation. The applied voltage is clamped to the inverter budget and the phase
+// overcurrent trip stays armed in FOC_RUN, but treat this as a bring-up tool.
+volatile uint16_t  g_dbg_iloop_en;
+
 // Field weakening (Step 11). g_dbg_fw_en toggles it live (also the "fw_en" serial
 // param); default FW_DEFAULT. The regulator runs in the current-loop ISR (RUN
 // only) and winds id negative when the requested |Vdq| saturates the inverter.
@@ -300,6 +313,7 @@ void foc_init(void)
     g_dbg_run_iq_meas = 0.0f;
     g_dbg_decouple_en = FOC_DECOUPLE_DEFAULT;
     g_dbg_control_mode = FOC_MODE_TORQUE;
+    g_dbg_iloop_en   = FOC_ILOOP_DEFAULT;
     g_dbg_fw_en      = FW_DEFAULT;
     g_dbg_fw_id      = 0.0f;
     g_dbg_vmag       = 0.0f;
@@ -389,7 +403,7 @@ void foc_current_loop_isr(void)
     //    omega_elec share a sign convention -- true at SENSOR_QEP_DIR_SIGN = +1.
     float vmax_dyn = VDQ_MAX_FRACTION * s_refs.vbus * 0.5f;
     float ff_d = 0.0f, ff_q = 0.0f;
-    if(st == FOC_RUN && g_dbg_decouple_en)
+    if(st == FOC_RUN && g_dbg_decouple_en && g_dbg_iloop_en)
     {
         float we = s_sig.omega_elec;
         ff_d = -we * MOTOR_LQ_H * s_refs.iq_ref;
@@ -401,7 +415,24 @@ void foc_current_loop_isr(void)
     PI_setMinMax(s_pi_iq, -vmax_dyn - ff_q, vmax_dyn - ff_q);
 
     //    (Only run when state machine allows it; otherwise zero outputs.)
-    if(st == FOC_RUN || st == FOC_ALIGN_ROTOR)
+    if(st == FOC_RUN && !g_dbg_iloop_en)
+    {
+        // Open-loop resistive voltage mode (current PIs bypassed). Apply the DC
+        // voltage that would drive the commanded current through the winding
+        // resistance: Vd=Rs*id_ref, Vq=Rs*iq_ref. id_ref/iq_ref stay in AMPS; the
+        // angle still comes from the position sensor (Park/IPark below). No
+        // back-EMF feedforward -- valid only at low/zero speed (see g_dbg_iloop_en).
+        // Clamp to the inverter budget and hold the integrators at 0 so a switch
+        // back to closed loop re-engages cleanly. id_ref is NOT overwritten by the
+        // FW/id-ownership block (step 3b) while open-loop, so the operator owns it.
+        float vd = MOTOR_RS_OHM * s_refs.id_ref;
+        float vq = MOTOR_RS_OHM * s_refs.iq_ref;
+        s_sig.Vdq.value[0] = MATH_max(-vmax_dyn, MATH_min(vmax_dyn, vd));
+        s_sig.Vdq.value[1] = MATH_max(-vmax_dyn, MATH_min(vmax_dyn, vq));
+        PI_setUi(s_pi_id, 0.0f);
+        PI_setUi(s_pi_iq, 0.0f);
+    }
+    else if(st == FOC_RUN || st == FOC_ALIGN_ROTOR)
     {
         PI_run(s_pi_id, s_refs.id_ref, s_sig.Idq.value[0], &s_sig.Vdq.value[0]);
 
@@ -481,7 +512,13 @@ void foc_current_loop_isr(void)
                       + s_sig.Vdq.value[1] * s_sig.Vdq.value[1];
         g_dbg_vmag = foc_fast_sqrt(vmag_sq);
 
-        if(g_dbg_fw_en)
+        if(!g_dbg_iloop_en)            // open-loop resistive: operator owns id_ref
+        {
+            // Leave s_refs.id_ref untouched (it is applied as Vd=Rs*id_ref in
+            // step 3). The FW regulator is meaningless without the current loop.
+            fw_reset();
+        }
+        else if(g_dbg_fw_en)
         {
             float vmax_fw = FW_VMAX_FRACTION * s_refs.vbus * 0.5f;
             PI_run(s_pi_fw, vmax_fw * vmax_fw, vmag_sq, &s_fw_id);   // s_fw_id <= 0
