@@ -49,6 +49,12 @@ extern volatile float32_t   g_resolver_last_theta;   // for differentiation
 extern volatile float32_t   g_resolver_omega_healthy;// last speed while in-window
 extern volatile uint16_t    g_resolver_lost;         // 1 once signal is lost
 extern volatile uint16_t    g_resolver_loss_count;   // out-of-window ISR debounce
+extern volatile uint16_t    g_resolver_loss_inhibit; // hold loss check reset (align cal)
+extern volatile uint16_t    g_resolver_dir_inv;      // 1 = mirror mech angle (direction fix)
+extern volatile uint16_t    g_resolver_sensor_poles; // sin/cos cycles per mech rev ("res_poles")
+extern volatile float32_t   g_resolver_elec_ratio;   // MOTOR_POLE_PAIRS / sensor_poles
+extern volatile float32_t   g_resolver_inv_poles;    // 1 / sensor_poles
+extern void sensor_rm44ac_apply_poles(uint16_t poles);  // recompute the two ratios
 extern volatile float32_t   g_dbg_resolver_mag;      // latest sin^2+cos^2 (RAW)
 
 // SIN/COS input low-pass (software noise reduction). en/alpha owned by the .c and
@@ -57,6 +63,11 @@ extern volatile uint16_t    g_resolver_filt_en;      // 0 = bypass, 1 = filter a
 extern volatile float32_t   g_resolver_filt_alpha;   // IIR coefficient in (0, 1]
 extern volatile float32_t   g_resolver_sin_filt;     // IIR state, sin channel
 extern volatile float32_t   g_resolver_cos_filt;     // IIR state, cos channel
+
+// Store the electrical zero offset (radians). Called by the ramp-and-average
+// align controller at the end of FOC_ALIGN_ROTOR; defined in sensor_rm44ac.c
+// (converts the electrical offset to the mechanical one the ISR subtracts).
+extern void sensor_set_elec_offset(float32_t rad);
 
 static inline void sensor_update_isr(void)
 {
@@ -78,7 +89,14 @@ static inline void sensor_update_isr(void)
     // mask a real dropout (and its boot ramp can't false-trip loss at low fc).
     float32_t mag = sn * sn + cs * cs;
     g_dbg_resolver_mag = mag;
-    if(mag < SENSOR_RES_MAG_LOW || mag > SENSOR_RES_MAG_HIGH)
+    if(g_resolver_loss_inhibit)
+    {
+        // Scale calibration in progress: normalization is untrusted, so the
+        // window would false-trip. Hold the debounce reset (mag stays live
+        // above for telemetry); the align controller re-arms after commit.
+        g_resolver_loss_count = 0U;
+    }
+    else if(mag < SENSOR_RES_MAG_LOW || mag > SENSOR_RES_MAG_HIGH)
     {
         if(g_resolver_loss_count < 0xFFFFU) g_resolver_loss_count++;
         if(g_resolver_loss_count >= SENSOR_RES_LOSS_TICKS) g_resolver_lost = 1U;
@@ -95,20 +113,36 @@ static inline void sensor_update_isr(void)
     float32_t th = foc_atan2(asn, acs);
     if(th < 0.0f) th += TWO_PI_F;
 
+    // Direction fix: mirror the mechanical angle so the sensor counts positive
+    // with the electrical phase sequence. Flips the derived speed sign too
+    // (the diff below runs on the mirrored angle). Applied before offset/speed
+    // so everything downstream sees one consistent convention.
+    if(g_resolver_dir_inv)
+    {
+        th = TWO_PI_F - th;
+        if(th >= TWO_PI_F) th -= TWO_PI_F;   // th was exactly 0
+    }
+
     // Speed: wrap angle difference into [-pi, +pi), differentiate, LPF.
     float32_t dth = th - g_resolver_last_theta;
     if(dth >  3.14159265f) dth -= TWO_PI_F;
     if(dth < -3.14159265f) dth += TWO_PI_F;
     g_resolver_last_theta = th;
 
-    float32_t omega_raw = dth * FOC_ISR_FREQ_HZ;
+    // dth is in SENSOR-angle radians (the sensor cycles sensor_poles times per
+    // mech rev); divide by poles for true mechanical speed.
+    float32_t omega_raw = dth * FOC_ISR_FREQ_HZ * g_resolver_inv_poles;
     g_resolver_omega_mech += SENSOR_RES_SPEED_LPF_ALPHA
                              * (omega_raw - g_resolver_omega_mech);
 
+    // NOTE: holds the SENSOR angle [0, 2*pi) -- true mech angle only for a
+    // 1-speed sensor; ambiguous (mod 2*pi/poles of a rev) otherwise.
     g_resolver_theta_mech = th;
 
-    // Electrical angle: subtract calibrated offset, multiply by pole pairs, wrap.
-    float32_t e = (th - g_resolver_elec_offset) * (float32_t)MOTOR_POLE_PAIRS;
+    // Electrical angle: subtract the sensor-domain offset, scale by
+    // elec_ratio = MOTOR_POLE_PAIRS / sensor_poles, wrap. (Ratio 1 when the
+    // sense magnet tracks the rotor poles.)
+    float32_t e = (th - g_resolver_elec_offset) * g_resolver_elec_ratio;
     e -= (float32_t)(int32_t)(e * (1.0f / TWO_PI_F)) * TWO_PI_F;
     if(e < 0.0f) e += TWO_PI_F;
     g_resolver_theta_elec = e;
@@ -120,6 +154,18 @@ static inline void sensor_update_isr(void)
 }
 
 static inline float32_t sensor_get_elec_angle(void) { return g_resolver_theta_elec; }
+
+// Raw (uncorrected) electrical angle = sensor_angle * elec_ratio, wrapped to
+// [0, 2*pi) -- independent of the captured offset. Used by the ramp-and-average
+// align controller (foc_pipeline.c) exactly like the QEP g_qep_theta_raw_elec.
+static inline float32_t sensor_get_elec_angle_raw(void)
+{
+    float32_t e = g_resolver_theta_mech * g_resolver_elec_ratio;
+    e -= (float32_t)(int32_t)(e * (1.0f / TWO_PI_F)) * TWO_PI_F;
+    if(e < 0.0f) e += TWO_PI_F;
+    return e;
+}
+
 static inline float32_t sensor_get_elec_speed(void) { return g_resolver_omega_elec; }
 static inline bool      sensor_is_lost(void)        { return g_resolver_lost != 0U; }
 static inline float32_t sensor_get_healthy_speed(void) { return g_resolver_omega_healthy; }

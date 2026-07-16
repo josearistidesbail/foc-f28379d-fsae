@@ -29,6 +29,31 @@ volatile uint16_t g_dbg_iv_raw;
 volatile uint16_t g_dbg_iw_raw;
 volatile uint16_t g_dbg_vbus_raw;
 
+// Raw resolver SIN/COS ADC codes from the last adc_read_sin_cos(), exposed to
+// the host (scope channels res_sin/res_cos + sin_raw/cos_raw params) to diagnose
+// angle noise: DC level = bias (~RES_SINCOS_BIAS_CODE), swing = amplitude, and
+// the jitter band converts to mV (code * VREFHI / 4096) for a direct comparison
+// against the analog scope. Defined unconditionally so the shared datalog/scope
+// path links on every variant; only written in the RM44AC build (0 otherwise).
+volatile uint16_t g_dbg_sin_raw;
+volatile uint16_t g_dbg_cos_raw;
+
+#if SENSOR_BACKEND_RM44AC
+// Runtime per-channel SIN/COS normalization. Seeded from the hw_*.h guesses in
+// adc_init() (runtime seeding keeps .cinit from growing) and overwritten by
+// adc_set_sincos_scale() when the ALIGN calibration sweep captures the real
+// min/max codes. Amplitude is stored as a reciprocal so the ISR path stays
+// multiply-only. Written and read exclusively in ISR context - no races.
+volatile float g_res_sin_bias;
+volatile float g_res_sin_ampl_inv;
+volatile float g_res_cos_bias;
+volatile float g_res_cos_ampl_inv;
+// Low nibble: 0=defaults/never ran, 1=calibration applied, 2=rejected (kept
+// previous scale). High nibble: clip flags (set on apply OR reject) -
+// 0x10 sin clipped low, 0x20 sin clipped high, 0x40 cos low, 0x80 cos high.
+volatile uint16_t g_res_cal_status;
+#endif
+
 // The (result-register, SOC-index) pair for each signal, plus the EOC interrupt
 // that fires the ISR, come from the active hw_*.h (ADC_RESULT_BASE_*/ADC_SOC_*,
 // ADC_ISR_INT_BASE/NUMBER). Those MUST mirror the SysConfig SOC allocation. This
@@ -38,6 +63,13 @@ void adc_init(void)
 {
     // Nothing extra: SysConfig already enabled, calibrated, and trimmed the ADC
     // modules. The offset values get rewritten by adc_calibrate_offsets().
+#if SENSOR_BACKEND_RM44AC
+    g_res_sin_bias     = RES_SINCOS_BIAS_CODE;
+    g_res_sin_ampl_inv = 1.0f / RES_SINCOS_AMPL_CODE;
+    g_res_cos_bias     = RES_SINCOS_BIAS_CODE;
+    g_res_cos_ampl_inv = 1.0f / RES_SINCOS_AMPL_CODE;
+    g_res_cal_status   = 0U;
+#endif
 }
 
 static inline float code_to_amps(int32_t code, uint16_t offset, float sign)
@@ -86,11 +118,46 @@ void adc_read_sin_cos(float *out_sin, float *out_cos)
 {
     int32_t cs = (int32_t)ADC_readResult(ADC_RESULT_BASE_SIN, ADC_SOC_SIN);
     int32_t cc = (int32_t)ADC_readResult(ADC_RESULT_BASE_COS, ADC_SOC_COS);
-    // Bias-removed and scaled to ~[-1, +1] using the board's sin/cos bias and
-    // amplitude (codes). atan2 is amplitude-independent; the magnitude only
-    // feeds loss-of-signal, so an approximate amplitude is fine.
-    *out_sin = ((float)cs - RES_SINCOS_BIAS_CODE) * (1.0f / RES_SINCOS_AMPL_CODE);
-    *out_cos = ((float)cc - RES_SINCOS_BIAS_CODE) * (1.0f / RES_SINCOS_AMPL_CODE);
+    g_dbg_sin_raw = (uint16_t)cs;   // raw codes for host diagnostics (pre-scale)
+    g_dbg_cos_raw = (uint16_t)cc;
+    // Bias-removed and scaled to ~[-1, +1] with the runtime per-channel scale
+    // (seeded from the hw_*.h guesses, refined by the ALIGN calibration sweep).
+    *out_sin = ((float)cs - g_res_sin_bias) * g_res_sin_ampl_inv;
+    *out_cos = ((float)cc - g_res_cos_bias) * g_res_cos_ampl_inv;
+}
+
+// Commit the SIN/COS scale from calibration-sweep min/max raw codes. Sanity
+// gates: both spans must be real waveform excursions (not a stalled rotor or a
+// dead channel) and the two amplitudes must roughly match; otherwise the
+// current scale is kept. Called once per align from ISR context.
+bool adc_set_sincos_scale(uint16_t sin_min, uint16_t sin_max,
+                          uint16_t cos_min, uint16_t cos_max)
+{
+    uint16_t status = 0U;
+    if(sin_min <= SENSOR_RES_CAL_CLIP_LO_CODE) status |= 0x0010U;
+    if(sin_max >= SENSOR_RES_CAL_CLIP_HI_CODE) status |= 0x0020U;
+    if(cos_min <= SENSOR_RES_CAL_CLIP_LO_CODE) status |= 0x0040U;
+    if(cos_max >= SENSOR_RES_CAL_CLIP_HI_CODE) status |= 0x0080U;
+
+    float s_amp = 0.5f * ((float)sin_max - (float)sin_min);
+    float c_amp = 0.5f * ((float)cos_max - (float)cos_min);
+    float amp_hi = (s_amp > c_amp) ? s_amp : c_amp;
+    float amp_lo = (s_amp < c_amp) ? s_amp : c_amp;
+
+    if(sin_max <= sin_min || cos_max <= cos_min ||
+       amp_lo < SENSOR_RES_CAL_MIN_AMPL_CODES ||
+       (amp_hi - amp_lo) > SENSOR_RES_CAL_MAX_MISMATCH * amp_hi)
+    {
+        g_res_cal_status = status | 0x0002U;   // rejected, previous scale kept
+        return false;
+    }
+
+    g_res_sin_bias     = 0.5f * ((float)sin_max + (float)sin_min);
+    g_res_sin_ampl_inv = 1.0f / s_amp;
+    g_res_cos_bias     = 0.5f * ((float)cos_max + (float)cos_min);
+    g_res_cos_ampl_inv = 1.0f / c_amp;
+    g_res_cal_status   = status | 0x0001U;     // applied
+    return true;
 }
 #endif
 

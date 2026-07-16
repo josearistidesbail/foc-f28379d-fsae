@@ -8,9 +8,11 @@
 //   void  sensor_init(void);                 // boot-time setup
 //   void  sensor_update_isr(void);           // run inside foc_current_loop_isr
 //   float sensor_get_elec_angle(void);       // radians [0, 2*pi)
+//   float sensor_get_elec_angle_raw(void);   // uncorrected elec angle (align)
 //   float sensor_get_elec_speed(void);       // electrical rad/s
 //   bool  sensor_is_lost(void);              // true once feedback is lost
 //   float sensor_get_healthy_speed(void);    // last elec speed while healthy
+//   void  sensor_set_elec_offset(float rad); // store elec zero (align controller)
 //
 // sensor_is_lost() / sensor_get_healthy_speed() are static inline in the
 // backend inline headers (read backend globals). The health state is updated
@@ -35,11 +37,12 @@ extern void sensor_init(void);
 // derive speed inside sensor_update_isr() (resolver) implement this as a no-op.
 extern void sensor_update_speed_slow(void);
 
-// Latch the current rotor position as the new electrical zero. Backend-specific:
-//   QEP    : sets g_qep_theta_offset_elec so the present angle reads 0 (single-
-//            shot fallback; QEP alignment normally uses the ramp-and-average
-//            controller in foc_pipeline.c via sensor_set_elec_offset()).
-//   RM44AC : stores g_resolver_theta_mech into g_resolver_elec_offset
+// Single-shot fallback: latch the present rotor position as the electrical zero.
+// BOTH backends now align via the ramp-and-average controller in foc_pipeline.c
+// (settle, spin a couple mech revs, circular-average -> sensor_set_elec_offset()),
+// so this is no longer called by the align controller -- kept only as a fallback.
+//   QEP    : sets g_qep_theta_offset_elec so the present angle reads 0.
+//   RM44AC : stores g_resolver_theta_mech into g_resolver_elec_offset.
 extern void sensor_capture_zero(void);
 
 #if SENSOR_BACKEND_QEP

@@ -107,6 +107,10 @@ volatile uint16_t  g_dbg_control_mode;
 // speed the small applied Vq vs a large back-EMF can drive strong braking/
 // generation. The applied voltage is clamped to the inverter budget and the phase
 // overcurrent trip stays armed in FOC_RUN, but treat this as a bring-up tool.
+// In FOC_ALIGN_ROTOR, 0 instead selects the OPEN-LOOP ALIGN DRIVE: a fixed
+// d-axis modulation g_ol_mod in the duty domain (unity SVGEN bus, exactly like
+// FOC_OPENLOOP), so align + the SIN/COS scale calibration work on a bench where
+// the VBUS sense is absent (the PI clamp vmax_dyn ~ vbus would pass 0 V).
 volatile uint16_t  g_dbg_iloop_en;
 
 // Field weakening (Step 11). g_dbg_fw_en toggles it live (also the "fw_en" serial
@@ -137,6 +141,15 @@ static float32_t   s_speed_cmd;
 volatile float32_t g_ol_freq_hz = 5.0f;    // electrical frequency [Hz]
 volatile float32_t g_ol_mod     = 0.20f;   // q-axis drive (~peak duty deviation, 0..0.5)
 static   float32_t s_ol_theta;             // synthetic electrical angle [rad]
+
+// Bench VBUS override [V] ("vbus_ovr" param, NEEDS_IDLE). 0 = use the measured
+// bus (normal). >0 = substitute this fixed voltage for refs.vbus when the VBUS
+// sense is physically disconnected (reads ~0): without it the PI clamp
+// (vmax_dyn = frac*vbus/2) passes 0 V and the SVGEN 1/vbus normalization is
+// garbage, so RUN cannot drive the motor at all. Set it to the actual DC-link
+// voltage. WARNING: this also blinds the SW overvoltage trip (it compares
+// refs.vbus) -- bench-only tool, zero it once the sense line is repaired.
+volatile float32_t g_vbus_override_v = 0.0f;
 
 //-----------------------------------------------------------------------------
 // Trig/RTS-free square root for the flux-priority current-circle limit. The SDK
@@ -169,48 +182,76 @@ static void fw_reset(void)
 // Rotor alignment controller (runs inside the current-loop ISR while the state
 // machine is in FOC_ALIGN_ROTOR). The state machine just polls foc_align_done().
 //-----------------------------------------------------------------------------
-#if SENSOR_BACKEND_QEP
-// Ramp-and-average: settle the rotor at the commanded electrical zero, then
-// sweep the commanded field open-loop through ALIGN_RAMP_MECH_REVS whole
-// mechanical revolutions while circular-averaging (encoder_raw - commanded)
-// electrical angle. Averaging over integer mech revs cancels cogging/stiction
-// that biases a single-shot capture. Result stored as the electrical offset.
+// Ramp-and-average (both QEP and the RM44AC resolver): settle the rotor at the
+// commanded electrical zero, then sweep the commanded field open-loop through
+// ALIGN_RAMP_MECH_REVS whole mechanical revolutions while circular-averaging
+// (sensor_raw - commanded) electrical angle. Averaging over integer mech revs
+// cancels the cogging/stiction that biases a single-shot capture. Result stored
+// via sensor_set_elec_offset(). The resolver is absolute (its offset is a fixed
+// mechanical quantity), but the spin still helps: it averages out the
+// per-start-position settling error a single snapshot would otherwise bake in.
 #define ALIGN_SETTLE_TICKS  ((uint32_t)(ALIGN_SETTLE_S * FOC_ISR_FREQ_HZ))
 #define ALIGN_RAMP_TICKS    ((uint32_t)((ALIGN_RAMP_MECH_REVS / ALIGN_RAMP_MECH_SPEED_RPS) \
                                         * FOC_ISR_FREQ_HZ))
 // Per-ISR carrier advance [elec rad]: mech_rev/s * 2pi * pole_pairs * Ts.
 #define ALIGN_CARRIER_DTHETA \
     (ALIGN_RAMP_MECH_SPEED_RPS * 2.0f * MATH_PI * (float32_t)MOTOR_POLE_PAIRS * FOC_ISR_TS)
-#else
-#define ALIGN_SETTLE_TICKS  ((uint32_t)(ALIGN_DURATION_S * FOC_ISR_FREQ_HZ))
-#endif
 
 static FOC_State_t s_prev_state    = FOC_IDLE;
 static uint32_t    s_align_ticks;
 static bool        s_align_done;
-#if SENSOR_BACKEND_QEP
-// QEP ramp-and-average offset-capture state. The resolver backend is absolute
-// and captures in a single shot, so these are QEP-only (guarded to avoid
-// set-but-unused warnings in the resolver build).
+
+#if SENSOR_BACKEND_RM44AC
+// SIN/COS scale-calibration phase, inserted between settle and the offset
+// sweep (see sensor_rm44ac.h SENSOR_RES_CAL_*): drag the rotor through whole
+// mech rev(s) with the same carrier mechanism while tracking raw min/max ADC
+// codes per channel, then commit bias/amplitude via adc_set_sincos_scale() so
+// the offset sweep runs on the corrected normalization.
+#define ALIGN_CAL_TICKS ((uint32_t)((SENSOR_RES_CAL_MECH_REVS \
+                                     / ALIGN_RAMP_MECH_SPEED_RPS) * FOC_ISR_FREQ_HZ))
+volatile uint16_t g_res_cal_en = SENSOR_RES_CAL_DEFAULT_EN;  // "res_cal_en" param
+// Captured extremes (RO params cal_sin_min/... + Expressions view). Reset to
+// 0xFFFF/0 sentinels each align; only meaningful once the cal phase has run.
+volatile uint16_t g_res_cal_sin_min;
+volatile uint16_t g_res_cal_sin_max;
+volatile uint16_t g_res_cal_cos_min;
+volatile uint16_t g_res_cal_cos_max;
+static   uint32_t s_align_cal_ticks;   // latched at align entry (0 = cal disabled)
+static   bool     s_cal_committed;
+#endif
+// Ramp-and-average offset-capture state (both backends).
 static float32_t   s_align_carrier;     // commanded electrical angle during ALIGN
-// Trig-free circular mean of (encoder_raw - commanded). The samples cluster
+// Trig-free circular mean of (sensor_raw - commanded). The samples cluster
 // tightly around the true offset (constant offset + small cogging ripple), so we
 // anchor on the first sample and average the wrapped deviation from it -- no
 // sinf/cosf needed (which would pull large RTS tables into flash).
 static float32_t   s_align_ref;         // first (raw - carrier) sample
 static float32_t   s_align_sum;         // sum of wrapped deviations from ref
 static uint32_t    s_align_n;
-#endif
 
 static void align_reset(void)
 {
     s_align_ticks   = 0;
     s_align_done    = false;
-#if SENSOR_BACKEND_QEP
     s_align_carrier = 0.0f;
     s_align_ref     = 0.0f;
     s_align_sum     = 0.0f;
     s_align_n       = 0;
+#if SENSOR_BACKEND_RM44AC
+    s_align_cal_ticks = g_res_cal_en ? ALIGN_CAL_TICKS : 0U;  // latch: immune to mid-align writes
+    g_res_cal_sin_min = 0xFFFFU;
+    g_res_cal_sin_max = 0U;
+    g_res_cal_cos_min = 0xFFFFU;
+    g_res_cal_cos_max = 0U;
+    s_cal_committed   = false;
+    // Normalization is untrusted until the cal phase commits: hold the
+    // magnitude-window loss check reset AND drop any stale latch (with wrong
+    // scale g_resolver_lost may already be set from boot -- it is one-way and
+    // safety_check_isr() would fault ALIGN on its first tick). align_reset()
+    // runs before safety_check_isr() in the same ISR, so this is race-free.
+    g_resolver_lost         = 0U;
+    g_resolver_loss_count   = 0U;
+    g_resolver_loss_inhibit = 1U;
 #endif
 }
 
@@ -219,12 +260,47 @@ static void align_reset(void)
 // machine on ALIGN entry; the d-axis PI holds that current along the carrier.
 static float32_t align_step(void)
 {
-#if SENSOR_BACKEND_QEP
+#if SENSOR_BACKEND_RM44AC
+    const uint32_t cal_ticks = s_align_cal_ticks;
+#else
+    const uint32_t cal_ticks = 0U;
+#endif
     if(s_align_ticks < ALIGN_SETTLE_TICKS)
     {
         s_align_carrier = 0.0f;                         // lock to phase-U axis
     }
-    else if(s_align_ticks < ALIGN_SETTLE_TICKS + ALIGN_RAMP_TICKS)
+#if SENSOR_BACKEND_RM44AC
+    else if(s_align_ticks < ALIGN_SETTLE_TICKS + cal_ticks)
+    {
+        // SIN/COS scale calibration: same open-loop drag as the offset sweep
+        // below, but here we only track the raw ADC extremes of each channel
+        // (already latched by this ISR's adc_read_sin_cos()).
+        s_align_carrier += ALIGN_CARRIER_DTHETA;
+        if(s_align_carrier >= 2.0f * MATH_PI) s_align_carrier -= 2.0f * MATH_PI;
+
+        uint16_t sr = g_dbg_sin_raw;
+        uint16_t cr = g_dbg_cos_raw;
+        if(sr < g_res_cal_sin_min) g_res_cal_sin_min = sr;
+        if(sr > g_res_cal_sin_max) g_res_cal_sin_max = sr;
+        if(cr < g_res_cal_cos_min) g_res_cal_cos_min = cr;
+        if(cr > g_res_cal_cos_max) g_res_cal_cos_max = cr;
+
+        // Commit on the LAST cal tick: sensor_update_isr() runs before
+        // align_step() each ISR, so the offset sweep's very first (anchor)
+        // sample is already computed under the new scale.
+        if(!s_cal_committed &&
+           (s_align_ticks + 1U >= ALIGN_SETTLE_TICKS + cal_ticks))
+        {
+            (void)adc_set_sincos_scale(g_res_cal_sin_min, g_res_cal_sin_max,
+                                       g_res_cal_cos_min, g_res_cal_cos_max);
+            g_resolver_lost         = 0U;   // fresh start under the new scale
+            g_resolver_loss_count   = 0U;
+            g_resolver_loss_inhibit = 0U;   // re-arm loss detection
+            s_cal_committed         = true;
+        }
+    }
+#endif
+    else if(s_align_ticks < ALIGN_SETTLE_TICKS + cal_ticks + ALIGN_RAMP_TICKS)
     {
         s_align_carrier += ALIGN_CARRIER_DTHETA;        // slow open-loop sweep
         if(s_align_carrier >= 2.0f * MATH_PI) s_align_carrier -= 2.0f * MATH_PI;
@@ -245,21 +321,16 @@ static float32_t align_step(void)
         while(off >= 2.0f*MATH_PI) off -= 2.0f * MATH_PI;
         sensor_set_elec_offset(off);
         g_dbg_align_offset_elec = off * (180.0f / MATH_PI);
-        g_dbg_align_qep_cnt     = (int32_t)g_dbg_qep_count;
+#if SENSOR_BACKEND_QEP
+        g_dbg_align_qep_cnt     = (int32_t)g_dbg_qep_count;   // QEP-only raw count
+#endif
+#if SENSOR_BACKEND_RM44AC
+        g_resolver_loss_inhibit = 0U;   // belt-and-braces (cal disabled path)
+#endif
         s_align_done = true;
     }
     s_align_ticks++;
     return s_align_carrier;
-#else
-    // Resolver: absolute sensor, just settle then single-shot capture.
-    if(s_align_ticks >= ALIGN_SETTLE_TICKS && !s_align_done)
-    {
-        sensor_capture_zero();
-        s_align_done = true;
-    }
-    s_align_ticks++;
-    return 0.0f;
-#endif
 }
 
 bool foc_align_done(void) { return s_align_done; }
@@ -378,6 +449,14 @@ void foc_current_loop_isr(void)
     if(st == FOC_ALIGN_ROTOR && s_prev_state != FOC_ALIGN_ROTOR) align_reset();
     if(st == FOC_RUN         && s_prev_state != FOC_RUN)         fw_reset();
     if(st == FOC_OPENLOOP    && s_prev_state != FOC_OPENLOOP)    s_ol_theta = 0.0f;
+#if SENSOR_BACKEND_RM44AC
+    // ALIGN exited by ANY path (done, fault, stop): never leave the loss check
+    // disabled -- an align aborted mid-calibration must not blind a later RUN.
+    if(st != FOC_ALIGN_ROTOR && s_prev_state == FOC_ALIGN_ROTOR)
+    {
+        g_resolver_loss_inhibit = 0U;
+    }
+#endif
     s_prev_state = st;
 
     if(st == FOC_ALIGN_ROTOR)   s_sig.theta_elec = align_step();
@@ -401,9 +480,14 @@ void foc_current_loop_isr(void)
     //    uses the REFERENCE currents (omega is a coarse 1 kHz estimate; off the
     //    measured currents it would inject noise). Assumes theta_elec and
     //    omega_elec share a sign convention -- true at SENSOR_QEP_DIR_SIGN = +1.
+    // Latch the current-loop-bypass flag ONCE per ISR: it selects both the Vdq
+    // domain (volts vs duty) here and the SVGEN bus normalization in step 4 --
+    // a live toggle between the two reads would drive one tick with mismatched
+    // domain/normalization (duty-scale Vdq through the real 1/vbus).
+    uint16_t iloop = g_dbg_iloop_en;
     float vmax_dyn = VDQ_MAX_FRACTION * s_refs.vbus * 0.5f;
     float ff_d = 0.0f, ff_q = 0.0f;
-    if(st == FOC_RUN && g_dbg_decouple_en && g_dbg_iloop_en)
+    if(st == FOC_RUN && g_dbg_decouple_en && iloop)
     {
         float we = s_sig.omega_elec;
         ff_d = -we * MOTOR_LQ_H * s_refs.iq_ref;
@@ -415,7 +499,22 @@ void foc_current_loop_isr(void)
     PI_setMinMax(s_pi_iq, -vmax_dyn - ff_q, vmax_dyn - ff_q);
 
     //    (Only run when state machine allows it; otherwise zero outputs.)
-    if(st == FOC_RUN && !g_dbg_iloop_en)
+    if(st == FOC_ALIGN_ROTOR && !iloop)
+    {
+        // Open-loop align drive (current PIs bypassed). With the VBUS sense
+        // absent/untrusted the PI clamp above (vmax_dyn ~ 0) passes no voltage
+        // and align cannot move the rotor -- so drive the align carrier the way
+        // FOC_OPENLOOP does: a fixed d-axis modulation g_ol_mod ("ol_mod"
+        // param) in the DUTY domain (SVGEN gets a unity bus in step 4). At the
+        // slow carrier the current settles on the commanded angle (I ~ V/Rs),
+        // which is all the align/calibration sweeps need. Integrators held at 0
+        // so closed-loop align re-engages cleanly when iloop_en returns to 1.
+        s_sig.Vdq.value[0] = g_ol_mod;
+        s_sig.Vdq.value[1] = 0.0f;
+        PI_setUi(s_pi_id, 0.0f);
+        PI_setUi(s_pi_iq, 0.0f);
+    }
+    else if(st == FOC_RUN && !iloop)
     {
         // Open-loop resistive voltage mode (current PIs bypassed). Apply the DC
         // voltage that would drive the commanded current through the winding
@@ -545,9 +644,12 @@ void foc_current_loop_isr(void)
     //    safe-force, so calling it here would switch all three half-bridges and
     //    trip DRV8305 high-side VDS over-current (nFAULT) while "idle".
     s_refs.vbus = adc_read_vbus();
-    // Open-loop test uses a synthetic unity bus so g_ol_mod maps directly to duty
-    // (the bench has vbus~=0, which would blow up the real 1/vbus normalization).
-    if(st == FOC_OPENLOOP)
+    if(g_vbus_override_v > 0.0f) s_refs.vbus = g_vbus_override_v;  // bench: dead sense
+    // Open-loop test and open-loop align (iloop_en=0) use a synthetic unity bus
+    // so g_ol_mod maps directly to duty (the bench has vbus~=0, which would blow
+    // up the real 1/vbus normalization). `iloop` is the step-3 latched copy so
+    // the Vdq domain and this normalization can never disagree within a tick.
+    if(st == FOC_OPENLOOP || (st == FOC_ALIGN_ROTOR && !iloop))
         SVGEN_setOneOverDcBus_invV(s_svgen, 1.0f);
     else
         SVGEN_setOneOverDcBus_invV(s_svgen, 1.0f / s_refs.vbus);

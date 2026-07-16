@@ -11,10 +11,11 @@
 #include "debug_proto.h"
 
 // Ring columns: 0=theta, 1=Id, 2=Iq, 3=Vd, 4=Vq, 5=omega, 6=state,
-//               7=Iu, 8=Iv, 9=Iw  (cols 7/8/9 are the phase currents Iabc).
-#define DATALOG_CHANNELS    10
+//               7=Iu, 8=Iv, 9=Iw  (cols 7/8/9 are the phase currents Iabc),
+//               10=res_sin, 11=res_cos (raw resolver SIN/COS ADC codes).
+#define DATALOG_CHANNELS    12
 // Ring depth. 128 (not 256) so each per-array .ebss object (g_datalog =
-// 128*10 floats, s_scope_buf = 128*9 floats) fits inside a single 0x1000-word
+// 128*12 floats, s_scope_buf = 128*11 floats) fits inside a single 0x1000-word
 // F28379D RAM block: the linker's >> split places whole arrays per block and
 // cannot split one array across blocks. Must stay a power of 2.
 #define DATALOG_LEN_SAMPLES 128

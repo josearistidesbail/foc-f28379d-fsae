@@ -29,11 +29,25 @@
 #define SPEED_RAMP_RAD_S2       80.0f       // gentle accel for traction motor
 #define ID_REF_NOMINAL_A        0.0f        // start zero; MTPA can be added later
 
-// ---- Alignment current --------------------------------------------------
-// Resolver alignment uses a position-capture approach, not Id injection
-// at scale - keep injection modest.
-#define ALIGN_ID_INJECT_A       1.0f
-#define ALIGN_DURATION_S        5.0f
+// ---- Alignment (ramp-and-average offset capture) ------------------------
+// Same scheme as the QEP path (foc_pipeline.c align_step): settle at theta=0,
+// then slowly sweep the commanded field through an integer number of mechanical
+// revolutions while circular-averaging (resolver - commanded) electrical angle.
+// Averaging over whole mech revs cancels cogging/stiction. The resolver is
+// absolute, so this is about ACCURACY (cancelling the per-start-position settling
+// error), not establishing a boot-relative zero.
+// NOTE: ALIGN_ID_INJECT_A must be large enough to DRAG the EMRAX rotor through
+// detent as the carrier sweeps. 1.0 A is a conservative starting point on this
+// low-inductance traction motor; raise on the bench if the rotor stalls or skips
+// (watch g_dbg_align_offset_elec settle to the same value across start positions).
+// Stays well under the OC trip.
+#define ALIGN_ID_INJECT_A           1.0f
+#define ALIGN_SETTLE_S              3.0f    // lock to phase-U before sweeping
+#define ALIGN_RAMP_MECH_REVS        5.0f    // integer revs -> cancels cogging
+#define ALIGN_RAMP_MECH_SPEED_RPS   0.5f    // carrier speed [mech rev/s]; 5 Hz
+                                            // elec -- keep below the ~6 Hz the
+                                            // open-loop drag (ol_mod=0.11) was
+                                            // bench-proven at
 
 // ---- Cross-coupling / back-EMF feedforward ------------------------------
 // Compile-time default for g_dbg_decouple_en (see gains_teknic.h for the full

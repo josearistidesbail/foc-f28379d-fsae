@@ -40,12 +40,15 @@
       "Bash(awk '/MEMORY CONFIGURATION/{f=1} f{print} /SEGMENT ALLOCATION MAP/{exit}' foc_f28379d.map)",
       "Bash(awk '{print $2, $3, $4}')",
       "Bash(sort -k1 -r)",
+      "Bash(grep -v -E '\\\\.\\(obj|lst|d|asm\\)$')",
+      "Bash(grep -iE '\\\\.\\(py|js|ts|tsx|jsx|qml\\)$')",
+      "Bash(python -m py_compile foc_debug/proto.py foc_debug/gui.py foc_debug/api.py foc_debug/viewer.py)",
+      "Bash(python -c *)",
+      "Bash(./.venv/bin/python -c ' *)",
       "mcp__ccs-debug",
       "mcp__ccs-project",
       "mcp__ccs-sysconfig",
-      "mcp__ccs-serial",
-      "Bash(grep -v -E '\\\\.\\(obj|lst|d|asm\\)$')",
-      "Bash(grep -iE '\\\\.\\(py|js|ts|tsx|jsx|qml\\)$')"
+      "mcp__ccs-serial"
     ],
     "ask": [
       "mcp__ccs-project__changeSysConfigVersion"

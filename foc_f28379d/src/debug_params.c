@@ -43,12 +43,35 @@ extern volatile float32_t g_dbg_vmag;                   // src/foc_pipeline.c
 extern volatile float32_t g_ol_freq_hz;                 // src/foc_pipeline.c
 extern volatile float32_t g_ol_mod;                     // src/foc_pipeline.c
 
+// Bench VBUS override [V]: 0 = use measured bus, >0 = fixed substitute for a
+// disconnected VBUS sense (see g_vbus_override_v in foc_pipeline.c).
+extern volatile float32_t g_vbus_override_v;            // src/foc_pipeline.c
+
 #if SENSOR_BACKEND_RM44AC
 // RM44AC SIN/COS input low-pass: runtime enable + cutoff [Hz]. The hz setter
 // recomputes the IIR coefficient (g_resolver_filt_alpha). See sensor_rm44ac.c.
 extern volatile uint16_t  g_resolver_filt_en;           // src/sensor_rm44ac.c
 extern volatile float32_t g_resolver_filt_hz;           // src/sensor_rm44ac.c
 extern volatile float32_t g_resolver_filt_alpha;        // src/sensor_rm44ac.c
+
+// Resolver diagnostics: raw SIN/COS ADC codes and the latest sin^2+cos^2 (RAW).
+// Lets the host read the two channels the angle is derived from and their vector
+// magnitude (healthy ~1.0) to tell circuit noise from ADC/scaling problems.
+extern volatile uint16_t  g_dbg_sin_raw;                // src/adc_iface.c
+extern volatile uint16_t  g_dbg_cos_raw;                // src/adc_iface.c
+extern volatile float32_t g_dbg_resolver_mag;           // src/sensor_rm44ac.c
+extern volatile uint16_t  g_resolver_dir_inv;           // src/sensor_rm44ac.c
+extern volatile uint16_t  g_resolver_sensor_poles;      // src/sensor_rm44ac.c
+extern void sensor_rm44ac_apply_poles(uint16_t poles);  // src/sensor_rm44ac.c
+
+// SIN/COS scale calibration (ALIGN cal phase): enable + captured raw extremes
+// (foc_pipeline.c) and the commit status word (adc_iface.c, via adc_iface.h).
+extern volatile uint16_t  g_res_cal_en;                 // src/foc_pipeline.c
+extern volatile uint16_t  g_res_cal_sin_min;            // src/foc_pipeline.c
+extern volatile uint16_t  g_res_cal_sin_max;            // src/foc_pipeline.c
+extern volatile uint16_t  g_res_cal_cos_min;            // src/foc_pipeline.c
+extern volatile uint16_t  g_res_cal_cos_max;            // src/foc_pipeline.c
+extern volatile uint16_t  g_res_cal_status;             // src/adc_iface.c
 #endif
 
 // ---- raw <-> float bit-cast helpers (C28x: float32_t and uint32_t are 32b) --
@@ -151,6 +174,14 @@ static void set_ol_mod(uint32_t  r){ float32_t m = raw_to_f32(r);
                                      if(m < 0.0f) m = 0.0f; if(m > 0.5f) m = 0.5f;
                                      g_ol_mod = m; }
 
+// Bench VBUS override. NEEDS_IDLE: swapping the bus value mid-RUN rescales the
+// PI clamp and the volts->duty normalization in one tick (a torque jolt).
+// Negative writes floor to 0 (= use the measured bus).
+static void get_vbus_ovr(uint32_t *r){ *r = f32_to_raw(g_vbus_override_v); }
+static void set_vbus_ovr(uint32_t  r){ float32_t v = raw_to_f32(r);
+                                       if(v < 0.0f) v = 0.0f;
+                                       g_vbus_override_v = v; }
+
 #if SENSOR_BACKEND_RM44AC
 // RM44AC SIN/COS input low-pass. Live (no NEEDS_IDLE) so it can be A/B'd on the
 // bench; the IIR state stays primed every ISR so toggling en is bumpless.
@@ -166,6 +197,20 @@ static void set_res_filt_hz(uint32_t  r){ float32_t hz = raw_to_f32(r);
                                           if(a < 0.0f) a = 0.0f;
                                           g_resolver_filt_hz    = hz;
                                           g_resolver_filt_alpha = a; }
+// SIN/COS scale-calibration enable: 1 = the ALIGN sequence prepends the min/max
+// capture sweep, 0 = skip it (keep the current scale). NEEDS_IDLE for hygiene;
+// the align controller also latches the value at ALIGN entry.
+static void get_res_cal_en(uint32_t *r){ *r = (uint32_t)g_res_cal_en; }
+static void set_res_cal_en(uint32_t  r){ g_res_cal_en = (uint16_t)(r ? 1U : 0U); }
+// Angle-direction inversion (1 = mirror mech angle). NEEDS_IDLE: flipping the
+// angle convention mid-drive reverses commutation instantly. RE-RUN ALIGN
+// after changing it -- the captured offset belongs to the old direction.
+static void get_res_dir(uint32_t *r){ *r = (uint32_t)g_resolver_dir_inv; }
+static void set_res_dir(uint32_t  r){ g_resolver_dir_inv = (uint16_t)(r ? 1U : 0U); }
+// Sensor speed (sin/cos cycles per mech rev). NEEDS_IDLE; the setter clamps to
+// 1..50 and recomputes the elec/mech scale factors. RE-RUN ALIGN after changing.
+static void get_res_poles(uint32_t *r){ *r = (uint32_t)g_resolver_sensor_poles; }
+static void set_res_poles(uint32_t  r){ sensor_rm44ac_apply_poles((uint16_t)r); }
 #endif
 
 // ---- Read-only telemetry -------------------------------------------------
@@ -195,6 +240,23 @@ static void get_fault_code(uint32_t *r){ *r = (uint32_t)safety_get_latched(); }
 // shows the raw MODULE_FLT_* bits the gate drivers are pulling).
 static void get_tz_trip(uint32_t *r)      { *r = g_dbg_tz_trip; }
 static void get_module_fault(uint32_t *r) { *r = (uint32_t)inverter_fault_status(); }
+
+#if SENSOR_BACKEND_RM44AC
+// Resolver front-end readouts: raw SIN/COS ADC codes and the vector magnitude.
+// Pair these with the res_sin/res_cos scope channels to see the two signals the
+// angle is built from (DC = bias, jitter band -> mV vs the analog scope).
+static void get_sin_raw(uint32_t *r) { *r = (uint32_t)g_dbg_sin_raw; }
+static void get_cos_raw(uint32_t *r) { *r = (uint32_t)g_dbg_cos_raw; }
+static void get_res_mag(uint32_t *r) { *r = f32_to_raw(g_dbg_resolver_mag); }
+// Scale-calibration readouts: raw extremes captured by the last ALIGN cal
+// sweep (bias=(min+max)/2, ampl=(max-min)/2 in codes) and the commit status
+// (low nibble 0=never ran, 1=applied, 2=rejected; 0x00F0 = clip flags).
+static void get_cal_sin_min(uint32_t *r){ *r = (uint32_t)g_res_cal_sin_min; }
+static void get_cal_sin_max(uint32_t *r){ *r = (uint32_t)g_res_cal_sin_max; }
+static void get_cal_cos_min(uint32_t *r){ *r = (uint32_t)g_res_cal_cos_min; }
+static void get_cal_cos_max(uint32_t *r){ *r = (uint32_t)g_res_cal_cos_max; }
+static void get_cal_status(uint32_t *r) { *r = (uint32_t)g_res_cal_status; }
+#endif
 
 // ---- Motor / loop constants (read-only, for the host PI autotuner) --------
 // The autotuner derives gains from the plant (R, L), the loop timestep, and the
@@ -236,10 +298,14 @@ const param_entry_t g_param_table[] =
     { 0x0040U, PARAM_TYPE_U16, 0,                     "ol_run",     get_ol_run,   set_ol_run    },
     { 0x0041U, PARAM_TYPE_F32, 0,                     "ol_freq",    get_ol_freq,  set_ol_freq   },
     { 0x0042U, PARAM_TYPE_F32, 0,                     "ol_mod",     get_ol_mod,   set_ol_mod    },
+    { 0x0043U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "vbus_ovr",   get_vbus_ovr, set_vbus_ovr  },
 
 #if SENSOR_BACKEND_RM44AC
     { 0x0035U, PARAM_TYPE_U16, 0,                     "res_filt_en", get_res_filt_en, set_res_filt_en },
     { 0x0036U, PARAM_TYPE_F32, 0,                     "res_filt_hz", get_res_filt_hz, set_res_filt_hz },
+    { 0x0039U, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "res_cal_en",  get_res_cal_en,  set_res_cal_en  },
+    { 0x003AU, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "res_dir_inv", get_res_dir,     set_res_dir     },
+    { 0x003BU, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "res_poles",   get_res_poles,   set_res_poles   },
 #endif
 
     { 0x0100U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "state",      get_state,     0            },
@@ -252,6 +318,19 @@ const param_entry_t g_param_table[] =
     { 0x0107U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "fault_code", get_fault_code, 0           },
     { 0x0108U, PARAM_TYPE_U32, PARAM_FLAG_RO,         "tz_trip",    get_tz_trip,    0            },
     { 0x0109U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "module_fault", get_module_fault, 0        },
+
+#if SENSOR_BACKEND_RM44AC
+    // Resolver front-end diagnostics (raw ADC codes + vector magnitude).
+    { 0x0119U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "sin_raw",    get_sin_raw,   0            },
+    { 0x011AU, PARAM_TYPE_U16, PARAM_FLAG_RO,         "cos_raw",    get_cos_raw,   0            },
+    { 0x011BU, PARAM_TYPE_F32, PARAM_FLAG_RO,         "res_mag",    get_res_mag,   0            },
+    // SIN/COS scale calibration: extremes from the last ALIGN cal sweep + status.
+    { 0x011CU, PARAM_TYPE_U16, PARAM_FLAG_RO,         "cal_sin_min", get_cal_sin_min, 0         },
+    { 0x011DU, PARAM_TYPE_U16, PARAM_FLAG_RO,         "cal_sin_max", get_cal_sin_max, 0         },
+    { 0x011EU, PARAM_TYPE_U16, PARAM_FLAG_RO,         "cal_cos_min", get_cal_cos_min, 0         },
+    { 0x011FU, PARAM_TYPE_U16, PARAM_FLAG_RO,         "cal_cos_max", get_cal_cos_max, 0         },
+    { 0x0120U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "cal_status",  get_cal_status,  0         },
+#endif
 
     // Motor / loop constants the host PI autotuner reads to compute gains.
     { 0x0110U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "rs_ohm",        get_rs_ohm,        0       },

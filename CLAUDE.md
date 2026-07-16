@@ -148,6 +148,11 @@ volatile uint16_t g_dbg_iu_raw;     // raw ADC Iu (~2048 at zero current with ha
 volatile uint16_t g_dbg_iv_raw;
 volatile uint16_t g_dbg_iw_raw;
 volatile uint16_t g_dbg_vbus_raw;
+volatile uint16_t g_dbg_sin_raw;    // raw resolver SIN ADC code (last adc_read_sin_cos); DC=bias ~2253, jitter*0.732=mV
+volatile uint16_t g_dbg_cos_raw;    // raw resolver COS ADC code; 0 on non-RM44AC builds
+//   Host: scope channels res_sin/res_cos (SCOPE_BIT_RES_SIN/COS 0x200/0x400, datalog cols 10/11) plot these raw
+//   codes over time; RO params sin_raw/cos_raw (0x0119/0x011A) + res_mag (0x011B = g_dbg_resolver_mag, ~1.0 healthy)
+//   give the static readout. Added to diagnose resolver angle noise (theta jitter vs analog-scope mV).
 
 // src/sensor_qep.c   (Step 3 verification)
 volatile uint32_t g_dbg_qep_count;        // QPOSCNT
@@ -207,6 +212,28 @@ volatile uint16_t  g_dbg_iloop_en;          // 1=current PIs enforced (default F
 //   Vd=MOTOR_RS_OHM*id_ref, Vq=MOTOR_RS_OHM*iq_ref using the live sensor angle — no PI, no integrator, NO back-EMF FF.
 //   Use control_mode=torque so iq_ref flows directly. id_ref is NOT overwritten by the FW/id-ownership block while open-loop.
 //   Vd/Vq clamped to the inverter budget; phase OC trip stays armed. WARNING: ignores back-EMF — low/zero speed ONLY.
+//   When 0 in ALIGN_ROTOR: OPEN-LOOP ALIGN DRIVE — fixed d-axis modulation g_ol_mod ("ol_mod" param) in the DUTY
+//   domain (unity SVGEN bus, same mechanism as FOC_OPENLOOP), so align + the SIN/COS cal sweep work with the VBUS
+//   sense disconnected (otherwise the PI clamp vmax_dyn = frac·vbus/2 ≈ 0 passes 0 V and the rotor never moves —
+//   bench symptom 2026-07-14: align "runs" but no spin, cal rejects, SENSOR_LOSS on re-arm). The flag is latched
+//   once per ISR (`iloop` local) so the Vdq domain and SVGEN normalization always agree within a tick.
+//   EMRAX align carrier slowed to 0.5 mech rev/s (5 Hz elec, gains_emrax.h) to stay inside the bench-proven
+//   open-loop drag envelope (ol_mod=0.11 @ 6 Hz elec); align-only sequence is now ~7 s / 3 mech revs.
+
+// src/sensor_rm44ac.c       (resolver direction; SENSOR_RM44AC only)
+volatile uint16_t  g_resolver_dir_inv;  // 1 = mirror mech angle th→2π−th ("res_dir_inv" param 0x003A, NEEDS_IDLE;
+//   default SENSOR_RES_DIR_INV_DEFAULT=0). The RM44AC backend had NO direction handling (QEP has
+//   SENSOR_QEP_DIR_SIGN) — if the resolver counts opposite to the U→V→W sequence, RUN makes zero average torque
+//   (noise only) and the align offset is garbage/non-repeatable. Bench test: ol_run at +ol_freq spins +electrical
+//   by construction → omega_meas must read ≈ +2π·ol_freq; negative ⇒ set res_dir_inv=1. RE-RUN ALIGN after
+//   changing it (offset belongs to the direction it was captured with).
+
+// src/foc_pipeline.c        (bench VBUS override — dead VBUS sense workaround)
+volatile float32_t g_vbus_override_v;   // "vbus_ovr" param (0x0043, F32, NEEDS_IDLE); 0=use measured bus (default),
+//   >0 = substitute a fixed DC-link voltage for refs.vbus. RUN needs a sane vbus everywhere (PI clamp
+//   vmax_dyn=frac·vbus/2, SVGEN 1/vbus volts→duty, FW vmax) — with the sense disconnected all of RUN is dead even
+//   with iloop_en=0 (resistive mode is volts-domain). Set to the real supply voltage on the bench. WARNING: blinds
+//   the SW OV trip (compares refs.vbus); bench-only, zero it once the sense line is repaired.
 
 // src/isr.c                 (Step 9 — HW trip-zone)
 volatile uint32_t g_dbg_tz_trip;        // count of ePWM one-shot trip-zone events (nFAULT→TZ1)
@@ -234,6 +261,23 @@ volatile float32_t g_resolver_cos_filt;    // IIR state, cos channel
 //   Matched 1st-order LPF on sin/cos applied before atan2 (sensor_rm44ac_inline.h); loss-of-signal still on RAW mag.
 //   Tradeoff: adds angle lag ≈ ωe/(2π·fc) (the pole-pair multiply scales it up) — keep fc above running elec freq.
 //   Both params are LIVE (no NEEDS_IDLE) so they can be A/B'd on the bench. IDs 0x0035/0x0036.
+
+// src/foc_pipeline.c + src/adc_iface.c  (SIN/COS scale calibration during ALIGN; SENSOR_RM44AC only)
+volatile uint16_t  g_res_cal_en;        // 1=ALIGN prepends the cal sweep (default SENSOR_RES_CAL_DEFAULT_EN=1); "res_cal_en" param 0x0039, NEEDS_IDLE
+volatile uint16_t  g_res_cal_sin_min;   // raw ADC extremes captured by the cal sweep; RO params cal_sin_min/max,
+volatile uint16_t  g_res_cal_sin_max;   //   cal_cos_min/max (0x011C–0x011F). Sentinels 0xFFFF/0 until the sweep runs.
+volatile uint16_t  g_res_cal_cos_min;   //   Bake into hw_control_v2.h RES_SINCOS_* once stable (values are RAM-only).
+volatile uint16_t  g_res_cal_cos_max;
+volatile uint16_t  g_res_cal_status;    // "cal_status" 0x0120: low nibble 0=never ran, 1=applied, 2=rejected (kept old scale);
+                                        //   clip flags 0x10 sin-low, 0x20 sin-high, 0x40 cos-low, 0x80 cos-high
+volatile float     g_res_sin_bias, g_res_sin_ampl_inv, g_res_cos_bias, g_res_cos_ampl_inv; // runtime per-channel scale
+                                        //   (adc_iface.c; seeded from RES_SINCOS_BIAS/AMPL_CODE in adc_init, ampl as reciprocal)
+volatile uint16_t  g_resolver_loss_inhibit; // loss check held reset from ALIGN entry until the scale commits (untrusted
+                                        //   normalization would false-trip); force-cleared on ANY ALIGN exit (fault/stop too)
+//   New align ladder: settle 1 s → CAL sweep 1 mech rev (SENSOR_RES_CAL_MECH_REVS, min/max tracking, commit via
+//   adc_set_sincos_scale on the last tick — sanity gates: span ≥ SENSOR_RES_CAL_MIN_AMPL_CODES, sin/cos amplitude
+//   mismatch ≤ 30%) → offset sweep 2 mech revs (unchanged, now on corrected scale) → finalize. ~4 s total.
+//   align_reset() also clears a possibly boot-latched g_resolver_lost (one-way latch + wrong default scale).
 
 // src/inverter_custom_v2.c  (Step 9/10 — production module faults; HW_CONTROL_BOARD_V2 only)
 volatile uint16_t g_dbg_module_fault;   // MODULE_FLT_* bitfield snapshot at fault entry (OC_A/B/C,OT,DCOV)

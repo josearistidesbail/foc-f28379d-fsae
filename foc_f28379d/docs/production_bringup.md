@@ -112,7 +112,7 @@ one move.
 | Gate driver | DRV8305 over SPI (register config, SPI fault readback) | discrete EN + fault GPIO(s); no SPI — `inverter_custom_v2.c` |
 | Fault path | single DRV8305 nFAULT | per-flag module outputs (OC_A/B/C, OT, DCOV) |
 | Angle sensor | eQEP (incremental, index) | RM44AC sin/cos (absolute, `atan2`) |
-| Alignment | ramp-and-average (incremental) | settle + single-shot capture (absolute) |
+| Alignment | ramp-and-average (spin a couple mech revs) | ramp-and-average (same scheme; absolute sensor) |
 | Current sense | DRV8305 SOx shunt amps | LEM / external shunt+amp (`hw_control_v2.h`) |
 | HV safe-state | low-side ASC vs coast (speed-gated) | same logic; thresholds per EMRAX |
 
@@ -126,9 +126,9 @@ Each value has a home in code; capture the real number on the bench and commit i
 | `ISENSE_AMPS_PER_CODE` | `hw_control_v2.h` (`LEM_V_PER_A` / shunt+gain) | inject a known DC current, scale codes→amps |
 | `ISENSE_SIGN_U/V/W` | `hw_control_v2.h` | known +current into a phase → sign of measured Id/Iq |
 | `VBUS_DIVIDER_RATIO` | `hw_control_v2.h` | measure DC link with a meter vs `g_dbg_vbus_raw` |
-| Resolver sin/cos scale | `adc_read_sin_cos()` (`adc_iface.c`) | bias + amplitude from the RM44AC outputs; make `sin²+cos²≈1` |
+| Resolver sin/cos scale | auto: ALIGN cal sweep → `adc_set_sincos_scale()`; defaults `RES_SINCOS_BIAS/AMPL_CODE` (`hw_control_v2.h`) | run ALIGN with `res_cal_en=1` (default): a 1-mech-rev open-loop sweep captures per-channel raw min/max, applies `bias=(min+max)/2`, `ampl=(max−min)/2` at runtime. Read `cal_sin_min/max`, `cal_cos_min/max`, `cal_status` (1=applied, 2=rejected, 0x00F0=clip flags) and bake the numbers into `hw_control_v2.h`. `sin²+cos²≈1` afterwards |
 | `SENSOR_RES_MAG_LOW/HIGH` | `sensor_rm44ac.h` | set the loss window around the measured `g_dbg_resolver_mag` |
-| Electrical offset | `align` (auto, `sensor_rm44ac_capture_zero()`) | run ALIGN; verify it repeats across rotor start positions |
+| Electrical offset | `align` (auto, ramp-and-average → `sensor_set_elec_offset()`) | run ALIGN (spins ~2 mech revs); verify `g_dbg_align_offset_elec` repeats across rotor start positions. Raise `ALIGN_ID_INJECT_A` if the rotor stalls/skips during the sweep |
 | Current-loop gains | `gains_emrax.h` (`GAIN_K*_ID/IQ`) | re-derive from measured Rs/Ld/Lq (param-ID) |
 | Speed-loop gains | `gains_emrax.h` (`GAIN_K*_SPEED`) | tune live over serial (`kp_w`/`ki_w`) |
 | FW gains | `gains_emrax.h` (`GAIN_K*_FW`) | bench-tune against real bus; default OFF |
@@ -151,8 +151,24 @@ Each value has a home in code; capture the real number on the bench and commit i
    spurious trip. Verify `inverter_is_faulted()` reflects a deliberately forced flag.
    *(First revert the bench bypass — `BENCH_NO_POWER_STAGE = 0` — so the trip-zone
    + gate-driver protection is armed; see "Control-board-only bench" above.)*
-6. **Rotor alignment** — `g_dbg_sm_cmd=1`; ALIGN injects Id at θ=0, captures the
-   electrical offset; verify it repeats within a few degrees across start positions.
+6. **Rotor alignment** — `g_dbg_sm_cmd=1`; ALIGN settles Id at θ=0, then (with
+   `res_cal_en=1`, default) drags the rotor 1 open-loop mech rev capturing the
+   raw SIN/COS min/max and committing the per-channel scale
+   (`SENSOR_RES_CAL_*` in `sensor_rm44ac.h`), then slowly spins the commanded
+   field ~2 more mech revs while circular-averaging the offset
+   (`ALIGN_SETTLE_S` / `ALIGN_RAMP_MECH_REVS` / `ALIGN_RAMP_MECH_SPEED_RPS` in
+   `gains_emrax.h`) — ~4 s, 3 mech revs total. Loss detection is inhibited
+   until the scale commits (the pre-cal normalization is untrusted). Read
+   `cal_status`/`cal_*_min/max`, then `g_dbg_align_offset_elec` (degrees);
+   verify the offset repeats within a few degrees across start positions. If
+   the rotor stalls/skips during the sweep, raise `ALIGN_ID_INJECT_A` (a
+   stalled cal sweep is auto-rejected: `cal_status=2`, previous scale kept).
+   **VBUS sense not connected?** The current PIs are clamped to
+   `±VDQ_MAX_FRACTION·vbus/2 ≈ 0 V` and align cannot move the rotor (no spin →
+   cal rejected → SENSOR_LOSS when loss detection re-arms). Set `iloop_en=0`
+   before Calibrate: ALIGN then drives the carrier open-loop in the duty
+   domain with `ol_mod` (same mechanism as `ol_run`; 0.11 is bench-proven).
+   Restore `iloop_en=1` once the bus sense works.
 7. **Closed-loop current** — small `iq_ref` in TORQUE mode; Id≈0, Iq tracks;
    `|Vdq|` (`g_dbg_vmag`) well under the bus budget.
 8. **Speed loop** — SPEED mode; `omega_meas` tracks the ramped setpoint.

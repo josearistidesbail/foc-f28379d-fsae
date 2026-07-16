@@ -20,7 +20,7 @@ FRAME_SYNC0 = 0xAA
 FRAME_SYNC1 = 0x55
 # Largest response payload the host will accept. The SCOPE_CAPTURE frame is the
 # biggest: with every catalog signal selected, 5 + DATALOG_LEN_SAMPLES(128) *
-# SCOPE_MAX_CHANNELS(9) * 4 = 4613 bytes, so this stays comfortably above that.
+# SCOPE_MAX_CHANNELS(11) * 4 = 5637 bytes, so this stays comfortably above that.
 # Enforced in link.py on RX. Keep in sync with debug_proto.h.
 FRAME_MAX_PAYLOAD = 8192
 
@@ -89,6 +89,10 @@ SCOPE_CATALOG = [
     (6, "Iu"),
     (7, "Iv"),
     (8, "Iw"),
+    # Raw resolver SIN/COS ADC codes (RM44AC builds; 0 on other backends). Watch
+    # these alongside theta_elec to tell circuit noise from ADC/scaling issues.
+    (9, "res_sin"),
+    (10, "res_cos"),
 ]
 SCOPE_MAX_CHANNELS = len(SCOPE_CATALOG)
 

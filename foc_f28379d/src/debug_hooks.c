@@ -6,6 +6,12 @@
 #include "build_config.h"
 #include "debug_hooks.h"
 
+// Raw resolver SIN/COS ADC codes (adc_iface.c). Logged as scope cols 10/11 so
+// the host can watch the two resolver channels the angle is derived from. 0 on
+// backends that don't sample sin/cos.
+extern volatile uint16_t g_dbg_sin_raw;
+extern volatile uint16_t g_dbg_cos_raw;
+
 // Push into .ebss (far-data) because the linker cmd lets .ebss fragment
 // across RAMLS5 | RAMGS0 | RAMGS1; default .bss is RAMLS5-only and too small.
 #pragma DATA_SECTION(g_datalog, ".ebss")
@@ -17,9 +23,9 @@ static uint16_t   s_decim_cnt = 0U;
 
 // Catalog bit -> g_datalog column map (see debug_proto.h SCOPE_BIT_*):
 //   bit0 Id=1, bit1 Iq=2, bit2 theta=0, bit3 omega=5, bit4 Vd=3, bit5 Vq=4,
-//   bit6 Iu=7, bit7 Iv=8, bit8 Iw=9
+//   bit6 Iu=7, bit7 Iv=8, bit8 Iw=9, bit9 res_sin=10, bit10 res_cos=11
 static const uint16_t s_scope_cols[SCOPE_MAX_CHANNELS] =
-    { 1U, 2U, 0U, 5U, 3U, 4U, 7U, 8U, 9U };
+    { 1U, 2U, 0U, 5U, 3U, 4U, 7U, 8U, 9U, 10U, 11U };
 
 void debug_init(void)
 {
@@ -46,6 +52,8 @@ void debug_datalog_push(const FOC_Signals_t *s, uint16_t state)
     g_datalog[i][7] = s->Iabc.value[0];  // Iu
     g_datalog[i][8] = s->Iabc.value[1];  // Iv
     g_datalog[i][9] = s->Iabc.value[2];  // Iw
+    g_datalog[i][10] = (float)g_dbg_sin_raw;  // raw resolver SIN ADC code
+    g_datalog[i][11] = (float)g_dbg_cos_raw;  // raw resolver COS ADC code
     g_datalog_idx = (i + 1U) & (DATALOG_LEN_SAMPLES - 1U);
 }
 

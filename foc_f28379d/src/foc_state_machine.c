@@ -181,8 +181,8 @@ void sm_tick_1khz(void)
 
     case FOC_ALIGN_ROTOR:
         // The alignment controller runs inside the current-loop ISR
-        // (foc_pipeline.c): QEP does ramp-and-average offset capture, the
-        // resolver does settle-then-capture. We wait for it to report done.
+        // (foc_pipeline.c): both QEP and the resolver do ramp-and-average offset
+        // capture (settle, then spin a couple mech revs). We wait for done.
         if(foc_align_done())
         {
             s_aligned = true;           // rotor electrical offset now valid

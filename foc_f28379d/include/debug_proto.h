@@ -28,7 +28,7 @@
 #define FRAME_CRC_LEN        2U
 // Protocol cap for responses (requests are tiny). Must stay >= the largest
 // response: a full SCOPE_CAPTURE with every catalog signal selected =
-// 5 + DATALOG_LEN_SAMPLES(128)*SCOPE_MAX_CHANNELS(9)*4 = 4613 bytes. Not enforced
+// 5 + DATALOG_LEN_SAMPLES(128)*SCOPE_MAX_CHANNELS(11)*4 = 5637 bytes. Not enforced
 // on the TX path here (the response is streamed); the host (proto.py) enforces it
 // on RX, so this is the value that must match there.
 #define FRAME_MAX_PAYLOAD    8192U
@@ -92,6 +92,8 @@
 //   6    0x040   Iu           7
 //   7    0x080   Iv           8
 //   8    0x100   Iw           9
+//   9    0x200   res_sin      10   (raw resolver SIN ADC code; RM44AC only)
+//  10    0x400   res_cos      11   (raw resolver COS ADC code; RM44AC only)
 #define SCOPE_BIT_ID         0x0001U
 #define SCOPE_BIT_IQ         0x0002U
 #define SCOPE_BIT_THETA      0x0004U
@@ -101,8 +103,10 @@
 #define SCOPE_BIT_IU         0x0040U
 #define SCOPE_BIT_IV         0x0080U
 #define SCOPE_BIT_IW         0x0100U
+#define SCOPE_BIT_RES_SIN    0x0200U
+#define SCOPE_BIT_RES_COS    0x0400U
 
-#define SCOPE_MAX_CHANNELS   9U        // number of catalog signals (popcount cap)
+#define SCOPE_MAX_CHANNELS   11U       // number of catalog signals (popcount cap)
 
 // Default channel set (v1): Id, Iq, theta_elec, omega_elec. Used when the host
 // has not selected a mask (or selects an empty one).
