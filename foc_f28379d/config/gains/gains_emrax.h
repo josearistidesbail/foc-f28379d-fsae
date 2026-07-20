@@ -49,6 +49,22 @@
                                             // open-loop drag (ol_mod=0.11) was
                                             // bench-proven at
 
+// Boot default for g_ol_mod ("ol_mod" param): open-loop drive in the DUTY domain
+// (~peak duty deviation). 0.11 is the value bench-proven to drag the EMRAX rotor
+// open-loop at ~6 Hz electrical (2026-07-14) -- enough to move it, low enough not
+// to slam current into a stalled rotor.
+#define OL_MOD_DEFAULT              0.11f
+
+// Compile-time default for g_align_offset_en ("align_off_en" param). 0 = skip
+// the offset-capture sweep entirely and pin the electrical offset to 0, so
+// theta_elec is the RAW sensor angle. Disabled on production for now: the
+// resolver front-end is still mis-scaled and noisy enough (~26 deg electrical
+// RMS, see hw_control_v2.h) that the swept average is not trustworthy, and the
+// bench runs better on a plain zero offset. The SIN/COS scale cal sweep
+// (res_cal_en) is INDEPENDENT and stays on -- that one is still needed.
+// Re-enable once the conditioning is rescaled and the noise is down.
+#define ALIGN_OFFSET_CAPTURE_DEFAULT 0U
+
 // ---- Cross-coupling / back-EMF feedforward ------------------------------
 // Compile-time default for g_dbg_decouple_en (see gains_teknic.h for the full
 // note). foc_init() references this unconditionally, so every motor variant

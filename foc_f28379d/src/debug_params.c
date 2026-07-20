@@ -25,6 +25,9 @@ extern volatile uint16_t  g_isense_reconstruct_phase;   // src/adc_iface.c
 extern volatile uint16_t  g_dbg_decouple_en;            // src/foc_pipeline.c
 extern volatile float32_t g_dbg_align_offset_elec;      // src/foc_pipeline.c
 
+// ALIGN offset-capture enable (0 = skip the sweep, pin the offset to 0).
+extern volatile uint16_t  g_align_offset_en;            // src/foc_pipeline.c
+
 // Outer-loop control mode (0=torque, 1=speed). See FOC_MODE_* in build_config.h.
 extern volatile uint16_t  g_dbg_control_mode;           // src/foc_pipeline.c
 
@@ -60,6 +63,8 @@ extern volatile float32_t g_resolver_filt_alpha;        // src/sensor_rm44ac.c
 extern volatile uint16_t  g_dbg_sin_raw;                // src/adc_iface.c
 extern volatile uint16_t  g_dbg_cos_raw;                // src/adc_iface.c
 extern volatile float32_t g_dbg_resolver_mag;           // src/sensor_rm44ac.c
+extern volatile uint16_t  g_resolver_filt_comp;         // src/sensor_rm44ac.c
+extern volatile float32_t g_resolver_filt_lag_k;        // src/sensor_rm44ac.c
 extern volatile uint16_t  g_resolver_dir_inv;           // src/sensor_rm44ac.c
 extern volatile uint16_t  g_resolver_sensor_poles;      // src/sensor_rm44ac.c
 extern void sensor_rm44ac_apply_poles(uint16_t poles);  // src/sensor_rm44ac.c
@@ -196,7 +201,14 @@ static void set_res_filt_hz(uint32_t  r){ float32_t hz = raw_to_f32(r);
                                           if(a > 1.0f) a = 1.0f;
                                           if(a < 0.0f) a = 0.0f;
                                           g_resolver_filt_hz    = hz;
-                                          g_resolver_filt_alpha = a; }
+                                          g_resolver_filt_alpha = a;
+                                          // lag_k tracks the cutoff: they must never
+                                          // disagree or the compensation mis-corrects.
+                                          g_resolver_filt_lag_k = SENSOR_RES_FILT_LAG_K(hz); }
+// Filter lag compensation: 1 = add the IIR's known phase delay back to the angle
+// (see sensor_rm44ac.h). Live so it can be A/B'd against the filter on the bench.
+static void get_res_filt_comp(uint32_t *r){ *r = (uint32_t)g_resolver_filt_comp; }
+static void set_res_filt_comp(uint32_t  r){ g_resolver_filt_comp = (uint16_t)(r ? 1U : 0U); }
 // SIN/COS scale-calibration enable: 1 = the ALIGN sequence prepends the min/max
 // capture sweep, 0 = skip it (keep the current scale). NEEDS_IDLE for hygiene;
 // the align controller also latches the value at ALIGN entry.
@@ -212,6 +224,13 @@ static void set_res_dir(uint32_t  r){ g_resolver_dir_inv = (uint16_t)(r ? 1U : 0
 static void get_res_poles(uint32_t *r){ *r = (uint32_t)g_resolver_sensor_poles; }
 static void set_res_poles(uint32_t  r){ sensor_rm44ac_apply_poles((uint16_t)r); }
 #endif
+
+// ALIGN offset-capture enable: 1 = sweep and average the sensor-vs-commanded
+// offset, 0 = skip the sweep and pin the electrical offset to 0 (raw sensor
+// angle). NEEDS_IDLE; the align controller also latches the value at ALIGN
+// entry. RE-RUN ALIGN after changing it -- the stored offset only updates there.
+static void get_align_off_en(uint32_t *r){ *r = (uint32_t)g_align_offset_en; }
+static void set_align_off_en(uint32_t  r){ g_align_offset_en = (uint16_t)(r ? 1U : 0U); }
 
 // ---- Read-only telemetry -------------------------------------------------
 static void get_state(uint32_t *r){ *r = (uint32_t)(uint16_t)sm_get_state(); }
@@ -299,10 +318,12 @@ const param_entry_t g_param_table[] =
     { 0x0041U, PARAM_TYPE_F32, 0,                     "ol_freq",    get_ol_freq,  set_ol_freq   },
     { 0x0042U, PARAM_TYPE_F32, 0,                     "ol_mod",     get_ol_mod,   set_ol_mod    },
     { 0x0043U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "vbus_ovr",   get_vbus_ovr, set_vbus_ovr  },
+    { 0x0044U, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "align_off_en", get_align_off_en, set_align_off_en },
 
 #if SENSOR_BACKEND_RM44AC
     { 0x0035U, PARAM_TYPE_U16, 0,                     "res_filt_en", get_res_filt_en, set_res_filt_en },
     { 0x0036U, PARAM_TYPE_F32, 0,                     "res_filt_hz", get_res_filt_hz, set_res_filt_hz },
+    { 0x003CU, PARAM_TYPE_U16, 0,                     "res_filt_comp", get_res_filt_comp, set_res_filt_comp },
     { 0x0039U, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "res_cal_en",  get_res_cal_en,  set_res_cal_en  },
     { 0x003AU, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "res_dir_inv", get_res_dir,     set_res_dir     },
     { 0x003BU, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "res_poles",   get_res_poles,   set_res_poles   },

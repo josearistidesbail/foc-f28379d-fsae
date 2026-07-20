@@ -121,7 +121,33 @@ void sm_request_run(void)    { s_align_only = false; s_requested = FOC_RUN; }
 void sm_request_align(void)  { s_align_only = true;  s_requested = FOC_ALIGN_ROTOR; }
 void sm_request_openloop(void){ s_requested = FOC_OPENLOOP; }
 void sm_request_stop(void)   { s_requested = FOC_IDLE; }
-void sm_clear_fault(void)    { if(s_state == FOC_FAULT) { safety_clear(); s_requested = FOC_IDLE; } }
+// Operator fault-clear. Called from the BACKGROUND loop (debug_iface.c) while
+// safety_check_isr() runs at FOC_ISR_FREQ_HZ, so the order here matters:
+//
+//   1. safety_clear()      -- drop safety.c's latched mask.
+//   2. sensor_clear_loss() -- drop the backend's one-way lost latch. Without
+//      this the mask clears but sensor_is_lost() stays true forever, and the
+//      first ISR tick back in RUN/ALIGN re-latches FAULT_SENSOR_LOSS. Since
+//      Run skips ALIGN once s_aligned is set (the only path that used to
+//      re-arm the resolver, via align_reset()), that was an unbreakable
+//      FAULT -> IDLE -> FAULT loop needing a power cycle.
+//   3. s_fault_pending = false -- MUST come after (1)/(2). safety_check_isr()
+//      re-raises at ISR rate whenever s_latched != 0, including while already
+//      in FOC_FAULT, where sm_tick_1khz()'s `s_state != FOC_FAULT` guard never
+//      consumes it -- so it is left stale-true and would immediately drag the
+//      fresh IDLE back into FOC_FAULT with an empty fault code. Clearing the
+//      sources first means any raise landing in between is a GENUINE live fault
+//      (OV / gate-driver are not state-gated) and correctly re-faults.
+void sm_clear_fault(void)
+{
+    if(s_state == FOC_FAULT)
+    {
+        safety_clear();
+        sensor_clear_loss();
+        s_fault_pending = false;
+        s_requested     = FOC_IDLE;
+    }
+}
 void sm_raise_fault(uint16_t code) { safety_latch(code); s_fault_pending = true; }
 
 // Pull any debug-driven command into the real request fields. Runs at 1 kHz.

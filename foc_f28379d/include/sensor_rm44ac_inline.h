@@ -63,6 +63,8 @@ extern volatile uint16_t    g_resolver_filt_en;      // 0 = bypass, 1 = filter a
 extern volatile float32_t   g_resolver_filt_alpha;   // IIR coefficient in (0, 1]
 extern volatile float32_t   g_resolver_sin_filt;     // IIR state, sin channel
 extern volatile float32_t   g_resolver_cos_filt;     // IIR state, cos channel
+extern volatile uint16_t    g_resolver_filt_comp;    // 1 = add the filter lag back
+extern volatile float32_t   g_resolver_filt_lag_k;   // 1/(2*pi*fc), 0 when fc <= 0
 
 // Store the electrical zero offset (radians). Called by the ramp-and-average
 // align controller at the end of FOC_ALIGN_ROTOR; defined in sensor_rm44ac.c
@@ -134,6 +136,29 @@ static inline void sensor_update_isr(void)
     float32_t omega_raw = dth * FOC_ISR_FREQ_HZ * g_resolver_inv_poles;
     g_resolver_omega_mech += SENSOR_RES_SPEED_LPF_ALPHA
                              * (omega_raw - g_resolver_omega_mech);
+
+    // ---- Filter lag compensation (see sensor_rm44ac.h) -------------------
+    // The matched IIR delays the angle by phi ~= omega_mech/(2*pi*fc); add it
+    // back. Applied AFTER the speed estimate deliberately: the difference above
+    // runs on the uncompensated angle, so a constant lag cancels out of it and
+    // the correction cannot feed back into its own input. Applied AFTER the
+    // dir_inv mirror for the same reason it is correct there -- mirroring flips
+    // the sign of both th and omega_mech, so the signed product still points the
+    // right way. Only meaningful while the filter is actually in the path.
+    // th is the SENSOR angle, which turns sensor_poles times per mech rev, so the
+    // lag seen here is scaled by poles. (Downstream that cancels against
+    // elec_ratio = pole_pairs/sensor_poles, leaving the electrical lag at exactly
+    // omega_elec/(2*pi*fc) for any sensor speed.) Wrap with the same constant-time
+    // modulo used for the electrical angle below rather than a single subtract:
+    // an absurdly low res_filt_hz makes lag_k large enough to exceed a full turn,
+    // and g_resolver_theta_mech must stay inside [0, 2*pi) regardless.
+    if(g_resolver_filt_en && g_resolver_filt_comp)
+    {
+        th += g_resolver_omega_mech * g_resolver_filt_lag_k
+              * (float32_t)g_resolver_sensor_poles;
+        th -= (float32_t)(int32_t)(th * (1.0f / TWO_PI_F)) * TWO_PI_F;
+        if(th < 0.0f) th += TWO_PI_F;
+    }
 
     // NOTE: holds the SENSOR angle [0, 2*pi) -- true mech angle only for a
     // 1-speed sensor; ambiguous (mod 2*pi/poles of a rev) otherwise.

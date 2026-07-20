@@ -139,7 +139,7 @@ static float32_t   s_speed_cmd;
 // Used to scope the gate waveforms / deadband / sync with nothing connected;
 // entered only in bench mode (g_module_faults_en == 0) via the FOC_OPENLOOP state.
 volatile float32_t g_ol_freq_hz = 5.0f;    // electrical frequency [Hz]
-volatile float32_t g_ol_mod     = 0.20f;   // q-axis drive (~peak duty deviation, 0..0.5)
+volatile float32_t g_ol_mod     = OL_MOD_DEFAULT;  // q-axis drive (~peak duty dev, 0..0.5)
 static   float32_t s_ol_theta;             // synthetic electrical angle [rad]
 
 // Bench VBUS override [V] ("vbus_ovr" param, NEEDS_IDLE). 0 = use the measured
@@ -149,7 +149,7 @@ static   float32_t s_ol_theta;             // synthetic electrical angle [rad]
 // garbage, so RUN cannot drive the motor at all. Set it to the actual DC-link
 // voltage. WARNING: this also blinds the SW overvoltage trip (it compares
 // refs.vbus) -- bench-only tool, zero it once the sense line is repaired.
-volatile float32_t g_vbus_override_v = 0.0f;
+volatile float32_t g_vbus_override_v = VBUS_OVERRIDE_DEFAULT_V;
 
 //-----------------------------------------------------------------------------
 // Trig/RTS-free square root for the flux-priority current-circle limit. The SDK
@@ -218,7 +218,14 @@ volatile uint16_t g_res_cal_cos_min;
 volatile uint16_t g_res_cal_cos_max;
 static   uint32_t s_align_cal_ticks;   // latched at align entry (0 = cal disabled)
 static   bool     s_cal_committed;
+static   bool     s_cal_failed;        // cal rejected -> hold align, fault latched
 #endif
+// Offset-capture enable ("align_off_en" param, both backends). 0 = skip the
+// ramp sweep and pin the electrical offset to 0 (theta_elec = raw sensor angle).
+// Only meaningful for an ABSOLUTE sensor (the resolver); the incremental QEP has
+// no usable zero without the sweep, hence the per-motor default.
+volatile uint16_t  g_align_offset_en = ALIGN_OFFSET_CAPTURE_DEFAULT;
+static   uint32_t  s_align_ramp_ticks; // latched at align entry (0 = capture off)
 // Ramp-and-average offset-capture state (both backends).
 static float32_t   s_align_carrier;     // commanded electrical angle during ALIGN
 // Trig-free circular mean of (sensor_raw - commanded). The samples cluster
@@ -237,6 +244,9 @@ static void align_reset(void)
     s_align_ref     = 0.0f;
     s_align_sum     = 0.0f;
     s_align_n       = 0;
+    // Latch the enable so a mid-align host write cannot change the tick budget
+    // out from under the phase comparisons (same reason as s_align_cal_ticks).
+    s_align_ramp_ticks = g_align_offset_en ? ALIGN_RAMP_TICKS : 0U;
 #if SENSOR_BACKEND_RM44AC
     s_align_cal_ticks = g_res_cal_en ? ALIGN_CAL_TICKS : 0U;  // latch: immune to mid-align writes
     g_res_cal_sin_min = 0xFFFFU;
@@ -244,6 +254,7 @@ static void align_reset(void)
     g_res_cal_cos_min = 0xFFFFU;
     g_res_cal_cos_max = 0U;
     s_cal_committed   = false;
+    s_cal_failed      = false;
     // Normalization is untrusted until the cal phase commits: hold the
     // magnitude-window loss check reset AND drop any stale latch (with wrong
     // scale g_resolver_lost may already be set from boot -- it is one-way and
@@ -261,6 +272,10 @@ static void align_reset(void)
 static float32_t align_step(void)
 {
 #if SENSOR_BACKEND_RM44AC
+    // Scale calibration was rejected: the fault is already latched, but
+    // sm_raise_fault() only lands on the next 1 kHz tick. Hold the carrier here
+    // so the intervening ISRs cannot start the offset sweep on the bad scale.
+    if(s_cal_failed) return s_align_carrier;
     const uint32_t cal_ticks = s_align_cal_ticks;
 #else
     const uint32_t cal_ticks = 0U;
@@ -291,16 +306,30 @@ static float32_t align_step(void)
         if(!s_cal_committed &&
            (s_align_ticks + 1U >= ALIGN_SETTLE_TICKS + cal_ticks))
         {
-            (void)adc_set_sincos_scale(g_res_cal_sin_min, g_res_cal_sin_max,
-                                       g_res_cal_cos_min, g_res_cal_cos_max);
-            g_resolver_lost         = 0U;   // fresh start under the new scale
-            g_resolver_loss_count   = 0U;
-            g_resolver_loss_inhibit = 0U;   // re-arm loss detection
-            s_cal_committed         = true;
+            s_cal_committed = true;
+            if(!adc_set_sincos_scale(g_res_cal_sin_min, g_res_cal_sin_max,
+                                     g_res_cal_cos_min, g_res_cal_cos_max))
+            {
+                // Rejected: the captured extremes are not a usable sin/cos pair
+                // (rotor never moved, a channel is dead/frozen, or the two
+                // amplitudes disagree -- reason in g_res_cal_status). The OLD
+                // scale is still in place, so the angle is untrusted. Fault
+                // instead of falling through to the offset sweep, which would
+                // average a garbage angle into a garbage offset and then report
+                // align success to the state machine.
+                s_cal_failed = true;
+                sm_raise_fault(FAULT_SENSOR_LOSS);
+            }
+            else
+            {
+                g_resolver_lost         = 0U;   // fresh start under the new scale
+                g_resolver_loss_count   = 0U;
+                g_resolver_loss_inhibit = 0U;   // re-arm loss detection
+            }
         }
     }
 #endif
-    else if(s_align_ticks < ALIGN_SETTLE_TICKS + cal_ticks + ALIGN_RAMP_TICKS)
+    else if(s_align_ticks < ALIGN_SETTLE_TICKS + cal_ticks + s_align_ramp_ticks)
     {
         s_align_carrier += ALIGN_CARRIER_DTHETA;        // slow open-loop sweep
         if(s_align_carrier >= 2.0f * MATH_PI) s_align_carrier -= 2.0f * MATH_PI;
@@ -315,10 +344,17 @@ static float32_t align_step(void)
     }
     else if(!s_align_done)
     {
-        float32_t off = s_align_ref +
-                        (s_align_n ? s_align_sum / (float32_t)s_align_n : 0.0f);
-        while(off <  0.0f)         off += 2.0f * MATH_PI;
-        while(off >= 2.0f*MATH_PI) off -= 2.0f * MATH_PI;
+        // Offset capture disabled (s_align_ramp_ticks == 0): pin the offset to 0
+        // explicitly rather than just skipping the sweep -- a previous align's
+        // offset must not survive into this one.
+        float32_t off = 0.0f;
+        if(s_align_ramp_ticks)
+        {
+            off = s_align_ref +
+                  (s_align_n ? s_align_sum / (float32_t)s_align_n : 0.0f);
+            while(off <  0.0f)         off += 2.0f * MATH_PI;
+            while(off >= 2.0f*MATH_PI) off -= 2.0f * MATH_PI;
+        }
         sensor_set_elec_offset(off);
         g_dbg_align_offset_elec = off * (180.0f / MATH_PI);
 #if SENSOR_BACKEND_QEP

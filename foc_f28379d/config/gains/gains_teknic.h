@@ -51,6 +51,17 @@
 #define ALIGN_RAMP_MECH_REVS        2.0f    // integer revs -> cancels cogging
 #define ALIGN_RAMP_MECH_SPEED_RPS   1.0f    // carrier speed [mech rev/s]
 
+// Boot default for g_ol_mod ("ol_mod" param): open-loop drive in the DUTY domain
+// (~peak duty deviation). Unchanged from the historical shared default; not
+// bench-characterized on this motor the way the EMRAX value is.
+#define OL_MOD_DEFAULT              0.20f
+
+// Compile-time default for g_align_offset_en ("align_off_en" param). 1 = run the
+// offset-capture sweep above. The QEP is incremental, so its zero is meaningless
+// until the sweep establishes it -- unlike the absolute resolver, this backend
+// cannot run without it. Keep on.
+#define ALIGN_OFFSET_CAPTURE_DEFAULT 1U
+
 // ---- Cross-coupling / back-EMF feedforward ------------------------------
 // Compile-time default for g_dbg_decouple_en. Decoupling adds
 //   ff_d = -we*Lq*iq_ref,  ff_q = we*(Ld*id_ref + lambda_pm)

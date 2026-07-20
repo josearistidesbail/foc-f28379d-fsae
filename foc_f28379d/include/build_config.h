@@ -64,4 +64,11 @@
 #define BENCH_NO_POWER_STAGE    0U
 #endif
 
+// Boot default for the bench VBUS override ("vbus_ovr"). Only a hw header with a
+// disconnected VBUS sense sets this; everything else uses the MEASURED bus, which
+// is the only setting that keeps the SW overvoltage trip meaningful.
+#ifndef VBUS_OVERRIDE_DEFAULT_V
+#define VBUS_OVERRIDE_DEFAULT_V 0.0f
+#endif
+
 #endif // BUILD_CONFIG_H

@@ -117,17 +117,28 @@
 // at 90 deg). No excitation drive, no carrier demod -- the angle is
 // foc_atan2(sin, cos) directly. Wire SIN/COS to the ADC channels above.
 //
-// Scaling: sin/cos swing about a 1.65 V bias with ~1.65 V amplitude. At
-// VREFHI 3.0 V that is bias ~2253 codes, amplitude ~2253 codes; adc_read_sin_cos
-// removes the bias and divides by the amplitude so sin^2+cos^2 ~= 1 (atan2 is
-// amplitude-independent; the magnitude only feeds loss-of-signal).
-//   !! HW ISSUE (pinmap §8): the conditioned sin/cos actually spans 0..3.3 V,
-//      which EXCEEDS the 3.0 V ADC range -> the top of each sine CLIPS. Angle
-//      near those peaks is distorted and sin^2+cos^2 won't hold ~1. Resistor
-//      change on the conditioning circuit is planned to rescale into 0..3.0 V.
-//      Until then, treat resolver angle as provisional.
-#define RES_SINCOS_BIAS_CODE    2253.0f     // 1.65 V at VREF 3.0 V
-#define RES_SINCOS_AMPL_CODE    2253.0f     // 1.65 V amplitude (pre-clip)
+// Scaling: adc_read_sin_cos removes the bias and divides by the amplitude so
+// sin^2+cos^2 ~= 1 (atan2 is amplitude-independent; the magnitude only feeds
+// loss-of-signal). The values below are BENCH-MEASURED (2026-07-15, scope on
+// the SIN pin at the ADC input): DC 2.25 V, 1.45 Vpp -> spans 1.53..2.98 V,
+// i.e. bias 3072 codes / amplitude 990 codes at VREFHI 3.0 V.
+//   !! These are only the BOOT scale -- the ALIGN cal sweep (SENSOR_RES_CAL_*)
+//      re-measures min/max and overrides them at runtime. They still matter:
+//      the angle is unusable until an align succeeds. With the old 2253/2253
+//      guess the normalized sin/cos traced a circle of radius 0.44 centred at
+//      (0.36, 0.36) -- which does NOT enclose the origin, so atan2 could never
+//      wrap 2*pi (it swept ~-14..+104 deg and reversed) and sin^2+cos^2 never
+//      reached ~1, leaving the resolver permanently "lost".
+//   !! HW TODO (supersedes the old "spans 0..3.3 V and clips" note here, which
+//      was never measured and is wrong in both bias and amplitude): the
+//      front-end sits ~0.75 V too high and swings ~2x too small, using only 48%
+//      of the ADC range with its positive peak just 25 mV below VREFHI, so
+//      noise peaks do clip. Angle noise ~= sigma_noise / amplitude, and the x10
+//      pole-pair multiply turns the measured 33.5 mV RMS into ~26 deg
+//      ELECTRICAL RMS. Rescaling the conditioning to a 1.5 V bias / ~1.4 V
+//      amplitude both halves the angle noise and removes the clipping.
+#define RES_SINCOS_BIAS_CODE    3072.0f     // 2.25 V at VREF 3.0 V (measured)
+#define RES_SINCOS_AMPL_CODE    990.0f      // 0.725 V amplitude (measured)
 
 // ---- GPIO -------------------------------------------------------------
 // Control_V2 has TWO gate-driver enables and NO fault-reset line:
@@ -179,5 +190,15 @@
 // and pwm_init() drops the OSHT trip-zone sources.
 //   *** SET BACK TO 0 BEFORE CONNECTING THE INVERTER / POWER STAGE. ***
 #define BENCH_NO_POWER_STAGE    1U
+
+// Boot default for g_vbus_override_v ("vbus_ovr"). The VBUS sense is physically
+// disconnected on this bench, so it reads ~0 and every volts-domain consumer
+// dies with it (PI clamp vmax_dyn = frac*vbus/2 -> 0, SVGEN 1/vbus, FW vmax).
+// 24.0 = the actual bench supply. Deliberately gated on BENCH_NO_POWER_STAGE and
+// NOT a bare constant: this value BLINDS the SW overvoltage trip (it compares
+// refs.vbus), so it must never survive into a build driving a real DC link.
+// Clearing BENCH_NO_POWER_STAGE disarms it along with the module-fault and UV
+// bypasses -- one switch for every bench workaround. Same idiom as safety.c.
+#define VBUS_OVERRIDE_DEFAULT_V (BENCH_NO_POWER_STAGE ? 24.0f : 0.0f)
 
 #endif // HW_CONTROL_V2_H

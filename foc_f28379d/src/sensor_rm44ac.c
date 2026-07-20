@@ -70,6 +70,11 @@ volatile float32_t g_resolver_filt_hz    = SENSOR_RES_FILT_DEFAULT_HZ;
 volatile float32_t g_resolver_filt_alpha = 0.0f;   // set in sensor_init()
 volatile float32_t g_resolver_sin_filt   = 0.0f;   // IIR state, sin channel
 volatile float32_t g_resolver_cos_filt   = 0.0f;   // IIR state, cos channel
+// Filter lag compensation ("res_filt_comp"): add back the known phase delay the
+// IIR imposes on the angle. lag_k = 1/(2*pi*fc), recomputed with alpha whenever
+// the cutoff changes, so the ISR only does a multiply-add. See sensor_rm44ac.h.
+volatile uint16_t  g_resolver_filt_comp  = SENSOR_RES_FILT_COMP_DEFAULT_EN;
+volatile float32_t g_resolver_filt_lag_k = 0.0f;   // set in sensor_init()
 
 void sensor_init(void)
 {
@@ -89,6 +94,7 @@ void sensor_init(void)
     if(a > 1.0f) a = 1.0f;
     if(a < 0.0f) a = 0.0f;
     g_resolver_filt_alpha = a;
+    g_resolver_filt_lag_k = SENSOR_RES_FILT_LAG_K(g_resolver_filt_hz);
     g_resolver_sin_filt   = 0.0f;
     g_resolver_cos_filt   = 0.0f;
     // g_resolver_elec_offset starts at the default and is overwritten by
@@ -98,6 +104,20 @@ void sensor_init(void)
 // The resolver derives speed inside sensor_update_isr() (per-ISR atan2 + LPF in
 // sensor_rm44ac_inline.h), so the slow-loop speed update has nothing to do.
 void sensor_update_speed_slow(void) {}
+
+// Re-arm loss detection after an operator fault-clear (see sensor_iface.h).
+// Zeroing the debounce count as well as the latch means a marginal signal must
+// stay out-of-window for a fresh SENSOR_RES_LOSS_TICKS before it can trip again,
+// rather than re-tripping off a count left near the threshold. Runs in the
+// background loop; sensor_update_isr() may preempt between these two writes and
+// at worst re-increments the count from 0, which is benign (both are volatile
+// single-word writes, atomic on C28x). g_resolver_loss_inhibit is intentionally
+// untouched -- the align controller owns it.
+void sensor_clear_loss(void)
+{
+    g_resolver_lost       = 0U;
+    g_resolver_loss_count = 0U;
+}
 
 // Store the electrical zero offset (radians) produced by the ramp-and-average
 // align controller (foc_pipeline.c) as the circular mean of (raw_elec -
