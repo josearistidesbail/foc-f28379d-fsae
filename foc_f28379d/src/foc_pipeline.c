@@ -77,6 +77,20 @@ volatile float32_t g_dbg_iq_ref;
 volatile float32_t g_dbg_run_iq_ref;
 volatile float32_t g_dbg_run_iq_meas;
 
+// Measured DC-bus voltage [V] (the real adc_read_vbus() reading), refreshed every
+// ISR. Streamed as scope channel SCOPE_BIT_VBUS (datalog col 13) and read by the
+// "vbus" RO param 0x0115 -- this is the MONITORING path and always tracks the live
+// sensor, even when the control loop runs on the override below.
+volatile float32_t g_dbg_vbus_v;
+
+// BENCH DC-bus override [V] (restored 2026-07-23): when > 0, the CONTROL loop
+// (vmax_dyn clamp + 1/vbus SVGEN normalization) and the OV/UV trips use this fixed
+// nominal instead of the live sensor reading, which isn't trusted yet at low bench
+// voltage (and nuisance-trips UV). Monitoring (g_dbg_vbus_v, scope, "vbus" param)
+// still shows the measured bus. Default VBUS_OVERRIDE_DEFAULT_V (24 V at the
+// bench); set g_vbus_override_v = 0 ("vbus_ovr" param) to use the measured bus.
+volatile float32_t g_vbus_override_v = VBUS_OVERRIDE_DEFAULT_V;
+
 // Alignment result (Step 6). g_dbg_align_offset_elec is the captured electrical
 // zero offset in DEGREES — watch it agree across rotor start positions (the old
 // single-shot capture varied ~50 deg). g_dbg_align_qep_cnt is the raw QPOSCNT at
@@ -141,15 +155,6 @@ static float32_t   s_speed_cmd;
 volatile float32_t g_ol_freq_hz = 5.0f;    // electrical frequency [Hz]
 volatile float32_t g_ol_mod     = OL_MOD_DEFAULT;  // q-axis drive (~peak duty dev, 0..0.5)
 static   float32_t s_ol_theta;             // synthetic electrical angle [rad]
-
-// Bench VBUS override [V] ("vbus_ovr" param, NEEDS_IDLE). 0 = use the measured
-// bus (normal). >0 = substitute this fixed voltage for refs.vbus when the VBUS
-// sense is physically disconnected (reads ~0): without it the PI clamp
-// (vmax_dyn = frac*vbus/2) passes 0 V and the SVGEN 1/vbus normalization is
-// garbage, so RUN cannot drive the motor at all. Set it to the actual DC-link
-// voltage. WARNING: this also blinds the SW overvoltage trip (it compares
-// refs.vbus) -- bench-only tool, zero it once the sense line is repaired.
-volatile float32_t g_vbus_override_v = VBUS_OVERRIDE_DEFAULT_V;
 
 //-----------------------------------------------------------------------------
 // Trig/RTS-free square root for the flux-priority current-circle limit. The SDK
@@ -679,8 +684,15 @@ void foc_current_loop_isr(void)
     //    50% duty on all three legs, and pwm_set_duty() releases the AQCSFRC
     //    safe-force, so calling it here would switch all three half-bridges and
     //    trip DRV8305 high-side VDS over-current (nFAULT) while "idle".
-    s_refs.vbus = adc_read_vbus();
-    if(g_vbus_override_v > 0.0f) s_refs.vbus = g_vbus_override_v;  // bench: dead sense
+    // Measured DC bus (real ADC, filtered) -- MONITORING path: the scope channel
+    // and the "vbus" RO param read g_dbg_vbus_v so the live sensor stays visible
+    // even while the control loop below runs on the override.
+    float32_t vbus_meas = adc_read_vbus();
+    g_dbg_vbus_v = vbus_meas;
+    // BENCH override: sensor scale untrusted -> the control loop (vmax_dyn,
+    // 1/vbus) and the OV/UV trips use a fixed nominal, not the live reading.
+    // g_vbus_override_v = 0 switches control back to the measured bus.
+    s_refs.vbus = (g_vbus_override_v > 0.0f) ? g_vbus_override_v : vbus_meas;
     // Open-loop test and open-loop align (iloop_en=0) use a synthetic unity bus
     // so g_ol_mod maps directly to duty (the bench has vbus~=0, which would blow
     // up the real 1/vbus normalization). `iloop` is the step-3 latched copy so

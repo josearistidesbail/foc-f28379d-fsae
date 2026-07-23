@@ -367,6 +367,13 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._mc_user_override = set() # fields the user edited locally
             self._at_measured_km = None    # last measured speed-plant gain
             self._at_last_cap = None       # last verify ScopeCapture (for CSV)
+            # Manual-gain editors on the Autotune page: name -> QDoubleSpinBox.
+            # `_at_gain_dirty` holds the names the user typed into; those stop
+            # tracking the device on refresh so an edit-in-progress is never
+            # overwritten. `_at_gain_prog` guards programmatic setValue().
+            self._at_gain_spins = {}
+            self._at_gain_dirty = set()
+            self._at_gain_prog = False
 
             # Rolling scope buffers (one deque per channel) + dirty flag. The
             # deques are (re)created by _rebuild_plots to match the currently
@@ -539,6 +546,17 @@ def build(pg, QtCore, QtGui, QtWidgets):
             mf.setBold(True)
             self.speed_meas_label.setFont(mf)
             modeh.addWidget(self.speed_meas_label)
+            # Live DC-bus voltage, polled every state tick (read-only "vbus" param).
+            modeh.addSpacing(16)
+            modeh.addWidget(QtWidgets.QLabel("Vbus:"))
+            self.vbus_label = QtWidgets.QLabel("— V")
+            vf = self.vbus_label.font()
+            vf.setBold(True)
+            self.vbus_label.setFont(vf)
+            self.vbus_label.setToolTip(
+                "Live DC-bus voltage from the device (read-only 'vbus' param)"
+            )
+            modeh.addWidget(self.vbus_label)
             sm_v.addLayout(modeh)
             lv.addWidget(sm_box)
 
@@ -828,6 +846,9 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self.at_cur_apply_btn, self.at_cur_verify_btn,
                 self.at_spd_apply_btn, self.at_spd_verify_btn,
                 self.at_spd_measure_btn, self.at_fw_apply_btn,
+                self.at_man_cur_apply_btn, self.at_man_cur_verify_btn,
+                self.at_man_spd_apply_btn, self.at_man_spd_verify_btn,
+                self.at_man_fw_apply_btn, self.at_man_load_btn,
             ):
                 w.setEnabled(on)
             for treg in self._all_tables:
@@ -958,6 +979,9 @@ def build(pg, QtCore, QtGui, QtWidgets):
                     self._ref_values[scope_name] = float(val)
 
             val_by_name = {info.name: out.get(info.id) for info in self.params}
+
+            # Autotune-page manual gain boxes track the device until edited.
+            self._at_gains_from_device(val_by_name)
 
             # Motor/loop constants -> Motor tab spinboxes + autotuner cache. Each
             # device value pre-fills its spinbox unless the user has overridden it
@@ -1472,6 +1496,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             scroll.setWidgetResizable(True)
             inner = QtWidgets.QWidget()
             iv = QtWidgets.QVBoxLayout(inner)
+            iv.addWidget(self._build_at_manual_box())
             iv.addWidget(self._build_at_current_box())
             iv.addWidget(self._build_at_speed_box())
             iv.addWidget(self._build_at_fw_box())
@@ -1495,6 +1520,214 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
             self._at_refresh_all_previews()
             return page
+
+        # ---- manual gains -------------------------------------------------
+        # Same apply / apply+verify machinery as the model-based boxes below,
+        # but the numbers come straight from these spinboxes instead of the
+        # autotuner. Lets you hand-tune a gain and re-run the identical step
+        # experiment (same plot + metrics) without leaving the page.
+        def _make_gain_spin(self, name):
+            sp = QtWidgets.QDoubleSpinBox()
+            sp.setRange(0.0, 1e6)
+            sp.setDecimals(6)
+            sp.setSingleStep(0.001)
+            sp.setKeyboardTracking(False)
+            # Cap the width so the box fits the left panel without a horizontal
+            # scrollbar (6 decimals over a 1e6 range gives a very wide hint).
+            sp.setMaximumWidth(105)
+            sp.valueChanged.connect(lambda v, n=name: self._on_at_gain_edited(n, v))
+            self._at_gain_spins[name] = sp
+            return sp
+
+        def _build_at_manual_box(self):
+            box = QtWidgets.QGroupBox("Manual gains — type values, apply, and step")
+            g = QtWidgets.QGridLayout(box)
+            r = 0
+
+            top = QtWidgets.QHBoxLayout()
+            self.at_man_load_btn = QtWidgets.QPushButton("Load from device")
+            self.at_man_load_btn.setToolTip(
+                "Copy the gains currently in the firmware into these boxes and "
+                "resume tracking them on every value refresh.")
+            self.at_man_load_btn.clicked.connect(self._at_manual_load_device)
+            top.addWidget(self.at_man_load_btn)
+            self.at_man_copy_btn = QtWidgets.QPushButton("Copy computed ↓")
+            self.at_man_copy_btn.setToolTip(
+                "Fill these boxes with the gains the autotuner computed in the "
+                "boxes below, as a starting point for hand tweaking.")
+            self.at_man_copy_btn.clicked.connect(self._at_manual_copy_computed)
+            top.addWidget(self.at_man_copy_btn)
+            self.at_man_link_chk = QtWidgets.QCheckBox("mirror D → Q")
+            self.at_man_link_chk.setToolTip(
+                "Editing kp_d/ki_d also writes kp_q/ki_q (Ld ≈ Lq on this motor).")
+            self.at_man_link_chk.setChecked(True)
+            top.addWidget(self.at_man_link_chk)
+            top.addStretch(1)
+            g.addLayout(top, r, 0, 1, 6)
+            r += 1
+
+            g.addWidget(QtWidgets.QLabel("<b>Current loop</b>"), r, 0)
+            g.addWidget(QtWidgets.QLabel("kp_d:"), r, 1)
+            g.addWidget(self._make_gain_spin("kp_d"), r, 2)
+            g.addWidget(QtWidgets.QLabel("ki_d:"), r, 3)
+            g.addWidget(self._make_gain_spin("ki_d"), r, 4)
+            r += 1
+            g.addWidget(QtWidgets.QLabel("kp_q:"), r, 1)
+            g.addWidget(self._make_gain_spin("kp_q"), r, 2)
+            g.addWidget(QtWidgets.QLabel("ki_q:"), r, 3)
+            g.addWidget(self._make_gain_spin("ki_q"), r, 4)
+            r += 1
+            self.at_man_cur_apply_btn = QtWidgets.QPushButton("Apply current gains")
+            self.at_man_cur_apply_btn.clicked.connect(self._at_manual_apply_current)
+            g.addWidget(self.at_man_cur_apply_btn, r, 0, 1, 2)
+            g.addWidget(QtWidgets.QLabel("iq step (A):"), r, 2)
+            self.at_man_cur_step = QtWidgets.QDoubleSpinBox()
+            self.at_man_cur_step.setRange(0.05, 5.0)
+            self.at_man_cur_step.setDecimals(2)
+            self.at_man_cur_step.setSingleStep(0.1)
+            self.at_man_cur_step.setValue(0.5)
+            g.addWidget(self.at_man_cur_step, r, 3)
+            self.at_man_cur_verify_btn = QtWidgets.QPushButton("Apply + Verify (step iq)")
+            self.at_man_cur_verify_btn.setToolTip(
+                "Writes these kp/ki (needs IDLE), runs in torque mode, steps iq, "
+                "and plots the response below — same experiment as the "
+                "model-based box. Energizes the motor — keep the shaft clear.")
+            self.at_man_cur_verify_btn.clicked.connect(self._at_manual_verify_current)
+            g.addWidget(self.at_man_cur_verify_btn, r, 4, 1, 2)
+            r += 1
+
+            line = QtWidgets.QFrame()
+            line.setFrameShape(QtWidgets.QFrame.HLine)
+            line.setFrameShadow(QtWidgets.QFrame.Sunken)
+            g.addWidget(line, r, 0, 1, 6)
+            r += 1
+
+            g.addWidget(QtWidgets.QLabel("<b>Speed loop</b>"), r, 0)
+            g.addWidget(QtWidgets.QLabel("kp_w:"), r, 1)
+            g.addWidget(self._make_gain_spin("kp_w"), r, 2)
+            g.addWidget(QtWidgets.QLabel("ki_w:"), r, 3)
+            g.addWidget(self._make_gain_spin("ki_w"), r, 4)
+            r += 1
+            self.at_man_spd_apply_btn = QtWidgets.QPushButton("Apply speed gains")
+            self.at_man_spd_apply_btn.clicked.connect(self._at_manual_apply_speed)
+            g.addWidget(self.at_man_spd_apply_btn, r, 0, 1, 2)
+            g.addWidget(QtWidgets.QLabel("RPM step:"), r, 2)
+            self.at_man_spd_step = QtWidgets.QDoubleSpinBox()
+            self.at_man_spd_step.setRange(-10000.0, 10000.0)
+            self.at_man_spd_step.setDecimals(0)
+            self.at_man_spd_step.setSingleStep(50.0)
+            self.at_man_spd_step.setValue(500.0)
+            g.addWidget(self.at_man_spd_step, r, 3)
+            self.at_man_spd_verify_btn = QtWidgets.QPushButton("Apply + Verify (step RPM)")
+            self.at_man_spd_verify_btn.setToolTip(
+                "Writes these kp_w/ki_w (needs IDLE), runs in speed mode, steps "
+                "the RPM setpoint, and captures omega. Spins the motor.")
+            self.at_man_spd_verify_btn.clicked.connect(self._at_manual_verify_speed)
+            g.addWidget(self.at_man_spd_verify_btn, r, 4, 1, 2)
+            r += 1
+
+            line2 = QtWidgets.QFrame()
+            line2.setFrameShape(QtWidgets.QFrame.HLine)
+            line2.setFrameShadow(QtWidgets.QFrame.Sunken)
+            g.addWidget(line2, r, 0, 1, 6)
+            r += 1
+
+            g.addWidget(QtWidgets.QLabel("<b>Field weakening</b>"), r, 0)
+            g.addWidget(QtWidgets.QLabel("kp_fw:"), r, 1)
+            g.addWidget(self._make_gain_spin("kp_fw"), r, 2)
+            g.addWidget(QtWidgets.QLabel("ki_fw:"), r, 3)
+            g.addWidget(self._make_gain_spin("ki_fw"), r, 4)
+            r += 1
+            self.at_man_fw_apply_btn = QtWidgets.QPushButton("Apply FW gains")
+            self.at_man_fw_apply_btn.clicked.connect(self._at_manual_apply_fw)
+            g.addWidget(self.at_man_fw_apply_btn, r, 0, 1, 2)
+            r += 1
+
+            hint = QtWidgets.QLabel(
+                "Boxes track the device until you edit one; \"Load from device\" "
+                "resumes tracking. Applying needs IDLE — a run is stopped and a "
+                "latched fault cleared automatically.")
+            hint.setWordWrap(True)
+            hint.setStyleSheet("color: gray;")
+            g.addWidget(hint, r, 0, 1, 6)
+            g.setColumnStretch(2, 1)
+            g.setColumnStretch(4, 1)
+            return box
+
+        def _on_at_gain_edited(self, name, val):
+            """User typed a gain: stop tracking the device for it, mirror D→Q."""
+            if self._at_gain_prog:
+                return
+            self._at_gain_dirty.add(name)
+            if not self.at_man_link_chk.isChecked():
+                return
+            twin = {"kp_d": "kp_q", "ki_d": "ki_q"}.get(name)
+            if twin and self._at_gain_spins[twin].value() != val:
+                self._at_set_gain_spin(twin, val)
+                self._at_gain_dirty.add(twin)
+
+        def _at_set_gain_spin(self, name, val):
+            sp = self._at_gain_spins.get(name)
+            if sp is None:
+                return
+            self._at_gain_prog = True
+            try:
+                sp.setValue(float(val))
+            finally:
+                self._at_gain_prog = False
+
+        def _at_gains_from_device(self, val_by_name):
+            """Pre-fill the manual boxes from a values refresh (untouched ones)."""
+            for name, sp in self._at_gain_spins.items():
+                if name in self._at_gain_dirty:
+                    continue
+                v = val_by_name.get(name)
+                if v is not None:
+                    self._at_set_gain_spin(name, v)
+
+        def _at_manual_load_device(self):
+            """Explicit re-sync: drop all local edits and re-read the device."""
+            self._at_gain_dirty.clear()
+            if not self._connected:
+                self._report("not connected")
+                return
+            self._refresh_values()
+            self._report("manual gains: reloading from device")
+
+        def _at_manual_copy_computed(self):
+            self._at_refresh_all_previews()
+            n = 0
+            for attr in ("_at_cur_gains", "_at_spd_gains", "_at_fw_gains"):
+                for name, val in (getattr(self, attr, None) or {}).items():
+                    if name in self._at_gain_spins:
+                        self._at_set_gain_spin(name, val)
+                        self._at_gain_dirty.add(name)
+                        n += 1
+            self._report(f"manual gains: copied {n} computed value(s)")
+
+        def _at_manual_gains(self, which):
+            names = {"current": ("kp_d", "ki_d", "kp_q", "ki_q"),
+                     "speed": ("kp_w", "ki_w"),
+                     "field-weakening": ("kp_fw", "ki_fw")}[which]
+            return {n: self._at_gain_spins[n].value() for n in names}
+
+        def _at_manual_apply_current(self):
+            self._at_apply("manual current", self._at_manual_gains("current"))
+
+        def _at_manual_apply_speed(self):
+            self._at_apply("manual speed", self._at_manual_gains("speed"))
+
+        def _at_manual_apply_fw(self):
+            self._at_apply("manual field-weakening",
+                           self._at_manual_gains("field-weakening"))
+
+        def _at_manual_verify_current(self):
+            self._at_step_current(self._at_manual_gains("current"),
+                                  self.at_man_cur_step.value(), "manual current")
+
+        def _at_manual_verify_speed(self):
+            self._at_step_speed(self._at_manual_gains("speed"),
+                                self.at_man_spd_step.value(), "manual speed")
 
         def _build_at_current_box(self):
             box = QtWidgets.QGroupBox("Current loop (Id/Iq) — model-based, exact")
@@ -1764,42 +1997,55 @@ def build(pg, QtCore, QtGui, QtWidgets):
         def _at_set_busy(self, on):
             for w in (self.at_cur_verify_btn, self.at_spd_verify_btn,
                       self.at_spd_measure_btn, self.at_cur_apply_btn,
-                      self.at_spd_apply_btn, self.at_fw_apply_btn):
+                      self.at_spd_apply_btn, self.at_fw_apply_btn,
+                      self.at_man_cur_apply_btn, self.at_man_cur_verify_btn,
+                      self.at_man_spd_apply_btn, self.at_man_spd_verify_btn,
+                      self.at_man_fw_apply_btn, self.at_man_load_btn):
                 w.setEnabled((not on) and self._connected)
 
         def _at_verify_current(self):
+            self._at_current_preview()
+            self._at_step_current(getattr(self, "_at_cur_gains", None),
+                                  self.at_cur_step.value(), "current")
+
+        def _at_step_current(self, gains, iq, which):
+            """Apply `gains`, run in torque mode, step iq, plot the response.
+
+            Shared by the model-based box and the manual-gain box so both paths
+            produce exactly the same experiment, plot and metrics.
+            """
             if not self._connected:
                 self._report("not connected")
                 return
-            self._at_current_preview()
-            gains = getattr(self, "_at_cur_gains", None)
             if not gains:
-                self._report("no valid current gains computed", logging.WARNING)
+                self._report(f"no valid {which} gains", logging.WARNING)
                 return
-            iq = self.at_cur_step.value()
             isr = self._mc("isr_freq_hz")
             mask = proto.names_to_mask(["Id", "Iq"])
-            self._report("current verify: applying gains + stepping iq…")
+            self._report(f"{which} verify: applying gains + stepping iq…")
             self._at_set_busy(True)
             self.worker.submit(
                 "at_verify_cur",
                 fn=lambda d, g=dict(gains): at_run_step(
                     d, mode=0, ref_param="iq_ref", ref_value=iq, mask=mask,
                     decim=3, isr_freq=isr, pre_gains=g, settle_frac=0.5),
-                on_done=lambda res, iq=iq: self._at_verify_done(
-                    "Iq", res, 0.0, iq, "current"),
+                on_done=lambda res, iq=iq, w=which: self._at_verify_done(
+                    "Iq", res, 0.0, iq, w),
                 on_fail=self._at_verify_failed)
 
         def _at_verify_speed(self):
+            self._at_speed_preview()
+            self._at_step_speed(getattr(self, "_at_spd_gains", None),
+                                self.at_spd_step.value(), "speed")
+
+        def _at_step_speed(self, gains, rpm, which):
+            """Apply `gains`, run in speed mode, step the RPM setpoint, plot omega."""
             if not self._connected:
                 self._report("not connected")
                 return
-            self._at_speed_preview()
-            gains = getattr(self, "_at_spd_gains", None)
             if not gains:
-                self._report("no valid speed gains computed", logging.WARNING)
+                self._report(f"no valid {which} gains", logging.WARNING)
                 return
-            rpm = self.at_spd_step.value()
             we = self._rpm_to_elec(rpm)
             isr = self._mc("isr_freq_hz")
             # Size the window ~1.6x the firmware accel ramp (SPEED_RAMP_RAD_S2~500)
@@ -1808,15 +2054,15 @@ def build(pg, QtCore, QtGui, QtWidgets):
             total_t = ramp_t * 1.6 + 0.1
             decim = int(max(20, min(200, round(total_t * isr / 128.0))))
             mask = proto.names_to_mask(["omega_elec"])
-            self._report("speed verify: applying gains + stepping RPM…")
+            self._report(f"{which} verify: applying gains + stepping RPM…")
             self._at_set_busy(True)
             self.worker.submit(
                 "at_verify_spd",
                 fn=lambda d, g=dict(gains): at_run_step(
                     d, mode=1, ref_param="omega_ref", ref_value=we, mask=mask,
                     decim=decim, isr_freq=isr, pre_gains=g, settle_frac=0.55),
-                on_done=lambda res, we=we: self._at_verify_done(
-                    "omega_elec", res, 0.0, we, "speed"),
+                on_done=lambda res, we=we, w=which: self._at_verify_done(
+                    "omega_elec", res, 0.0, we, w),
                 on_fail=self._at_verify_failed)
 
         def _at_measure_km(self):
@@ -2202,7 +2448,13 @@ def build(pg, QtCore, QtGui, QtWidgets):
                             fault = int(d.read_param("fault_code"))
                         except Exception:
                             fault = 0
-                    return (st, fault)
+                    # Live DC-bus voltage for the header readout; tolerate firmware
+                    # that predates the "vbus" param.
+                    try:
+                        vbus = float(d.read_param("vbus"))
+                    except Exception:
+                        vbus = None
+                    return (st, fault, vbus)
 
                 self.worker.submit("state", fn=poll_state,
                                    on_done=self._state_done, on_fail=self._state_failed)
@@ -2211,7 +2463,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
         def _state_done(self, res):
             self._state_pending = False
-            st, fault = res
+            st, fault, vbus = res
             text = FocDebug.state_name(st)
             if st == ST_FAULT:
                 if fault:
@@ -2220,6 +2472,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
             else:
                 self.state_label.setStyleSheet("")
             self.state_label.setText(text)
+            if vbus is not None:
+                self.vbus_label.setText(f"{vbus:.1f} V")
 
         def _state_failed(self, msg):
             self._state_pending = False

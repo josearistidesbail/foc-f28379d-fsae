@@ -78,7 +78,7 @@
 // directly as Vd=Rs*id_ref / Vq=Rs*iq_ref using the sensor angle. Keep 1 for
 // normal operation; flip live for bring-up. NOTE: this ignores back-EMF, so on
 // this traction motor only use open-loop mode at low/zero speed.
-#define FOC_ILOOP_DEFAULT           1
+#define FOC_ILOOP_DEFAULT           0
 
 // ---- Field weakening (Step 11) ------------------------------------------
 // Voltage-feedback FW regulator (foc_pipeline.c, RUN only, gated by g_dbg_fw_en):

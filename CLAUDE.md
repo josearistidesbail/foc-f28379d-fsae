@@ -170,6 +170,42 @@ volatile uint16_t g_dbg_cos_raw;    // raw resolver COS ADC code; 0 on non-RM44A
 //   codes over time; RO params sin_raw/cos_raw (0x0119/0x011A) + res_mag (0x011B = g_dbg_resolver_mag, ~1.0 healthy)
 //   give the static readout. Added to diagnose resolver angle noise (theta jitter vs analog-scope mV).
 
+// src/foc_pipeline.c        (DC-bus voltage scope channel)
+volatile float32_t g_dbg_vbus_v;    // measured DC-bus [V], = s_refs.vbus every ISR (real adc_read_vbus,
+//   even in open-loop modes that feed SVGEN a synthetic unity bus). Host: scope channel "vbus"
+//   (SCOPE_BIT_VBUS 0x1000, datalog col 13, all backends); static RO param "vbus" 0x0115 reads the same source.
+//   Use it to size MOTOR_UV_TRIP_V: RUN + torque, watch the bus SAG under phase current on the bench supply.
+//   The UV trip (safety.c) is INSTANTANEOUS (no debounce) and fires only in FOC_RUN, comparing this exact value
+//   to MOTOR_UV_TRIP_V — so set the trip BELOW the observed noisy MINIMUM, not the mean. NOTE the scope is
+//   burst-captured (128 samples = 12.8 ms at decim=1, then a ~237 ms gap); raise decim to widen each contiguous
+//   window if a fast dip falls in the gap, or hold steady torque and read the sustained level.
+//   [2026-07-23] vbus read WRONG (compressed at rest, ~10V at real 23V under the align/cal drive) was NOT the
+//   74.18 divider — it was the ADC acquisition window: myADCC SOC1 (Vbus=ADCINC2) had only a 15-cycle (75 ns)
+//   sample window and is sampled right after SOC0=Iv (low-Z) on the same ADC-C. The high-Z divider (~30 kOhm)
+//   can't charge the S/H in 75 ns, so vbus charge-shared with the prior Iv sample (~15% gain; dragged by Iv when
+//   current flows). FIXED via SysConfig: myADCC.soc1SampleWindow 15->512 (2.56 us). DURABLE HW fix still wanted:
+//   ~1-10 nF from ADCINC2 to AGND (charge reservoir + noise filter).
+//   [2026-07-23 part 2] SCALE was ALSO wrong: the PrimeSTACK "Analog DC link voltage sensor output" is a SENSOR
+//   (6.5 V @ 900 V per datasheet), THEN a /2 external divider (two 69k) -> ADCINC2. So VBUS_DIVIDER_RATIO =
+//   (900/6.5)*2 = 276.92, NOT 74.18 (cal'd against the settling-corrupted reading; the older 138.46 was the sensor
+//   factor alone, missing the /2). Verified: firmware saw 106 mV at the pin at 30 V, model says 108. Bench bus
+//   floors at ~6 V (inverter logic supply back-feeds the DC link) -> never reads 0 V; 24-30 V is ~3% of the 900 V
+//   range so it's low-res/noisy and scope-probe loading skews mV reads -- trust g_dbg_vbus_raw codes. Still TODO:
+//   trim VBUS_DIVIDER_RATIO vs a meter near the real bus. See memory foc-vbus-adc-acqwindow.
+
+// src/adc_iface.c          (DC-bus voltage low-pass — variant-agnostic)
+volatile uint16_t g_vbus_filt_en;      // "vbus_filt_en" param 0x0046, LIVE; default VBUS_FILT_DEFAULT_EN=1
+volatile float32_t g_vbus_filt_hz;     // "vbus_filt_hz" param 0x0047, LIVE [Hz]; setter recomputes alpha; default 50
+volatile float32_t g_vbus_filt_alpha;  // derived IIR coeff = clamp(2*pi*fc*Ts, 0..1) (VBUS_FILT_ALPHA in build_config.h)
+volatile float32_t g_vbus_filt;        // IIR state [V], updated EVERY ISR in adc_read_vbus() (primed on 1st read)
+//   First-order IIR on the measured bus, applied in adc_read_vbus() so the UV/OV trips, the vmax_dyn PI clamp AND
+//   the vbus scope/param all see the de-noised value (raw bus is spike-noisy on the high-Z sensor divider and was
+//   nuisance-tripping the INSTANTANEOUS UV compare in safety.c). State runs every ISR regardless of en -> toggling
+//   vbus_filt_en is bumpless and A/Bs raw-vs-filtered on the "vbus" scope channel. Both params live in the GUI
+//   Advanced tab (auto-discovered). If it still nuisance-trips after the filter + the HW RC cap: lower vbus_filt_hz,
+//   or add a debounce / lower MOTOR_UV_TRIP_V. NOTE the filter also lags a REAL bus collapse by ~1/(2*pi*fc) (~3 ms
+//   at 50 Hz) -- fine for a bench UV backstop; the HW trip-zone still handles fast events.
+
 // src/sensor_qep.c   (Step 3 verification)
 volatile uint32_t g_dbg_qep_count;        // QPOSCNT
 volatile uint32_t g_dbg_qep_index_latch;  // QPOSILAT — stuck at 0 on bench (index wiring issue)
@@ -246,16 +282,25 @@ volatile uint16_t  g_resolver_dir_inv;  // 1 = mirror mech angle th→2π−th (
 //   by construction → omega_meas must read ≈ +2π·ol_freq; negative ⇒ set res_dir_inv=1. RE-RUN ALIGN after
 //   changing it (offset belongs to the direction it was captured with).
 
-// src/foc_pipeline.c        (bench VBUS override — dead VBUS sense workaround)
-volatile float32_t g_vbus_override_v;   // "vbus_ovr" param (0x0043, F32, NEEDS_IDLE); 0=use measured bus,
-//   >0 = substitute a fixed DC-link voltage for refs.vbus. RUN needs a sane vbus everywhere (PI clamp
-//   vmax_dyn=frac·vbus/2, SVGEN 1/vbus volts→duty, FW vmax) — with the sense disconnected all of RUN is dead even
-//   with iloop_en=0 (resistive mode is volts-domain). WARNING: blinds the SW OV trip (compares refs.vbus).
-//   **[2026-07-15] Boot default is now 24.0 V on production**, via `VBUS_OVERRIDE_DEFAULT_V` in hw_control_v2.h,
-//   deliberately written as `(BENCH_NO_POWER_STAGE ? 24.0f : 0.0f)` and NOT a bare constant — same idiom as
-//   safety.c's module-fault/UV bypasses, so **clearing BENCH_NO_POWER_STAGE disarms every bench workaround at once**
-//   and this can never survive into a build driving a real DC link. build_config.h carries a `#ifndef` fallback of
-//   0.0f, so Teknic/Debug keeps the MEASURED bus. Zero it (or clear the bench flag) once the sense line is repaired.
+// [RESTORED 2026-07-23] The bench VBUS override (g_vbus_override_v / "vbus_ovr"
+//   0x0043) and the SW undervoltage-trip bypass (g_uv_fault_en / "uv_en" 0x0037)
+//   are BACK (they were deleted 2026-07-22 when the sense was first connected).
+//   Reason: the PrimeSTACK sensor scale isn't trusted at low bench voltage (see
+//   the g_vbus_filt / VBUS_DIVIDER_RATIO=276.92 saga) and the noisy reading
+//   nuisance-trips UV. **Key difference from the old design:** MONITORING is now
+//   split from CONTROL. adc_read_vbus() -> vbus_meas -> g_dbg_vbus_v: the scope
+//   channel AND the "vbus" RO param 0x0115 always show the MEASURED bus. But
+//   s_refs.vbus (used by vmax_dyn, 1/vbus SVGEN, and the OV/UV trips) = the fixed
+//   override when g_vbus_override_v > 0, else vbus_meas. So you keep watching the
+//   live sensor while the control loop + trips run on a safe fixed nominal.
+//   Defaults are BENCH-gated: VBUS_OVERRIDE_DEFAULT_V = (BENCH_NO_POWER_STAGE ?
+//   24 : 0), UV_FAULT_EN_DEFAULT = (BENCH_NO_POWER_STAGE ? 0 : 1) -- both in
+//   hw_control_v2.h with build_config.h fallbacks (0.0f / 1U). So at the bench:
+//   control uses a fixed 24 V and UV is bypassed; in production: measured bus,
+//   UV armed. Set vbus_ovr=0 + uv_en=1 to switch control/UV back to the measured
+//   bus once the sensor is calibrated. OV stays always-armed against s_refs.vbus.
+//   MOTOR_UV_TRIP_V still 18 V (24 V bench; raise toward ~200 V for the HV bus).
+//   BENCH_NO_POWER_STAGE / "module_faults_en" UNCHANGED (power stage still off).
 
 // src/isr.c                 (Step 9 — HW trip-zone)
 volatile uint32_t g_dbg_tz_trip;        // count of ePWM one-shot trip-zone events (nFAULT→TZ1)
@@ -273,6 +318,32 @@ volatile int32_t  g_dbg_qep_dcnt;       // per-1 kHz-tick raw count delta (0 = f
 // src/sensor_rm44ac.c       (Step 10 — resolver loss detection; SENSOR_RM44AC only)
 volatile float32_t g_dbg_resolver_mag;  // latest sin^2+cos^2 (healthy ≈ 1.0; out of [LOW,HIGH] → lost) — RAW, pre-filter
 //   g_resolver_lost (u16) = loss flag; g_resolver_omega_healthy (f32) = last trusted elec speed
+
+// src/sensor_rm44ac.c + sensor_rm44ac_inline.h  (speed estimator — SENSOR_RM44AC only)
+volatile uint16_t  g_resolver_w_mode;   // "res_w_mode" 0x003D, LIVE: 0=diff+LPF (legacy), 1=type-II observer (PLL). DEFAULT 0
+volatile float32_t g_resolver_pll_bw_hz;// "res_pll_bw" 0x003E, LIVE [Hz], clamp [1,200], default 40; setter derives Ts·Kp AND Ts·Ki
+volatile float32_t g_resolver_wlpf_hz;  // "res_wlpf_hz" 0x0045, LIVE [Hz]; legacy LPF cutoff. DEFAULT NOW 50 (was 500)
+volatile float32_t g_resolver_omega_lpf;// legacy estimator's mech-speed state; RO param "res_w_lpf" 0x0121 (×pole_pairs, elec rad/s)
+//   Fixes a noisy omega_elec (±100 elec rad/s band, spikes to −700). Root cause: the old estimator differentiates the
+//   angle once per 100 µs (noise gain fs=10000) and the only cleanup was a 500 Hz LPF (real cutoff 599 Hz — the α≈2πfc·Ts
+//   approx is 16% off there, same failure mode as the old 1000 Hz res_filt_hz). BOTH estimators run every ISR (bumpless
+//   A/B like the sin/cos IIR); g_resolver_omega_mech carries the SELECTED one → lag comp + omega_elec. Two shipped fixes:
+//   legacy default 500→50 Hz (~11x quieter, one-liner), and the observer (res_w_mode=1) beside it, default OFF.
+//   **Observer (ATO/PLL):** type-II tracker, ζ=1 fixed, one knob (res_pll_bw). It does NOT difference the angle — the
+//   measurement is only a bounded loop error, so vs diff+LPF at equal bandwidth it is ~16x quieter (2/√(ωn·Ts)) and ~64x
+//   better on glitches (1/(ωn·Ts)); still ~3.9x/~7.8x at MATCHED phase lag. **NOT true:** type-II does NOT give zero
+//   accel speed error — the speed transfer is a plain 2nd-order LP ωn²/(s²+2ζωn s+ωn²), MORE phase lag than the 1-pole
+//   it replaces. Keep **f_bw ≤ res_filt_hz/5** (default 40 vs res_filt=200) so it doesn't chase the sin/cos IIR.
+//   **Why omega matters beyond telemetry:** it feeds the lag comp, so it enters the COMMUTATION angle as
+//   Δθ_elec = ω_elec_noise/(2π·res_filt_hz) — at res_filt=200 the ±100 band was ±4.6° elec and the −700 spikes −32°.
+//   Cleaning the speed cleans the angle (and ff_q=ω·λ) for free. Bench payoff test: A/B res_w_mode 0↔1 at a few hundred
+//   rpm with decouple_en=1 — steady Vd should drop (same signature as the Step-6 align fix). Scope A/B: new col 12
+//   "res_w_lpf" (SCOPE_BIT 0x0800) always carries the LEGACY estimator; col 5 omega_elec carries the SELECTED one — so
+//   res_w_mode=0 ⇒ the two are identical (plumbing check), res_w_mode=1 ⇒ side-by-side on one capture.
+//   ⚠️ **HARD GATE before FOC_MODE_SPEED:** the speed loop closes around omega. GAIN_KP_SPEED=1.5 crosses ~47 Hz on the
+//   bare rotor, where a 40 Hz observer adds ≈−93° → UNSTABLE. Any bandwidth cut (LPF or PLL) costs that phase. RE-TUNE
+//   kp_w for crossover ≤ f_bw/4 (start ≈0.31) before enabling speed mode. TORQUE mode has no loop around omega — safe.
+//   Once bench-proven, flip SENSOR_RES_W_MODE_DEFAULT → _PLL (document DEFAULT NOW 1 with date, like res_filt_en).
 
 // src/sensor_rm44ac.c       (SIN/COS input low-pass — software noise reduction; SENSOR_RM44AC only)
 volatile uint16_t  g_resolver_filt_en;     // 0=bypass, 1=filter; "res_filt_en" param. DEFAULT NOW 1 (was 0)

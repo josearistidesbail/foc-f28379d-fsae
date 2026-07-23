@@ -53,6 +53,21 @@
 #define SPEED_LOOP_DECIM        10                 // 1 kHz outer loop
 #define SPEED_LOOP_TS           (FOC_ISR_TS * (float)SPEED_LOOP_DECIM)
 
+//----- DC-bus voltage low-pass (variant-agnostic) ------------------------
+// First-order IIR on the measured bus, applied in adc_read_vbus() every ISR so
+// the UV/OV trips, the PI voltage clamp and the scope all consume a de-noised
+// value (the raw bus is spike-noisy on a high-Z sensor divider, nuisance-
+// tripping the instantaneous UV compare). alpha = clamp(2*pi*fc*Ts, 0..1); the
+// approx is exact enough well below fs/10 (=1 kHz here). Live-tunable via the
+// vbus_filt_en / vbus_filt_hz params; a hw header may override the defaults.
+#define VBUS_FILT_ALPHA(hz)     (2.0f * 3.14159265f * (hz) * FOC_ISR_TS)
+#ifndef VBUS_FILT_DEFAULT_EN
+#define VBUS_FILT_DEFAULT_EN    1U
+#endif
+#ifndef VBUS_FILT_DEFAULT_HZ
+#define VBUS_FILT_DEFAULT_HZ    50.0f
+#endif
+
 //----- Control mode (outer-loop source of iq_ref) -------------------------
 #define FOC_MODE_TORQUE         0U   // iq_ref commanded directly (bring-up)
 #define FOC_MODE_SPEED          1U   // iq_ref from the speed PI (omega_ref)
@@ -64,11 +79,14 @@
 #define BENCH_NO_POWER_STAGE    0U
 #endif
 
-// Boot default for the bench VBUS override ("vbus_ovr"). Only a hw header with a
-// disconnected VBUS sense sets this; everything else uses the MEASURED bus, which
-// is the only setting that keeps the SW overvoltage trip meaningful.
+// Bench DC-bus override + UV-bypass defaults. Only the Control_V2 header sets the
+// bench values; everything else defaults to "off" (control uses the measured bus,
+// UV trip armed).
 #ifndef VBUS_OVERRIDE_DEFAULT_V
 #define VBUS_OVERRIDE_DEFAULT_V 0.0f
+#endif
+#ifndef UV_FAULT_EN_DEFAULT
+#define UV_FAULT_EN_DEFAULT     1U
 #endif
 
 #endif // BUILD_CONFIG_H

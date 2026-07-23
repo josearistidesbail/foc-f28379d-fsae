@@ -17,11 +17,84 @@
 // changing it.
 #define SENSOR_RES_SENSOR_POLES     1
 
-// Speed estimate uses a 1st-order low-pass on the differentiated angle.
+// ---- Speed estimator selection ------------------------------------------
+// Two estimators run EVERY ISR (sensor_rm44ac_inline.h); this picks which one
+// drives g_resolver_omega_mech. Both keep their state live regardless (same
+// idiom as the sin/cos IIR below), so "res_w_mode" (0x003D) is a bumpless A/B
+// switch on a running bench. Anything other than _PLL selects the legacy path.
+#define SENSOR_RES_W_MODE_LPF       0U   // differentiate once per Ts, then LPF
+#define SENSOR_RES_W_MODE_PLL       1U   // type-II angle tracking observer
+#define SENSOR_RES_W_MODE_DEFAULT   SENSOR_RES_W_MODE_LPF   // -> _PLL once bench-proven
+
+// ---- Estimator A: differentiate-then-LPF (legacy) -----------------------
+// 1st-order low-pass on the differentiated angle.
 // fc = -ln(1 - alpha) * fs / (2*pi); approx alpha = 2*pi*fc/fs for fc << fs.
-#define SENSOR_RES_SPEED_LPF_HZ     500.0f
-#define SENSOR_RES_SPEED_LPF_ALPHA  (2.0f * 3.14159265f \
-                                     * SENSOR_RES_SPEED_LPF_HZ * FOC_ISR_TS)
+// DEFAULT NOW 50 (was 500). The once-per-Ts angle difference has a noise gain
+// of fs = 10000; at alpha = 0.314 the LPF only took the result down ~2x:
+//   sigma_omega = sigma_theta * (alpha/Ts) * sqrt(2/(2-alpha)) = 3420*sigma_theta.
+// 500 Hz was also 16% off the alpha ~= 2*pi*fc*Ts approximation, so the REAL
+// cutoff was -ln(1-0.314)*fs/2pi = 599 Hz (same failure mode CLAUDE.md documents
+// for the old 1000 Hz res_filt_hz default). At 50 Hz the approximation is 1.5%
+// honest and the output noise drops ~11x. Live-tunable via "res_wlpf_hz" (0x0045);
+// ALPHA is 1-arg (like SENSOR_RES_FILT_ALPHA) because FOC_ISR_TS is defined in
+// build_config.h AFTER this header is included, so it must stay use-site-expanded.
+#define SENSOR_RES_SPEED_LPF_HZ     50.0f
+#define SENSOR_RES_SPEED_LPF_ALPHA(hz)  (2.0f * 3.14159265f * (hz) * FOC_ISR_TS)
+
+// ---- Estimator B: type-II angle tracking observer (ATO / "resolver PLL") -
+// The standard resolver-to-digital speed estimator. It does NOT difference the
+// angle: the measurement enters only as a bounded loop error, so both the
+// broadband noise and the one-sample glitches are attenuated by the loop instead
+// of being amplified by fs and filtered back down. Against a differencer + LPF at
+// the SAME nominal bandwidth:
+//     noise advantage  = 2 / sqrt(wn*Ts)   -> ~16x at 40 Hz
+//     glitch advantage = 1 / (wn*Ts)       -> ~64x at 40 Hz
+// Even at MATCHED phase lag (a 101 Hz PLL == a 50 Hz 1-pole at 10 Hz) it is still
+// ~3.9x quieter and ~7.8x better on glitches -- the comparison that survives.
+//
+// NOT true of it, despite the folklore: type-II does NOT give zero speed error
+// under acceleration. Type-II is w.r.t. the ANGLE (zero angle error at constant
+// speed). The speed transfer is a plain 2nd-order low-pass
+//     w_hat/w_true = wn^2 / (s^2 + 2*zeta*wn*s + wn^2),
+// so under constant accel a the speed lags by 2*zeta*a/wn and the angle sits at a
+// constant a/wn^2. At equal nominal frequency it has MORE phase lag than the
+// 1-pole it replaces, because it is second order. Buy that back with bandwidth.
+//
+// **SPEED LOOP GATE**: the estimator is inside the FOC_MODE_SPEED loop. With
+// GAIN_KP_SPEED = 1.5 the loop crosses near ~47 Hz on the bare rotor, where a
+// 40 Hz observer contributes about -93 deg -- i.e. UNSTABLE. RE-TUNE kp_w to
+// cross at or below f_bw/4 before enabling FOC_MODE_SPEED. Harmless in
+// FOC_MODE_TORQUE: there omega only feeds the decouple feedforward, the lag
+// compensation and telemetry, none of which is a loop closed around omega.
+//
+// zeta is fixed at 1 (critically damped, no overshoot) so there is one knob.
+// Keep f_bw <= res_filt_hz/5 so the observer does not chase the sin/cos IIR's own
+// dynamics -- that is why the default is 40, not 100.
+// Discrete stability (semi-implicit Euler, zeta=1): wn*Ts < 2*sqrt(2)-2 = 0.828,
+// i.e. f_bw < 1318 Hz at 10 kHz -- 33x margin at the default, never binding.
+// float32: the integrator step is Ts*Ki*err = 6.3*err at 40 Hz against a 7.5e-5
+// ULP at 6000 rpm, so the speed quantum is Delta_w = |w|*eps/(2*pi*f_bw*Ts) =
+// 0.075 sensor rad/s. (It is Ts*Ki that sets precision; Ts^2*Ki sets stability.)
+#define SENSOR_RES_PLL_BW_HZ_DEFAULT 40.0f
+#define SENSOR_RES_PLL_ZETA          1.0f
+#define SENSOR_RES_PLL_BW_MIN_HZ     1.0f     // below: lock time > 0.9 s
+#define SENSOR_RES_PLL_BW_MAX_HZ     200.0f   // above: no noise advantage left
+// Acquisition clamp on the loop error [rad]. Normal running |err| ~ 0.005 rad,
+// 100x below this, so it never fires in operation. Outside the linear range the
+// loop degenerates to a constant-slew pull-in (Ts*Ki*0.5 = 3.2 rad/s per ISR, so
+// 628 rad/s in ~20 ms) instead of slamming the integrator on a wrap glitch or a
+// post-fault re-lock.
+#define SENSOR_RES_PLL_ERR_CLAMP     0.5f
+// Divergence guard on the tracked speed [mech rad/s], scaled by sensor_poles in
+// apply_poles(). Well above FAULT_ASC_OMEGA_ELEC/pole_pairs so it cannot interfere
+// with the fault path; it exists because a runaway omega goes straight into
+// ff_q = omega*flux at 10 kHz (foc_pipeline.c step 3).
+#define SENSOR_RES_PLL_W_MAX_MECH    (1.5f * MOTOR_SPEED_MAX_RAD_S)
+// Kp = 2*zeta*wn, Ki = wn^2 with wn = 2*pi*f_bw. Continuous-domain on purpose:
+// FOC_ISR_TS is not in scope here, so Ts folds in at the setter (apply_pll_bw).
+#define SENSOR_RES_PLL_WN(hz)   (2.0f * 3.14159265f * (hz))
+#define SENSOR_RES_PLL_KP(hz)   (2.0f * SENSOR_RES_PLL_ZETA * SENSOR_RES_PLL_WN(hz))
+#define SENSOR_RES_PLL_KI(hz)   (SENSOR_RES_PLL_WN(hz) * SENSOR_RES_PLL_WN(hz))
 
 // Default electrical-offset captured during ALIGN_ROTOR (mech radians).
 // Persist to flash later if you want repeatable boots.

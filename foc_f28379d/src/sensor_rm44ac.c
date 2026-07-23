@@ -48,6 +48,11 @@ volatile uint16_t  g_resolver_dir_inv       = SENSOR_RES_DIR_INV_DEFAULT;
 volatile uint16_t  g_resolver_sensor_poles  = SENSOR_RES_SENSOR_POLES;
 volatile float32_t g_resolver_elec_ratio    = 1.0f;   // set in apply_poles()
 volatile float32_t g_resolver_inv_poles     = 1.0f;   // set in apply_poles()
+// Observer speed-divergence guard, in the SENSOR speed domain. Declared up here
+// with the other poles-derived scale factors because apply_poles() (just below)
+// scales it; the rest of the observer state lives in the estimator block lower
+// down. See SENSOR_RES_PLL_W_MAX_MECH.
+volatile float32_t g_resolver_pll_w_max     = SENSOR_RES_PLL_W_MAX_MECH; // scaled in apply_poles()
 
 void sensor_rm44ac_apply_poles(uint16_t poles)
 {
@@ -56,6 +61,9 @@ void sensor_rm44ac_apply_poles(uint16_t poles)
     g_resolver_sensor_poles = poles;
     g_resolver_elec_ratio   = (float32_t)MOTOR_POLE_PAIRS / (float32_t)poles;
     g_resolver_inv_poles    = 1.0f / (float32_t)poles;
+    // The observer tracks the SENSOR angle, so its divergence guard lives in the
+    // sensor speed domain too (sensor rad/s = mech rad/s * poles).
+    g_resolver_pll_w_max    = SENSOR_RES_PLL_W_MAX_MECH * (float32_t)poles;
 }
 // TODO: Debugging Step 9, remove after. Latest sin^2+cos^2 (healthy ~= 1.0).
 volatile float32_t g_dbg_resolver_mag;
@@ -75,6 +83,56 @@ volatile float32_t g_resolver_cos_filt   = 0.0f;   // IIR state, cos channel
 // the cutoff changes, so the ISR only does a multiply-add. See sensor_rm44ac.h.
 volatile uint16_t  g_resolver_filt_comp  = SENSOR_RES_FILT_COMP_DEFAULT_EN;
 volatile float32_t g_resolver_filt_lag_k = 0.0f;   // set in sensor_init()
+
+// ---- Speed estimators (see sensor_rm44ac.h) ----------------------------
+// BOTH integrate every ISR regardless of the selector -- same idiom as the
+// sin/cos IIR above -- so "res_w_mode" is a bumpless live A/B switch. The
+// selected estimator's output lands in g_resolver_omega_mech (the ISR reads it
+// for the lag comp and omega_elec); each estimator keeps its OWN state so the
+// selector cannot destroy the inactive one's memory.
+volatile uint16_t  g_resolver_w_mode      = SENSOR_RES_W_MODE_DEFAULT;
+// A: differentiate-then-LPF. Its state used to BE g_resolver_omega_mech.
+volatile float32_t g_resolver_omega_lpf   = 0.0f;
+volatile float32_t g_resolver_wlpf_hz     = SENSOR_RES_SPEED_LPF_HZ;
+volatile float32_t g_resolver_wlpf_alpha  = 0.0f;   // set in sensor_init()
+// B: type-II angle tracking observer. th/w are the two loop states; kp_ts/ki_ts
+// are Ts-folded so the ISR does no scaling. w is in SENSOR rad/s (same domain as
+// th), converted to mechanical by inv_poles at the selector.
+volatile float32_t g_resolver_pll_bw_hz   = SENSOR_RES_PLL_BW_HZ_DEFAULT;
+volatile float32_t g_resolver_pll_kp_ts   = 0.0f;   // Ts*Kp, set in sensor_init()
+volatile float32_t g_resolver_pll_ki_ts   = 0.0f;   // Ts*Ki, set in sensor_init()
+volatile float32_t g_resolver_pll_th      = 0.0f;   // tracked angle [0, 2*pi)
+volatile float32_t g_resolver_pll_w       = 0.0f;   // tracked speed, sensor rad/s
+// g_resolver_pll_w_max is declared with the poles-scale globals above (apply_poles scales it).
+
+// Derive BOTH observer loop coefficients from one bandwidth, in one place. A Kp
+// and Ki that came from different bandwidths are a different DAMPING RATIO, and
+// at zeta << 1 this loop rings -- exactly the reason set_res_filt_hz() owns alpha
+// and lag_k together. Clamped to [BW_MIN, BW_MAX]; see the header for the
+// stability and float32 bounds behind those numbers. Preemption: each store is a
+// single 32-bit volatile write (atomic on C28x), so at worst one ISR runs with
+// (Kp_new, Ki_old) = one sample at a different zeta; both states are continuous
+// across it, so it is benign (same argument as sensor_clear_loss()).
+void sensor_rm44ac_apply_pll_bw(float32_t hz)
+{
+    if(hz < SENSOR_RES_PLL_BW_MIN_HZ) hz = SENSOR_RES_PLL_BW_MIN_HZ;
+    if(hz > SENSOR_RES_PLL_BW_MAX_HZ) hz = SENSOR_RES_PLL_BW_MAX_HZ;
+    g_resolver_pll_bw_hz = hz;
+    g_resolver_pll_kp_ts = SENSOR_RES_PLL_KP(hz) * FOC_ISR_TS;
+    g_resolver_pll_ki_ts = SENSOR_RES_PLL_KI(hz) * FOC_ISR_TS;
+}
+
+// Legacy speed-LPF cutoff -> IIR coefficient, clamped to [0, 1]. 0 freezes the
+// estimate; 1 is a passthrough (no filtering). Same one-place-derivation
+// discipline as apply_pll_bw() so sensor_init() and the host setter cannot drift.
+void sensor_rm44ac_apply_wlpf_hz(float32_t hz)
+{
+    if(hz < 0.0f) hz = 0.0f;
+    float32_t a = SENSOR_RES_SPEED_LPF_ALPHA(hz);
+    if(a > 1.0f) a = 1.0f;
+    g_resolver_wlpf_hz    = hz;
+    g_resolver_wlpf_alpha = a;
+}
 
 void sensor_init(void)
 {
@@ -97,6 +155,14 @@ void sensor_init(void)
     g_resolver_filt_lag_k = SENSOR_RES_FILT_LAG_K(g_resolver_filt_hz);
     g_resolver_sin_filt   = 0.0f;
     g_resolver_cos_filt   = 0.0f;
+
+    // Speed estimators: derive both estimators' coefficients from their default
+    // cutoffs (one place, same as the host setters) and zero their states.
+    sensor_rm44ac_apply_wlpf_hz(g_resolver_wlpf_hz);
+    sensor_rm44ac_apply_pll_bw(g_resolver_pll_bw_hz);
+    g_resolver_omega_lpf = 0.0f;
+    g_resolver_pll_th    = 0.0f;
+    g_resolver_pll_w     = 0.0f;
     // g_resolver_elec_offset starts at the default and is overwritten by
     // sensor_rm44ac_capture_zero() during the ALIGN_ROTOR state.
 }

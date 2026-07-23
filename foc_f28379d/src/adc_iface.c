@@ -29,6 +29,18 @@ volatile uint16_t g_dbg_iv_raw;
 volatile uint16_t g_dbg_iw_raw;
 volatile uint16_t g_dbg_vbus_raw;
 
+// DC-bus voltage low-pass (variant-agnostic). First-order IIR on the scaled bus
+// volts, applied in adc_read_vbus() every ISR so the UV/OV trips, the vmax_dyn
+// PI clamp and the vbus scope/param all consume a de-noised value. The state is
+// updated every ISR (regardless of en) so toggling the enable is bumpless, and
+// seeded to the first reading so 1/vbus / vmax_dyn never start from 0 V.
+// Tunable live via the vbus_filt_en / vbus_filt_hz serial params.
+volatile uint16_t g_vbus_filt_en    = VBUS_FILT_DEFAULT_EN;
+volatile float    g_vbus_filt_hz    = VBUS_FILT_DEFAULT_HZ;
+volatile float    g_vbus_filt_alpha = 0.0f;   // set in adc_init() from the cutoff
+volatile float    g_vbus_filt       = 0.0f;   // IIR state [V], seeded on 1st read
+static   uint16_t s_vbus_filt_primed = 0U;
+
 // Raw resolver SIN/COS ADC codes from the last adc_read_sin_cos(), exposed to
 // the host (scope channels res_sin/res_cos + sin_raw/cos_raw params) to diagnose
 // angle noise: DC level = bias (~RES_SINCOS_BIAS_CODE), swing = amplitude, and
@@ -63,6 +75,13 @@ void adc_init(void)
 {
     // Nothing extra: SysConfig already enabled, calibrated, and trimmed the ADC
     // modules. The offset values get rewritten by adc_calibrate_offsets().
+
+    // Seed the DC-bus IIR coefficient from the boot cutoff (same clamp the
+    // vbus_filt_hz setter uses) and force a re-prime on the first reading.
+    g_vbus_filt_alpha = VBUS_FILT_ALPHA(g_vbus_filt_hz);
+    if(g_vbus_filt_alpha > 1.0f) g_vbus_filt_alpha = 1.0f;
+    if(g_vbus_filt_alpha < 0.0f) g_vbus_filt_alpha = 0.0f;
+    s_vbus_filt_primed = 0U;
 #if SENSOR_BACKEND_RM44AC
     g_res_sin_bias     = RES_SINCOS_BIAS_CODE;
     g_res_sin_ampl_inv = 1.0f / RES_SINCOS_AMPL_CODE;
@@ -110,7 +129,15 @@ float adc_read_vbus(void)
 {
     uint16_t c = ADC_readResult(ADC_RESULT_BASE_VBUS, ADC_SOC_VBUS);
     g_dbg_vbus_raw = c;
-    return (float)c * VBUS_VOLTS_PER_CODE;
+    float v = (float)c * VBUS_VOLTS_PER_CODE;   // raw scaled bus volts
+
+    // First-order IIR, run every ISR so the state stays primed (bumpless en
+    // toggle). Seed to the first reading so consumers of vbus never see a 0 V
+    // startup transient. g_dbg_vbus_raw above keeps the un-filtered code.
+    if(!s_vbus_filt_primed) { g_vbus_filt = v; s_vbus_filt_primed = 1U; }
+    g_vbus_filt += g_vbus_filt_alpha * (v - g_vbus_filt);
+
+    return g_vbus_filt_en ? g_vbus_filt : v;
 }
 
 #if SENSOR_BACKEND_RM44AC

@@ -40,15 +40,24 @@ extern volatile uint16_t  g_dbg_fw_en;                  // src/foc_pipeline.c
 extern volatile float32_t g_dbg_fw_id;                  // src/foc_pipeline.c
 extern volatile float32_t g_dbg_vmag;                   // src/foc_pipeline.c
 
+// BENCH DC-bus override [V] and the measured-bus mirror the "vbus" readout shows.
+// (g_uv_fault_en, the UV-trip bypass, arrives via safety.h.)
+extern volatile float32_t g_vbus_override_v;            // src/foc_pipeline.c
+extern volatile float32_t g_dbg_vbus_v;                 // src/foc_pipeline.c (measured bus)
+
 // Open-loop PWM test mode (bench, no power stage): rotating-vector frequency and
 // q-axis drive magnitude. The FOC_OPENLOOP state itself is started/stopped via
 // the "ol_run" param below.
 extern volatile float32_t g_ol_freq_hz;                 // src/foc_pipeline.c
 extern volatile float32_t g_ol_mod;                     // src/foc_pipeline.c
 
-// Bench VBUS override [V]: 0 = use measured bus, >0 = fixed substitute for a
-// disconnected VBUS sense (see g_vbus_override_v in foc_pipeline.c).
-extern volatile float32_t g_vbus_override_v;            // src/foc_pipeline.c
+// DC-bus voltage low-pass: runtime enable + cutoff [Hz]. The hz setter recomputes
+// the IIR coefficient (g_vbus_filt_alpha) via VBUS_FILT_ALPHA, exactly as
+// adc_init() seeds it, so the boot value and host writes can never drift.
+// Variant-agnostic. See src/adc_iface.c.
+extern volatile uint16_t  g_vbus_filt_en;               // src/adc_iface.c
+extern volatile float32_t g_vbus_filt_hz;               // src/adc_iface.c
+extern volatile float32_t g_vbus_filt_alpha;            // src/adc_iface.c
 
 #if SENSOR_BACKEND_RM44AC
 // RM44AC SIN/COS input low-pass: runtime enable + cutoff [Hz]. The hz setter
@@ -77,6 +86,16 @@ extern volatile uint16_t  g_res_cal_sin_max;            // src/foc_pipeline.c
 extern volatile uint16_t  g_res_cal_cos_min;            // src/foc_pipeline.c
 extern volatile uint16_t  g_res_cal_cos_max;            // src/foc_pipeline.c
 extern volatile uint16_t  g_res_cal_status;             // src/adc_iface.c
+
+// Resolver speed estimator: selector, observer bandwidth, legacy LPF cutoff, and
+// the legacy estimator's live output. The two hz setters derive their dependent
+// coefficients inside sensor_rm44ac.c so init and the host path cannot drift.
+extern volatile uint16_t  g_resolver_w_mode;            // src/sensor_rm44ac.c
+extern volatile float32_t g_resolver_pll_bw_hz;         // src/sensor_rm44ac.c
+extern volatile float32_t g_resolver_wlpf_hz;           // src/sensor_rm44ac.c
+extern volatile float32_t g_resolver_omega_lpf;         // src/sensor_rm44ac.c
+extern void sensor_rm44ac_apply_pll_bw(float32_t hz);   // src/sensor_rm44ac.c
+extern void sensor_rm44ac_apply_wlpf_hz(float32_t hz);  // src/sensor_rm44ac.c
 #endif
 
 // ---- raw <-> float bit-cast helpers (C28x: float32_t and uint32_t are 32b) --
@@ -160,11 +179,17 @@ static void get_mfen(uint32_t *r){ *r = (uint32_t)g_module_faults_en; }
 static void set_mfen(uint32_t  r){ g_module_faults_en = (uint16_t)(r ? 1U : 0U);
                                    pwm_apply_module_tz(); }
 
-// SW undervoltage-trip enable. Live (no NEEDS_IDLE) — a pure SW latch gate with
-// no HW side-effect, so it can be flipped on a running bench. Set 0 when the
-// VBUS sense is disconnected (the ~0 reading would otherwise false-trip UV).
+// BENCH undervoltage-trip bypass + DC-bus override (restored 2026-07-23). Live
+// (no NEEDS_IDLE) so they can be toggled while diagnosing. uv_en: 1 = UV armed,
+// 0 = bypassed. vbus_ovr: > 0 substitutes a fixed bus for the control loop and
+// the OV/UV trips (the scope + "vbus" readout still show the measured bus); 0 =
+// use the measured bus.
 static void get_uv_en(uint32_t *r){ *r = (uint32_t)g_uv_fault_en; }
 static void set_uv_en(uint32_t  r){ g_uv_fault_en = (uint16_t)(r ? 1U : 0U); }
+static void get_vbus_ovr(uint32_t *r){ *r = f32_to_raw(g_vbus_override_v); }
+static void set_vbus_ovr(uint32_t  r){ float32_t v = raw_to_f32(r);
+                                       if(v < 0.0f) v = 0.0f;
+                                       g_vbus_override_v = v; }
 
 // Open-loop PWM test mode (bench, no power stage). "ol_run" starts/stops the
 // FOC_OPENLOOP state (entry only honored in bench mode, g_module_faults_en==0);
@@ -179,13 +204,21 @@ static void set_ol_mod(uint32_t  r){ float32_t m = raw_to_f32(r);
                                      if(m < 0.0f) m = 0.0f; if(m > 0.5f) m = 0.5f;
                                      g_ol_mod = m; }
 
-// Bench VBUS override. NEEDS_IDLE: swapping the bus value mid-RUN rescales the
-// PI clamp and the volts->duty normalization in one tick (a torque jolt).
-// Negative writes floor to 0 (= use the measured bus).
-static void get_vbus_ovr(uint32_t *r){ *r = f32_to_raw(g_vbus_override_v); }
-static void set_vbus_ovr(uint32_t  r){ float32_t v = raw_to_f32(r);
-                                       if(v < 0.0f) v = 0.0f;
-                                       g_vbus_override_v = v; }
+// DC-bus voltage low-pass. Live (no NEEDS_IDLE) so it can be tuned on the bench;
+// the IIR state stays primed every ISR so toggling en is bumpless (and lets you
+// A/B raw vs filtered on the vbus scope channel). The hz setter recomputes alpha
+// the same way adc_init() does (shared VBUS_FILT_ALPHA macro). Negative hz floors
+// to 0 (freeze); huge hz saturates alpha at 1 (filter off).
+static void get_vbus_filt_en(uint32_t *r){ *r = (uint32_t)g_vbus_filt_en; }
+static void set_vbus_filt_en(uint32_t  r){ g_vbus_filt_en = (uint16_t)(r ? 1U : 0U); }
+static void get_vbus_filt_hz(uint32_t *r){ *r = f32_to_raw(g_vbus_filt_hz); }
+static void set_vbus_filt_hz(uint32_t  r){ float32_t hz = raw_to_f32(r);
+                                           if(hz < 0.0f) hz = 0.0f;
+                                           float32_t a = VBUS_FILT_ALPHA(hz);
+                                           if(a > 1.0f) a = 1.0f;
+                                           if(a < 0.0f) a = 0.0f;
+                                           g_vbus_filt_hz    = hz;
+                                           g_vbus_filt_alpha = a; }
 
 #if SENSOR_BACKEND_RM44AC
 // RM44AC SIN/COS input low-pass. Live (no NEEDS_IDLE) so it can be A/B'd on the
@@ -223,6 +256,24 @@ static void set_res_dir(uint32_t  r){ g_resolver_dir_inv = (uint16_t)(r ? 1U : 0
 // 1..50 and recomputes the elec/mech scale factors. RE-RUN ALIGN after changing.
 static void get_res_poles(uint32_t *r){ *r = (uint32_t)g_resolver_sensor_poles; }
 static void set_res_poles(uint32_t  r){ sensor_rm44ac_apply_poles((uint16_t)r); }
+// Speed-estimator selector: 0 = differentiate+LPF (legacy), 1 = type-II angle
+// tracking observer. Live (no NEEDS_IDLE) so it can be A/B'd in RUN -- both
+// estimators integrate every ISR, so the switch is bumpless. Anything other than
+// 1 selects the legacy path.
+static void get_res_w_mode(uint32_t *r){ *r = (uint32_t)g_resolver_w_mode; }
+static void set_res_w_mode(uint32_t  r){ g_resolver_w_mode =
+        (uint16_t)((r == SENSOR_RES_W_MODE_PLL) ? SENSOR_RES_W_MODE_PLL
+                                                : SENSOR_RES_W_MODE_LPF); }
+// Observer bandwidth [Hz]. The setter derives BOTH Ts*Kp and Ts*Ki from it in one
+// place (same discipline as set_res_filt_hz -> alpha + lag_k): a Kp and Ki from
+// different bandwidths are a different damping ratio. Clamped to [1, 200] Hz. Keep
+// it <= res_filt_hz/5 or the observer chases the sin/cos IIR.
+static void get_res_pll_bw(uint32_t *r){ *r = f32_to_raw(g_resolver_pll_bw_hz); }
+static void set_res_pll_bw(uint32_t  r){ sensor_rm44ac_apply_pll_bw(raw_to_f32(r)); }
+// Legacy speed-LPF cutoff [Hz]. Live, so the fallback estimator is tunable on the
+// same bench run as the observer. 0 freezes it; alpha clamps at 1.
+static void get_res_wlpf_hz(uint32_t *r){ *r = f32_to_raw(g_resolver_wlpf_hz); }
+static void set_res_wlpf_hz(uint32_t  r){ sensor_rm44ac_apply_wlpf_hz(raw_to_f32(r)); }
 #endif
 
 // ALIGN offset-capture enable: 1 = sweep and average the sensor-vs-commanded
@@ -275,6 +326,11 @@ static void get_cal_sin_max(uint32_t *r){ *r = (uint32_t)g_res_cal_sin_max; }
 static void get_cal_cos_min(uint32_t *r){ *r = (uint32_t)g_res_cal_cos_min; }
 static void get_cal_cos_max(uint32_t *r){ *r = (uint32_t)g_res_cal_cos_max; }
 static void get_cal_status(uint32_t *r) { *r = (uint32_t)g_res_cal_status; }
+// Legacy estimator's electrical speed [elec rad/s], live regardless of
+// res_w_mode. Pairs with omega_meas (0x0104) for a numeric A/B without a scope
+// capture -- with res_w_mode = 0 the two must read identical.
+static void get_res_w_lpf(uint32_t *r)
+{ *r = f32_to_raw(g_resolver_omega_lpf * (float32_t)MOTOR_POLE_PAIRS); }
 #endif
 
 // ---- Motor / loop constants (read-only, for the host PI autotuner) --------
@@ -286,7 +342,10 @@ static void get_ld_h(uint32_t *r)        { *r = f32_to_raw(MOTOR_LD_H); }
 static void get_lq_h(uint32_t *r)        { *r = f32_to_raw(MOTOR_LQ_H); }
 static void get_flux_vs(uint32_t *r)     { *r = f32_to_raw(MOTOR_FLUX_VS); }
 static void get_i_peak_a(uint32_t *r)    { *r = f32_to_raw(MOTOR_I_PEAK_A); }
-static void get_vbus(uint32_t *r)        { *r = f32_to_raw(foc_get_refs()->vbus); }
+// vbus = the MEASURED bus (g_dbg_vbus_v), not the control value: at the bench the
+// control loop runs on g_vbus_override_v while this readout keeps tracking the
+// live sensor (they match when the override is off or equals the real bus).
+static void get_vbus(uint32_t *r)        { *r = f32_to_raw(g_dbg_vbus_v); }
 static void get_isr_freq_hz(uint32_t *r) { *r = f32_to_raw(FOC_ISR_FREQ_HZ); }
 static void get_speed_loop_ts(uint32_t *r){ *r = f32_to_raw((float32_t)SPEED_LOOP_TS); }
 static void get_fw_vmax_frac(uint32_t *r){ *r = f32_to_raw(FW_VMAX_FRACTION); }
@@ -312,13 +371,15 @@ const param_entry_t g_param_table[] =
     { 0x0032U, PARAM_TYPE_U16, 0,                     "control_mode", get_mode,     set_mode     },
     { 0x0033U, PARAM_TYPE_U16, 0,                     "fw_en",        get_fw_en,    set_fw_en    },
     { 0x0034U, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "module_faults_en", get_mfen, set_mfen     },
-    { 0x0037U, PARAM_TYPE_U16, 0,                     "uv_en",        get_uv_en,    set_uv_en    },
     { 0x0038U, PARAM_TYPE_U16, 0,                     "iloop_en",     get_iloop,    set_iloop    },
     { 0x0040U, PARAM_TYPE_U16, 0,                     "ol_run",     get_ol_run,   set_ol_run    },
     { 0x0041U, PARAM_TYPE_F32, 0,                     "ol_freq",    get_ol_freq,  set_ol_freq   },
     { 0x0042U, PARAM_TYPE_F32, 0,                     "ol_mod",     get_ol_mod,   set_ol_mod    },
-    { 0x0043U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "vbus_ovr",   get_vbus_ovr, set_vbus_ovr  },
     { 0x0044U, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "align_off_en", get_align_off_en, set_align_off_en },
+    { 0x0037U, PARAM_TYPE_U16, 0,                     "uv_en",        get_uv_en,      set_uv_en      },
+    { 0x0043U, PARAM_TYPE_F32, 0,                     "vbus_ovr",     get_vbus_ovr,   set_vbus_ovr   },
+    { 0x0046U, PARAM_TYPE_U16, 0,                     "vbus_filt_en", get_vbus_filt_en, set_vbus_filt_en },
+    { 0x0047U, PARAM_TYPE_F32, 0,                     "vbus_filt_hz", get_vbus_filt_hz, set_vbus_filt_hz },
 
 #if SENSOR_BACKEND_RM44AC
     { 0x0035U, PARAM_TYPE_U16, 0,                     "res_filt_en", get_res_filt_en, set_res_filt_en },
@@ -327,6 +388,9 @@ const param_entry_t g_param_table[] =
     { 0x0039U, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "res_cal_en",  get_res_cal_en,  set_res_cal_en  },
     { 0x003AU, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "res_dir_inv", get_res_dir,     set_res_dir     },
     { 0x003BU, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "res_poles",   get_res_poles,   set_res_poles   },
+    { 0x003DU, PARAM_TYPE_U16, 0,                     "res_w_mode",  get_res_w_mode,  set_res_w_mode  },
+    { 0x003EU, PARAM_TYPE_F32, 0,                     "res_pll_bw",  get_res_pll_bw,  set_res_pll_bw  },
+    { 0x0045U, PARAM_TYPE_F32, 0,                     "res_wlpf_hz", get_res_wlpf_hz, set_res_wlpf_hz },
 #endif
 
     { 0x0100U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "state",      get_state,     0            },
@@ -351,6 +415,8 @@ const param_entry_t g_param_table[] =
     { 0x011EU, PARAM_TYPE_U16, PARAM_FLAG_RO,         "cal_cos_min", get_cal_cos_min, 0         },
     { 0x011FU, PARAM_TYPE_U16, PARAM_FLAG_RO,         "cal_cos_max", get_cal_cos_max, 0         },
     { 0x0120U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "cal_status",  get_cal_status,  0         },
+    // Legacy diff+LPF speed for a numeric A/B against omega_meas (0x0104).
+    { 0x0121U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "res_w_lpf",   get_res_w_lpf,   0         },
 #endif
 
     // Motor / loop constants the host PI autotuner reads to compute gains.

@@ -12,6 +12,17 @@
 extern volatile uint16_t g_dbg_sin_raw;
 extern volatile uint16_t g_dbg_cos_raw;
 
+// Measured DC-bus voltage [V] (foc_pipeline.c, refreshed every ISR). Logged as
+// scope col 13 so the host can watch the bus sag under load (UV-trip sizing).
+extern volatile float g_dbg_vbus_v;
+
+// Legacy differentiate+LPF electrical speed (written by the RM44AC ISR in
+// sensor_rm44ac_inline.h). Logged as scope col 12 so one capture shows it against
+// the SELECTED estimator on col 5; with res_w_mode = 0 the two are identical by
+// construction. Defined HERE, not in sensor_rm44ac.c, so the QEP build still
+// links (it never writes it, so it reads a constant 0).
+volatile float g_dbg_omega_lpf_elec;
+
 // Push into .ebss (far-data) because the linker cmd lets .ebss fragment
 // across RAMLS5 | RAMGS0 | RAMGS1; default .bss is RAMLS5-only and too small.
 #pragma DATA_SECTION(g_datalog, ".ebss")
@@ -23,9 +34,10 @@ static uint16_t   s_decim_cnt = 0U;
 
 // Catalog bit -> g_datalog column map (see debug_proto.h SCOPE_BIT_*):
 //   bit0 Id=1, bit1 Iq=2, bit2 theta=0, bit3 omega=5, bit4 Vd=3, bit5 Vq=4,
-//   bit6 Iu=7, bit7 Iv=8, bit8 Iw=9, bit9 res_sin=10, bit10 res_cos=11
+//   bit6 Iu=7, bit7 Iv=8, bit8 Iw=9, bit9 res_sin=10, bit10 res_cos=11,
+//   bit11 res_w_lpf=12, bit12 vbus=13
 static const uint16_t s_scope_cols[SCOPE_MAX_CHANNELS] =
-    { 1U, 2U, 0U, 5U, 3U, 4U, 7U, 8U, 9U, 10U, 11U };
+    { 1U, 2U, 0U, 5U, 3U, 4U, 7U, 8U, 9U, 10U, 11U, 12U, 13U };
 
 void debug_init(void)
 {
@@ -54,6 +66,8 @@ void debug_datalog_push(const FOC_Signals_t *s, uint16_t state)
     g_datalog[i][9] = s->Iabc.value[2];  // Iw
     g_datalog[i][10] = (float)g_dbg_sin_raw;  // raw resolver SIN ADC code
     g_datalog[i][11] = (float)g_dbg_cos_raw;  // raw resolver COS ADC code
+    g_datalog[i][12] = g_dbg_omega_lpf_elec;  // legacy diff+LPF elec speed (A/B)
+    g_datalog[i][13] = g_dbg_vbus_v;          // measured DC-bus voltage [V]
     g_datalog_idx = (i + 1U) & (DATALOG_LEN_SAMPLES - 1U);
 }
 

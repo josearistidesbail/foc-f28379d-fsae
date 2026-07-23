@@ -81,16 +81,20 @@
 #define ISENSE_RECONSTRUCT_PHASE 3
 
 // ---- ISENSE scaling ---------------------------------------------------
-// Closed-loop Hall transducer (LEM-class), ~300 A nominal. Pinmap gives
-// sensitivity ~8 mV/A (125 A/V). I = (code - offset) * VREF / 4096 / V_per_A.
-//   !! ALL THREE numbers below are bench-VERIFY items (pinmap §6 marked them
-//      "assumed"). The runtime adc_calibrate_offsets() captures the true zero
-//      each CALIBRATE, so ISENSE_ZERO_CODE is only a pre-cal placeholder.
-//   !! CAUTION: a 2.5 V bias on a 3.0 V VREFHI leaves only ~0.5 V (~62 A) of
-//      positive-current headroom before the ADC clips -- inconsistent with a
-//      bipolar +/-300 A sensor. Confirm the real bias (likely ~1.5 V / mid-scale)
-//      and any AFE attenuation on the bench before closed-loop RUN.
-#define LEM_V_PER_A             0.008f      // ~8 mV/A (125 A/V) per pinmap
+// Current-sense amp on the bench board. I = (code - offset) * VREF / 4096 / V_per_A.
+//   !! BENCH-MEASURED 2026-07-22: sensitivity 78.6 mV/A (12.7 A/V). The old
+//      "8 mV/A per pinmap" value was a ~9.8x under-estimate -> the firmware
+//      over-reported phase current by ~9.8x (a real ~15 A read as ~150 A and
+//      looked like a spurious overcurrent on the 24 V / 3 A bench). Corrected.
+//   !! At 78.6 mV/A the ADC only spans ~+/-19 A around the bias before clipping
+//      (0.5 V of the 1.5 V half-range / 0.0786). That is FINE for this small
+//      bench but far under MOTOR_OC_TRIP_A (260 A, EMRAX) -- the software OC
+//      check can never fire before the ADC saturates, so it is effectively
+//      inert on this sensor. Re-derive LEM_V_PER_A (and revisit the OC trip)
+//      when the real high-current transducer is fitted.
+//   !! adc_calibrate_offsets() captures the true zero each CALIBRATE, so
+//      ISENSE_ZERO_CODE is only a pre-cal placeholder.
+#define LEM_V_PER_A             0.0786f     // 78.6 mV/A, bench-measured 2026-07-22
 #define ADC_VREF_V              3.0f        // VREFHI = 3.0 V (resolver 0-3.3 V clips -> confirms 3.0)
 #define ADC_FULL_SCALE_CODE     4096.0f
 #define ISENSE_AMPS_PER_CODE    (ADC_VREF_V / ADC_FULL_SCALE_CODE / LEM_V_PER_A)
@@ -103,13 +107,22 @@
 #define ISENSE_SIGN_W           (+1.0f)     // unused (W is KCL-reconstructed)
 
 // ---- VBUS sense -------------------------------------------------------
-// PrimeSTACK voltage monitor: 6.5 V out @ 900 V bus -> ratio 138.46:1, assumed
-// unity output buffer. Measurement only (no HW OV shutdown in the sensor).
-//   !! CLIPS: at ratio 138.46 and VREF 3.0 V the ADC saturates at ~415 V bus
-//      (3.0 * 138.46). Above that Vbus reads pegged, so the SW OV trip (460 V)
-//      and FW headroom math go BLIND. Need extra attenuation, or keep bus <415 V,
-//      before HV operation. Flagged in docs/production_bringup.md.
-#define VBUS_DIVIDER_RATIO      138.46f
+// PrimeSTACK "Analog DC link voltage sensor output" (V_DC ana) -> external
+// resistor divider -> ADCINC2. NOT a raw bus tap: the PrimeSTACK output is a
+// SENSOR that gives 6.5 V typ at 900 V bus (datasheet 6.4/6.5/6.6 V), i.e. a
+// gain of 900/6.5 = 138.46 V(bus) per V(sensor). The external divider is two
+// equal 69 kOhm resistors = /2 (source impedance 69k||69k = 34.5k -> needs the
+// long ADC acquisition window, see myADCC SOC1 = 512 cycles, and ideally an
+// RC cap at the pin). Total bus->pin gain = (6.5/900)*(1/2) = 1/276.9, so:
+//     VBUS_DIVIDER_RATIO = (900/6.5) * 2 = 276.92
+// Sanity: 30 V bus -> pin 108 mV -> ~30 V reading; 400 V -> pin 1.44 V.
+// Ceiling: pin reaches the 3.0 V VREF at ~831 V bus (> VBUS_MAX 470, OK).
+// TRIM against a meter: the 6.5 V sensor point is +/-1.5% and the resistors have
+// tolerance. Bench 24-30 V is only ~3% of the 900 V range (pin ~0.1 V, noisy /
+// low-res) -- calibrate nearer the real bus if you can. The old 74.18 was
+// calibrated against a settling-corrupted reading and is invalid; 138.46 (the
+// prior value) was the sensor factor alone and omitted the /2 divider.
+#define VBUS_DIVIDER_RATIO      276.92f
 #define VBUS_VOLTS_PER_CODE     (ADC_VREF_V * VBUS_DIVIDER_RATIO / ADC_FULL_SCALE_CODE)
 
 // ---- RM44AC notes -------------------------------------------------------
@@ -190,15 +203,19 @@
 // and pwm_init() drops the OSHT trip-zone sources.
 //   *** SET BACK TO 0 BEFORE CONNECTING THE INVERTER / POWER STAGE. ***
 #define BENCH_NO_POWER_STAGE    1U
-
-// Boot default for g_vbus_override_v ("vbus_ovr"). The VBUS sense is physically
-// disconnected on this bench, so it reads ~0 and every volts-domain consumer
-// dies with it (PI clamp vmax_dyn = frac*vbus/2 -> 0, SVGEN 1/vbus, FW vmax).
-// 24.0 = the actual bench supply. Deliberately gated on BENCH_NO_POWER_STAGE and
-// NOT a bare constant: this value BLINDS the SW overvoltage trip (it compares
-// refs.vbus), so it must never survive into a build driving a real DC link.
-// Clearing BENCH_NO_POWER_STAGE disarms it along with the module-fault and UV
-// bypasses -- one switch for every bench workaround. Same idiom as safety.c.
+// Bench DC-bus handling while the PrimeSTACK sensor scale is untrusted at low
+// voltage: the CONTROL loop + OV/UV trips run on a fixed override (24 V bench
+// nominal), and the SW UV trip is bypassed. The scope/"vbus" readout still show
+// the live measured bus. Both revert to normal (measured bus, UV armed) in
+// production (BENCH_NO_POWER_STAGE = 0). Remove once the sensor is calibrated.
 #define VBUS_OVERRIDE_DEFAULT_V (BENCH_NO_POWER_STAGE ? 24.0f : 0.0f)
+#define UV_FAULT_EN_DEFAULT     (BENCH_NO_POWER_STAGE ? 0U : 1U)
+
+// NOTE: the VBUS sense line is now physically connected and read live via
+// adc_read_vbus() (VBUS_DIVIDER_RATIO above), so the old bench VBUS override
+// (g_vbus_override_v / "vbus_ovr") and the SW undervoltage-trip bypass
+// ("uv_en") have been removed -- the measured bus feeds refs.vbus directly and
+// the OV/UV trips run against it. Re-verify VBUS_DIVIDER_RATIO on the bench
+// (compare the host "Vbus" readout to a meter) before trusting the trips.
 
 #endif // HW_CONTROL_V2_H

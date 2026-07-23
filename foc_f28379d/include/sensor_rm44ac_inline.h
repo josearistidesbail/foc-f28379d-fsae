@@ -66,6 +66,20 @@ extern volatile float32_t   g_resolver_cos_filt;     // IIR state, cos channel
 extern volatile uint16_t    g_resolver_filt_comp;    // 1 = add the filter lag back
 extern volatile float32_t   g_resolver_filt_lag_k;   // 1/(2*pi*fc), 0 when fc <= 0
 
+// Speed estimators (see sensor_rm44ac.h / sensor_rm44ac.c). Both integrate every
+// ISR; g_resolver_w_mode selects which drives g_resolver_omega_mech.
+extern volatile uint16_t    g_resolver_w_mode;       // 0 = LPF, 1 = observer
+extern volatile float32_t   g_resolver_omega_lpf;    // estimator A state (mech rad/s)
+extern volatile float32_t   g_resolver_wlpf_alpha;   // estimator A IIR coefficient
+extern volatile float32_t   g_resolver_pll_kp_ts;    // observer Ts*Kp
+extern volatile float32_t   g_resolver_pll_ki_ts;    // observer Ts*Ki
+extern volatile float32_t   g_resolver_pll_th;       // observer tracked angle [0, 2*pi)
+extern volatile float32_t   g_resolver_pll_w;        // observer tracked speed, sensor rad/s
+extern volatile float32_t   g_resolver_pll_w_max;    // observer divergence guard, sensor rad/s
+// Legacy estimator's electrical speed, mirrored to scope col 12 for the A/B
+// (defined in debug_hooks.c so the QEP build still links; reads 0 there).
+extern volatile float       g_dbg_omega_lpf_elec;
+
 // Store the electrical zero offset (radians). Called by the ramp-and-average
 // align controller at the end of FOC_ALIGN_ROTOR; defined in sensor_rm44ac.c
 // (converts the electrical offset to the mechanical one the ISR subtracts).
@@ -125,7 +139,16 @@ static inline void sensor_update_isr(void)
         if(th >= TWO_PI_F) th -= TWO_PI_F;   // th was exactly 0
     }
 
-    // Speed: wrap angle difference into [-pi, +pi), differentiate, LPF.
+    // ==== Speed estimation ================================================
+    // Two estimators run every ISR (bumpless A/B via g_resolver_w_mode -- same
+    // idiom as the sin/cos IIR at the top of this function). Each keeps its own
+    // state; the selector at the end copies one into g_resolver_omega_mech, which
+    // the lag comp and omega_elec below consume.
+
+    // ---- Estimator A: differentiate-then-LPF (legacy) --------------------
+    // Wrap the angle difference into [-pi, +pi), differentiate, LPF. Unchanged
+    // math; only the state moved out of g_resolver_omega_mech into its own
+    // variable so the selector cannot destroy the inactive estimator's memory.
     float32_t dth = th - g_resolver_last_theta;
     if(dth >  3.14159265f) dth -= TWO_PI_F;
     if(dth < -3.14159265f) dth += TWO_PI_F;
@@ -134,8 +157,57 @@ static inline void sensor_update_isr(void)
     // dth is in SENSOR-angle radians (the sensor cycles sensor_poles times per
     // mech rev); divide by poles for true mechanical speed.
     float32_t omega_raw = dth * FOC_ISR_FREQ_HZ * g_resolver_inv_poles;
-    g_resolver_omega_mech += SENSOR_RES_SPEED_LPF_ALPHA
-                             * (omega_raw - g_resolver_omega_mech);
+    g_resolver_omega_lpf += g_resolver_wlpf_alpha
+                            * (omega_raw - g_resolver_omega_lpf);
+
+    // ---- Estimator B: type-II angle tracking observer --------------------
+    // Standard resolver-to-digital ATO (see sensor_rm44ac.h for the gain
+    // derivation, the stability bound and the float32 bound). It never
+    // differentiates: the measurement enters only as a bounded loop error, so a
+    // one-sample angle glitch moves the speed state by ki_ts*err instead of by
+    // alpha*fs*err (6.3 vs ~3140 at the shipped settings, ~500x).
+    //
+    // Fed the SAME uncompensated, post-dir_inv angle 'th' as the differencer
+    // above, for the two reasons the lag-comp block below gives -- but rule (1)
+    // is STRONGER here. For the differencer a constant lag merely cancels out of
+    // the difference; for the observer, closing the loop on the COMPENSATED angle
+    // would put its own output back into its own measurement through the comp term
+    // (omega*lag_k*poles), an added loop gain of lag_k*poles*s that reaches unity
+    // at s = 1/lag_k = 2*pi*res_filt_hz -- a real feedback path, not just a bias.
+    // Rule (2) is unchanged: dir_inv flips th and the tracked speed together, so
+    // the signed result still points the right way.
+    //
+    // Semi-implicit (velocity-first) Euler: w is updated BEFORE it is used for th.
+    // Better conditioned than the fully explicit form at no extra cost.
+    float32_t perr = th - g_resolver_pll_th;
+    if(perr >  3.14159265f) perr -= TWO_PI_F;
+    if(perr < -3.14159265f) perr += TWO_PI_F;
+    // Acquisition clamp: |perr| ~ 0.005 rad in normal running, 100x below this, so
+    // it never fires in operation. It bounds a wrap glitch or a post-fault re-lock
+    // into a constant-slew pull-in instead of an integrator slam.
+    if(perr >  SENSOR_RES_PLL_ERR_CLAMP) perr =  SENSOR_RES_PLL_ERR_CLAMP;
+    if(perr < -SENSOR_RES_PLL_ERR_CLAMP) perr = -SENSOR_RES_PLL_ERR_CLAMP;
+
+    float32_t pw = g_resolver_pll_w + g_resolver_pll_ki_ts * perr;
+    if(pw >  g_resolver_pll_w_max) pw =  g_resolver_pll_w_max;
+    if(pw < -g_resolver_pll_w_max) pw = -g_resolver_pll_w_max;
+    g_resolver_pll_w = pw;
+
+    float32_t pth = g_resolver_pll_th + FOC_ISR_TS * pw
+                    + g_resolver_pll_kp_ts * perr;
+    // Same constant-time modulo used for the electrical angle below: pth must stay
+    // in [0, 2*pi) even during a full-slew acquisition.
+    pth -= (float32_t)(int32_t)(pth * (1.0f / TWO_PI_F)) * TWO_PI_F;
+    if(pth < 0.0f) pth += TWO_PI_F;
+    g_resolver_pll_th = pth;
+
+    // ---- Estimator select ------------------------------------------------
+    // Both states above are live every ISR, so this is a bumpless A/B switch.
+    // Anything other than _PLL selects the legacy estimator. pw is in sensor
+    // rad/s; convert to mechanical to match the LPF output's domain.
+    g_resolver_omega_mech = (g_resolver_w_mode == SENSOR_RES_W_MODE_PLL)
+                            ? (pw * g_resolver_inv_poles)
+                            : g_resolver_omega_lpf;
 
     // ---- Filter lag compensation (see sensor_rm44ac.h) -------------------
     // The matched IIR delays the angle by phi ~= omega_mech/(2*pi*fc); add it
@@ -152,6 +224,14 @@ static inline void sensor_update_isr(void)
     // modulo used for the electrical angle below rather than a single subtract:
     // an absurdly low res_filt_hz makes lag_k large enough to exceed a full turn,
     // and g_resolver_theta_mech must stay inside [0, 2*pi) regardless.
+    //
+    // This reads the SELECTED estimator (g_resolver_omega_mech), so cleaning the
+    // speed cleans the COMMUTATION angle too -- that is a headline benefit of the
+    // observer, not just the telemetry. In electrical terms the injected angle
+    // error is exactly d_theta_elec = omega_elec_noise / (2*pi*res_filt_hz): at
+    // res_filt_hz = 200 the old estimator's +/-100 rad/s band was +/-4.6 deg elec
+    // and its -700 rad/s spikes were -32 deg. The observer removes both without
+    // touching a line here. No loop: the comp runs AFTER both estimators read th.
     if(g_resolver_filt_en && g_resolver_filt_comp)
     {
         th += g_resolver_omega_mech * g_resolver_filt_lag_k
@@ -172,6 +252,12 @@ static inline void sensor_update_isr(void)
     if(e < 0.0f) e += TWO_PI_F;
     g_resolver_theta_elec = e;
     g_resolver_omega_elec = g_resolver_omega_mech * (float32_t)MOTOR_POLE_PAIRS;
+
+    // Scope A/B (col 12): the LEGACY estimator's electrical speed, ALWAYS live
+    // regardless of res_w_mode, so one capture shows both estimators against the
+    // same rotor motion. With res_w_mode = 0 this must equal the omega channel
+    // (col 5) exactly -- that equality is the plumbing check.
+    g_dbg_omega_lpf_elec = g_resolver_omega_lpf * (float32_t)MOTOR_POLE_PAIRS;
 
     // Latch the speed only while the signal is in-window; the fault shutdown
     // reads this (not the live, now-garbage estimate) to pick active-short/coast.

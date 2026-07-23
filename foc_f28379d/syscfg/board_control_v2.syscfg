@@ -20,13 +20,13 @@ const epwm1            = epwm.addInstance();
 const epwm2            = epwm.addInstance();
 const epwm3            = epwm.addInstance();
 const gpio             = scripting.addModule("/driverlib/gpio.js", {}, false);
-const gpio1            = gpio.addInstance();
 const gpio2            = gpio.addInstance();
 const gpio3            = gpio.addInstance();
 const gpio4            = gpio.addInstance();
 const gpio5            = gpio.addInstance();
 const gpio6            = gpio.addInstance();
 const gpio7            = gpio.addInstance();
+const gpio8            = gpio.addInstance();
 const inputxbar_input  = scripting.addModule("/driverlib/inputxbar_input.js", {}, false);
 const inputxbar_input1 = inputxbar_input.addInstance();
 const inputxbar_input2 = inputxbar_input.addInstance();
@@ -64,12 +64,12 @@ adc3.soc0Channel              = "ADC_CH_ADCIN4";
 adc3.soc0SampleWindow         = 15;
 adc3.soc1Trigger              = "ADC_TRIGGER_EPWM4_SOCA";
 adc3.soc1Channel              = "ADC_CH_ADCIN2";
-adc3.soc1SampleWindow         = 15;
 adc3.enabledInts              = ["ADC_INT_NUMBER1"];
 adc3.interruptPulseMode       = "ADC_PULSE_END_OF_CONV";
 adc3.enableInterrupt1         = true;
 adc3.interrupt1SOCSource      = "ADC_SOC_NUMBER1";
 adc3.registerInterrupts       = ["1"];
+adc3.soc1SampleWindow         = 512;
 adc3.adcInt1.enableInterrupt  = true;
 adc3.adcInt1.interruptHandler = "adcA1_isr";
 
@@ -145,36 +145,36 @@ epwm3.epwmTripZone_EPWM_TZ_ACTION_EVENT_TZA                      = "EPWM_TZ_ACTI
 epwm3.epwmTripZone_EPWM_TZ_ACTION_EVENT_TZB                      = "EPWM_TZ_ACTION_HIGH";
 epwm3.epwm.$assign                                               = "EPWM6";
 
-gpio1.$name             = "GATE_DRV_EN";
-gpio1.direction         = "GPIO_DIR_MODE_OUT";
-gpio1.writeInitialValue = true;
-gpio1.gpioPin.$assign   = "GPIO66";
-
-gpio2.$name             = "GATE_DRV_EN2";
+gpio2.$name             = "GATE_DRV_EN";
 gpio2.direction         = "GPIO_DIR_MODE_OUT";
 gpio2.writeInitialValue = true;
-gpio2.initialValue      = 1;
-gpio2.gpioPin.$assign   = "GPIO131";
+gpio2.gpioPin.$assign   = "GPIO66";
 
-gpio3.$name           = "MODULE_OC_A";
-gpio3.padConfig       = "PULLUP";
-gpio3.gpioPin.$assign = "GPIO25";
+gpio3.$name             = "GATE_DRV_EN2";
+gpio3.direction         = "GPIO_DIR_MODE_OUT";
+gpio3.writeInitialValue = true;
+gpio3.initialValue      = 1;
+gpio3.gpioPin.$assign   = "GPIO131";
 
-gpio4.$name           = "MODULE_OC_B";
+gpio4.$name           = "MODULE_OC_A";
 gpio4.padConfig       = "PULLUP";
-gpio4.gpioPin.$assign = "GPIO27";
+gpio4.gpioPin.$assign = "GPIO25";
 
-gpio5.$name           = "MODULE_OC_C";
+gpio5.$name           = "MODULE_OC_B";
 gpio5.padConfig       = "PULLUP";
-gpio5.gpioPin.$assign = "GPIO26";
+gpio5.gpioPin.$assign = "GPIO27";
 
-gpio6.$name           = "MODULE_OT";
+gpio6.$name           = "MODULE_OC_C";
 gpio6.padConfig       = "PULLUP";
-gpio6.gpioPin.$assign = "GPIO64";
+gpio6.gpioPin.$assign = "GPIO26";
 
-gpio7.$name           = "MODULE_DCOV";
+gpio7.$name           = "MODULE_OT";
 gpio7.padConfig       = "PULLUP";
-gpio7.gpioPin.$assign = "GPIO52";
+gpio7.gpioPin.$assign = "GPIO64";
+
+gpio8.$name           = "MODULE_DCOV";
+gpio8.padConfig       = "PULLUP";
+gpio8.gpioPin.$assign = "GPIO52";
 
 inputxbar_input1.$name         = "TRIP_OC_A";
 inputxbar_input1.inputxbarGpio = "GPIO25";
