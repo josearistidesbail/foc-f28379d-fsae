@@ -71,4 +71,13 @@ SECTIONS
     .text:myADCC_init                 : > FLASHA   PAGE = 0, ALIGN(8)
     .text:sensor_init                 : > FLASHA   PAGE = 0, ALIGN(8)
     .text:UART_DEBUG_init             : > FLASHA   PAGE = 0, ALIGN(8)
+
+    /* The current-sense channel->phase map + ALIGN phase-ID auto-detect grew
+     * adc_iface/foc_pipeline/debug_params past FLASHB again (#10099: .cinit
+     * 0x4e). Relocate the phase-ID solver -- it runs ONCE per align (from ISR
+     * context, like align_step which already lives in FLASHA) -- plus another
+     * one-time SysConfig init function. Same non-hot / non-ramfunc reasoning. */
+    .text:adc_isense_phase_id_commit  : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:myADCA_init                 : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:myADCB_init                 : > FLASHA   PAGE = 0, ALIGN(8)
 }

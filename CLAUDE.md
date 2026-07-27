@@ -160,8 +160,8 @@ Device_init() → Device_initGPIO() → Interrupt_initModule/VectorTable() → B
 volatile uint32_t g_isr_count;      // ISR firing counter
 
 // src/adc_iface.c
-volatile uint16_t g_dbg_iu_raw;     // raw ADC Iu (~2048 at zero current with hardware connected)
-volatile uint16_t g_dbg_iv_raw;
+volatile uint16_t g_dbg_iu_raw;     // raw ADC code, sense CHANNEL A (the "u/v/w" suffixes are the historical
+volatile uint16_t g_dbg_iv_raw;     //   SLOT names = fixed ADC inputs, NOT motor phases -- see isense_map below)
 volatile uint16_t g_dbg_iw_raw;
 volatile uint16_t g_dbg_vbus_raw;
 volatile uint16_t g_dbg_sin_raw;    // raw resolver SIN ADC code (last adc_read_sin_cos); DC=bias ~2253, jitter*0.732=mV
@@ -169,6 +169,60 @@ volatile uint16_t g_dbg_cos_raw;    // raw resolver COS ADC code; 0 on non-RM44A
 //   Host: scope channels res_sin/res_cos (SCOPE_BIT_RES_SIN/COS 0x200/0x400, datalog cols 10/11) plot these raw
 //   codes over time; RO params sin_raw/cos_raw (0x0119/0x011A) + res_mag (0x011B = g_dbg_resolver_mag, ~1.0 healthy)
 //   give the static readout. Added to diagnose resolver angle noise (theta jitter vs analog-scope mV).
+
+// src/adc_iface.c + src/foc_pipeline.c   (LEM channel->phase map + ALIGN phase-ID auto-detect, 2026-07-27)
+volatile uint16_t g_isense_map;        // "isense_map" 0x004C, NEEDS_IDLE: channel->phase permutation index 0..5
+volatile uint16_t g_isense_inv;        // "isense_inv" 0x004D, NEEDS_IDLE: polarity bitmask bit0=chA bit1=chB bit2=chC
+volatile float    g_isense_ch_amps[3]; // channel-domain currents [A] (offset+sign applied, PRE phase-scatter)
+volatile uint16_t g_isense_id_status;  // "phase_id_status" 0x0124 RO: low nibble 0=never/1=applied/2=rejected;
+                                       //   0x0010<<c weak ch c, 0x0100<<c ambiguous ch c, 0x0800 duplicate phase
+volatile uint16_t g_phase_id_en;       // "phase_id_en" 0x004E, NEEDS_IDLE; default PHASE_ID_DEFAULT_EN
+                                       //   (hw_control_v2.h = 1; BOOSTXL/others = 0)
+volatile float32_t g_phase_id_a;       // "phase_id_a" 0x004F, NEEDS_IDLE: governed dwell current target [A],
+                                       //   default PHASE_ID_TARGET_A = ALIGN_ID_INJECT_A (1.0 A both motors)
+volatile float32_t g_dbg_phaseid_mod;  // "phase_id_mod" 0x0125 RO: duty the dwell governor settled at
+//   WHY: the current-sense ADC inputs are FIXED (Control_V2: chA=ADCINB4, chB=ADCINC4) but the two external LEM
+//   clamps MOVE between motor phases on the bench -- the old code hard-wired slot->phase (chA=Iu, chB=Iv) and only
+//   let you pick the KCL-reconstructed phase. adc_read_phase_currents() now computes per-CHANNEL amps into
+//   g_isense_ch_amps[] then scatters them onto phases through g_isense_map (perm of chA/B/C over U/V/W, encoding
+//   0:UVW 1:UWV 2:VUW 3:VWU 4:WUV 5:WVU -- atomic single param, no invalid intermediate state). On 2-channel hw
+//   (ISENSE_NUM_CHANNELS=2, Control_V2) the phase that slot C maps to is ALWAYS KCL-reconstructed and the
+//   "isense_recon" param becomes a derived read-only echo (writes ignored); the 3-channel BOOSTXL keeps the old
+//   recon selector for dead-amp workarounds. Per-channel zero offsets stay attached to the CHANNEL (calibrate is
+//   map-independent). Boot defaults: ISENSE_MAP_DEFAULT (hw_control_v2.h = 1 -> chA=U, chB=W, V reconstructed =
+//   bench clamp arrangement 2026-07-27) and g_isense_inv seeded from the ISENSE_SIGN_* macros (per-slot).
+//   PHASE-ID (automatic detection of BOTH map and sign): with phase_id_en=1, ALIGN runs 3 dwells (0.6 s each,
+//   settle 0.4 + average 0.2; PHASE_ID_* in build_config.h) as the FIRST ladder stage -- dwells, THEN settle, then
+//   cal/offset sweeps -- parking the commanded field open-loop at 0/120/240 deg ELECTRICAL. **Order is safety-
+//   critical [2026-07-27 bench #2]: with iloop_en=1 the settle runs the CLOSED-LOOP d-PI, and closed loop on a
+//   yet-unverified map/sign is positive feedback (PI rails to vmax_dyn, folds a current-limited supply the instant
+//   ALIGN begins). Phase-ID therefore verifies+commits the wiring before ANY stage that consumes current feedback;
+//   dwell 0 sits at theta=0 so the rotor pre-parks for free. iloop_en does NOT need to be 1 for phase-ID -- the
+//   dwells always use their own governed open-loop drive regardless.** d-axis injection at dwell k puts +I on phase k and -I/2 on the
+//   other two, so per channel: phase = argmax_k |avg|, clamp direction = sign of that peak (avg carries the CURRENT
+//   inv mask, so a negative peak XOR-flips the bit). adc_isense_phase_id_commit() validates (peak >= PHASE_ID_MIN_A
+//   0.3 A; dominance >= PHASE_ID_DOMINANCE 1.3x runner-up, ideal is 2x; channels must claim distinct phases) and
+//   commits map+inv. REJECT => keep old map, freeze the align carrier, latch NEW fault bit FAULT_CURRENT_SENSE
+//   (1<<7, "CURRENT_SENSE" in the GUI) -- running closed-loop on unverified current wiring is positive feedback.
+//   The dwells FORCE an open-loop duty drive (unity SVGEN bus) even when iloop_en=1, because current feedback is
+//   untrusted while the map is being measured -- so detection works with any prior map/sign.
+//   **[2026-07-27 bench] DWELL CURRENT IS NOW GOVERNED, not the fixed ol_mod.** First HW try used the raw ol_mod
+//   drag drive (sized to MOVE the rotor): on the milliohm EMRAX that demanded more current than the bench supply
+//   could source, the bus collapsed mid-detection, the dwell amplitudes came out unequal (argmax/dominance broke)
+//   and phase-ID correctly REJECTED -> CURRENT_SENSE fault. Fix: during dwell 0's settle portion a governor slews
+//   the duty (PHASE_ID_MOD_SLEW_PER_S 0.4/s) until max|channel| current = g_phase_id_a ("phase_id_a", default
+//   ALIGN_ID_INJECT_A = 1 A; size it to the SUPPLY, it only needs to clear PHASE_ID_MIN_A 0.3 A), then FREEZES the
+//   duty for all three dwells. Channel |amplitude| is a legit feedback while the map is unknown (magnitude is map-
+//   and polarity-independent). The FREEZE is essential: one shared duty = identical current amplitude at all three
+//   angles (same R), preserving the exact +I / -I/2 ratios the solver reads; re-regulating per dwell would
+//   normalize away those ratios (worst case: both clamps on -I/2 phases -> that dwell doubles -> argmax ties).
+//   Duty capped at g_ol_mod (worst case = old behavior). "phase_id_mod" RO shows what the governor settled at --
+//   if it rails at the ol_mod cap AND phase_id_status shows weak flags, the target current was unreachable
+//   (supply limit / clamp not closed / lead open).
+//   Workflow after re-clamping the LEMs: just run align (g_dbg_sm_cmd=1); map+inv self-configure (~1.8 s extra).
+//   Manual entry: GUI Config tab dropdown ("A=U B=W (C=V)" etc.) or write isense_map/isense_inv in IDLE.
+//   NOTE: phase-ID identifies channel WIRING, not commutation direction -- U/V/W phase ORDER vs the electrical
+//   angle convention is still res_dir_inv / SENSOR_QEP_DIR_SIGN territory. Verify torque sign after first align.
 
 // src/foc_pipeline.c        (DC-bus voltage scope channel)
 volatile float32_t g_dbg_vbus_v;    // measured DC-bus [V], = s_refs.vbus every ISR (real adc_read_vbus,

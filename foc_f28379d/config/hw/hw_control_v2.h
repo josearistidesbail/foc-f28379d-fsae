@@ -31,21 +31,23 @@
 #define PWM_FREQ_HZ             10000.0f
 #define PWM_DEADBAND_NS         1500U       // larger for high-power IGBT/SiC
 
-// ---- ADC mapping (phase currents via LEM / closed-loop shunt amp) ------
+// ---- ADC mapping (phase currents via external LEM clamps) --------------
 // Two macro sets that MUST stay consistent with board_control_v2.syscfg:
 //   ADC_BASE_*/ADC_CH_*       -> the analog module + channel (the SOC's soc*Channel)
 //   ADC_RESULT_BASE_*/ADC_SOC_* -> the result register + SOC index adc_iface.c reads
 // Control_V2 pinmap (pin name = module + channel; e.g. ADCINB4 = ADC-B ch4):
-//   Iu  -> ADCINB4 (ADC-B ch4)
-//   Iv  -> ADCINC4 (ADC-C ch4)
-//   Iw  -> NOT WIRED -> reconstructed by KCL (Iw = -Iu - Iv); see ISENSE_RECONSTRUCT_PHASE
+//   Isense ch A -> ADCINB4 (ADC-B ch4)   \  TWO movable LEM clamps: which motor
+//   Isense ch B -> ADCINC4 (ADC-C ch4)   /  phase each channel measures is the
+//     RUNTIME "isense_map" param (auto-detected by the ALIGN phase-ID stage);
+//     the un-clamped third phase is KCL-reconstructed. The "IU"/"IV" macro
+//     suffixes below are the historical SLOT names (A/B), not motor phases.
 //   Vbus-> ADCINC2 (ADC-C ch2)
 //   SIN -> ADCINA2 (ADC-A ch2)
 //   COS -> ADCINB2 (ADC-B ch2)
-//   Current-amp offset references (informational, not sampled): ADCINA4 (Iu), ADCINB5 (Iv).
+//   Current-amp offset references (informational, not sampled): ADCINA4, ADCINB5.
 // SOC allocation chosen so each ADC's last SOC finishes together; the EOC
 // interrupt is taken on ADC-C SOC1 (Vbus), the last conversion (see ADC_ISR_*).
-//   ADC-A: SOC0=SIN              ADC-B: SOC0=Iu, SOC1=COS    ADC-C: SOC0=Iv, SOC1=Vbus
+//   ADC-A: SOC0=SIN              ADC-B: SOC0=chA, SOC1=COS    ADC-C: SOC0=chB, SOC1=Vbus
 #define ADC_BASE_IU             ADCB_BASE
 #define ADC_CH_IU               ADC_CH_ADCIN4
 #define ADC_BASE_IV             ADCC_BASE
@@ -75,10 +77,22 @@
 #define ADC_ISR_INT_BASE        ADCC_BASE
 #define ADC_ISR_INT_NUMBER      ADC_INT_NUMBER1
 
-// Phase W (Iw) is not instrumented on Control_V2 -> reconstruct it from the two
-// measured phases via Kirchhoff (Iu + Iv + Iw = 0). adc_iface.c honors this at
-// boot (host-overridable via the "isense_recon" debug param). 3 = W.
-#define ISENSE_RECONSTRUCT_PHASE 3
+// Only two phases are instrumented (movable LEM clamps); the third is always
+// reconstructed via Kirchhoff (Iu + Iv + Iw = 0). With ISENSE_NUM_CHANNELS = 2
+// the reconstructed phase is DERIVED from the channel map (the phase slot C
+// lands on) -- the "isense_recon" param becomes a read-only echo and the old
+// ISENSE_RECONSTRUCT_PHASE macro is unused on this board.
+#define ISENSE_NUM_CHANNELS      2
+// Boot channel->phase map ("isense_map", perm of A,B,C over U,V,W:
+// 0:UVW 1:UWV 2:VUW 3:VWU 4:WUV 5:WVU). 1 = bench arrangement 2026-07-27:
+// clamp A on phase U, clamp B on phase W, V reconstructed. The ALIGN phase-ID
+// stage (below) re-detects and overwrites this at every align anyway.
+#define ISENSE_MAP_DEFAULT       1U
+// Auto phase-ID ON: every ALIGN prepends three ~0.6 s open-loop dwells at
+// 0/120/240 deg electrical and re-derives isense_map + isense_inv from which
+// channel peaks where (and with what sign). Costs ~1.8 s per align; makes
+// re-clamping the LEMs a zero-configuration operation.
+#define PHASE_ID_DEFAULT_EN      1U
 
 // ---- ISENSE scaling ---------------------------------------------------
 // Current-sense amp on the bench board. I = (code - offset) * VREF / 4096 / V_per_A.
@@ -100,11 +114,13 @@
 #define ISENSE_AMPS_PER_CODE    (ADC_VREF_V / ADC_FULL_SCALE_CODE / LEM_V_PER_A)
 #define ISENSE_ZERO_CODE        2048        // placeholder; overwritten by adc_calibrate_offsets()
 
-// Sign per phase (pinmap §6 all "above (assumed)"). Confirm on the bench with a
-// known current direction; flip to -1.0f if a phase reads inverted.
-#define ISENSE_SIGN_U           (+1.0f)
-#define ISENSE_SIGN_V           (+1.0f)
-#define ISENSE_SIGN_W           (+1.0f)     // unused (W is KCL-reconstructed)
+// Boot polarity per CHANNEL (slot A/B/C, not motor phase): seeds the runtime
+// g_isense_inv bitmask in adc_init(). A LEM clamp facing the wrong way flips a
+// channel; the ALIGN phase-ID stage detects and corrects this automatically
+// (live-editable via "isense_inv"), so these only matter before the first align.
+#define ISENSE_SIGN_U           (+1.0f)     // channel A (ADCINB4)
+#define ISENSE_SIGN_V           (+1.0f)     // channel B (ADCINC4)
+#define ISENSE_SIGN_W           (+1.0f)     // channel C (unused, 2-ch board)
 
 // ---- VBUS sense -------------------------------------------------------
 // PrimeSTACK "Analog DC link voltage sensor output" (V_DC ana) -> external

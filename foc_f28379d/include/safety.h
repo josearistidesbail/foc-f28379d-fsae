@@ -19,6 +19,8 @@ typedef enum {
     FAULT_GATE_DRIVER   = (1u << 4),
     FAULT_SENSOR_LOSS   = (1u << 5),
     FAULT_WATCHDOG      = (1u << 6),
+    FAULT_CURRENT_SENSE = (1u << 7),   // ALIGN phase-ID rejected: current-sense
+                                       // channel->phase wiring unverifiable
 } Fault_Bits_t;
 
 extern void     safety_init(void);

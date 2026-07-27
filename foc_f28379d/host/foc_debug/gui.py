@@ -208,10 +208,26 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
     COL_ID, COL_NAME, COL_TYPE, COL_FLAGS, COL_VALUE, COL_STATUS = range(6)
 
-    # The reconstruct-phase param is rendered as a labeled dropdown (instead of a
-    # plain numeric cell). Labels are positional: index == firmware value 0..3.
-    RECON_PARAM_NAME = "isense_recon"
-    RECON_LABELS = ["none", "U", "V", "W"]
+    # Enum-style params are rendered as labeled dropdowns (instead of plain
+    # numeric cells). Labels are positional: index == firmware value.
+    ENUM_PARAMS = {
+        # KCL-reconstructed phase. On 2-channel hardware (Control_V2) this is
+        # derived from isense_map by the firmware and writes are ignored.
+        "isense_recon": ["none", "U", "V", "W"],
+        # Current-sense channel->phase map: which motor phase each physical
+        # sense channel (A/B = the two LEM inputs, C = the third slot on
+        # 3-channel hardware) is hooked to. Parenthesised C = the phase that is
+        # KCL-reconstructed on 2-channel boards. Auto-detected by the ALIGN
+        # phase-ID stage when phase_id_en=1.
+        "isense_map": [
+            "A=U  B=V  (C=W)",
+            "A=U  B=W  (C=V)",
+            "A=V  B=U  (C=W)",
+            "A=V  B=W  (C=U)",
+            "A=W  B=U  (C=V)",
+            "A=W  B=V  (C=U)",
+        ],
+    }
 
     # Scope signal → firmware reference param that should be overlaid in red.
     _SCOPE_TO_REF = {
@@ -385,10 +401,10 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
             self.params: list[ParamInfo] = []
             self.row_of_id: dict[int, int] = {}
-            self.recon_combo = None        # QComboBox in the Advanced table
-            self.recon_row = None          # its row in the Advanced table
+            # Advanced-table enum dropdowns: param name -> (QComboBox, row).
+            self.enum_combos: dict = {}
             # One entry per tab; each dict holds the table and its per-tab
-            # row<->id maps, recon widget, and the name filter (None = all).
+            # row<->id maps, enum widgets, and the name filter (None = all).
             self._all_tables: list = []
             self._connected = False
             self._conn_port = ""
@@ -636,7 +652,9 @@ def build(pg, QtCore, QtGui, QtWidgets):
             _TAB_DEFS = [
                 ("References", {"id_ref", "iq_ref", "omega_ref"}),
                 ("Gains",      {"kp_d", "ki_d", "kp_q", "ki_q", "kp_w", "ki_w"}),
-                ("Config",     {"isense_recon"}),
+                ("Config",     {"isense_recon", "isense_map", "isense_inv",
+                                "phase_id_en", "phase_id_a", "phase_id_mod",
+                                "phase_id_status"}),
                 ("Advanced",   None),
             ]
             self.tab_widget = QtWidgets.QTabWidget()
@@ -672,7 +690,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
                 table = self._make_param_table()
                 treg = {"table": table, "row_of_id": {}, "id_of_row": {},
-                        "recon_combo": None, "recon_row": None, "filter_set": fset}
+                        "enum_combos": {}, "filter_set": fset}
                 table.itemChanged.connect(
                     lambda item, t=treg: self._on_table_item_changed(t, item)
                 )
@@ -929,8 +947,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             visible = [p for p in params if fset is None or p.name in fset]
             treg["row_of_id"] = {}
             treg["id_of_row"] = {}
-            treg["recon_combo"] = None
-            treg["recon_row"] = None
+            treg["enum_combos"] = {}
             table.setRowCount(len(visible))
             for row, info in enumerate(visible):
                 treg["row_of_id"][info.id] = row
@@ -939,23 +956,22 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self._fill_cell(table, row, COL_NAME, info.name, editable=False)
                 self._fill_cell(table, row, COL_TYPE, info.type_str, editable=False)
                 self._fill_cell(table, row, COL_FLAGS, info.flags_str, editable=False)
-                if info.name == RECON_PARAM_NAME and not info.read_only:
+                labels = ENUM_PARAMS.get(info.name)
+                if labels is not None and not info.read_only:
                     combo = QtWidgets.QComboBox()
-                    combo.addItems(RECON_LABELS)
+                    combo.addItems(labels)
                     combo.activated.connect(
-                        lambda idx, i=info, r=row, t=treg: self._on_recon_changed(i, r, idx, t)
+                        lambda idx, i=info, r=row, t=treg: self._on_enum_changed(i, r, idx, t)
                     )
                     table.setCellWidget(row, COL_VALUE, combo)
-                    treg["recon_combo"] = combo
-                    treg["recon_row"] = row
+                    treg["enum_combos"][info.name] = (combo, row)
                 else:
                     self._fill_cell(table, row, COL_VALUE, "", editable=not info.read_only)
                 self._fill_cell(table, row, COL_STATUS, "", editable=False)
-            # Keep canonical shortcuts pointing at the Advanced table's recon
+            # Keep canonical shortcuts pointing at the Advanced table's widgets
             if table is self.table:
                 self.row_of_id = treg["row_of_id"]
-                self.recon_combo = treg["recon_combo"]
-                self.recon_row = treg["recon_row"]
+                self.enum_combos = treg["enum_combos"]
 
         def _fill_cell(self, table, row, col, text, editable):
             item = QtWidgets.QTableWidgetItem(text)
@@ -1006,8 +1022,9 @@ def build(pg, QtCore, QtGui, QtWidgets):
                         row = treg["row_of_id"].get(info.id)
                         if row is None:
                             continue
-                        if treg["recon_combo"] is not None and row == treg["recon_row"]:
-                            self._set_recon_combo(treg["recon_combo"], int(val))
+                        ec = treg["enum_combos"].get(info.name)
+                        if ec is not None and row == ec[1]:
+                            self._set_enum_combo(ec[0], int(val))
                         else:
                             item = treg["table"].item(row, COL_VALUE)
                             if item:
@@ -1051,17 +1068,12 @@ def build(pg, QtCore, QtGui, QtWidgets):
             if mode is not None:
                 self._set_mode_combo(int(mode))
 
-        def _set_recon_combo(self, combo, val):
-            """Set a recon dropdown without triggering a write signal."""
-            idx = val if 0 <= val < len(RECON_LABELS) else 0
+        def _set_enum_combo(self, combo, val):
+            """Set an enum dropdown without triggering a write signal."""
+            idx = val if 0 <= val < combo.count() else 0
             combo.blockSignals(True)
             combo.setCurrentIndex(idx)
             combo.blockSignals(False)
-
-        def _set_recon_index(self, val):
-            """Backward-compat wrapper; updates the Advanced table's recon combo."""
-            if self.recon_combo is not None:
-                self._set_recon_combo(self.recon_combo, val)
 
         def _refresh_failed(self, msg):
             self._refresh_pending = False
@@ -1119,7 +1131,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 if scope_name:
                     self._ref_values[scope_name] = float(val)
 
-        def _on_recon_changed(self, info, row, idx, treg=None):
+        def _on_enum_changed(self, info, row, idx, treg=None):
             if not self._connected:
                 return
 
@@ -1134,14 +1146,16 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
             self.worker.submit(
                 "write", fn=do_write,
-                on_done=lambda res, info=info, idx=idx: self._recon_write_done(info, idx, res),
+                on_done=lambda res, info=info, idx=idx: self._enum_write_done(info, idx, res),
                 on_fail=lambda m: self._report(m, logging.ERROR),
             )
 
-        def _recon_write_done(self, info, idx, res):
+        def _enum_write_done(self, info, idx, res):
             status, rb = res
             sstr = proto.PARAM_WR_STR.get(status, f"status{status}")
-            self._report(f"write {info.name} = {RECON_LABELS[idx]} → {sstr}")
+            labels = ENUM_PARAMS.get(info.name, [])
+            label = labels[idx] if 0 <= idx < len(labels) else str(idx)
+            self._report(f"write {info.name} = {label} → {sstr}")
             self._programmatic = True
             for treg in self._all_tables:
                 row = treg["row_of_id"].get(info.id)
@@ -1150,8 +1164,9 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 si = treg["table"].item(row, COL_STATUS)
                 if si:
                     si.setText(sstr)
-                if rb is not None and treg["recon_combo"] is not None:
-                    self._set_recon_combo(treg["recon_combo"], int(rb))
+                ec = treg["enum_combos"].get(info.name)
+                if rb is not None and ec is not None:
+                    self._set_enum_combo(ec[0], int(rb))
             self._programmatic = False
 
         # ---- tune-both gain helpers -------------------------------------
@@ -2406,8 +2421,9 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 row = self.row_of_id.get(info.id)
                 if row is None:
                     continue
-                if self.recon_combo is not None and row == self.recon_row:
-                    val = self.recon_combo.currentText()
+                ec = self.enum_combos.get(info.name)
+                if ec is not None and row == ec[1]:
+                    val = ec[0].currentText()
                 else:
                     item = self.table.item(row, COL_VALUE)
                     val = item.text() if item else ""
@@ -2453,19 +2469,20 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 if info is None:
                     skipped += 1
                     continue
-                is_recon = info.name == RECON_PARAM_NAME
-                if is_recon:
+                enum_labels = ENUM_PARAMS.get(info.name)
+                if enum_labels is not None:
                     try:
-                        recon_idx = RECON_LABELS.index(val)
+                        enum_idx = enum_labels.index(val)
                     except ValueError:
                         skipped += 1
                         continue
                 # Pre-fill all tables without triggering writes
                 self._programmatic = True
-                if is_recon:
+                if enum_labels is not None:
                     for treg in self._all_tables:
-                        if treg["recon_combo"] is not None:
-                            self._set_recon_combo(treg["recon_combo"], recon_idx)
+                        ec = treg["enum_combos"].get(info.name)
+                        if ec is not None:
+                            self._set_enum_combo(ec[0], enum_idx)
                 else:
                     for treg in self._all_tables:
                         r = treg["row_of_id"].get(info.id)
@@ -2476,8 +2493,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self._programmatic = False
                 # Write to device if connected
                 if self._connected:
-                    if is_recon:
-                        self._on_recon_changed(info, recon_idx, recon_idx)
+                    if enum_labels is not None:
+                        self._on_enum_changed(info, enum_idx, enum_idx)
                     else:
                         def do_write(dbg, pid=info.id, v=val):
                             st = dbg.write_param(pid, v)

@@ -13,6 +13,7 @@
 #include "safety.h"
 #include "pwm_iface.h"
 #include "inverter_iface.h"
+#include "adc_iface.h"      // isense map/inv/phase-ID status + recon readback
 
 // Live torque command consumed by foc_speed_loop_tick() while in FOC_RUN.
 extern volatile float32_t g_dbg_iq_ref;   // src/foc_pipeline.c
@@ -21,6 +22,12 @@ extern volatile uint32_t  g_dbg_tz_trip;  // src/isr.c (HW trip-zone event count
 
 // KCL phase-current reconstruction selector (0=none,1=U,2=V,3=W).
 extern volatile uint16_t  g_isense_reconstruct_phase;   // src/adc_iface.c
+
+// ALIGN phase-ID (current-sense wiring auto-detect): enable, governed dwell
+// current target [A], and the governor's achieved duty (telemetry).
+extern volatile uint16_t  g_phase_id_en;                // src/foc_pipeline.c
+extern volatile float32_t g_phase_id_a;                 // src/foc_pipeline.c
+extern volatile float32_t g_dbg_phaseid_mod;            // src/foc_pipeline.c
 
 // Cross-coupling/back-EMF feedforward toggle + captured alignment offset [deg].
 extern volatile uint16_t  g_dbg_decouple_en;            // src/foc_pipeline.c
@@ -157,8 +164,34 @@ static void set_ki_fw(uint32_t  r){ foc_set_gain(FOC_GAIN_KI_FW, raw_to_f32(r));
 // ---- Hardware / diagnostic config (needs_idle) ---------------------------
 // Reconstruct selector clamps to the valid 0..3 range; out-of-range writes are
 // ignored so the live value never goes undefined (the GUI dropdown also bounds it).
-static void get_recon(uint32_t *r){ *r = (uint32_t)g_isense_reconstruct_phase; }
-static void set_recon(uint32_t  r){ if(r <= 3U) g_isense_reconstruct_phase = (uint16_t)r; }
+// On 2-channel hardware the readback is DERIVED from isense_map (the un-sensed
+// phase is always the reconstructed one) and writes are ignored.
+static void get_recon(uint32_t *r){ *r = (uint32_t)adc_isense_recon_phase(); }
+static void set_recon(uint32_t  r){
+#if ISENSE_NUM_CHANNELS == 2
+    (void)r;    // derived from isense_map -- nothing to choose with 2 sensors
+#else
+    if(r <= 3U) g_isense_reconstruct_phase = (uint16_t)r;
+#endif
+}
+
+// Channel->phase map (permutation 0..5 of channels A,B,C over phases U,V,W:
+// 0:UVW 1:UWV 2:VUW 3:VWU 4:WUV 5:WVU) and per-channel polarity bitmask
+// (bit0=A, bit1=B, bit2=C). NEEDS_IDLE: remapping the current feedback in RUN
+// reverses/loses the loop instantly. Both are overwritten by the ALIGN
+// phase-ID stage when phase_id_en=1.
+static void get_isense_map(uint32_t *r){ *r = (uint32_t)g_isense_map; }
+static void set_isense_map(uint32_t  r){ if(r <= 5U) g_isense_map = (uint16_t)r; }
+static void get_isense_inv(uint32_t *r){ *r = (uint32_t)g_isense_inv; }
+static void set_isense_inv(uint32_t  r){ if(r <= 7U) g_isense_inv = (uint16_t)r; }
+static void get_phase_id_en(uint32_t *r){ *r = (uint32_t)g_phase_id_en; }
+static void set_phase_id_en(uint32_t  r){ g_phase_id_en = (uint16_t)(r ? 1U : 0U); }
+// Governed dwell-current target [A]. Size it to the bench supply, not the
+// motor: it only needs to clear PHASE_ID_MIN_A with margin. Floor at 0.
+static void get_phase_id_a(uint32_t *r){ *r = f32_to_raw(g_phase_id_a); }
+static void set_phase_id_a(uint32_t  r){ float32_t a = raw_to_f32(r);
+                                         if(a < 0.0f) a = 0.0f;
+                                         g_phase_id_a = a; }
 
 // Decoupling feedforward toggle. Live (no NEEDS_IDLE) so it can be A/B'd in RUN.
 static void get_decouple(uint32_t *r){ *r = (uint32_t)g_dbg_decouple_en; }
@@ -345,6 +378,12 @@ static void get_fault_code(uint32_t *r){ *r = (uint32_t)safety_get_latched(); }
 static void get_tz_trip(uint32_t *r)      { *r = g_dbg_tz_trip; }
 static void get_module_fault(uint32_t *r) { *r = (uint32_t)inverter_fault_status(); }
 
+// Phase-ID result: low nibble 0=never ran, 1=applied, 2=rejected;
+// 0x0010<<c = channel c too weak, 0x0100<<c = ambiguous, 0x0800 = duplicate.
+static void get_phase_id_status(uint32_t *r){ *r = (uint32_t)g_isense_id_status; }
+// Duty the dwell-current governor settled at (0 while never run this align).
+static void get_phase_id_mod(uint32_t *r){ *r = f32_to_raw(g_dbg_phaseid_mod); }
+
 #if SENSOR_BACKEND_RM44AC
 // Resolver front-end readouts: raw SIN/COS ADC codes and the vector magnitude.
 // Pair these with the res_sin/res_cos scope channels to see the two signals the
@@ -401,6 +440,10 @@ const param_entry_t g_param_table[] =
     { 0x0015U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "ki_fw",     get_ki_fw,     set_ki_fw     },
 
     { 0x0030U, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "isense_recon", get_recon,  set_recon     },
+    { 0x004CU, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "isense_map",   get_isense_map, set_isense_map },
+    { 0x004DU, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "isense_inv",   get_isense_inv, set_isense_inv },
+    { 0x004EU, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "phase_id_en",  get_phase_id_en, set_phase_id_en },
+    { 0x004FU, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "phase_id_a",   get_phase_id_a,  set_phase_id_a  },
     { 0x0031U, PARAM_TYPE_U16, 0,                     "decouple_en",  get_decouple, set_decouple },
     { 0x0032U, PARAM_TYPE_U16, 0,                     "control_mode", get_mode,     set_mode     },
     { 0x0033U, PARAM_TYPE_U16, 0,                     "fw_en",        get_fw_en,    set_fw_en    },
@@ -449,6 +492,9 @@ const param_entry_t g_param_table[] =
     // chronological index of the trigger sample in the delivered capture.
     { 0x0122U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "trig_state", get_trig_state, 0           },
     { 0x0123U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "trig_idx",   get_trig_idx,   0           },
+    // ALIGN phase-ID (current-sense wiring auto-detect) result + governed duty.
+    { 0x0124U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "phase_id_status", get_phase_id_status, 0 },
+    { 0x0125U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "phase_id_mod",    get_phase_id_mod,    0 },
 
 #if SENSOR_BACKEND_RM44AC
     // Resolver front-end diagnostics (raw ADC codes + vector magnitude).

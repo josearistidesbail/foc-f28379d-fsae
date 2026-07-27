@@ -68,6 +68,49 @@
 #define VBUS_FILT_DEFAULT_HZ    50.0f
 #endif
 
+//----- Phase-current sense: channel count / mapping / phase-ID -------------
+// The current-sense ADC inputs are FIXED per board; which motor phase each one
+// measures can change (movable LEM clamps on Control_V2). adc_iface.c scatters
+// the channels onto phases through the runtime g_isense_map ("isense_map"
+// param) with per-channel polarity g_isense_inv ("isense_inv"). Both are
+// auto-detected by the ALIGN phase-ID stage when PHASE_ID enabled: the field is
+// parked open-loop at 0/120/240 deg electrical and each channel's dwell
+// averages identify its phase (peak dwell) and clamp direction (peak sign).
+#ifndef ISENSE_NUM_CHANNELS
+#define ISENSE_NUM_CHANNELS     3    // physical sense channels (2 on Control_V2)
+#endif
+#ifndef ISENSE_MAP_DEFAULT
+#define ISENSE_MAP_DEFAULT      0U   // boot map: 0 = identity (A=U, B=V, C=W)
+#endif
+#ifndef PHASE_ID_DEFAULT_EN
+#define PHASE_ID_DEFAULT_EN     0U   // boot default for "phase_id_en"
+#endif
+#ifndef PHASE_ID_DWELL_S
+#define PHASE_ID_DWELL_S        0.6f // per test angle (settle, then average)
+#endif
+#ifndef PHASE_ID_AVG_S
+#define PHASE_ID_AVG_S          0.2f // averaged tail of each dwell
+#endif
+#ifndef PHASE_ID_MIN_A
+#define PHASE_ID_MIN_A          0.3f // peak dwell average below this = no signal
+#endif
+#ifndef PHASE_ID_DOMINANCE
+#define PHASE_ID_DOMINANCE      1.3f // peak must exceed runner-up by this ratio
+                                     // (ideal is 2.0; ~1 = ambiguous wiring)
+#endif
+// Dwell-current governor: the dwells do NOT use the fixed ol_mod drag drive
+// (sized to move the rotor -- far more current than a measurement needs, and
+// enough to current-limit a bench supply). Instead the duty is slewed up until
+// the largest |channel current| reaches PHASE_ID_TARGET_A, then FROZEN for all
+// three dwells (see foc_pipeline.c for why freezing matters). Duty capped at
+// g_ol_mod, so worst case equals the old fixed drive.
+#ifndef PHASE_ID_TARGET_A
+#define PHASE_ID_TARGET_A       ALIGN_ID_INJECT_A  // governed dwell current [A]
+#endif
+#ifndef PHASE_ID_MOD_SLEW_PER_S
+#define PHASE_ID_MOD_SLEW_PER_S 0.4f // governor duty slew rate [duty/s]
+#endif
+
 //----- Control mode (outer-loop source of iq_ref) -------------------------
 #define FOC_MODE_TORQUE         0U   // iq_ref commanded directly (bring-up)
 #define FOC_MODE_SPEED          1U   // iq_ref from the speed PI (omega_ref)

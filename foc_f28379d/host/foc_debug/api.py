@@ -36,6 +36,7 @@ FAULT_BITS = (
     (1 << 4, "GATE_DRIVER"),
     (1 << 5, "SENSOR_LOSS"),
     (1 << 6, "WATCHDOG"),
+    (1 << 7, "CURRENT_SENSE"),   # ALIGN phase-ID rejected (see phase_id_status)
 )
 
 

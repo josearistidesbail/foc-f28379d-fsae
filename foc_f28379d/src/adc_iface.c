@@ -10,18 +10,48 @@
 #include "build_config.h"
 #include "adc_iface.h"
 
-static volatile uint16_t s_iu_offset = ISENSE_ZERO_CODE;
-static volatile uint16_t s_iv_offset = ISENSE_ZERO_CODE;
-static volatile uint16_t s_iw_offset = ISENSE_ZERO_CODE;
+// Per-CHANNEL zero-current offsets (channel = physical ADC input, in slot order
+// A = ADC_RESULT_BASE_IU, B = ..._IV, C = ..._IW). Offsets belong to the analog
+// channel, not the motor phase, so they are indexed pre-mapping.
+static volatile uint16_t s_ch_offset[3] = {
+    ISENSE_ZERO_CODE, ISENSE_ZERO_CODE, ISENSE_ZERO_CODE
+};
 
 // Runtime KCL phase-current reconstruction selector: 0=none, 1=U, 2=V, 3=W.
 // Boot default comes from the hw header (hw_control_v2.h does not define it, so
 // guard with a 0 fallback). Host-writable via the "isense_recon" debug param
-// (IDLE-only); see debug_params.c.
+// (IDLE-only); see debug_params.c. On 2-channel hardware this variable is
+// IGNORED: the un-sensed phase is fully determined by g_isense_map (the phase
+// the unused slot C maps to) and is always KCL-reconstructed.
 #ifndef ISENSE_RECONSTRUCT_PHASE
 #define ISENSE_RECONSTRUCT_PHASE 0
 #endif
 volatile uint16_t g_isense_reconstruct_phase = ISENSE_RECONSTRUCT_PHASE;
+
+// ---- Runtime channel -> phase mapping ------------------------------------
+// The ADC inputs are FIXED (board routing); what changes on the bench is which
+// motor phase each external LEM clamp is hooked to. g_isense_map selects one of
+// the 6 permutations of (phase of channel A, B, C); g_isense_inv is a bitmask
+// (bit0=A, bit1=B, bit2=C) flipping a channel whose clamp faces the wrong way.
+// Both are host-writable ("isense_map"/"isense_inv", IDLE-only) and are also
+// AUTO-DETECTED by the ALIGN phase-ID stage (foc_pipeline.c) via
+// adc_isense_phase_id_commit() below.
+volatile uint16_t g_isense_map = ISENSE_MAP_DEFAULT;   // permutation index 0..5
+volatile uint16_t g_isense_inv;                        // seeded in adc_init()
+// Latest per-channel currents [A] (offset + sign applied, BEFORE the phase
+// scatter). The phase-ID dwell averager reads these: they are channel-domain,
+// so they identify the wiring independent of the (possibly wrong) current map.
+volatile float g_isense_ch_amps[3];
+// Phase-ID result status: low nibble 0=never ran, 1=applied, 2=rejected;
+// 0x0010<<c = channel c signal too weak, 0x0100<<c = channel c ambiguous
+// (dominance gate), 0x0800 = two channels claimed the same phase.
+volatile uint16_t g_isense_id_status;
+
+// Permutation table: PHASE_OF_CH[map][c] = motor phase (0=U,1=V,2=W) driven by
+// channel c. Lexicographic: 0:UVW 1:UWV 2:VUW 3:VWU 4:WUV 5:WVU.
+static const uint16_t PHASE_OF_CH[6][3] = {
+    {0U,1U,2U}, {0U,2U,1U}, {1U,0U,2U}, {1U,2U,0U}, {2U,0U,1U}, {2U,1U,0U}
+};
 
 // TODO: Debugging ADC, remove after
 volatile uint16_t g_dbg_iu_raw;
@@ -76,6 +106,13 @@ void adc_init(void)
     // Nothing extra: SysConfig already enabled, calibrated, and trimmed the ADC
     // modules. The offset values get rewritten by adc_calibrate_offsets().
 
+    // Seed the per-channel inversion mask from the legacy ISENSE_SIGN_* macros
+    // (they were always per-SLOT signs; a slot is a channel). Constant-folded.
+    g_isense_inv = ((ISENSE_SIGN_U < 0.0f) ? 1U : 0U)
+                 | ((ISENSE_SIGN_V < 0.0f) ? 2U : 0U)
+                 | ((ISENSE_SIGN_W < 0.0f) ? 4U : 0U);
+    g_isense_id_status = 0U;
+
     // Seed the DC-bus IIR coefficient from the boot cutoff (same clamp the
     // vbus_filt_hz setter uses) and force a re-prime on the first reading.
     g_vbus_filt_alpha = VBUS_FILT_ALPHA(g_vbus_filt_hz);
@@ -98,17 +135,35 @@ static inline float code_to_amps(int32_t code, uint16_t offset, float sign)
 
 void adc_read_phase_currents(FOC_Iabc_t *out)
 {
-    uint16_t cu = ADC_readResult(ADC_RESULT_BASE_IU, ADC_SOC_IU);
-    uint16_t cv = ADC_readResult(ADC_RESULT_BASE_IV, ADC_SOC_IV);
-    uint16_t cw = ADC_readResult(ADC_RESULT_BASE_IW, ADC_SOC_IW);
+    uint16_t c0 = ADC_readResult(ADC_RESULT_BASE_IU, ADC_SOC_IU);
+    uint16_t c1 = ADC_readResult(ADC_RESULT_BASE_IV, ADC_SOC_IV);
+    uint16_t c2 = ADC_readResult(ADC_RESULT_BASE_IW, ADC_SOC_IW);
 
-    g_dbg_iu_raw = cu;
-    g_dbg_iv_raw = cv;
-    g_dbg_iw_raw = cw;
+    g_dbg_iu_raw = c0;      // per-CHANNEL raw codes (legacy names kept: the
+    g_dbg_iv_raw = c1;      // "u/v/w" suffix means slot A/B/C, not motor phase)
+    g_dbg_iw_raw = c2;
 
-    out->value[0] = code_to_amps(cu, s_iu_offset, ISENSE_SIGN_U);
-    out->value[1] = code_to_amps(cv, s_iv_offset, ISENSE_SIGN_V);
-    out->value[2] = code_to_amps(cw, s_iw_offset, ISENSE_SIGN_W);
+    // Channel-domain currents: offset + polarity, no phase assignment yet.
+    uint16_t inv = g_isense_inv;
+    g_isense_ch_amps[0] = code_to_amps(c0, s_ch_offset[0], (inv & 1U) ? -1.0f : 1.0f);
+    g_isense_ch_amps[1] = code_to_amps(c1, s_ch_offset[1], (inv & 2U) ? -1.0f : 1.0f);
+    g_isense_ch_amps[2] = code_to_amps(c2, s_ch_offset[2], (inv & 4U) ? -1.0f : 1.0f);
+
+    // Scatter channels onto motor phases through the runtime map.
+    uint16_t map = g_isense_map;
+    const uint16_t *ph = PHASE_OF_CH[(map <= 5U) ? map : 0U];
+
+#if ISENSE_NUM_CHANNELS == 2
+    // Two physical sensors: the phase the unused slot C maps to has no sensor
+    // and is ALWAYS reconstructed via KCL (Iu + Iv + Iw = 0). There is no
+    // choice to make, so g_isense_reconstruct_phase is ignored here.
+    out->value[ph[0]] = g_isense_ch_amps[0];
+    out->value[ph[1]] = g_isense_ch_amps[1];
+    out->value[ph[2]] = -g_isense_ch_amps[0] - g_isense_ch_amps[1];
+#else
+    out->value[ph[0]] = g_isense_ch_amps[0];
+    out->value[ph[1]] = g_isense_ch_amps[1];
+    out->value[ph[2]] = g_isense_ch_amps[2];
 
     // Reconstruct one dead current-sense channel via KCL (Iu + Iv + Iw = 0).
     // The dead phase's own (scaled) reading is overwritten; the synthesized
@@ -118,11 +173,95 @@ void adc_read_phase_currents(FOC_Iabc_t *out)
     // host without a rebuild (debug param "isense_recon").
     switch(g_isense_reconstruct_phase)
     {
-    case 1U: out->value[0] = -out->value[1] - out->value[2]; break; // SO1 (U) dead
-    case 2U: out->value[1] = -out->value[0] - out->value[2]; break; // SO2 (V) dead
-    case 3U: out->value[2] = -out->value[0] - out->value[1]; break; // SO3 (W) dead
+    case 1U: out->value[0] = -out->value[1] - out->value[2]; break; // U dead
+    case 2U: out->value[1] = -out->value[0] - out->value[2]; break; // V dead
+    case 3U: out->value[2] = -out->value[0] - out->value[1]; break; // W dead
     default: break;                                                  // 0 = none
     }
+#endif
+}
+
+// Effective reconstruction selector for the host readback: on 2-channel
+// hardware it is derived from the map (the phase slot C lands on), elsewhere it
+// is the live g_isense_reconstruct_phase.
+uint16_t adc_isense_recon_phase(void)
+{
+#if ISENSE_NUM_CHANNELS == 2
+    uint16_t map = g_isense_map;
+    return PHASE_OF_CH[(map <= 5U) ? map : 0U][2] + 1U;
+#else
+    return g_isense_reconstruct_phase;
+#endif
+}
+
+// Solve channel->phase mapping + polarity from the ALIGN phase-ID dwell
+// averages and commit them. avg[c][k] = mean current of channel c while the
+// commanded field sat at electrical angle k*120 deg. With the drive on the
+// d-axis, phase k carries +I at dwell k and -I/2 at the other two, so for a
+// channel clamped on phase p with effective sign s: avg[c][k] = s*I*(k==p ?
+// 1 : -0.5). Hence p = argmax_k |avg[c][k]| and s = sign at that dwell.
+// Acceptance gates: the peak must clear PHASE_ID_MIN_A (rules out "no current
+// flowed": gate disabled, clamp not on any driven phase), must dominate the
+// runner-up by PHASE_ID_DOMINANCE (ideal ratio is 2; near 1 means the channel
+// saw two phases equally = broken wiring or a stalled drive), and no two
+// channels may claim the same phase. On reject the current map/inv are KEPT.
+// Called once per align from ISR context (same discipline as
+// adc_set_sincos_scale). Returns the status word it stores.
+uint16_t adc_isense_phase_id_commit(float avg[3][3])
+{
+    uint16_t status = 0U;
+    uint16_t phase_of[3];
+    uint16_t inv_new = g_isense_inv;
+    uint16_t c, k;
+
+    for(c = 0U; c < ISENSE_NUM_CHANNELS; c++)
+    {
+        uint16_t best_k = 0U;
+        float best = 0.0f, second = 0.0f;
+        for(k = 0U; k < 3U; k++)
+        {
+            float m = avg[c][k];
+            if(m < 0.0f) m = -m;
+            if(m > best)        { second = best; best = m; best_k = k; }
+            else if(m > second) { second = m; }
+        }
+        if(best < PHASE_ID_MIN_A)              status |= (uint16_t)(0x0010U << c);
+        if(best < PHASE_ID_DOMINANCE * second) status |= (uint16_t)(0x0100U << c);
+        phase_of[c] = best_k;
+        // The averages already include the CURRENT inversion mask, so a
+        // negative peak means "flip relative to what is applied now" (XOR),
+        // and a positive peak means the existing bit is already right.
+        if(avg[c][best_k] < 0.0f) inv_new ^= (uint16_t)(1U << c);
+    }
+
+#if ISENSE_NUM_CHANNELS == 2
+    if(phase_of[0] == phase_of[1]) status |= 0x0800U;
+    else phase_of[2] = 3U - phase_of[0] - phase_of[1];   // leftover -> KCL phase
+#else
+    if(phase_of[0] == phase_of[1] || phase_of[0] == phase_of[2] ||
+       phase_of[1] == phase_of[2])
+        status |= 0x0800U;
+#endif
+
+    if(status != 0U)
+    {
+        g_isense_id_status = status | 0x0002U;   // rejected, previous map kept
+        return g_isense_id_status;
+    }
+
+    for(k = 0U; k < 6U; k++)
+    {
+        if(PHASE_OF_CH[k][0] == phase_of[0] &&
+           PHASE_OF_CH[k][1] == phase_of[1] &&
+           PHASE_OF_CH[k][2] == phase_of[2])
+        {
+            g_isense_map = k;
+            break;
+        }
+    }
+    g_isense_inv       = inv_new;
+    g_isense_id_status = 0x0001U;                // applied
+    return g_isense_id_status;
 }
 
 float adc_read_vbus(void)
@@ -205,7 +344,7 @@ void adc_calibrate_offsets(uint16_t n)
         sv += ADC_readResult(ADC_RESULT_BASE_IV, ADC_SOC_IV);
         sw += ADC_readResult(ADC_RESULT_BASE_IW, ADC_SOC_IW);
     }
-    s_iu_offset = (uint16_t)(su / n);
-    s_iv_offset = (uint16_t)(sv / n);
-    s_iw_offset = (uint16_t)(sw / n);
+    s_ch_offset[0] = (uint16_t)(su / n);
+    s_ch_offset[1] = (uint16_t)(sv / n);
+    s_ch_offset[2] = (uint16_t)(sw / n);
 }
