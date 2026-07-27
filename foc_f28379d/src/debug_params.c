@@ -7,6 +7,7 @@
 #include "build_config.h"
 #include "debug_params.h"
 #include "debug_proto.h"
+#include "debug_hooks.h"    // one-shot trigger state + debug_datalog_free_run()
 #include "foc_pipeline.h"
 #include "foc_state_machine.h"
 #include "safety.h"
@@ -33,6 +34,14 @@ extern volatile uint16_t  g_dbg_control_mode;           // src/foc_pipeline.c
 
 // Inner current-loop enable (1=current PIs enforced, 0=open-loop resistive Vd/Vq).
 extern volatile uint16_t  g_dbg_iloop_en;               // src/foc_pipeline.c
+
+// Step injector: applies a reference step and fires the datalog one-shot trigger
+// in the same ISR tick, so the captured window's trig_idx is exactly the first
+// stepped sample. See the block comment in foc_pipeline.c.
+extern volatile uint16_t  g_step_go;                    // src/foc_pipeline.c
+extern volatile uint16_t  g_step_axis;                  // src/foc_pipeline.c
+extern volatile float32_t g_step_a;                     // src/foc_pipeline.c
+extern volatile uint16_t  g_step_pre;                   // src/foc_pipeline.c
 
 // Field weakening (Step 11): runtime enable + telemetry of the applied weakening
 // current and the requested voltage magnitude.
@@ -170,6 +179,31 @@ static void set_fw_en(uint32_t  r){ g_dbg_fw_en = (uint16_t)(r ? 1U : 0U); }
 // open-loop resistive mode (Vd=Rs*id_ref, Vq=Rs*iq_ref), valid only at low speed.
 static void get_iloop(uint32_t *r){ *r = (uint32_t)g_dbg_iloop_en; }
 static void set_iloop(uint32_t  r){ g_dbg_iloop_en = (uint16_t)(r ? 1U : 0U); }
+
+// ---- Step injector / one-shot scope trigger ------------------------------
+// step_go is the only one with side effects: 0 releases a frozen one-shot
+// buffer (handled HERE, since a 0 write cannot be seen by the ISR's
+// "if(g_step_go)"), non-zero hands the request to the ISR to fire atomically.
+static void get_step_go(uint32_t *r){ *r = (uint32_t)g_step_go; }
+static void set_step_go(uint32_t  r)
+{
+    uint16_t v = (uint16_t)r;
+    if(v == 0U) { g_step_go = 0U; debug_datalog_free_run(); }
+    else        { g_step_go = v; }
+}
+static void get_step_axis(uint32_t *r){ *r = (uint32_t)g_step_axis; }
+static void set_step_axis(uint32_t  r){ g_step_axis = (uint16_t)(r ? 1U : 0U); }
+static void get_step_a(uint32_t *r){ *r = f32_to_raw(g_step_a); }
+static void set_step_a(uint32_t  r){ g_step_a = raw_to_f32(r); }
+static void get_step_pre(uint32_t *r){ *r = (uint32_t)g_step_pre; }
+static void set_step_pre(uint32_t  r)
+{
+    uint16_t v = (uint16_t)r;
+    if(v > (DATALOG_LEN_SAMPLES - 2U)) v = DATALOG_LEN_SAMPLES - 2U;
+    g_step_pre = v;
+}
+static void get_trig_state(uint32_t *r){ *r = (uint32_t)g_dl_trig_state; }
+static void get_trig_idx(uint32_t *r){ *r = (uint32_t)g_dl_trig_idx; }
 
 // Bench bypass for module-fault protection (1 = protection active, 0 = ignored
 // for a board with no power stage). NEEDS_IDLE: the write re-arms/disarms the
@@ -381,6 +415,14 @@ const param_entry_t g_param_table[] =
     { 0x0046U, PARAM_TYPE_U16, 0,                     "vbus_filt_en", get_vbus_filt_en, set_vbus_filt_en },
     { 0x0047U, PARAM_TYPE_F32, 0,                     "vbus_filt_hz", get_vbus_filt_hz, set_vbus_filt_hz },
 
+    // Step injector / one-shot scope trigger (bench PI tuning). step_go:
+    // 0 = release the frozen buffer, 1 = step step_axis to step_a + trigger
+    // (FOC_RUN only), 2 = trigger only (any state, coherent gap-free window).
+    { 0x0048U, PARAM_TYPE_U16, 0,                     "step_go",   get_step_go,   set_step_go   },
+    { 0x0049U, PARAM_TYPE_U16, 0,                     "step_axis", get_step_axis, set_step_axis },
+    { 0x004AU, PARAM_TYPE_F32, 0,                     "step_a",    get_step_a,    set_step_a    },
+    { 0x004BU, PARAM_TYPE_U16, 0,                     "step_pre",  get_step_pre,  set_step_pre  },
+
 #if SENSOR_BACKEND_RM44AC
     { 0x0035U, PARAM_TYPE_U16, 0,                     "res_filt_en", get_res_filt_en, set_res_filt_en },
     { 0x0036U, PARAM_TYPE_F32, 0,                     "res_filt_hz", get_res_filt_hz, set_res_filt_hz },
@@ -403,6 +445,10 @@ const param_entry_t g_param_table[] =
     { 0x0107U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "fault_code", get_fault_code, 0           },
     { 0x0108U, PARAM_TYPE_U32, PARAM_FLAG_RO,         "tz_trip",    get_tz_trip,    0            },
     { 0x0109U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "module_fault", get_module_fault, 0        },
+    // One-shot capture status: trig_state = DL_TRIG_OFF/ARMED/DONE, trig_idx =
+    // chronological index of the trigger sample in the delivered capture.
+    { 0x0122U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "trig_state", get_trig_state, 0           },
+    { 0x0123U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "trig_idx",   get_trig_idx,   0           },
 
 #if SENSOR_BACKEND_RM44AC
     // Resolver front-end diagnostics (raw ADC codes + vector magnitude).

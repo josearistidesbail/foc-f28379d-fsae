@@ -61,4 +61,14 @@ SECTIONS
     .text:PinMux_init                 : > FLASHA   PAGE = 0, ALIGN(8)
     .text:Device_enableAllPeripherals : > FLASHA   PAGE = 0, ALIGN(8)
     .text:inverter_init               : > FLASHA   PAGE = 0, ALIGN(8)
+
+    /* The one-shot datalog trigger + ISR step injector (bench PI step response)
+     * refilled FLASHB again (#10099: .cinit 0x4c, FLASHB 0x0b free). Same remedy,
+     * same reasoning: these are all one-time peripheral/driver init called from
+     * Board_init()/main() before the 10 kHz ISR is enabled, so flash wait-state
+     * cannot matter and none are .TI.ramfunc candidates. */
+    .text:GPIO_init                   : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:myADCC_init                 : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:sensor_init                 : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:UART_DEBUG_init             : > FLASHA   PAGE = 0, ALIGN(8)
 }

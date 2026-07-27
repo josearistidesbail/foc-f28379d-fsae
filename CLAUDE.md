@@ -411,6 +411,38 @@ volatile uint16_t  g_align_offset_en;   // "align_off_en" 0x0044, NEEDS_IDLE; la
 // src/inverter_custom_v2.c  (Step 9/10 — production module faults; HW_CONTROL_BOARD_V2 only)
 volatile uint16_t g_dbg_module_fault;   // MODULE_FLT_* bitfield snapshot at fault entry (OC_A/B/C,OT,DCOV)
 
+// src/debug_hooks.c + src/foc_pipeline.c   (one-shot scope trigger + step injector)
+volatile uint16_t g_dl_trig_state;   // DL_TRIG_OFF/ARMED/DONE; RO param "trig_state" 0x0122
+volatile uint16_t g_dl_trig_idx;     // chronological index of the trigger sample; RO "trig_idx" 0x0123
+volatile uint16_t g_step_go;         // "step_go" 0x0048: 0=release freeze, 1=step+trigger (RUN only), 2=trigger only (any state)
+volatile uint16_t g_step_axis;       // "step_axis" 0x0049: 0=d, 1=q
+volatile float32_t g_step_a;         // "step_a" 0x004A: reference value at the step [A]
+volatile uint16_t g_step_pre;        // "step_pre" 0x004B: pre-trigger samples kept (default 32, clamped to 126)
+//   WHY: the datalog was a free-running ring and the host polls a capture every 250 ms, so at decim=1 only
+//   12.8 ms in every 250 ms is even recorded -- a commanded step was visible ~5% of the time and at a random
+//   offset. Host-side timing CANNOT fix this (a PARAM_WRITE lands with ms of serial+scheduler jitter against a
+//   12.8 ms window). debug_datalog_trigger() keeps the pretrig samples already in the ring as the baseline,
+//   records the rest, then FREEZES -- which also makes the snapshot tear-free (the ISR stops writing).
+//   ATOMICITY is the whole point: the injector runs at the TOP of foc_current_loop_isr, before step 3's PIs,
+//   so the step and the trigger land in the same tick and trig_idx IS the first stepped sample.
+//   Both axes needed care because NEITHER reference is host-owned in RUN:
+//     d -- step 3b rewrites s_refs.id_ref EVERY tick (ID_REF_NOMINAL_A + s_fw_id), so a host "id_ref" write is
+//          clobbered before the PI sees it. s_step_id (static) is folded into that expression; cleared on RUN entry.
+//     q -- s_refs.iq_ref is refreshed from g_dbg_iq_ref by the 1 kHz foc_speed_loop_tick, so writing only the
+//          source quantizes the edge by up to 10 samples. The injector writes BOTH; the 1 kHz tick then
+//          re-asserts the same value in torque mode, so they never fight.
+//   ==> This also means the OLD host at_run_step (write "id_ref", sleep, capture) could never have produced a
+//       d-axis step in closed-loop RUN. Only the q path half-worked, and only by luck of timing.
+//   step_go=2 (trigger only, any state) gives a COHERENT gap-free 128-sample window with no reference change --
+//   use it for noise-floor work, where the stitched-burst artifact otherwise destroys the frequency structure.
+//   RACE NOTE: g_dl_trig_state is written ONLY from ISR context. debug_datalog_free_run() (called by the
+//   step_go=0 setter in main-loop context) just raises s_dl_release, which the ISR consumes -- otherwise a
+//   release racing the ISR's ARMED->DONE could leave the ring frozen and silently stop the live scope.
+//   Host: at_run_step() (gui.py) drives axis/value/pre -> step_go -> polls trig_state -> capture -> reads
+//   trig_idx -> step_go=0 in a finally. autotune.step_metrics() takes the known i_step instead of guessing the
+//   edge from a 50% crossing (the guess latches onto pre-step noise; see test_known_i_step_rejects_pre_step_noise).
+//   The Autotune plot's x-axis is now relative to the trigger, with a dashed marker at t=0.
+
 // src/foc_pipeline.c        (Step 11 — field weakening)
 volatile uint16_t  g_dbg_fw_en;         // live toggle (also "fw_en" param); default FW_DEFAULT=0
 volatile float32_t g_dbg_fw_id;         // applied FW d-axis current [A], <=0 (also "fw_id" RO param)

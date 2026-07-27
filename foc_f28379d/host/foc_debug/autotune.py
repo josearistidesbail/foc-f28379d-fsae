@@ -157,43 +157,62 @@ def _std(seq) -> float:
 
 
 def step_metrics(y, dt: float, ref0=None, ref1=None,
-                 settle_frac: float = 0.02) -> StepMetrics:
+                 settle_frac: float = 0.02, i_step=None) -> StepMetrics:
     """Characterize a step response captured in ``y`` (chronological floats).
 
-    The step may sit anywhere inside the window: the initial/final levels are
-    inferred from the first/last 10% (unless given), and the edge is located as
-    the first 50% crossing -- so the result is robust to serial-link jitter in
-    *when* the snapshot was taken relative to the commanded step.
+    Pass ``i_step`` when the device reported one (the firmware one-shot trigger's
+    ``trig_idx``): it is the exact index of the first sample carrying the step, so
+    the baseline comes from the genuine pre-step samples and the 10/90% search
+    starts at the edge instead of anywhere noise happens to cross first.
+
+    Without it the step may still sit anywhere inside the window: the levels are
+    inferred from the first/last 10% (unless given) and the edge is located as the
+    first 50% crossing -- robust to link jitter, but it can latch onto noise on a
+    small step and cannot tell a slow rise from a late trigger.
     """
     y = [float(v) for v in y]
     n = len(y)
     if n < 8 or dt <= 0.0:
         return StepMetrics(ok=False, reason="too few samples")
 
-    edge = max(1, n // 10)
+    tail = max(1, n // 10)
+    # A device-reported trigger index makes every pre-step sample a baseline
+    # sample; otherwise fall back to the leading 10% of the window.
+    known_edge = i_step is not None and 1 <= int(i_step) < n - 1
+    if known_edge:
+        i_step = int(i_step)
+        pre = y[:i_step]
+    else:
+        i_step = None
+        pre = y[:tail]
+
     if ref0 is None:
-        ref0 = _mean(y[:edge])
+        ref0 = _mean(pre)
     if ref1 is None:
-        ref1 = _mean(y[-edge:])
+        ref1 = _mean(y[-tail:])
     delta = ref1 - ref0
     # Reject when the level change is not large compared with the in-segment
     # noise -- i.e. there is no real step, just a noisy flat trace.
-    noise = max(_std(y[:edge]), _std(y[-edge:]))
+    noise = max(_std(pre), _std(y[-tail:]))
     if abs(delta) < max(1e-9, 5.0 * noise):
-        return StepMetrics(ok=False, reason="no detectable step", ref0=ref0, ref1=ref1)
+        return StepMetrics(ok=False, reason="no detectable step", ref0=ref0,
+                           ref1=ref1, i_step=i_step if known_edge else -1)
 
     # Normalized progress 0->1 across the step (sign-agnostic via /delta).
     frac = [(v - ref0) / delta for v in y]
 
-    # Edge = first 50% crossing.
-    i_step = next((i for i, f in enumerate(frac) if f >= 0.5), -1)
-    if i_step < 0:
-        return StepMetrics(ok=False, reason="step edge not in window",
-                           ref0=ref0, ref1=ref1)
+    if not known_edge:
+        # Edge = first 50% crossing.
+        i_step = next((i for i, f in enumerate(frac) if f >= 0.5), -1)
+        if i_step < 0:
+            return StepMetrics(ok=False, reason="step edge not in window",
+                               ref0=ref0, ref1=ref1)
 
-    # 10-90% rise around the edge.
-    i10 = next((i for i, f in enumerate(frac) if f >= 0.1), -1)
-    i90 = next((i for i, f in enumerate(frac) if f >= 0.9), -1)
+    # 10-90% rise. With a known edge, scan forward from it so pre-step noise can
+    # never supply the 10% crossing; otherwise scan the whole window as before.
+    scan0 = i_step if known_edge else 0
+    i10 = next((i for i in range(scan0, n) if frac[i] >= 0.1), -1)
+    i90 = next((i for i in range(scan0, n) if frac[i] >= 0.9), -1)
     t_rise = (i90 - i10) * dt if (i10 >= 0 and i90 >= i10) else 0.0
 
     # Overshoot: peak progress past 1.0 after the edge.

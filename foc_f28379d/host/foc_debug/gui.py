@@ -300,12 +300,28 @@ def build(pg, QtCore, QtGui, QtWidgets):
                     for name, val in gains.items()}
         return note, statuses
 
-    def at_run_step(dbg, *, mode, ref_param, ref_value, mask, decim, isr_freq,
-                    pre_gains=None, settle_frac=0.5, run_timeout=8.0):
-        """Apply optional gains, RUN, step one reference param, and snapshot the
-        scope with the edge placed inside the window. Returns (capture, dt).
+    # Firmware one-shot trigger states, mirrors DL_TRIG_* in debug_hooks.h.
+    TRIG_OFF, TRIG_ARMED, TRIG_DONE = 0, 1, 2
 
-        Leaves the device stopped (IDLE) with the reference back at 0.
+    def at_run_step(dbg, *, mode, ref_param, ref_value, mask, decim, isr_freq,
+                    axis=None, pre_gains=None, pretrig=32, run_timeout=8.0):
+        """Apply optional gains, RUN, step a reference, and return the one-shot
+        capture. Returns ``(capture, dt, i_step)``.
+
+        The step and the capture trigger are fired by the *firmware*, in the same
+        ISR tick (see the step injector in foc_pipeline.c), so ``i_step`` is the
+        exact index of the first stepped sample. Timing this from the host cannot
+        work: a PARAM_WRITE lands with milliseconds of serial + scheduler jitter
+        against a 12.8 ms window at decim=1.
+
+        ``axis`` 0/1 uses the firmware injector for a d/q current step -- required
+        in RUN, where the ISR owns id_ref and the 1 kHz tick owns iq_ref, so a
+        host write to either is overwritten before it takes effect. ``axis=None``
+        writes ``ref_param`` directly (speed steps, whose accel ramp is orders of
+        magnitude slower than the write jitter) and fires a trigger-only capture.
+
+        Leaves the device stopped (IDLE), the reference at 0, and the scope
+        released back to free-running.
         """
         if pre_gains:
             at_apply_gains(dbg, pre_gains)
@@ -314,23 +330,52 @@ def build(pg, QtCore, QtGui, QtWidgets):
         dbg.write_param("control_mode", int(mode))
         dbg.write_param(ref_param, 0.0)
         dbg.scope_config(decim=int(decim), mask=int(mask))
+        dbg.write_param("step_go", 0)          # release any stale frozen buffer
+        dbg.write_param("step_pre", int(pretrig))
         dbg.request_run()
         try:
             at_wait_state(dbg, ST_RUN, run_timeout)   # may align (~3 s) first
-            time.sleep(0.05)
-            dbg.write_param(ref_param, float(ref_value))
+            time.sleep(0.05)                          # let the loop settle at ref=0
+            if axis is None:
+                dbg.write_param(ref_param, float(ref_value))
+                dbg.write_param("step_go", 2)         # trigger only
+            else:
+                dbg.write_param("step_axis", int(axis))
+                dbg.write_param("step_a", float(ref_value))
+                dbg.write_param("step_go", 1)         # step + trigger, atomic
+            # Wait for the post-trigger window to fill. Budget the true window
+            # plus slack for the RUN-state serial round trips.
             window = 128.0 * decim / isr_freq
-            time.sleep(window * settle_frac)
+            deadline = time.monotonic() + window * 2.0 + 1.0
+            while time.monotonic() < deadline:
+                if dbg.read_param("trig_state") == TRIG_DONE:
+                    break
+                time.sleep(min(0.05, max(0.005, window / 8.0)))
+            else:
+                raise RuntimeError("capture trigger did not complete "
+                                   "(device left RUN, or no samples logged?)")
             cap = dbg.capture_scope(timeout=2.0, retries=1)
+            i_step = int(dbg.read_param("trig_idx"))
         finally:
-            # Always relax the command and stop the motor, even if the run
-            # never reached RUN (timeout/FAULT) or the capture failed.
-            for op in (lambda: dbg.write_param(ref_param, 0.0), dbg.request_stop):
+            # Always relax the command, release the frozen buffer and stop the
+            # motor, even if the run never reached RUN (timeout/FAULT) or the
+            # capture failed -- otherwise the live scope stays frozen.
+            ops = [lambda: dbg.write_param(ref_param, 0.0)]
+            if axis is not None:
+                # The injector owns the stepped axis (a plain "id_ref"/"iq_ref"
+                # write would be overwritten), so step it back to 0 the same way.
+                # Only when we actually used it: in speed mode this would fight
+                # the speed PI for a tick.
+                ops += [lambda: dbg.write_param("step_a", 0.0),
+                        lambda: dbg.write_param("step_go", 1)]
+            ops += [lambda: dbg.write_param("step_go", 0),   # release the freeze
+                    dbg.request_stop]
+            for op in ops:
                 try:
                     op()
                 except Exception:   # noqa: BLE001 - best-effort safe-down
                     pass
-        return cap, decim / isr_freq
+        return cap, decim / isr_freq, i_step
 
     class MainWindow(QtWidgets.QMainWindow):
         def __init__(self, initial_port=None):
@@ -1492,6 +1537,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
             outer = QtWidgets.QVBoxLayout(page)
             outer.setContentsMargins(4, 4, 4, 4)
 
+            # The controls and the step-response plot share the page through a
+            # splitter: the boxes are taller than the panel, so a fixed plot
+            # height would leave only a sliver of scrollable room. Drag to taste.
+            vsplit = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+
             scroll = QtWidgets.QScrollArea()
             scroll.setWidgetResizable(True)
             inner = QtWidgets.QWidget()
@@ -1502,21 +1552,33 @@ def build(pg, QtCore, QtGui, QtWidgets):
             iv.addWidget(self._build_at_fw_box())
             iv.addStretch(1)
             scroll.setWidget(inner)
-            outer.addWidget(scroll, 1)
+            vsplit.addWidget(scroll)
 
             res_box = QtWidgets.QGroupBox("Last verify (step response)")
             res_v = QtWidgets.QVBoxLayout(res_box)
             self.at_plot = pg.PlotWidget()
             self.at_plot.showGrid(x=True, y=True, alpha=0.3)
-            self.at_plot.setMaximumHeight(200)
+            self.at_plot.setMinimumHeight(120)
             self.at_meas_curve = self.at_plot.plot(pen=pg.mkPen(width=1))
             self.at_ref_curve = self.at_plot.plot(
                 pen=pg.mkPen(color=(220, 60, 60), width=1.5, style=QtCore.Qt.DashLine))
+            # Marks t=0, the device-reported trigger sample (firmware one-shot
+            # trigger). Everything left of it is genuine pre-step baseline.
+            self.at_trig_line = pg.InfiniteLine(
+                pos=0.0, angle=90, movable=False,
+                pen=pg.mkPen(color=(120, 190, 255), width=1, style=QtCore.Qt.DashLine))
+            self.at_trig_line.setVisible(False)
+            self.at_plot.addItem(self.at_trig_line)
             res_v.addWidget(self.at_plot)
             self.at_metrics_lbl = QtWidgets.QLabel("—")
             self.at_metrics_lbl.setWordWrap(True)
             res_v.addWidget(self.at_metrics_lbl)
-            outer.addWidget(res_box)
+            vsplit.addWidget(res_box)
+
+            vsplit.setStretchFactor(0, 3)
+            vsplit.setStretchFactor(1, 1)
+            vsplit.setSizes([460, 200])
+            outer.addWidget(vsplit, 1)
 
             self._at_refresh_all_previews()
             return page
@@ -2028,7 +2090,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 "at_verify_cur",
                 fn=lambda d, g=dict(gains): at_run_step(
                     d, mode=0, ref_param="iq_ref", ref_value=iq, mask=mask,
-                    decim=3, isr_freq=isr, pre_gains=g, settle_frac=0.5),
+                    decim=3, isr_freq=isr, pre_gains=g, axis=1, pretrig=32),
                 on_done=lambda res, iq=iq, w=which: self._at_verify_done(
                     "Iq", res, 0.0, iq, w),
                 on_fail=self._at_verify_failed)
@@ -2060,7 +2122,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 "at_verify_spd",
                 fn=lambda d, g=dict(gains): at_run_step(
                     d, mode=1, ref_param="omega_ref", ref_value=we, mask=mask,
-                    decim=decim, isr_freq=isr, pre_gains=g, settle_frac=0.55),
+                    decim=decim, isr_freq=isr, pre_gains=g, axis=None, pretrig=8),
                 on_done=lambda res, we=we, w=which: self._at_verify_done(
                     "omega_elec", res, 0.0, we, w),
                 on_fail=self._at_verify_failed)
@@ -2078,7 +2140,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 "at_km",
                 fn=lambda d: at_run_step(
                     d, mode=0, ref_param="iq_ref", ref_value=iq, mask=mask,
-                    decim=12, isr_freq=isr, pre_gains=None, settle_frac=0.9),
+                    decim=12, isr_freq=isr, pre_gains=None, axis=1, pretrig=8),
                 on_done=lambda res, iq=iq: self._at_km_done(res, iq),
                 on_fail=self._at_verify_failed)
 
@@ -2088,16 +2150,20 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
         def _at_verify_done(self, chan, res, ref0, ref1, which):
             self._at_set_busy(False)
-            cap, dt = res
+            cap, dt, i_step = res
             self._at_last_cap = cap
             if chan not in cap.names:
                 self._report(f"verify: channel {chan} not in capture", logging.ERROR)
                 return
             y = cap.data[cap.names.index(chan)]
-            m = autotune.step_metrics(y, dt, ref0=ref0, ref1=ref1)
-            xs = np.arange(len(y)) * dt * 1e3
+            m = autotune.step_metrics(y, dt, ref0=ref0, ref1=ref1, i_step=i_step)
+            # t=0 is the device-reported trigger sample, so the pre-step baseline
+            # sits at negative time and the response starts exactly at the origin.
+            xs = (np.arange(len(y)) - i_step) * dt * 1e3
             self.at_meas_curve.setData(xs, np.asarray(y, dtype=float))
             self.at_ref_curve.setData([float(xs[0]), float(xs[-1])], [ref1, ref1])
+            self.at_trig_line.setPos(0.0)
+            self.at_trig_line.setVisible(True)
             self.at_plot.setTitle(f"{which} verify — {chan}")
             self.at_plot.setLabel("bottom", "t (ms)")
             if m.ok:
@@ -2118,14 +2184,18 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
         def _at_km_done(self, res, iq):
             self._at_set_busy(False)
-            cap, dt = res
+            cap, dt, _i_step = res
             self._at_last_cap = cap
             if "omega_elec" not in cap.names:
                 self._report("Km: omega channel missing from capture", logging.ERROR)
                 return
             y = cap.data[cap.names.index("omega_elec")]
             n = len(y)
-            slope = autotune.fit_slope(y, dt, i0=int(n * 0.3), i1=n)
+            # Fit only the accelerating part: start a few samples past the
+            # device-reported step so the pre-step baseline and the current
+            # loop's own rise are excluded from the slope.
+            i0 = min(n - 2, max(int(_i_step) + 4, 1))
+            slope = autotune.fit_slope(y, dt, i0=i0, i1=n)
             if iq <= 0 or slope <= 0:
                 self._report(
                     "Km measure: no usable ramp (is the shaft free? try larger iq)",
@@ -2144,9 +2214,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self.at_spd_j.setValue(J)
             self.at_spd_j.blockSignals(False)
             self._at_speed_preview()
-            xs = np.arange(n) * dt * 1e3
+            xs = (np.arange(n) - _i_step) * dt * 1e3
             self.at_meas_curve.setData(xs, np.asarray(y, dtype=float))
             self.at_ref_curve.setData([], [])
+            self.at_trig_line.setPos(0.0)
+            self.at_trig_line.setVisible(True)
             self.at_plot.setTitle("Km measure — omega ramp")
             self.at_plot.setLabel("bottom", "t (ms)")
             self._report(f"Km measured: {Km:.4g} (rad/s²/A), implied J≈{J:.3g} kg·m²")

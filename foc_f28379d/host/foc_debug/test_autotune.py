@@ -124,6 +124,43 @@ class TestStepMetrics(unittest.TestCase):
         y = [slope * k * self.DT for k in range(100)]
         self.assertAlmostEqual(autotune.fit_slope(y, self.DT), slope, places=3)
 
+    # ---- device-reported trigger index (firmware one-shot trigger) --------
+    def test_known_i_step_is_used_verbatim(self):
+        tau = 1e-3
+        n_pre = 50
+        y = self._first_order(tau, n_pre=n_pre)
+        m = autotune.step_metrics(y, self.DT, i_step=n_pre)
+        self.assertTrue(m.ok, m.reason)
+        self.assertEqual(m.i_step, n_pre)          # not re-derived from a crossing
+        self.assertAlmostEqual(m.t_rise, 2.197 * tau, delta=0.25e-3)
+
+    def test_known_i_step_rejects_pre_step_noise(self):
+        """A noise spike before the step must not become the 10% crossing.
+
+        Without a trigger index the 10-90% search starts at sample 0, so a single
+        pre-step excursion past 10% of the step size inflates the measured rise
+        time. With the device-reported edge the search starts at the step.
+        """
+        tau = 1e-3
+        n_pre = 50
+        y = self._first_order(tau, n_pre=n_pre)
+        y[5] = 0.25                                 # spike well past the 10% level
+
+        guessed = autotune.step_metrics(y, self.DT)
+        known = autotune.step_metrics(y, self.DT, i_step=n_pre)
+        self.assertTrue(known.ok, known.reason)
+        self.assertAlmostEqual(known.t_rise, 2.197 * tau, delta=0.25e-3)
+        # The blind path is fooled by the spike and reports a much longer rise.
+        self.assertGreater(guessed.t_rise, known.t_rise * 2.0)
+
+    def test_out_of_range_i_step_falls_back_to_search(self):
+        tau = 1e-3
+        y = self._first_order(tau)
+        for bad in (None, 0, len(y), len(y) + 10):
+            m = autotune.step_metrics(y, self.DT, i_step=bad)
+            self.assertTrue(m.ok, f"i_step={bad}: {m.reason}")
+            self.assertAlmostEqual(m.t_rise, 2.197 * tau, delta=0.25e-3)
+
 
 if __name__ == "__main__":
     unittest.main()

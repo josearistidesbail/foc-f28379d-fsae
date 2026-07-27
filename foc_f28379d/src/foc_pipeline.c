@@ -142,6 +142,40 @@ volatile float32_t g_dbg_iq_lim;
 // Added to ID_REF_NOMINAL_A to form id_ref each RUN tick. Reset on RUN entry.
 static float32_t   s_fw_id;
 
+// ---- Step injector (current-loop step response) --------------------------
+// Applies a reference step and fires the datalog one-shot trigger in the SAME
+// ISR tick, so the captured window's trig_idx IS the first sample carrying the
+// step. Doing this host-side cannot work: a PARAM_WRITE lands with milliseconds
+// of serial + scheduler jitter against a 12.8 ms capture window, so the edge
+// arrives at a random offset or misses the window entirely.
+//
+// Both axes need care, because neither reference is host-owned in RUN:
+//   d -- the step-3b ownership block rewrites s_refs.id_ref EVERY tick
+//        (ID_REF_NOMINAL_A + s_fw_id), so a host write to "id_ref" is clobbered
+//        before the PI ever sees it. s_step_id is folded into that expression.
+//   q -- s_refs.iq_ref is refreshed from g_dbg_iq_ref by foc_speed_loop_tick()
+//        at 1 kHz, so writing only the source would quantize the edge by up to
+//        10 ISR samples. The injector writes BOTH, and the 1 kHz tick then
+//        re-asserts the same value (torque mode) so they never fight.
+//
+// g_step_go ("step_go" param), consumed by the ISR:
+//   0 = release a frozen one-shot buffer, resume free-running capture
+//   1 = apply the step on g_step_axis / g_step_a, then trigger  (FOC_RUN only)
+//   2 = trigger only, no reference change -- a coherent 128-sample window with
+//       no inter-block gaps, valid in ANY state (use it for noise-floor work)
+#define STEP_AXIS_D  0U
+#define STEP_AXIS_Q  1U
+#define STEP_PRE_DEFAULT  32U          // quarter of DATALOG_LEN_SAMPLES
+
+volatile uint16_t  g_step_go;      // write 1/2 to fire, 0 to release the freeze
+volatile uint16_t  g_step_axis;    // STEP_AXIS_D / STEP_AXIS_Q
+volatile float32_t g_step_a;       // reference value at the step [A]
+volatile uint16_t  g_step_pre;     // pre-trigger samples kept as baseline
+
+// Live d-axis step offset [A], added to id_ref by the step-3b ownership block.
+// Cleared on RUN entry so a step can never survive into the next run.
+static float32_t   s_step_id;
+
 // Ramp-limited electrical speed setpoint tracked by the speed loop (speed mode).
 // Reset to 0 in foc_init() and whenever the state machine is not in FOC_RUN.
 static float32_t   s_speed_cmd;
@@ -433,6 +467,14 @@ void foc_init(void)
     s_fw_id          = 0.0f;
     s_speed_cmd      = 0.0f;
     s_decim          = 0;
+    // Step injector idle. STEP_PRE_DEFAULT keeps a quarter-window of pre-step
+    // baseline, enough for step_metrics() to establish ref0 and for the operator
+    // to confirm the loop was actually settled before the edge.
+    g_step_go        = 0U;
+    g_step_axis      = STEP_AXIS_D;
+    g_step_a         = 0.0f;
+    g_step_pre       = STEP_PRE_DEFAULT;
+    s_step_id        = 0.0f;
 
     align_reset();
 }
@@ -488,7 +530,7 @@ void foc_current_loop_isr(void)
     sensor_update_isr();
 
     if(st == FOC_ALIGN_ROTOR && s_prev_state != FOC_ALIGN_ROTOR) align_reset();
-    if(st == FOC_RUN         && s_prev_state != FOC_RUN)         fw_reset();
+    if(st == FOC_RUN         && s_prev_state != FOC_RUN)  { fw_reset(); s_step_id = 0.0f; }
     if(st == FOC_OPENLOOP    && s_prev_state != FOC_OPENLOOP)    s_ol_theta = 0.0f;
 #if SENSOR_BACKEND_RM44AC
     // ALIGN exited by ANY path (done, fault, stop): never leave the loss check
@@ -499,6 +541,34 @@ void foc_current_loop_isr(void)
     }
 #endif
     s_prev_state = st;
+
+    // Step injector: apply the reference and arm the one-shot capture in the same
+    // tick, BEFORE step 3 runs the PIs, so this tick's control -- and the sample
+    // logged for it in step 7 -- already carry the step. Consumed unconditionally
+    // so a request made outside RUN cannot fire later by surprise.
+    if(g_step_go)
+    {
+        uint16_t go = g_step_go;
+        g_step_go = 0U;                               // one-shot (0 = release, in the setter)
+        if(go >= 2U)                                  // trigger only, any state
+        {
+            debug_datalog_trigger(g_step_pre);
+        }
+        else if(st == FOC_RUN)                        // step + trigger
+        {
+            if(g_step_axis == STEP_AXIS_Q)
+            {
+                g_dbg_iq_ref  = g_step_a;             // source (1 kHz tick re-asserts)
+                s_refs.iq_ref = g_step_a;             // applied THIS tick
+            }
+            else
+            {
+                s_step_id     = g_step_a;             // survives step-3b ownership
+                s_refs.id_ref = ID_REF_NOMINAL_A + s_fw_id + s_step_id;
+            }
+            debug_datalog_trigger(g_step_pre);
+        }
+    }
 
     if(st == FOC_ALIGN_ROTOR)   s_sig.theta_elec = align_step();
     else if(st == FOC_OPENLOOP) s_sig.theta_elec = openloop_step();
@@ -662,12 +732,12 @@ void foc_current_loop_isr(void)
         {
             float vmax_fw = FW_VMAX_FRACTION * s_refs.vbus * 0.5f;
             PI_run(s_pi_fw, vmax_fw * vmax_fw, vmag_sq, &s_fw_id);   // s_fw_id <= 0
-            s_refs.id_ref = ID_REF_NOMINAL_A + s_fw_id;
+            s_refs.id_ref = ID_REF_NOMINAL_A + s_fw_id + s_step_id;
         }
         else                           // FW disabled -> hold nominal id
         {
             fw_reset();
-            s_refs.id_ref = ID_REF_NOMINAL_A;
+            s_refs.id_ref = ID_REF_NOMINAL_A + s_step_id;
         }
     }
     else                               // not running (FW does not touch ALIGN id)
