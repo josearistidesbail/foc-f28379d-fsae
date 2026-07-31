@@ -9,19 +9,107 @@
 
 #define SENSOR_NAME                 "RM44AC sin/cos magnetic sensor"
 
-// RM44AC is a 1-pole-pair angle sensor (one electrical rev per mech rev).
-// Electrical (motor) angle = (mech_angle * MOTOR_POLE_PAIRS) wrapped.
+// Sensor speed: sin/cos cycles per MECHANICAL revolution. Bench-verified 1
+// (one full sin/cos cycle per marked hand revolution, 2026-07-14). Elec angle
+// = sensor_angle * (MOTOR_POLE_PAIRS / SENSOR_POLES); at 1 this is the
+// classic mech*pole_pairs. Runtime-switchable via the "res_poles" param
+// (NEEDS_IDLE) should the sensing arrangement ever change; RE-RUN ALIGN after
+// changing it.
 #define SENSOR_RES_SENSOR_POLES     1
 
-// Speed estimate uses a 1st-order low-pass on the differentiated angle.
+// ---- Speed estimator selection ------------------------------------------
+// Two estimators run EVERY ISR (sensor_rm44ac_inline.h); this picks which one
+// drives g_resolver_omega_mech. Both keep their state live regardless (same
+// idiom as the sin/cos IIR below), so "res_w_mode" (0x003D) is a bumpless A/B
+// switch on a running bench. Anything other than _PLL selects the legacy path.
+#define SENSOR_RES_W_MODE_LPF       0U   // differentiate once per Ts, then LPF
+#define SENSOR_RES_W_MODE_PLL       1U   // type-II angle tracking observer
+#define SENSOR_RES_W_MODE_DEFAULT   SENSOR_RES_W_MODE_LPF   // -> _PLL once bench-proven
+
+// ---- Estimator A: differentiate-then-LPF (legacy) -----------------------
+// 1st-order low-pass on the differentiated angle.
 // fc = -ln(1 - alpha) * fs / (2*pi); approx alpha = 2*pi*fc/fs for fc << fs.
-#define SENSOR_RES_SPEED_LPF_HZ     500.0f
-#define SENSOR_RES_SPEED_LPF_ALPHA  (2.0f * 3.14159265f \
-                                     * SENSOR_RES_SPEED_LPF_HZ * FOC_ISR_TS)
+// DEFAULT NOW 50 (was 500). The once-per-Ts angle difference has a noise gain
+// of fs = 10000; at alpha = 0.314 the LPF only took the result down ~2x:
+//   sigma_omega = sigma_theta * (alpha/Ts) * sqrt(2/(2-alpha)) = 3420*sigma_theta.
+// 500 Hz was also 16% off the alpha ~= 2*pi*fc*Ts approximation, so the REAL
+// cutoff was -ln(1-0.314)*fs/2pi = 599 Hz (same failure mode CLAUDE.md documents
+// for the old 1000 Hz res_filt_hz default). At 50 Hz the approximation is 1.5%
+// honest and the output noise drops ~11x. Live-tunable via "res_wlpf_hz" (0x0045);
+// ALPHA is 1-arg (like SENSOR_RES_FILT_ALPHA) because FOC_ISR_TS is defined in
+// build_config.h AFTER this header is included, so it must stay use-site-expanded.
+#define SENSOR_RES_SPEED_LPF_HZ     50.0f
+#define SENSOR_RES_SPEED_LPF_ALPHA(hz)  (2.0f * 3.14159265f * (hz) * FOC_ISR_TS)
+
+// ---- Estimator B: type-II angle tracking observer (ATO / "resolver PLL") -
+// The standard resolver-to-digital speed estimator. It does NOT difference the
+// angle: the measurement enters only as a bounded loop error, so both the
+// broadband noise and the one-sample glitches are attenuated by the loop instead
+// of being amplified by fs and filtered back down. Against a differencer + LPF at
+// the SAME nominal bandwidth:
+//     noise advantage  = 2 / sqrt(wn*Ts)   -> ~16x at 40 Hz
+//     glitch advantage = 1 / (wn*Ts)       -> ~64x at 40 Hz
+// Even at MATCHED phase lag (a 101 Hz PLL == a 50 Hz 1-pole at 10 Hz) it is still
+// ~3.9x quieter and ~7.8x better on glitches -- the comparison that survives.
+//
+// NOT true of it, despite the folklore: type-II does NOT give zero speed error
+// under acceleration. Type-II is w.r.t. the ANGLE (zero angle error at constant
+// speed). The speed transfer is a plain 2nd-order low-pass
+//     w_hat/w_true = wn^2 / (s^2 + 2*zeta*wn*s + wn^2),
+// so under constant accel a the speed lags by 2*zeta*a/wn and the angle sits at a
+// constant a/wn^2. At equal nominal frequency it has MORE phase lag than the
+// 1-pole it replaces, because it is second order. Buy that back with bandwidth.
+//
+// **SPEED LOOP GATE**: the estimator is inside the FOC_MODE_SPEED loop. With
+// GAIN_KP_SPEED = 1.5 the loop crosses near ~47 Hz on the bare rotor, where a
+// 40 Hz observer contributes about -93 deg -- i.e. UNSTABLE. RE-TUNE kp_w to
+// cross at or below f_bw/4 before enabling FOC_MODE_SPEED. Harmless in
+// FOC_MODE_TORQUE: there omega only feeds the decouple feedforward, the lag
+// compensation and telemetry, none of which is a loop closed around omega.
+//
+// zeta is fixed at 1 (critically damped, no overshoot) so there is one knob.
+// Keep f_bw <= res_filt_hz/5 so the observer does not chase the sin/cos IIR's own
+// dynamics -- that is why the default is 40, not 100.
+// Discrete stability (semi-implicit Euler, zeta=1): wn*Ts < 2*sqrt(2)-2 = 0.828,
+// i.e. f_bw < 1318 Hz at 10 kHz -- 33x margin at the default, never binding.
+// float32: the integrator step is Ts*Ki*err = 6.3*err at 40 Hz against a 7.5e-5
+// ULP at 6000 rpm, so the speed quantum is Delta_w = |w|*eps/(2*pi*f_bw*Ts) =
+// 0.075 sensor rad/s. (It is Ts*Ki that sets precision; Ts^2*Ki sets stability.)
+#define SENSOR_RES_PLL_BW_HZ_DEFAULT 40.0f
+#define SENSOR_RES_PLL_ZETA          1.0f
+#define SENSOR_RES_PLL_BW_MIN_HZ     1.0f     // below: lock time > 0.9 s
+#define SENSOR_RES_PLL_BW_MAX_HZ     200.0f   // above: no noise advantage left
+// Acquisition clamp on the loop error [rad]. Normal running |err| ~ 0.005 rad,
+// 100x below this, so it never fires in operation. Outside the linear range the
+// loop degenerates to a constant-slew pull-in (Ts*Ki*0.5 = 3.2 rad/s per ISR, so
+// 628 rad/s in ~20 ms) instead of slamming the integrator on a wrap glitch or a
+// post-fault re-lock.
+#define SENSOR_RES_PLL_ERR_CLAMP     0.5f
+// Divergence guard on the tracked speed [mech rad/s], scaled by sensor_poles in
+// apply_poles(). Well above FAULT_ASC_OMEGA_ELEC/pole_pairs so it cannot interfere
+// with the fault path; it exists because a runaway omega goes straight into
+// ff_q = omega*flux at 10 kHz (foc_pipeline.c step 3).
+#define SENSOR_RES_PLL_W_MAX_MECH    (1.5f * MOTOR_SPEED_MAX_RAD_S)
+// Kp = 2*zeta*wn, Ki = wn^2 with wn = 2*pi*f_bw. Continuous-domain on purpose:
+// FOC_ISR_TS is not in scope here, so Ts folds in at the setter (apply_pll_bw).
+#define SENSOR_RES_PLL_WN(hz)   (2.0f * 3.14159265f * (hz))
+#define SENSOR_RES_PLL_KP(hz)   (2.0f * SENSOR_RES_PLL_ZETA * SENSOR_RES_PLL_WN(hz))
+#define SENSOR_RES_PLL_KI(hz)   (SENSOR_RES_PLL_WN(hz) * SENSOR_RES_PLL_WN(hz))
 
 // Default electrical-offset captured during ALIGN_ROTOR (mech radians).
 // Persist to flash later if you want repeatable boots.
 #define SENSOR_RES_DEFAULT_OFFSET   0.0f
+
+// Angle direction. The resolver must count POSITIVE in the same rotation
+// direction as the electrical phase sequence (U->V->W); which way it actually
+// counts depends on magnet face / wiring, and there is no way to know without
+// the bench test: spin open-loop (ol_run, +electrical by construction) and
+// check the sign of omega_meas. 1 = mirror the mechanical angle (th -> 2pi-th),
+// flipping both angle and speed sign consistently. Runtime-switchable via the
+// "res_dir_inv" param (NEEDS_IDLE); RE-RUN ALIGN after changing it -- the
+// captured offset is only valid for the direction it was captured with.
+// (QEP equivalent: SENSOR_QEP_DIR_SIGN.)
+#define SENSOR_RES_DIR_INV_DEFAULT  0U
 
 // ---- Sensor-loss detection (sin^2 + cos^2 magnitude window) ------------
 // Va/Vb are bias-removed and scaled to ~[-1, +1], so a healthy sin/cos pair
@@ -32,5 +120,72 @@
 #define SENSOR_RES_MAG_LOW          0.25f   // amplitude < ~0.5 of nominal -> lost
 #define SENSOR_RES_MAG_HIGH         2.25f   // amplitude > ~1.5 of nominal -> lost
 #define SENSOR_RES_LOSS_TICKS       5       // consecutive out-of-window ISRs (0.5 ms)
+
+// ---- Sin/Cos input filtering (software noise reduction) ----------------
+// The analog SIN/COS lines pick up board noise that can't be filtered in HW
+// right now. A MATCHED 1st-order IIR low-pass on each channel (run every ISR,
+// before atan2) knocks it down. Because SIN and COS share the same coefficient,
+// a steady angle is preserved; the speed-dependent lag it adds is characterized
+// and compensated in the next block, so fc no longer has to stay far above the
+// running electrical frequency. Tune/defeat live via the "res_filt_en" /
+// "res_filt_hz" debug params. (The loss-of-signal check stays on the RAW sin/cos
+// magnitude, so the filter can't mask a dropout.)
+// Defaults ON at 200 Hz (bench-proven 2026-07-15: this is what first made the
+// motor commutate). 200 Hz gives ~4x noise-amplitude reduction -- a 1st-order
+// LPF has noise bandwidth (pi/2)*fc, so ~314 Hz against the ADC's 5 kHz Nyquist
+// -- versus only ~1.8x at the old 1000 Hz default. 200 Hz also keeps the
+// alpha ~= 2*pi*fc*Ts approximation honest (alpha 0.126 vs the exact 0.118);
+// at 1000 Hz it is ~35% off, so the real cutoff was well above the label.
+// Safe to run this low ONLY because the lag is compensated below.
+#define SENSOR_RES_FILT_DEFAULT_EN  1U        // 0 = bypass at boot, 1 = filter on
+#define SENSOR_RES_FILT_DEFAULT_HZ  200.0f    // -3 dB cutoff used when enabled [Hz]
+// alpha = 1 - exp(-2*pi*fc*Ts) ~= 2*pi*fc*Ts for fc << fs (same form as the speed
+// LPF above). Expanded at use-site only, where FOC_ISR_TS is in scope.
+#define SENSOR_RES_FILT_ALPHA(hz)   (2.0f * 3.14159265f * (hz) * FOC_ISR_TS)
+
+// ---- Filter lag compensation -------------------------------------------
+// The matched IIR is a PURE angle delay: sin and cos get the same gain and the
+// same phase, the gain cancels inside atan2 (amplitude-independent), so all that
+// survives is a rotation by phi = atan(f_mech/fc) ~= omega_mech/(2*pi*fc). That
+// lag is systematic and analytically known, so add it back rather than pay it.
+// It matters because the pole-pair multiply scales it up: in ELECTRICAL terms
+// the lag is simply
+//        lag_elec [rad] ~= f_elec / fc
+// (the x pole_pairs cancels against f_elec = pole_pairs * f_mech). On the EMRAX
+// at fc=200 that is ~2.9 deg at 60 rpm but ~28.7 deg at 600 rpm, reaching 90 deg
+// -- zero torque, and positive feedback beyond -- at only ~1885 rpm. Without
+// compensation a low fc is usable at crawl and dangerous at speed.
+// Exact in steady state; a residual remains only while accelerating.
+// lag_k = 1/(2*pi*fc) is precomputed so the ISR stays division-free.
+#define SENSOR_RES_FILT_COMP_DEFAULT_EN 1U    // "res_filt_comp" param
+#define SENSOR_RES_FILT_LAG_K(hz)   (((hz) > 0.0f) \
+                                     ? (1.0f / (2.0f * 3.14159265f * (hz))) : 0.0f)
+
+// ---- SIN/COS scale calibration (runs during FOC_ALIGN_ROTOR) ------------
+// The hw_*.h RES_SINCOS_BIAS/AMPL_CODE values are analog-design guesses; the
+// real front-end neither spans the full ADC range nor is guaranteed
+// channel-matched. Before the offset-capture sweep, the align controller drags
+// the rotor through CAL_MECH_REVS open-loop mech rev(s) (= full sin/cos cycles,
+// the sensor is 1-speed) while tracking raw min/max codes per channel, then
+// applies bias=(min+max)/2 and ampl=(max-min)/2 at runtime. Captured extremes
+// are readable via the cal_* serial params to bake into the hw header later.
+#define SENSOR_RES_CAL_DEFAULT_EN      1U      // 0 = keep hw_*.h constants
+// 3 revs (was 1). Only >=1 is needed mathematically -- one mech rev is one full
+// sin/cos cycle, so one pass already visits both extremes -- but under the
+// iloop_en=0 open-loop drag the rotor cogs and can stall or skip, so a single
+// rev may never actually reach part of the cycle and the captured min/max come
+// out short. Extra revs are cheap insurance: at 0.5 rev/s this costs 6 s instead
+// of 2 s, and min/max only ever widen. It does NOT need to be an integer (unlike
+// the offset sweep, where integer revs are what cancels cogging from the mean).
+// Note the captured amplitude is inherently ~18% wide because min/max latch the
+// noise peaks (~+/-3.9 sigma over a sweep) rather than the true crest -- but that
+// barely grows with rev count (extreme value scales as sqrt(2*ln N)), and an
+// equal overestimate on BOTH channels leaves atan2 unaffected since it is
+// amplitude-independent. Only a sin-vs-cos MISMATCH distorts the angle.
+#define SENSOR_RES_CAL_MECH_REVS       3.0f    // >=1 mech rev = 1 full sin/cos cycle
+#define SENSOR_RES_CAL_MIN_AMPL_CODES  200.0f  // reject span < ~0.15 V (stall/dead channel)
+#define SENSOR_RES_CAL_MAX_MISMATCH    0.30f   // reject |ampl_sin-ampl_cos| > 30% of larger
+#define SENSOR_RES_CAL_CLIP_LO_CODE    8U      // min at/below -> "clipped low" status flag
+#define SENSOR_RES_CAL_CLIP_HI_CODE    4087U   // max at/above -> "clipped high" status flag
 
 #endif // SENSOR_RM44AC_H

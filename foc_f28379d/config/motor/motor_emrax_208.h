@@ -30,7 +30,10 @@
 // ---- Trip thresholds (software) ----------------------------------------
 #define MOTOR_OC_TRIP_A         260.0f
 #define MOTOR_OV_TRIP_V         460.0f
-#define MOTOR_UV_TRIP_V         200.0f
+// UV trip. 18 V = the 24 V bench value (~75% of bus), set while bringing up
+// the now-connected VBUS sense at 24 V. RAISE toward ~200 V (rated ~400 V HV
+// bus) before running on the real DC link.
+#define MOTOR_UV_TRIP_V         12.0f
 
 // ---- Fault safe-state threshold (sensor-loss / fault shutdown) ----------
 // Above this ELECTRICAL speed a lost-angle / fault shutdown applies a 3-phase

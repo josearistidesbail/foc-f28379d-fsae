@@ -20,7 +20,7 @@ FRAME_SYNC0 = 0xAA
 FRAME_SYNC1 = 0x55
 # Largest response payload the host will accept. The SCOPE_CAPTURE frame is the
 # biggest: with every catalog signal selected, 5 + DATALOG_LEN_SAMPLES(128) *
-# SCOPE_MAX_CHANNELS(9) * 4 = 4613 bytes, so this stays comfortably above that.
+# SCOPE_MAX_CHANNELS(13) * 4 = 6661 bytes, so this stays comfortably above that.
 # Enforced in link.py on RX. Keep in sync with debug_proto.h.
 FRAME_MAX_PAYLOAD = 8192
 
@@ -89,6 +89,18 @@ SCOPE_CATALOG = [
     (6, "Iu"),
     (7, "Iv"),
     (8, "Iw"),
+    # Raw resolver SIN/COS ADC codes (RM44AC builds; 0 on other backends). Watch
+    # these alongside theta_elec to tell circuit noise from ADC/scaling issues.
+    (9, "res_sin"),
+    (10, "res_cos"),
+    # Legacy differentiate+LPF speed estimate [elec rad/s], live regardless of
+    # res_w_mode. Plot against omega_elec (col 5, the SELECTED estimator) to A/B
+    # the two estimators on one capture; with res_w_mode=0 they are identical
+    # (RM44AC builds; 0 on other backends).
+    (11, "res_w_lpf"),
+    # Measured DC-bus voltage [V] (all backends). Watch it sag under load to size
+    # the undervoltage trip; mirrors the static "vbus" RO param.
+    (12, "vbus"),
 ]
 SCOPE_MAX_CHANNELS = len(SCOPE_CATALOG)
 

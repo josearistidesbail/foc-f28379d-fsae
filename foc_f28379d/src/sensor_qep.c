@@ -116,6 +116,21 @@ void sensor_update_speed_slow(void)
     if(!g_qep_lost) g_qep_omega_healthy = g_qep_omega_elec;
 }
 
+// Re-arm loss detection after an operator fault-clear (see sensor_iface.h).
+// Resets the movement window as well as the latch so a fresh full
+// SENSOR_QEP_LOSS_TICKS window of drive-without-response is required before it
+// can trip again. (The window is also zeroed by the else-branch above whenever
+// we are not driving in RUN, but clearing it here keeps this self-contained
+// rather than depending on that.) The QEPSTS POS_CNT_ERROR source at line ~112
+// needs no hardware clear: per the F2837xD TRM, PCEF is a read-only, non-sticky
+// flag re-evaluated at each index event, so it cannot hold the latch set.
+void sensor_clear_loss(void)
+{
+    g_qep_lost   = 0U;
+    s_loss_ticks = 0U;
+    s_loss_move  = 0U;
+}
+
 // Store the electrical zero offset (radians), wrapped to [0, 2*pi). The align
 // controller in foc_pipeline.c computes it as the circular mean of
 // (raw_encoder_elec - commanded_elec) over the ramp sweep.

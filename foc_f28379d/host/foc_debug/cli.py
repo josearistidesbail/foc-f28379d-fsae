@@ -13,11 +13,15 @@ One-shot commands (auto-connect, run once, exit):
     python -m foc_debug write iq_ref 0.5
     python -m foc_debug scope --csv cap.csv
     python -m foc_debug run
+    python -m foc_debug vbuscal                       # DC-bus sense calibration
+    python -m foc_debug vbuscal --fit 6.1:31,50.2:148 # offline fit, no hardware
+    python -m foc_debug vbuscal --cal-csv 40:v40.csv,65:v65.csv --csv-ratio 276.92
+                                                      # fit saved 'vbus' captures
 
 REPL commands (type at the foc> prompt — no flags):
     ports, connect [port], disconnect, ping [text], list,
     read <name>, write <name> <val>, config <decim>, scope [csv],
-    run, stop, clearfault, state, help, quit
+    run, stop, clearfault, state, vbuscal [--apply|-n500], help, quit
 """
 
 from __future__ import annotations
@@ -96,6 +100,124 @@ def _status_str(status: int) -> str:
     return proto.PARAM_WR_STR.get(status, f"status{status}")
 
 
+def _do_vbuscal(dbg, args: list) -> int:
+    """Interactive DC-bus sense calibration: capture points, fit, optionally apply.
+
+    Fits volts against the RAW ADC code so the gain being measured is not already
+    baked into the input, and so a sense that is not tracking the bus shows up as
+    a flat code instead of a plausible-looking wrong number. See vbuscal.py.
+    """
+    from . import vbuscal
+
+    apply = "--apply" in args
+    args = [a for a in args if a != "--apply"]
+    nsamp = 300
+    vref = vbuscal.DEFAULT_VREF
+    spec = None
+    for a in args:
+        if a.startswith("-n"):
+            nsamp = int(a[2:] or 300)
+        elif a.startswith("--samples="):
+            nsamp = int(a.split("=", 1)[1])
+        elif a.startswith("--vref="):
+            vref = float(a.split("=", 1)[1])
+        elif a.startswith("--fit="):
+            spec = a.split("=", 1)[1]
+        elif a.startswith("--fit"):
+            spec = ""       # value follows as the next bare arg
+        elif spec == "":
+            spec = a
+
+    csv_spec = None
+    csv_ratio = 276.92
+    csv_filt_hz = 50.0
+    for a in args:
+        if a.startswith("--cal-csv="):
+            csv_spec = a.split("=", 1)[1]
+        elif a.startswith("--csv-ratio="):
+            csv_ratio = float(a.split("=", 1)[1])
+        elif a.startswith("--csv-filt-hz="):
+            csv_filt_hz = float(a.split("=", 1)[1])
+
+    old_ratio = old_off = None
+    if csv_spec:
+        points = vbuscal.points_from_scope_csv(csv_spec, capture_ratio=csv_ratio, vref=vref,
+                                               filt_hz=csv_filt_hz)
+    elif spec:
+        points = vbuscal.parse_pairs(spec)
+    else:
+        if dbg is None:
+            print("offline mode needs --fit V:code,... or --cal-csv V:file.csv,...")
+            return 2
+        try:
+            old_ratio = float(dbg.read_param("vbus_ratio"))
+            old_off = float(dbg.read_param("vbus_off"))
+        except (KeyError, LinkError):
+            print("note: device has no vbus_ratio/vbus_off params (older firmware)")
+        print(
+            "DC-bus sense calibration.\n"
+            "  Set the supply to a voltage, METER the DC link, then enter the metered\n"
+            "  volts here. Blank line finishes. Use >= 3 points spanning as much range\n"
+            "  as the supply allows — 2 is the minimum and gives no linearity check.\n"
+            f"  Each point averages {nsamp} raw-code reads (~{nsamp * 0.008:.0f} s).\n"
+        )
+        points = []
+        while True:
+            try:
+                line = input(f"metered bus volts for point {len(points) + 1} (blank = done): ").strip()
+            except (EOFError, KeyboardInterrupt):
+                print()
+                break
+            if not line:
+                break
+            try:
+                volts = float(line)
+            except ValueError:
+                print("  not a number")
+                continue
+            pt = vbuscal.sample_raw(
+                dbg, nsamp,
+                progress=lambda i, n: print(f"\r  sampling {i}/{n}", end="", flush=True),
+            )
+            pt.volts = volts
+            print(
+                f"\r  {volts:.3f} V -> code {pt.code:.2f} "
+                f"(sigma {pt.sigma:.2f}, min {pt.code_min:.0f}, max {pt.code_max:.0f}, "
+                f"SE {pt.sigma_mean:.3f})"
+            )
+            points.append(pt)
+
+    if len(points) < 2:
+        print("need at least 2 points — nothing fitted")
+        return 2
+
+    f = vbuscal.fit(points, vref=vref)
+    print()
+    print(vbuscal.report(f, targets=(50.0, 100.0, 400.0), old_ratio=old_ratio, old_off=old_off))
+
+    # Echo the points as a --fit string. A live session is expensive (bus voltages,
+    # a meter, ~10 min) and its points were previously discarded on exit, so
+    # re-fitting a SUBSET -- e.g. excluding low points that sit in the ADC's
+    # nonlinear bottom-of-range -- meant measuring all over again.
+    if not spec and not csv_spec:
+        pairs = ",".join(f"{p.volts:g}:{p.code:.2f}" for p in points)
+        print()
+        print("re-fit a subset without re-measuring (drop points by deleting them):")
+        print(f"  python -m foc_debug vbuscal --fit {pairs}")
+
+    if dbg is not None and not spec and not csv_spec:
+        if not apply:
+            try:
+                apply = input("\napply to the device now? [y/N] ").strip().lower().startswith("y")
+            except (EOFError, KeyboardInterrupt):
+                apply = False
+        if apply:
+            for name, st in vbuscal.apply_fit(dbg, f):
+                print(f"  write {name} -> {_status_str(st)}")
+            print(f"  device vbus now reads {dbg.read_param('vbus'):.2f} V")
+    return 0
+
+
 def _print_ports():
     from serial.tools import list_ports
 
@@ -132,6 +254,9 @@ def run_command(sess: Session, argv: list) -> int:
         return 0
     if cmd in ("quit", "exit", "q"):
         return -1
+    # Offline fit of already-recorded VOLTS:CODE pairs needs no hardware.
+    if cmd in ("vbuscal", "vcal") and any(a.startswith(("--fit", "--cal-csv")) for a in args):
+        return _do_vbuscal(None, args)
 
     # Everything below needs a connection.
     if not sess.connected:
@@ -169,11 +294,18 @@ def run_command(sess: Session, argv: list) -> int:
         elif cmd in ("state", "st"):
             st = dbg.sm_state()
             print(f"state = {dbg.state_name(st)} ({st})")
+        elif cmd in ("vbuscal", "vcal"):
+            return _do_vbuscal(dbg, args)
         else:
             print(f"unknown command: {cmd} (try 'help')")
             return 2
     except NackError as e:
         print(f"NACK: {e}")
+        return 1
+    except RuntimeError as e:
+        # e.g. vbuscal against firmware with no 'vbus_raw' param — the likeliest
+        # first-run failure. Print the guidance, not a traceback.
+        print(f"error: {e}")
         return 1
     except (LinkError, KeyError, ValueError) as e:
         print(f"error: {e}")
@@ -204,6 +336,26 @@ def main(argv: list | None = None) -> int:
     parser.add_argument("-b", "--baud", type=int, default=115200)
     parser.add_argument("-t", "--timeout", type=float, default=1.0)
     parser.add_argument("--csv", default=None, help="for the one-shot 'scope' command")
+    # 'vbuscal' flags. Declared here (rather than swallowed as bare tokens) because
+    # argparse rejects undeclared options ahead of the positional command list.
+    parser.add_argument("--fit", default=None,
+                        help="vbuscal: offline fit of VOLTS:CODE pairs, e.g. 6.1:31,50.2:148")
+    # NOTE: not "--csv" — that is already taken by the one-shot 'scope' command.
+    parser.add_argument("--cal-csv", dest="calcsv", default=None,
+                        help="vbuscal: offline fit of saved 'vbus' scope captures, "
+                             "e.g. 40:vbus_40v.csv,65:vbus_65v.csv")
+    parser.add_argument("--csv-ratio", type=float, default=None,
+                        help="vbuscal: vbus_ratio ACTIVE WHEN the --cal-csv captures were "
+                             "taken (default 276.92) — needed to recover raw codes")
+    parser.add_argument("--csv-filt-hz", type=float, default=None,
+                        help="vbuscal: vbus_filt_hz active at capture (default 50); pass 0 "
+                             "if captured with vbus_filt_en=0 so all samples count")
+    parser.add_argument("--samples", type=int, default=None,
+                        help="vbuscal: raw-code reads averaged per point (default 300)")
+    parser.add_argument("--vref", type=float, default=None,
+                        help="vbuscal: ADC reference volts (default 3.0, must match hw_*.h)")
+    parser.add_argument("--apply", action="store_true",
+                        help="vbuscal: write the fitted calibration without prompting")
     parser.add_argument("--list-ports", action="store_true", help="list serial ports and exit")
     parser.add_argument("-v", "--verbose", action="store_true", help="verbose console logging (DEBUG)")
     parser.add_argument("command", nargs="*", help="omit for GUI; 'repl' for text mode")
@@ -237,7 +389,27 @@ def main(argv: list | None = None) -> int:
         repl(sess)
         return 0
 
-    # One-shot: auto-connect then run the single command.
+    # 'vbuscal': fold the declared flags back into the token form run_command (and
+    # the REPL) understands. '--fit' is pure math, so it needs no port.
+    if cmd0 in ("vbuscal", "vcal"):
+        toks = [cmd0]
+        if ns.fit:
+            toks.append(f"--fit={ns.fit}")
+        if ns.calcsv:
+            toks.append(f"--cal-csv={ns.calcsv}")
+        if ns.csv_ratio:
+            toks.append(f"--csv-ratio={ns.csv_ratio}")
+        if ns.csv_filt_hz is not None:
+            toks.append(f"--csv-filt-hz={ns.csv_filt_hz}")
+        if ns.samples:
+            toks.append(f"--samples={ns.samples}")
+        if ns.vref:
+            toks.append(f"--vref={ns.vref}")
+        if ns.apply:
+            toks.append("--apply")
+        if ns.fit or ns.calcsv:
+            return 0 if run_command(sess, toks) in (0, -1) else 1
+        ns.command = toks
     try:
         sess.connect(ns.port)
     except LinkError as e:

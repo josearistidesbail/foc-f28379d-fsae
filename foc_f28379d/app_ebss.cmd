@@ -48,4 +48,36 @@ SECTIONS
     .text:param_find  : > FLASHA   PAGE = 0, ALIGN(8)
     .text:param_read  : > FLASHA   PAGE = 0, ALIGN(8)
     .text:param_write : > FLASHA   PAGE = 0, ALIGN(8)
+
+    /* Production branch ("production settings" + "open-loop bypass for testing")
+     * grew .text until it filled FLASHB to 100% (unused 0x0), so .cinit (0x3a)
+     * had nowhere to land (#10099). FLASHA still had ~0x1bb6 free, so relocate
+     * the largest one-time *startup* functions there. None run in the 10 kHz
+     * current loop -- EPWM_init/PinMux_init/Device_enableAllPeripherals run once
+     * in Board_init/Device_init, inverter_init runs once at bring-up -- so flash
+     * wait-state is irrelevant and none are .TI.ramfunc (no placement clash).
+     * Frees ~0x4d0 from FLASHB for lasting headroom as production code grows. */
+    .text:EPWM_init                   : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:PinMux_init                 : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:Device_enableAllPeripherals : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:inverter_init               : > FLASHA   PAGE = 0, ALIGN(8)
+
+    /* The one-shot datalog trigger + ISR step injector (bench PI step response)
+     * refilled FLASHB again (#10099: .cinit 0x4c, FLASHB 0x0b free). Same remedy,
+     * same reasoning: these are all one-time peripheral/driver init called from
+     * Board_init()/main() before the 10 kHz ISR is enabled, so flash wait-state
+     * cannot matter and none are .TI.ramfunc candidates. */
+    .text:GPIO_init                   : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:myADCC_init                 : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:sensor_init                 : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:UART_DEBUG_init             : > FLASHA   PAGE = 0, ALIGN(8)
+
+    /* The current-sense channel->phase map + ALIGN phase-ID auto-detect grew
+     * adc_iface/foc_pipeline/debug_params past FLASHB again (#10099: .cinit
+     * 0x4e). Relocate the phase-ID solver -- it runs ONCE per align (from ISR
+     * context, like align_step which already lives in FLASHA) -- plus another
+     * one-time SysConfig init function. Same non-hot / non-ramfunc reasoning. */
+    .text:adc_isense_phase_id_commit  : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:myADCA_init                 : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:myADCB_init                 : > FLASHA   PAGE = 0, ALIGN(8)
 }

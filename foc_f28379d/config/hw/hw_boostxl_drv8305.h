@@ -44,6 +44,22 @@
 #define ADC_BASE_VBUS           ADCA_BASE
 #define ADC_CH_VBUS             ADC_CH_ADCIN3
 
+// ---- ADC result register + SOC index per signal (must match SysConfig) -
+// adc_iface.c reads these (result-base, SOC) pairs; isr.c + adc_calibrate_offsets
+// use the EOC interrupt below. They mirror the SysConfig SOC allocation 1:1:
+//   ADCC SOC0=Iu, ADCB SOC1=Iv, ADCA SOC2=Iw, ADCA SOC3=Vbus, INT1 on ADCA SOC3.
+#define ADC_RESULT_BASE_IU      ADCCRESULT_BASE
+#define ADC_SOC_IU              0U
+#define ADC_RESULT_BASE_IV      ADCBRESULT_BASE
+#define ADC_SOC_IV              1U
+#define ADC_RESULT_BASE_IW      ADCARESULT_BASE
+#define ADC_SOC_IW              2U
+#define ADC_RESULT_BASE_VBUS    ADCARESULT_BASE
+#define ADC_SOC_VBUS            3U
+// EOC interrupt that fires the 10 kHz ISR (last SOC of the busiest ADC, = ADCA).
+#define ADC_ISR_INT_BASE        ADCA_BASE
+#define ADC_ISR_INT_NUMBER      ADC_INT_NUMBER1
+
 // ---- ISENSE scaling -----------------------------------------------------
 // DRV8305 has programmable SOx gain. Default after init = 10 V/V.
 // Shunt = 7 mOhm. ADC ref = 3.0 V, 12-bit -> 4096 codes.

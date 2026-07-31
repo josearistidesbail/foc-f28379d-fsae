@@ -53,8 +53,127 @@
 #define SPEED_LOOP_DECIM        10                 // 1 kHz outer loop
 #define SPEED_LOOP_TS           (FOC_ISR_TS * (float)SPEED_LOOP_DECIM)
 
+//----- DC-bus voltage low-pass (variant-agnostic) ------------------------
+// First-order IIR on the measured bus, applied in adc_read_vbus() every ISR so
+// the UV/OV trips, the PI voltage clamp and the scope all consume a de-noised
+// value (the raw bus is spike-noisy on a high-Z sensor divider, nuisance-
+// tripping the instantaneous UV compare). alpha = clamp(2*pi*fc*Ts, 0..1); the
+// approx is exact enough well below fs/10 (=1 kHz here). Live-tunable via the
+// vbus_filt_en / vbus_filt_hz params; a hw header may override the defaults.
+#define VBUS_FILT_ALPHA(hz)     (2.0f * 3.14159265f * (hz) * FOC_ISR_TS)
+#ifndef VBUS_FILT_DEFAULT_EN
+#define VBUS_FILT_DEFAULT_EN    1U
+#endif
+#ifndef VBUS_FILT_DEFAULT_HZ
+#define VBUS_FILT_DEFAULT_HZ    50.0f
+#endif
+
+//----- DC-bus sense affine calibration -----------------------------------
+// adc_read_vbus() maps the ADC code to volts as an AFFINE function, not a pure
+// gain: vbus = (code - VBUS_OFFSET_CODE) * volts_per_code. The offset lives in
+// CODE space because that is where the analog chain's zero error physically is
+// (sensor zero output, divider bias, ADC input leakage / residual charge share)
+// -- so it stays valid when the gain is re-trimmed.
+//   Both terms are live-tunable (vbus_ratio / vbus_off params) so a bench
+// calibration can be fitted and applied without a rebuild; bake the result back
+// into the hw_*.h VBUS_DIVIDER_RATIO / VBUS_OFFSET_CODE once it is stable.
+//   A single-point "trim the ratio" calibration CANNOT separate gain from
+// offset: it forces the fit through the origin, so any real offset reappears as
+// a gain error that grows with distance from the calibration point. Always fit
+// >= 2 (preferably >= 3) points -- see host `python -m foc_debug vbuscal`.
+#ifndef VBUS_OFFSET_CODE
+#define VBUS_OFFSET_CODE        0.0f    // ADC code at 0 V bus (fit on the bench)
+#endif
+// Consecutive ISR ticks the bus must stay below the UV threshold before the trip
+// latches. The compare used to be instantaneous, which nuisance-tripped on the
+// high-Z sensor divider's spike noise. 20 ticks = 2 ms at 10 kHz -- far faster
+// than any real bus collapse the SW trip is meant to catch, and the HW trip-zone
+// still handles genuinely fast events.
+#ifndef UV_TRIP_DEBOUNCE_TICKS
+#define UV_TRIP_DEBOUNCE_TICKS  20U
+#endif
+
+//----- Phase-current sense: channel count / mapping / phase-ID -------------
+// The current-sense ADC inputs are FIXED per board; which motor phase each one
+// measures can change (movable LEM clamps on Control_V2). adc_iface.c scatters
+// the channels onto phases through the runtime g_isense_map ("isense_map"
+// param) with per-channel polarity g_isense_inv ("isense_inv"). Both are
+// auto-detected by the ALIGN phase-ID stage when PHASE_ID enabled: the field is
+// parked open-loop at 0/120/240 deg electrical and each channel's dwell
+// averages identify its phase (peak dwell) and clamp direction (peak sign).
+#ifndef ISENSE_NUM_CHANNELS
+#define ISENSE_NUM_CHANNELS     3    // physical sense channels (2 on Control_V2)
+#endif
+#ifndef ISENSE_MAP_DEFAULT
+#define ISENSE_MAP_DEFAULT      0U   // boot map: 0 = identity (A=U, B=V, C=W)
+#endif
+#ifndef PHASE_ID_DEFAULT_EN
+#define PHASE_ID_DEFAULT_EN     0U   // boot default for "phase_id_en"
+#endif
+#ifndef PHASE_ID_DWELL_S
+#define PHASE_ID_DWELL_S        1.2f // per test angle (settle, then average)
+                                     // [2026-07-28] 0.6->1.2: bench asked for a
+                                     // longer detection -- more governor settle
+                                     // (0.6 s) + 3x the averaging window
+#endif
+#ifndef PHASE_ID_AVG_S
+#define PHASE_ID_AVG_S          0.6f // averaged tail of each dwell (was 0.2)
+#endif
+#ifndef PHASE_ID_MIN_A
+#define PHASE_ID_MIN_A          0.3f // peak dwell average below this = no signal
+#endif
+#ifndef PHASE_ID_DOMINANCE
+#define PHASE_ID_DOMINANCE      1.3f // peak must exceed runner-up by this ratio
+                                     // (ideal is 2.0; ~1 = ambiguous wiring)
+#endif
+// Dwell-current governor: the dwells do NOT use the fixed ol_mod drag drive
+// (sized to move the rotor -- far more current than a measurement needs, and
+// enough to current-limit a bench supply). Instead the duty is slewed up until
+// the largest |channel current| reaches PHASE_ID_TARGET_A, then FROZEN for all
+// three dwells (see foc_pipeline.c for why freezing matters). Duty capped at
+// g_ol_mod, so worst case equals the old fixed drive.
+#ifndef PHASE_ID_TARGET_A
+#define PHASE_ID_TARGET_A       ALIGN_ID_INJECT_A  // governed dwell current [A]
+#endif
+#ifndef PHASE_ID_MOD_SLEW_PER_S
+#define PHASE_ID_MOD_SLEW_PER_S 0.4f // governor duty slew rate [duty/s]
+#endif
+
 //----- Control mode (outer-loop source of iq_ref) -------------------------
 #define FOC_MODE_TORQUE         0U   // iq_ref commanded directly (bring-up)
 #define FOC_MODE_SPEED          1U   // iq_ref from the speed PI (omega_ref)
+
+//----- Bench bypass default ----------------------------------------------
+// Only the Control_V2 header defines this (set to 1 during power-stage-less
+// bring-up). Everything else defaults to 0 = module-fault protection ACTIVE.
+#ifndef BENCH_NO_POWER_STAGE
+#define BENCH_NO_POWER_STAGE    0U
+#endif
+
+// Bench DC-bus override + UV-bypass defaults. Only the Control_V2 header sets the
+// bench values; everything else defaults to "off" (control uses the measured bus,
+// UV trip armed).
+#ifndef VBUS_OVERRIDE_DEFAULT_V
+#define VBUS_OVERRIDE_DEFAULT_V 0.0f
+#endif
+#ifndef UV_FAULT_EN_DEFAULT
+#define UV_FAULT_EN_DEFAULT     1U
+#endif
+
+// Boot value of the runtime COMMAND-current clamp ("iq_max" param). Applied in
+// the current-loop ISR at the single point every q-axis command funnels through
+// (torque cmd, speed-PI output, step injector; in open-loop resistive mode it
+// caps id_ref/iq_ref and hence the applied Rs*i volts), so no command source
+// can demand more current than the bench supply survives. Note phase amps are
+// cheap on the DC side at low speed (supply draw ~= duty * phase current), so
+// 10 A of phase current costs well under 1 A of supply -- the bench default is
+// protective without being useless. Production default = the full machine limit.
+#ifndef IQ_CMD_MAX_DEFAULT_A
+#if BENCH_NO_POWER_STAGE
+#define IQ_CMD_MAX_DEFAULT_A    10.0f
+#else
+#define IQ_CMD_MAX_DEFAULT_A    IQ_REF_MAX_A
+#endif
+#endif
 
 #endif // BUILD_CONFIG_H

@@ -51,6 +51,17 @@
 #define ALIGN_RAMP_MECH_REVS        2.0f    // integer revs -> cancels cogging
 #define ALIGN_RAMP_MECH_SPEED_RPS   1.0f    // carrier speed [mech rev/s]
 
+// Boot default for g_ol_mod ("ol_mod" param): open-loop drive in the DUTY domain
+// (~peak duty deviation). Unchanged from the historical shared default; not
+// bench-characterized on this motor the way the EMRAX value is.
+#define OL_MOD_DEFAULT              0.20f
+
+// Compile-time default for g_align_offset_en ("align_off_en" param). 1 = run the
+// offset-capture sweep above. The QEP is incremental, so its zero is meaningless
+// until the sweep establishes it -- unlike the absolute resolver, this backend
+// cannot run without it. Keep on.
+#define ALIGN_OFFSET_CAPTURE_DEFAULT 1U
+
 // ---- Cross-coupling / back-EMF feedforward ------------------------------
 // Compile-time default for g_dbg_decouple_en. Decoupling adds
 //   ff_d = -we*Lq*iq_ref,  ff_q = we*(Ld*id_ref + lambda_pm)
@@ -58,6 +69,14 @@
 // the no-feedforward path; flip live via CCS Expressions or the "decouple_en"
 // serial param to A/B it.
 #define FOC_DECOUPLE_DEFAULT        0
+
+// ---- Inner current-loop enable ------------------------------------------
+// Compile-time default for g_dbg_iloop_en (also the "iloop_en" serial param).
+// 1 = the d/q current PIs are enforced (normal closed-loop FOC). 0 = open-loop
+// resistive voltage mode (RUN only): PIs bypassed, id_ref/iq_ref (Amps) applied
+// directly as Vd=Rs*id_ref / Vq=Rs*iq_ref using the sensor angle. Keep 1 for
+// normal operation; flip live for bring-up.
+#define FOC_ILOOP_DEFAULT           1
 
 // ---- Field weakening (Step 11) ------------------------------------------
 // Voltage-feedback FW regulator (foc_pipeline.c, RUN only, gated by g_dbg_fw_en):
