@@ -142,6 +142,32 @@ volatile float32_t g_dbg_iq_lim;
 // Added to ID_REF_NOMINAL_A to form id_ref each RUN tick. Reset on RUN entry.
 static float32_t   s_fw_id;
 
+// Runtime command-current clamp [A] ("iq_max" param, LIVE so it can be tightened
+// mid-run). Applied in the ISR at the single choke point every q-axis command
+// flows through -- torque command, speed-PI output, step injector -- and, in
+// open-loop resistive mode, to both id_ref and iq_ref (capping the applied
+// Rs*i volts). Exists because on a current-limited bench supply a large
+// commanded current must never be *attempted*, whatever the source; production
+// boots at the machine limit (IQ_CMD_MAX_DEFAULT_A = IQ_REF_MAX_A) so the
+// clamp is transparent there. NOTE: the speed PI's own output limits stay at
+// +/-IQ_REF_MAX_A, so in SPEED mode it can wind up against this clamp --
+// acceptable for a bench guard, revisit if speed mode is used with a low clamp.
+volatile float32_t g_iq_cmd_max = IQ_CMD_MAX_DEFAULT_A;
+
+// Runtime scale on the per-axis PI voltage clamp ("vmax_frac" param, LIVE):
+// vmax_dyn = g_vdq_max_frac * vbus * 0.5. Boots at the compile-time
+// VDQ_MAX_FRACTION (= transparent); the setter clamps to [0, VDQ_MAX_FRACTION].
+// This bounds what the loop can APPLY, which iq_max cannot: iq_max caps the
+// REFERENCE, but a sign-flipped or oscillating current PI rails its OUTPUT to
+// the voltage clamp regardless of the reference -- on a milliohm machine that
+// is hundreds of amps and folds a bench supply before anything is observable.
+// Closed-loop bring-up recipe: vmax_frac=0.05 (0.6 V at 24 V -> worst-case
+// rail current ~30 A phase, ~1 A DC-side), engage RUN, watch id/iq/vd/vq on
+// the scope, then walk it back up once the loop is proven. NOTE: the FW
+// regulator's vmax_fw target intentionally stays on FW_VMAX_FRACTION (FW is a
+// high-speed feature; do not exercise it with vmax_frac lowered).
+volatile float32_t g_vdq_max_frac = VDQ_MAX_FRACTION;
+
 // ---- Step injector (current-loop step response) --------------------------
 // Applies a reference step and fires the datalog one-shot trigger in the SAME
 // ISR tick, so the captured window's trig_idx IS the first sample carrying the
@@ -734,7 +760,7 @@ void foc_current_loop_isr(void)
     // align_step() (step 1, this same tick), so this latch is coherent with
     // the SVGEN normalization below.
     bool ol_align = (st == FOC_ALIGN_ROTOR) && (!iloop || s_phaseid_active);
-    float vmax_dyn = VDQ_MAX_FRACTION * s_refs.vbus * 0.5f;
+    float vmax_dyn = g_vdq_max_frac * s_refs.vbus * 0.5f;
     float ff_d = 0.0f, ff_q = 0.0f;
     if(st == FOC_RUN && g_dbg_decouple_en && iloop)
     {
@@ -779,8 +805,14 @@ void foc_current_loop_isr(void)
         // Clamp to the inverter budget and hold the integrators at 0 so a switch
         // back to closed loop re-engages cleanly. id_ref is NOT overwritten by the
         // FW/id-ownership block (step 3b) while open-loop, so the operator owns it.
-        float vd = MOTOR_RS_OHM * s_refs.id_ref;
-        float vq = MOTOR_RS_OHM * s_refs.iq_ref;
+        // Commands first pass the bench current clamp: in this mode the real
+        // current genuinely approaches the commanded amps (I ~= V/R), so the
+        // clamp directly bounds what the supply is asked for.
+        float iq_max = g_iq_cmd_max;
+        float id_c = MATH_max(-iq_max, MATH_min(iq_max, s_refs.id_ref));
+        float iq_c = MATH_max(-iq_max, MATH_min(iq_max, s_refs.iq_ref));
+        float vd = MOTOR_RS_OHM * id_c;
+        float vq = MOTOR_RS_OHM * iq_c;
         s_sig.Vdq.value[0] = MATH_max(-vmax_dyn, MATH_min(vmax_dyn, vd));
         s_sig.Vdq.value[1] = MATH_max(-vmax_dyn, MATH_min(vmax_dyn, vq));
         PI_setUi(s_pi_id, 0.0f);
@@ -794,7 +826,14 @@ void foc_current_loop_isr(void)
         // regulator) gets the current budget first; clamp the q reference to
         // iq_lim = sqrt(I_peak^2 - id^2) so id^2 + iq^2 <= I_peak^2 and the
         // magnitude stays under MOTOR_OC_TRIP_A. RUN bit-identical when FW off.
+        // The bench command clamp comes first: THIS is the choke point every
+        // q-axis command source funnels through (torque cmd via the 1 kHz tick,
+        // speed-PI output, step injector), so clamping here covers them all.
         float iq_cmd = s_refs.iq_ref;
+        {
+            float iq_max = g_iq_cmd_max;
+            iq_cmd = MATH_max(-iq_max, MATH_min(iq_max, iq_cmd));
+        }
         if(st == FOC_RUN && g_dbg_fw_en)
         {
             float id_now    = s_refs.id_ref;

@@ -650,8 +650,9 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
             # Tab definitions: (label, name_filter_set or None=all)
             _TAB_DEFS = [
-                ("References", {"id_ref", "iq_ref", "omega_ref"}),
-                ("Gains",      {"kp_d", "ki_d", "kp_q", "ki_q", "kp_w", "ki_w"}),
+                ("References", {"id_ref", "iq_ref", "omega_ref", "iq_max"}),
+                ("Gains",      {"kp_d", "ki_d", "kp_q", "ki_q", "kp_w", "ki_w",
+                                "vmax_frac"}),
                 ("Config",     {"isense_recon", "isense_map", "isense_inv",
                                 "phase_id_en", "phase_id_a", "phase_id_mod",
                                 "phase_id_status"}),

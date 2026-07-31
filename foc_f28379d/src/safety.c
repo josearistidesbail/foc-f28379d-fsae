@@ -26,6 +26,22 @@ volatile uint16_t g_module_faults_en = (BENCH_NO_POWER_STAGE ? 0U : 1U);
 // toggled via the "uv_en" serial param. OVERVOLTAGE stays always-armed.
 volatile uint16_t g_uv_fault_en = UV_FAULT_EN_DEFAULT;
 
+// Undervoltage threshold [V], live via the "uv_trip_v" param (seeded from
+// MOTOR_UV_TRIP_V in safety_init()). Live because the useful UV threshold is a
+// fraction of whatever bus you are actually running -- a compile-time 18 V is
+// safe but inert at a 50 V bench and useless at 400 V, so re-flashing per bench
+// voltage was the only way to arm a meaningful trip. OVERVOLTAGE deliberately
+// stays compile-time: lowering a UV trip is conservative, but raising an OV trip
+// from the host would let an operator disarm the dangerous direction.
+volatile float g_uv_trip_v;
+
+// Consecutive sub-threshold ISR ticks (UV_TRIP_DEBOUNCE_TICKS to latch). The
+// compare is on the IIR-filtered bus already, but on the high-Z PrimeSTACK sensor
+// divider single-sample spikes still punch through; an instantaneous compare
+// turned those into nuisance UNDERVOLTAGE faults. Any tick at or above the
+// threshold resets the count, so only a sustained sag trips.
+static uint16_t s_uv_ticks;
+
 // TODO: Debugging Step 6, remove after. Mirrors the latched fault mask so the
 // reason for a FOC_FAULT is visible in the CCS Expressions view without having
 // to inspect the file-static s_latched. Bits are Fault_Bits_t from safety.h:
@@ -43,7 +59,8 @@ volatile float    g_dbg_trip_iv;
 volatile float    g_dbg_trip_iw;
 volatile uint16_t g_dbg_trip_phase;
 
-void safety_init(void)        { s_latched = 0; }
+void safety_init(void)        { s_latched = 0; s_uv_ticks = 0U;
+                                g_uv_trip_v = MOTOR_UV_TRIP_V; }
 void safety_latch(uint16_t b) { s_latched |= b; }
 bool safety_is_clear(void)    { return s_latched == 0; }
 uint16_t safety_get_latched(void) { return s_latched; }
@@ -85,7 +102,18 @@ void safety_check_isr(void)
     // (bench), else the measured bus. OV always armed; UV gated by g_uv_fault_en.
     float vbus = foc_get_refs()->vbus;
     if(vbus > MOTOR_OV_TRIP_V) safety_latch(FAULT_OVERVOLTAGE);
-    if(g_uv_fault_en && vbus < MOTOR_UV_TRIP_V && st == FOC_RUN) safety_latch(FAULT_UNDERVOLTAGE);
+
+    // UV is debounced (see s_uv_ticks) and armed only in RUN; the counter is held
+    // at 0 outside RUN / when disarmed so re-entering RUN always starts fresh.
+    if(g_uv_fault_en && st == FOC_RUN && vbus < g_uv_trip_v)
+    {
+        if(s_uv_ticks < UV_TRIP_DEBOUNCE_TICKS) s_uv_ticks++;
+        if(s_uv_ticks >= UV_TRIP_DEBOUNCE_TICKS) safety_latch(FAULT_UNDERVOLTAGE);
+    }
+    else
+    {
+        s_uv_ticks = 0U;
+    }
 
     if(inverter_is_faulted()) safety_latch(FAULT_GATE_DRIVER);
 

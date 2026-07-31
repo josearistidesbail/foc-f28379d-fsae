@@ -71,6 +71,18 @@ volatile float    g_vbus_filt_alpha = 0.0f;   // set in adc_init() from the cuto
 volatile float    g_vbus_filt       = 0.0f;   // IIR state [V], seeded on 1st read
 static   uint16_t s_vbus_filt_primed = 0U;
 
+// DC-bus sense affine calibration (live-tunable, see build_config.h).
+//   vbus[V] = (code - g_vbus_off_code) * g_vbus_vpc
+// g_vbus_ratio is the bus->pin divider ratio in the same units as the header's
+// VBUS_DIVIDER_RATIO (that is what you bake back in); g_vbus_vpc is the derived
+// volts-per-code the ISR actually multiplies by, recomputed by adc_init() and by
+// the "vbus_ratio" setter -- exactly the vbus_filt_hz -> alpha pattern.
+// Seeded in adc_init() rather than statically initialized: zero-init globals land
+// in .ebss and cost no .cinit (FLASHB is essentially full -- see the #10099 note).
+volatile float    g_vbus_ratio;      // = VBUS_DIVIDER_RATIO
+volatile float    g_vbus_vpc;        // = VBUS_VOLTS_PER_CODE (derived from ratio)
+volatile float    g_vbus_off_code;   // = VBUS_OFFSET_CODE [ADC codes at 0 V]
+
 // Raw resolver SIN/COS ADC codes from the last adc_read_sin_cos(), exposed to
 // the host (scope channels res_sin/res_cos + sin_raw/cos_raw params) to diagnose
 // angle noise: DC level = bias (~RES_SINCOS_BIAS_CODE), swing = amplitude, and
@@ -119,6 +131,11 @@ void adc_init(void)
     if(g_vbus_filt_alpha > 1.0f) g_vbus_filt_alpha = 1.0f;
     if(g_vbus_filt_alpha < 0.0f) g_vbus_filt_alpha = 0.0f;
     s_vbus_filt_primed = 0U;
+
+    // Seed the DC-bus affine calibration from the active hw_*.h.
+    g_vbus_ratio    = VBUS_DIVIDER_RATIO;
+    g_vbus_vpc      = VBUS_VOLTS_PER_CODE;
+    g_vbus_off_code = VBUS_OFFSET_CODE;
 #if SENSOR_BACKEND_RM44AC
     g_res_sin_bias     = RES_SINCOS_BIAS_CODE;
     g_res_sin_ampl_inv = 1.0f / RES_SINCOS_AMPL_CODE;
@@ -268,7 +285,13 @@ float adc_read_vbus(void)
 {
     uint16_t c = ADC_readResult(ADC_RESULT_BASE_VBUS, ADC_SOC_VBUS);
     g_dbg_vbus_raw = c;
-    float v = (float)c * VBUS_VOLTS_PER_CODE;   // raw scaled bus volts
+    // Affine map with the LIVE calibration (g_vbus_off_code / g_vbus_vpc, seeded
+    // from the header and re-fittable on the bench). Clamped at 0: a negative bus
+    // is physically meaningless and would invert vmax_dyn and blow up the 1/vbus
+    // SVGEN normalization. A reading pinned at exactly 0.0 V is the tell that the
+    // offset is set above the actual code -- it is not silently absorbed.
+    float v = ((float)c - g_vbus_off_code) * g_vbus_vpc;
+    if(v < 0.0f) v = 0.0f;
 
     // First-order IIR, run every ISR so the state stays primed (bumpless en
     // toggle). Seed to the first reading so consumers of vbus never see a 0 V

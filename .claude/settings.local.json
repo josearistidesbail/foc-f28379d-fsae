@@ -45,6 +45,7 @@
       "Bash(python -m py_compile foc_debug/proto.py foc_debug/gui.py foc_debug/api.py foc_debug/viewer.py)",
       "Bash(python -c *)",
       "Bash(./.venv/bin/python -c ' *)",
+      "Bash(python -m foc_debug --help)",
       "mcp__ccs-debug",
       "mcp__ccs-project",
       "mcp__ccs-sysconfig",

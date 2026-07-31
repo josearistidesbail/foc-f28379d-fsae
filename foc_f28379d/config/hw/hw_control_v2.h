@@ -138,8 +138,53 @@
 // low-res) -- calibrate nearer the real bus if you can. The old 74.18 was
 // calibrated against a settling-corrupted reading and is invalid; 138.46 (the
 // prior value) was the sensor factor alone and omitted the /2 divider.
-#define VBUS_DIVIDER_RATIO      276.92f
+//   !! [2026-07-29] BENCH-FITTED (8-point live vbuscal, 20-150 V), replacing the
+//      276.92 model above. The old (ratio 276.92, offset 0) read 21.0 / 44.8 /
+//      66.2 V at a metered 40 / 65 / 90 -- **~-19 to -24 V of error, nearly
+//      CONSTANT IN VOLTS, i.e. an OFFSET signature, not a gain error** (the sense
+//      sits ~94-117 codes below the proportional model). A gain-only retrim
+//      anchored at 65 V (ratio 401.4) would have left -9.6 V at 40 V and +6.0 V at
+//      90 V; the affine fit lands inside +/-1.1 V. That is the argument for the
+//      affine form, measured -- and why the earlier single-point "verified at 30 V"
+//      cross-check could not have caught it.
+//      Measured codes (interleaved order, meter-verified):
+//        20 V -> 27.41   30 V -> 64.50    40 V -> 103.66   65 V -> 221.48
+//        90 V -> 327.36  115 V -> 444.13  150 V -> 610.28  40 V -> 104.67 (repeat)
+//   !! FITTED OVER 40-150 V ONLY, DELIBERATELY EXCLUDING 20/30 V. Local segment
+//      gain [codes/V] is flat above 40 V and COMPRESSED below it:
+//        20->30: 3.709   30->40: 3.916 | 40->65: 4.672  65->90: 4.235
+//                                        90->115: 4.671 115->150: 4.747
+//      Codes 27 and 64 are 0.7% and 1.6% of ADC full scale -- deep in the region
+//      where the SAR's own INL/offset dominate. Including them biased the slope 1%
+//      and doubled the residual RMS (0.67 -> 1.12 V), so they are kept as EVIDENCE
+//      that the sense is unusable below ~40 V, not as fit inputs.
+//      **The negative offset is what drags the bench range into the ADC's worst
+//      decade** (150 V is only code 610 = 15% of scale). At the real 400 V bus the
+//      code is ~1750 = 43% of scale, where the ADC is well behaved -- so most of
+//      this nonlinearity is a BENCH artifact and should shrink as the bus rises.
+//   !! RESOLVED / OPEN:
+//      * DRIFT IS NOT THE PROBLEM. The 40 V repeat moved only +1.01 codes
+//        (+0.22 V) across the whole session, inside 3 sigma; and 40/65/90 V
+//        reproduced the PREVIOUS session within ~1 code. The sense is stable.
+//      * The 65->90 V gain dip (4.235 vs ~4.7 either side) REPRODUCED exactly
+//        across both sessions (4.220 then 4.235) -- a real, localized feature, not
+//        noise and not smooth curvature. 90 V is the largest residual (+1.11 V).
+//        Codes 221->327 cross the 256 major-carry boundary, where SAR INL is
+//        typically worst; suspect ADC INL rather than the analog front end.
+//      * offset -79.4 codes puts the reading at +17.4 V when the ADC reads code 0,
+//        so below ~40 V it OVER-reads and the bench idle bus (~6 V of gate-drive
+//        back-feed) shows ~17-20 V. Fine for a UV threshold near the operating bus;
+//        **never use this fit to judge bus-discharged / safe-to-touch.**
+//      * Extrapolation to 400 V: +/-3.4 V statistical (0.84% slope), but which
+//        subset you fit moves it 395-400 V. RE-RUN vbuscal near the real bus before
+//        relying on the 460 V OV trip.
+#define VBUS_DIVIDER_RATIO      298.35f
 #define VBUS_VOLTS_PER_CODE     (ADC_VREF_V * VBUS_DIVIDER_RATIO / ADC_FULL_SCALE_CODE)
+// ADC code at 0 V bus, from the affine fit above (NOT a guess -- an invented offset
+// is indistinguishable from a gain error at a single operating point). Negative is
+// legitimate: it means the line crosses 0 V at a code the unipolar ADC cannot
+// reach, i.e. the chain has a real negative zero error (~-52 mV at the pin).
+#define VBUS_OFFSET_CODE        -79.4f
 
 // ---- RM44AC notes -------------------------------------------------------
 // The RM44AC is a magnetic sin/cos angle sensor (already-demodulated Va/Vb
@@ -227,11 +272,14 @@
 #define VBUS_OVERRIDE_DEFAULT_V (BENCH_NO_POWER_STAGE ? 24.0f : 0.0f)
 #define UV_FAULT_EN_DEFAULT     (BENCH_NO_POWER_STAGE ? 0U : 1U)
 
-// NOTE: the VBUS sense line is now physically connected and read live via
-// adc_read_vbus() (VBUS_DIVIDER_RATIO above), so the old bench VBUS override
-// (g_vbus_override_v / "vbus_ovr") and the SW undervoltage-trip bypass
-// ("uv_en") have been removed -- the measured bus feeds refs.vbus directly and
-// the OV/UV trips run against it. Re-verify VBUS_DIVIDER_RATIO on the bench
-// (compare the host "Vbus" readout to a meter) before trusting the trips.
+// Handing control back to the measured bus, once vbuscal agrees with a meter:
+//   vbus_ovr = 0    -> control loop + OV/UV trips run on the measured bus
+//   uv_trip_v = <V> -> set the UV threshold for the bus you are actually running
+//                      (live param; ~70-80% of nominal is a reasonable start).
+//                      It is debounced UV_TRIP_DEBOUNCE_TICKS and armed only in RUN.
+//   uv_en = 1       -> arm the UV trip
+// Do that in this order and verify on the "vbus" scope channel first: the UV
+// compare is against the FILTERED bus, so size the threshold below the observed
+// noisy MINIMUM under load, not the mean.
 
 #endif // HW_CONTROL_V2_H

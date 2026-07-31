@@ -29,6 +29,10 @@ extern volatile uint16_t  g_phase_id_en;                // src/foc_pipeline.c
 extern volatile float32_t g_phase_id_a;                 // src/foc_pipeline.c
 extern volatile float32_t g_dbg_phaseid_mod;            // src/foc_pipeline.c
 
+// Runtime command-current clamp [A] (bench supply guard; see foc_pipeline.c).
+extern volatile float32_t g_iq_cmd_max;                 // src/foc_pipeline.c
+extern volatile float32_t g_vdq_max_frac;               // src/foc_pipeline.c
+
 // Cross-coupling/back-EMF feedforward toggle + captured alignment offset [deg].
 extern volatile uint16_t  g_dbg_decouple_en;            // src/foc_pipeline.c
 extern volatile float32_t g_dbg_align_offset_elec;      // src/foc_pipeline.c
@@ -74,6 +78,14 @@ extern volatile float32_t g_ol_mod;                     // src/foc_pipeline.c
 extern volatile uint16_t  g_vbus_filt_en;               // src/adc_iface.c
 extern volatile float32_t g_vbus_filt_hz;               // src/adc_iface.c
 extern volatile float32_t g_vbus_filt_alpha;            // src/adc_iface.c
+
+// DC-bus sense affine calibration: divider ratio + zero-offset in ADC CODES, plus
+// the raw code itself for the host-side fit. The ratio setter re-derives the
+// volts-per-code the ISR uses (same pattern as vbus_filt_hz -> alpha).
+extern volatile float32_t g_vbus_ratio;                 // src/adc_iface.c
+extern volatile float32_t g_vbus_vpc;                   // src/adc_iface.c (derived)
+extern volatile float32_t g_vbus_off_code;              // src/adc_iface.c
+extern volatile uint16_t  g_dbg_vbus_raw;               // src/adc_iface.c
 
 #if SENSOR_BACKEND_RM44AC
 // RM44AC SIN/COS input low-pass: runtime enable + cutoff [Hz]. The hz setter
@@ -193,6 +205,25 @@ static void set_phase_id_a(uint32_t  r){ float32_t a = raw_to_f32(r);
                                          if(a < 0.0f) a = 0.0f;
                                          g_phase_id_a = a; }
 
+// Command-current clamp [A]. LIVE (no NEEDS_IDLE) so it can be tightened while
+// running; floored at 0, capped at the machine limit so a host typo cannot
+// raise it past what production would allow anyway.
+static void get_iq_max(uint32_t *r){ *r = f32_to_raw(g_iq_cmd_max); }
+static void set_iq_max(uint32_t  r){ float32_t a = raw_to_f32(r);
+                                     if(a < 0.0f) a = 0.0f;
+                                     if(a > IQ_REF_MAX_A) a = IQ_REF_MAX_A;
+                                     g_iq_cmd_max = a; }
+
+// PI voltage-clamp scale (vmax_dyn = vmax_frac * vbus * 0.5). LIVE so it can be
+// walked up mid-run during closed-loop bring-up; floored at 0, capped at the
+// compile-time VDQ_MAX_FRACTION (its boot value). Unlike iq_max this bounds
+// what an unstable/sign-flipped PI can APPLY, not just what is asked for.
+static void get_vmax_frac(uint32_t *r){ *r = f32_to_raw(g_vdq_max_frac); }
+static void set_vmax_frac(uint32_t  r){ float32_t a = raw_to_f32(r);
+                                        if(a < 0.0f) a = 0.0f;
+                                        if(a > VDQ_MAX_FRACTION) a = VDQ_MAX_FRACTION;
+                                        g_vdq_max_frac = a; }
+
 // Decoupling feedforward toggle. Live (no NEEDS_IDLE) so it can be A/B'd in RUN.
 static void get_decouple(uint32_t *r){ *r = (uint32_t)g_dbg_decouple_en; }
 static void set_decouple(uint32_t  r){ g_dbg_decouple_en = (uint16_t)(r ? 1U : 0U); }
@@ -286,6 +317,37 @@ static void set_vbus_filt_hz(uint32_t  r){ float32_t hz = raw_to_f32(r);
                                            if(a < 0.0f) a = 0.0f;
                                            g_vbus_filt_hz    = hz;
                                            g_vbus_filt_alpha = a; }
+
+// DC-bus sense affine calibration. Live so a bench fit can be applied and A/B'd
+// against a meter without a rebuild; bake the final pair into the hw_*.h
+// VBUS_DIVIDER_RATIO / VBUS_OFFSET_CODE.
+//   vbus_ratio: bus->pin divider ratio, SAME units as VBUS_DIVIDER_RATIO. The
+//     setter re-derives volts-per-code exactly as adc_init() does, so the boot
+//     value and host writes can never disagree. Floored just above 0 -- a zero or
+//     negative ratio would flatten the reading to 0 V and silently disarm OV.
+//   vbus_off: ADC code at 0 V bus (the analog chain's zero error). Signed; a
+//     small negative value is legitimate. Clamped to +/-2048 (half scale) as a
+//     fat-finger guard -- beyond that the whole reading would be nonsense.
+static void get_vbus_ratio(uint32_t *r){ *r = f32_to_raw(g_vbus_ratio); }
+static void set_vbus_ratio(uint32_t  r){ float32_t k = raw_to_f32(r);
+                                         if(k < 0.001f) k = 0.001f;
+                                         g_vbus_ratio = k;
+                                         g_vbus_vpc   = ADC_VREF_V * k
+                                                        / ADC_FULL_SCALE_CODE; }
+static void get_vbus_off(uint32_t *r){ *r = f32_to_raw(g_vbus_off_code); }
+static void set_vbus_off(uint32_t  r){ float32_t o = raw_to_f32(r);
+                                       if(o >  2048.0f) o =  2048.0f;
+                                       if(o < -2048.0f) o = -2048.0f;
+                                       g_vbus_off_code = o; }
+
+// Undervoltage trip threshold [V]. Live because the useful value tracks whatever
+// bus you are running (see safety.c). Floored at 0; NOT upper-bounded against the
+// OV trip on purpose -- an operator may legitimately want UV above the present
+// bus to verify the trip fires. It only ever arms in FOC_RUN.
+static void get_uv_trip_v(uint32_t *r){ *r = f32_to_raw(g_uv_trip_v); }
+static void set_uv_trip_v(uint32_t  r){ float32_t v = raw_to_f32(r);
+                                        if(v < 0.0f) v = 0.0f;
+                                        g_uv_trip_v = v; }
 
 #if SENSOR_BACKEND_RM44AC
 // RM44AC SIN/COS input low-pass. Live (no NEEDS_IDLE) so it can be A/B'd on the
@@ -419,6 +481,12 @@ static void get_i_peak_a(uint32_t *r)    { *r = f32_to_raw(MOTOR_I_PEAK_A); }
 // control loop runs on g_vbus_override_v while this readout keeps tracking the
 // live sensor (they match when the override is off or equals the real bus).
 static void get_vbus(uint32_t *r)        { *r = f32_to_raw(g_dbg_vbus_v); }
+// Raw DC-bus ADC code, un-scaled and un-filtered: the quantity the host vbuscal
+// fit needs (scaled volts already carry the gain you are trying to measure) and
+// the one that tells a wrong SCALE apart from a reading that is not tracking the
+// bus at all -- if this barely moves between two bus voltages, no gain/offset fit
+// will save it and the problem is analog (loading, settling, wiring).
+static void get_vbus_raw(uint32_t *r)    { *r = (uint32_t)g_dbg_vbus_raw; }
 static void get_isr_freq_hz(uint32_t *r) { *r = f32_to_raw(FOC_ISR_FREQ_HZ); }
 static void get_speed_loop_ts(uint32_t *r){ *r = f32_to_raw((float32_t)SPEED_LOOP_TS); }
 static void get_fw_vmax_frac(uint32_t *r){ *r = f32_to_raw(FW_VMAX_FRACTION); }
@@ -444,6 +512,8 @@ const param_entry_t g_param_table[] =
     { 0x004DU, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "isense_inv",   get_isense_inv, set_isense_inv },
     { 0x004EU, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "phase_id_en",  get_phase_id_en, set_phase_id_en },
     { 0x004FU, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "phase_id_a",   get_phase_id_a,  set_phase_id_a  },
+    { 0x0050U, PARAM_TYPE_F32, 0,                     "iq_max",       get_iq_max,      set_iq_max      },
+    { 0x0051U, PARAM_TYPE_F32, 0,                     "vmax_frac",    get_vmax_frac,   set_vmax_frac   },
     { 0x0031U, PARAM_TYPE_U16, 0,                     "decouple_en",  get_decouple, set_decouple },
     { 0x0032U, PARAM_TYPE_U16, 0,                     "control_mode", get_mode,     set_mode     },
     { 0x0033U, PARAM_TYPE_U16, 0,                     "fw_en",        get_fw_en,    set_fw_en    },
@@ -457,6 +527,10 @@ const param_entry_t g_param_table[] =
     { 0x0043U, PARAM_TYPE_F32, 0,                     "vbus_ovr",     get_vbus_ovr,   set_vbus_ovr   },
     { 0x0046U, PARAM_TYPE_U16, 0,                     "vbus_filt_en", get_vbus_filt_en, set_vbus_filt_en },
     { 0x0047U, PARAM_TYPE_F32, 0,                     "vbus_filt_hz", get_vbus_filt_hz, set_vbus_filt_hz },
+    // DC-bus sense affine calibration (bench-fittable) + live UV threshold.
+    { 0x0052U, PARAM_TYPE_F32, 0,                     "vbus_ratio",   get_vbus_ratio, set_vbus_ratio },
+    { 0x0053U, PARAM_TYPE_F32, 0,                     "vbus_off",     get_vbus_off,   set_vbus_off   },
+    { 0x0054U, PARAM_TYPE_F32, 0,                     "uv_trip_v",    get_uv_trip_v,  set_uv_trip_v  },
 
     // Step injector / one-shot scope trigger (bench PI tuning). step_go:
     // 0 = release the frozen buffer, 1 = step step_axis to step_a + trigger
@@ -518,6 +592,7 @@ const param_entry_t g_param_table[] =
     { 0x0113U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "flux_vs",       get_flux_vs,       0       },
     { 0x0114U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "i_peak_a",      get_i_peak_a,      0       },
     { 0x0115U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "vbus",          get_vbus,          0       },
+    { 0x0126U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "vbus_raw",      get_vbus_raw,      0       },
     { 0x0116U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "isr_freq_hz",   get_isr_freq_hz,   0       },
     { 0x0117U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "speed_loop_ts", get_speed_loop_ts, 0       },
     { 0x0118U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "fw_vmax_frac",  get_fw_vmax_frac,  0       },

@@ -40,4 +40,10 @@ extern volatile uint16_t g_module_faults_en;
 // UV_FAULT_EN_DEFAULT; live-toggled via "uv_en". OVERVOLTAGE stays armed.
 extern volatile uint16_t g_uv_fault_en;
 
+// Undervoltage trip threshold [V]: seeded from MOTOR_UV_TRIP_V in safety_init(),
+// live via the "uv_trip_v" param because the useful threshold is a fraction of
+// whatever bus is actually connected. Debounced by UV_TRIP_DEBOUNCE_TICKS and
+// armed only in FOC_RUN. OVERVOLTAGE stays compile-time (MOTOR_OV_TRIP_V).
+extern volatile float g_uv_trip_v;
+
 #endif // SAFETY_H

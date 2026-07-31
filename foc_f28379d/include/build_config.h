@@ -68,6 +68,31 @@
 #define VBUS_FILT_DEFAULT_HZ    50.0f
 #endif
 
+//----- DC-bus sense affine calibration -----------------------------------
+// adc_read_vbus() maps the ADC code to volts as an AFFINE function, not a pure
+// gain: vbus = (code - VBUS_OFFSET_CODE) * volts_per_code. The offset lives in
+// CODE space because that is where the analog chain's zero error physically is
+// (sensor zero output, divider bias, ADC input leakage / residual charge share)
+// -- so it stays valid when the gain is re-trimmed.
+//   Both terms are live-tunable (vbus_ratio / vbus_off params) so a bench
+// calibration can be fitted and applied without a rebuild; bake the result back
+// into the hw_*.h VBUS_DIVIDER_RATIO / VBUS_OFFSET_CODE once it is stable.
+//   A single-point "trim the ratio" calibration CANNOT separate gain from
+// offset: it forces the fit through the origin, so any real offset reappears as
+// a gain error that grows with distance from the calibration point. Always fit
+// >= 2 (preferably >= 3) points -- see host `python -m foc_debug vbuscal`.
+#ifndef VBUS_OFFSET_CODE
+#define VBUS_OFFSET_CODE        0.0f    // ADC code at 0 V bus (fit on the bench)
+#endif
+// Consecutive ISR ticks the bus must stay below the UV threshold before the trip
+// latches. The compare used to be instantaneous, which nuisance-tripped on the
+// high-Z sensor divider's spike noise. 20 ticks = 2 ms at 10 kHz -- far faster
+// than any real bus collapse the SW trip is meant to catch, and the HW trip-zone
+// still handles genuinely fast events.
+#ifndef UV_TRIP_DEBOUNCE_TICKS
+#define UV_TRIP_DEBOUNCE_TICKS  20U
+#endif
+
 //----- Phase-current sense: channel count / mapping / phase-ID -------------
 // The current-sense ADC inputs are FIXED per board; which motor phase each one
 // measures can change (movable LEM clamps on Control_V2). adc_iface.c scatters
@@ -86,10 +111,13 @@
 #define PHASE_ID_DEFAULT_EN     0U   // boot default for "phase_id_en"
 #endif
 #ifndef PHASE_ID_DWELL_S
-#define PHASE_ID_DWELL_S        0.6f // per test angle (settle, then average)
+#define PHASE_ID_DWELL_S        1.2f // per test angle (settle, then average)
+                                     // [2026-07-28] 0.6->1.2: bench asked for a
+                                     // longer detection -- more governor settle
+                                     // (0.6 s) + 3x the averaging window
 #endif
 #ifndef PHASE_ID_AVG_S
-#define PHASE_ID_AVG_S          0.2f // averaged tail of each dwell
+#define PHASE_ID_AVG_S          0.6f // averaged tail of each dwell (was 0.2)
 #endif
 #ifndef PHASE_ID_MIN_A
 #define PHASE_ID_MIN_A          0.3f // peak dwell average below this = no signal
@@ -130,6 +158,22 @@
 #endif
 #ifndef UV_FAULT_EN_DEFAULT
 #define UV_FAULT_EN_DEFAULT     1U
+#endif
+
+// Boot value of the runtime COMMAND-current clamp ("iq_max" param). Applied in
+// the current-loop ISR at the single point every q-axis command funnels through
+// (torque cmd, speed-PI output, step injector; in open-loop resistive mode it
+// caps id_ref/iq_ref and hence the applied Rs*i volts), so no command source
+// can demand more current than the bench supply survives. Note phase amps are
+// cheap on the DC side at low speed (supply draw ~= duty * phase current), so
+// 10 A of phase current costs well under 1 A of supply -- the bench default is
+// protective without being useless. Production default = the full machine limit.
+#ifndef IQ_CMD_MAX_DEFAULT_A
+#if BENCH_NO_POWER_STAGE
+#define IQ_CMD_MAX_DEFAULT_A    10.0f
+#else
+#define IQ_CMD_MAX_DEFAULT_A    IQ_REF_MAX_A
+#endif
 #endif
 
 #endif // BUILD_CONFIG_H

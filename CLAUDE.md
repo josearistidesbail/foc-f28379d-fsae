@@ -181,6 +181,54 @@ volatile uint16_t g_phase_id_en;       // "phase_id_en" 0x004E, NEEDS_IDLE; defa
 volatile float32_t g_phase_id_a;       // "phase_id_a" 0x004F, NEEDS_IDLE: governed dwell current target [A],
                                        //   default PHASE_ID_TARGET_A = ALIGN_ID_INJECT_A (1.0 A both motors)
 volatile float32_t g_dbg_phaseid_mod;  // "phase_id_mod" 0x0125 RO: duty the dwell governor settled at
+
+// src/foc_pipeline.c        (bench command-current clamp, 2026-07-27)
+volatile float32_t g_iq_cmd_max;       // "iq_max" 0x0050, LIVE; boot IQ_CMD_MAX_DEFAULT_A (bench 10 A via
+                                       //   BENCH_NO_POWER_STAGE, production = IQ_REF_MAX_A; setter caps at IQ_REF_MAX_A)
+volatile float32_t g_vdq_max_frac;     // "vmax_frac" 0x0051, LIVE; boot VDQ_MAX_FRACTION, setter clamps
+                                       //   [0, VDQ_MAX_FRACTION]. Scales the PI voltage clamp: vmax_dyn =
+                                       //   vmax_frac*vbus*0.5 (also bounds the open-loop resistive Vd/Vq clamp).
+//   WHY vmax_frac exists [2026-07-27 bench #3]: closed-loop RUN "current explodes even at id=iq=0, iq_max useless".
+//   iq_max caps the REFERENCE; a sign-inconsistent or unstable current PI rails its OUTPUT to vmax_dyn
+//   (0.95*24/2 = +/-11.4 V on 18 mOhm = ~600 A demanded) regardless of the reference -> PSU folds before anything
+//   is observable. vbus_ovr can NOT be used as a limiter (SVGEN divides by it -- lying about the bus scales duty
+//   back up by vbus_real/vbus_ovr). vmax_frac bounds the APPLIED volts with the SVGEN normalization intact:
+//   vmax_frac=0.05 at 24 V -> +/-0.6 V -> worst-case rail ~30 A phase / ~1 A DC-side -- survivable + observable.
+//   Closed-loop bring-up: vmax_frac=0.05, iloop_en=1, refs 0, RUN; scope id/iq/vd/vq. DC-railed vd -> feedback
+//   sign inconsistent (check phase_id_status/isense_map/inv); kHz oscillation -> loop gain too hot (halve kp_d/kp_q
+//   or suspect LEM_V_PER_A); quiet ~0 -> raise vmax_frac stepwise, then step-test (step_go) before full clamp.
+//   NOTE closed-loop current control had NEVER run successfully on the EMRAX board before this (all prior EMRAX
+//   running was iloop_en=0 resistive or ol_mod drag) -- treat this as first engagement, not a regression.
+//   [2026-07-28 bench #4 -- INVERTER DEAD ZONE, the actual root cause]: with vmax_frac=0.05 the scope showed the
+//   FOURTH signature (not in the original tree): Vd railed DC at +0.6, Vq wound to -0.6, measured id/iq ~= 0 --
+//   max volts applied, ZERO current response, no oscillation. phase_id_status=1 (map A=V B=W C=U, chA inverted)
+//   so sign is proven good. Root cause: the PrimeSTACK dead zone. Dead-band is 150 TBCLK = 1.5 us (SysConfig
+//   board_control_v2), costing ~ Tdt*fsw*Vbus = 1.5u*10k*24 ~= 0.36 V at the 24 V bench, PLUS 900V-class
+//   IGBT Vce + diode Vf (~0.5 V+ at ~1 A) -> total ~0.9 V of commanded volts produce NO current. PROOF from
+//   phase-ID's own governor: phase_id_mod=0.0754 -> ~0.9 V duty-domain for a measured 1 A, vs Ohm's law
+//   18 mV on the 18 mOhm EMRAX -- the missing ~0.88 V IS the dead zone. A 0.6 V clamp sits entirely inside it
+//   -> loop has zero authority -> integrator winds to rail on the reference (Vd) and on measurement bias (Vq).
+//   THIS also explains the refs=0 explosion at full clamp: inside the dead zone NO corrective current flows, so
+//   any small id/iq measurement bias integrates unopposed; the output winds far past the dead zone; current then
+//   arrives suddenly and large (11.4 V rail -> 100s of A) -> PSU folds. The dead zone turns integral action into
+//   a bang-bang latch at low bus voltage. Fixes: bench vmax_frac must EXCEED the dead zone -- use 0.12-0.15
+//   (+/-1.4-1.8 V, ~0.5-0.9 V of real authority, worst case ~1-10 A phase / <1 A DC). Real fix for production:
+//   dead-time compensation feedforward (sign(i_phase)*Vdt), and note the whole problem shrinks ~linearly as the
+//   bus rises toward the real HV level (fixed-volts tax). 24 V bench on a 900 V IGBT stack maximizes it.
+//   FW interaction: vmax_fw stays on FW_VMAX_FRACTION -- don't exercise fw_en with vmax_frac lowered.
+//   Clamps the COMMANDED d/q current at the ISR choke point every q command funnels through (torque cmd via the
+//   1 kHz tick, speed-PI output, step injector), and in open-loop resistive mode clamps id_ref/iq_ref before
+//   Vd=Rs*i -- so no command source can ask the bench supply for more than this, whatever the GUI says.
+//   CONTEXT (the "per-unit" question, 2026-07-27): the pipeline does NOT need a per-unit refactor -- SVGEN already
+//   normalizes by s_refs.vbus (a commanded volt is a delivered volt at any bus) and vmax_dyn tracks vbus. The
+//   "need 60% of nominal torque to respond at 24 V" symptom was OPEN-LOOP RESISTIVE mode (iloop_en=0): there
+//   iq_ref is a VOLTAGE knob (Vq = Rs*iq_ref ~ 12 mV/A on the EMRAX), so budging the rotor (~1.3 V, same level as
+//   ol_mod*24V) needs a ~100 A "command", and the real current genuinely approaches it (I ~ V/R_total) -> PSU
+//   folds. Closed loop (iloop_en=1, safe after phase-ID verifies the wiring) makes iq_ref REAL amps and is
+//   bus-independent; at low speed phase amps are cheap on the DC side (I_dc ~ duty*I_phase: 20 A phase @ ~1 V is
+//   <1 A supply). Caveat: the speed PI's own output limits stay +/-IQ_REF_MAX_A, so SPEED mode can wind against a
+//   low iq_max -- bench guard only, revisit before speed mode with a tight clamp. Residual true bus-tracking gap:
+//   control runs on the FIXED vbus_ovr=24 while the real bus moves; set vbus_ovr=0 once the sensor is trusted.
 //   WHY: the current-sense ADC inputs are FIXED (Control_V2: chA=ADCINB4, chB=ADCINC4) but the two external LEM
 //   clamps MOVE between motor phases on the bench -- the old code hard-wired slot->phase (chA=Iu, chB=Iv) and only
 //   let you pick the KCL-reconstructed phase. adc_read_phase_currents() now computes per-CHANNEL amps into
@@ -244,8 +292,12 @@ volatile float32_t g_dbg_vbus_v;    // measured DC-bus [V], = s_refs.vbus every 
 //   (900/6.5)*2 = 276.92, NOT 74.18 (cal'd against the settling-corrupted reading; the older 138.46 was the sensor
 //   factor alone, missing the /2). Verified: firmware saw 106 mV at the pin at 30 V, model says 108. Bench bus
 //   floors at ~6 V (inverter logic supply back-feeds the DC link) -> never reads 0 V; 24-30 V is ~3% of the 900 V
-//   range so it's low-res/noisy and scope-probe loading skews mV reads -- trust g_dbg_vbus_raw codes. Still TODO:
-//   trim VBUS_DIVIDER_RATIO vs a meter near the real bus. See memory foc-vbus-adc-acqwindow.
+//   range so it's low-res/noisy and scope-probe loading skews mV reads -- trust g_dbg_vbus_raw codes. See memory
+//   foc-vbus-adc-acqwindow.
+//   [2026-07-29 part 3] 276.92 is STILL ~40% low at a metered 50 V, and the "verified 106 mV vs model 108" above was
+//   a PIN-VOLTAGE cross-check at ONE point, not a two-point calibration -- it could not have caught a gain error.
+//   The reading is now AFFINE and bench-fittable (vbus_ratio / vbus_off / vbus_raw params, `foc_debug vbuscal`);
+//   see the "DC-bus AFFINE calibration" block below for the fit procedure and why the error must be gain, not offset.
 
 // src/adc_iface.c          (DC-bus voltage low-pass — variant-agnostic)
 volatile uint16_t g_vbus_filt_en;      // "vbus_filt_en" param 0x0046, LIVE; default VBUS_FILT_DEFAULT_EN=1
@@ -257,8 +309,103 @@ volatile float32_t g_vbus_filt;        // IIR state [V], updated EVERY ISR in ad
 //   nuisance-tripping the INSTANTANEOUS UV compare in safety.c). State runs every ISR regardless of en -> toggling
 //   vbus_filt_en is bumpless and A/Bs raw-vs-filtered on the "vbus" scope channel. Both params live in the GUI
 //   Advanced tab (auto-discovered). If it still nuisance-trips after the filter + the HW RC cap: lower vbus_filt_hz,
-//   or add a debounce / lower MOTOR_UV_TRIP_V. NOTE the filter also lags a REAL bus collapse by ~1/(2*pi*fc) (~3 ms
-//   at 50 Hz) -- fine for a bench UV backstop; the HW trip-zone still handles fast events.
+//   or lower uv_trip_v (the debounce is now built in, see below). NOTE the filter also lags a REAL bus collapse by
+//   ~1/(2*pi*fc) (~3 ms at 50 Hz) -- fine for a bench UV backstop; the HW trip-zone still handles fast events.
+
+// src/adc_iface.c + src/safety.c  (DC-bus AFFINE calibration + live/debounced UV trip, 2026-07-29)
+volatile float32_t g_vbus_ratio;      // "vbus_ratio" 0x0052, LIVE; boot VBUS_DIVIDER_RATIO. Setter re-derives vpc
+volatile float32_t g_vbus_vpc;        // derived volts-per-code = ADC_VREF_V*ratio/4096 (the ISR multiplies by this)
+volatile float32_t g_vbus_off_code;   // "vbus_off" 0x0053, LIVE [ADC codes at 0 V]; boot VBUS_OFFSET_CODE (0)
+volatile float32_t g_uv_trip_v;       // "uv_trip_v" 0x0054, LIVE [V]; boot MOTOR_UV_TRIP_V (safety.c)
+//   "vbus_raw" 0x0126 RO (u16) = g_dbg_vbus_raw, the un-scaled un-filtered ADC code.
+//   adc_read_vbus() is now AFFINE: vbus = (code - vbus_off) * vbus_vpc, clamped at 0 (a negative bus would invert
+//   vmax_dyn and blow up the 1/vbus SVGEN normalization; a reading pinned at exactly 0.0 V is the tell that vbus_off
+//   is above the actual code, so it is not silently absorbed). Both terms LIVE so a bench fit applies without a
+//   rebuild; bake the result into hw_*.h VBUS_DIVIDER_RATIO / VBUS_OFFSET_CODE (new, with an #ifndef 0.0f fallback
+//   in build_config.h so every variant compiles).
+//   **WHY AFFINE — a single-point ratio trim is structurally wrong.** It forces the line through the origin, so any
+//   real zero error in the analog chain (sensor zero output, divider bias, ADC leakage / residual charge-share)
+//   reappears as a GAIN error that grows with distance from the cal point.
+//   **[2026-07-29] MEASURED AND FITTED.** Three externally-metered points (`host/vbus_reads/*.csv`, 128-sample
+//   "vbus" scope captures; divide by the then-active 0.202822 V/code to recover raw codes):
+//       40 V -> 103.6 codes      65 V -> 221.1 codes      90 V -> 326.6 codes
+//   The sense DOES track (the earlier "flat-line" worry came from a 2026-07-23 note claiming 145 codes at 30 V —
+//   this fit predicts ~61 codes there, so **discard that datum**; it was a single-point pin-voltage cross-check
+//   taken mid-saga). The old (276.92, no offset) model read 21.0 / 44.8 / 66.2 V, i.e. **~-19 to -24 V of error
+//   that is nearly CONSTANT IN VOLTS — an OFFSET signature, not a gain error** (~94-117 codes below the
+//   proportional model). Affine fit: **ratio 305.81, offset -73.1 codes**, residuals within +/-0.9 V. A gain-only
+//   retrim anchored at 65 V (ratio 401.4) would leave -9.6 V at 40 V and +6.0 V at 90 V — the affine-vs-single-point
+//   argument demonstrated on real data. Baked into hw_control_v2.h; builds clean on Production.
+//   **[2026-07-29, 8-point live vbuscal 20-150 V — SUPERSEDES the 3-point fit above; now ratio 298.35 / off -79.4]**
+//   Interleaved, meter-verified: 20->27.41  30->64.50  40->103.66  65->221.48  90->327.36  115->444.13
+//   150->610.28  40->104.67 (repeat). Local segment gain [codes/V] is FLAT above 40 V and COMPRESSED below:
+//       20->30: 3.709   30->40: 3.916  |  40->65: 4.672   65->90: 4.235   90->115: 4.671   115->150: 4.747
+//     * **DRIFT IS NOT THE PROBLEM — that hypothesis is dead.** The 40 V repeat moved only +1.01 codes (+0.22 V)
+//       across the session (inside 3 sigma), and 40/65/90 V reproduced the PREVIOUS session within ~1 code.
+//     * **Fit 40-150 V, EXCLUDING 20/30 V.** Codes 27/64 are 0.7%/1.6% of ADC full scale, deep where the SAR's own
+//       INL/offset dominate. Including them biased the slope 1% and doubled residual RMS (0.67 -> 1.12 V). Keep them
+//       as EVIDENCE the sense is unusable below ~40 V, not as fit inputs. 40-150 residuals: max 1.11 V, RMS 0.67 V.
+//     * **The negative offset is what drags the bench range into the ADC's worst decade** — 150 V is only code 610
+//       (15% of scale). At a real 400 V bus the code is ~1750 (43%), where the ADC behaves, so most of this
+//       nonlinearity is a BENCH artifact that should shrink as the bus rises. Encouraging, not yet verified.
+//     * **The 65->90 V gain dip REPRODUCED across both sessions** (4.220 then 4.235 vs ~4.7 either side) — a real
+//       localized feature, not noise and not smooth curvature; 90 V is the largest residual (+1.11 V). Codes
+//       221->327 cross the **256 major-carry boundary**, where SAR INL is typically worst: suspect ADC INL over the
+//       analog front end. Do NOT fit a quadratic (diverges when extrapolated).
+//     * **offset -79.4 puts the reading at +17.4 V when the ADC reads code 0**, so below ~40 V it OVER-reads and the
+//       bench idle bus (~6 V gate-drive back-feed) shows ~17-20 V. Fine for a UV threshold near the operating bus;
+//       **never use this fit to judge bus-discharged / safe-to-touch.**
+//     * Extrapolation to 400 V is +/-3.4 V statistical (0.84% slope), but the choice of fit SUBSET moves it 395-400.
+//       **Re-run vbuscal near the real bus before relying on the 460 V OV trip** (a compressive curve reads low =>
+//       OV fires LATE, the unsafe direction).
+//   Sampling lesson that paid off: interleaved order + a repeated bracket point is what let drift be RULED OUT
+//   rather than argued about. `vbuscal` now echoes the captured points as a `--fit` string so a subset can be
+//   re-fitted without re-measuring (a live session costs bus voltages, a meter and ~10 min).
+//   **SAMPLING DESIGN (asked 2026-07-29: "many points high, a couple low?").** RANGE beats COUNT, and ORDER beats
+//   both. More points inside 40-90 V shrink only the RANDOM error (already ~0.1 V, ~3% on the slope) and do nothing
+//   about the SYSTEMATIC error of extrapolating past 90 V — going 3 -> 12 points there buys precision you cannot
+//   spend. **One point at 150-200 V is worth more than ten more between 40 and 90.** 5-7 levels spread over the
+//   widest safe range is plenty (a line needs 2; the 3rd+ exist to TEST linearity, and returns diminish fast).
+//   * **Interleave the order, never sweep monotonically.** A monotonic sweep aliases a drifting offset into
+//     curvature EXACTLY — the two are indistinguishable. Go e.g. 40, 150, 20, 90, 65, 40-again; the repeat at the
+//     end is the drift check (vbuscal warns if it moved > 3 sigma).
+//   * **Low points earn their place by TESTING the offset, not by being accurate there.** Careful: "unreliable
+//     below 30 V" is an INFERENCE from the extrapolated offset, not a measurement — we have no data under 40 V.
+//     What is provably blind is only **below ~16.4 V** (pin at/below 0 => ADC floors at code 0); 16-40 V is merely
+//     unmeasured and may well be linear. 2-3 low points settle it.
+//   * **Do NOT fit a quadratic** to rescue the curvature: fitted over 40-90 and extrapolated to 400 a quadratic is
+//     WORSE than a line (it diverges). Either calibrate AT the operating bus, or fix the analog.
+//   * **HYPOTHESIS worth testing while sweeping — a load-dependent offset.** A -73 code offset is ~-52 mV at the
+//     pin, exactly what a ground IR drop between the PrimeSTACK sensor return and ADC AGND looks like. If so it
+//     moves with inverter current, so the "curvature" could just be the three captures having had different loads.
+//     Test directly: hold ONE bus voltage and read vbus_raw at two different load currents. Take every calibration
+//     point at the SAME load (ideally IDLE, no PWM).
+//   Tooling: `vbuscal --cal-csv 40:v40.csv,65:v65.csv --csv-ratio 276.92` fits saved "vbus" scope CSVs directly
+//   (pass the ratio that was ACTIVE at capture time — it recovers raw codes by dividing it back out, and derates
+//   n for the IIR correlation). Prefer live `vbuscal` where possible: the 128-sample captures are IIR-correlated
+//   (tau ~32 samples at 50 Hz => only ~2 independent samples each, SE ~0.4-0.9 codes), whereas polling vbus_raw
+//   gives genuinely independent samples.
+//   **Fit it, don't guess: `python -m foc_debug vbuscal`** (host/foc_debug/vbuscal.py, unittest-covered). Captures
+//   metered-volts vs AVERAGED raw code per point, least-squares fits volts = vpc*(code - off), prints the
+//   vbus_ratio/vbus_off pair + the #define lines, and can write them live (--apply). `--fit 6.1:31,50.2:148` does a
+//   pure-math offline fit with no hardware. Fit on the RAW CODE, never on scaled volts (those already carry the gain
+//   you are measuring, and they are IIR-filtered). Use >= 3 points over as wide a bus range as the supply allows:
+//   2 is the minimum that separates gain from offset and gives NO linearity check. The tool warns on a too-small
+//   code span, a nonlinear segment, and noise that is a large fraction of the span, and it reports the 1-sigma
+//   extrapolation error at 50/100/400 V -- read that number before trusting a 400 V trip fitted at 50 V.
+//   **Averaging is what makes this possible at all**: at the 900 V-class PrimeSTACK scale a 50 V bench bus is only
+//   ~150 codes with ~12 codes of noise; the raw code refreshes every ISR (10 kHz) while the host polls every few ms,
+//   so reads are effectively independent and the mean converges as 1/sqrt(n) (300 samples -> ~0.7 code).
+//   **DIAGNOSTIC the raw code buys you**: if the code barely MOVES between two bus voltages, no gain/offset fit can
+//   help -- that is an analog fault (unbuffered tap loaded down, acquisition window too short for the source
+//   impedance, open wire). vbuscal raises ValueError("not tracking") on identical codes rather than fitting garbage.
+//   **UV trip is now live + debounced** (safety.c): threshold g_uv_trip_v (was the compile-time MOTOR_UV_TRIP_V --
+//   live because the useful threshold is a fraction of whatever bus you are running, so 18 V is safe but inert at a
+//   50 V bench and useless at 400 V, and re-flashing per bench voltage was the only alternative). The compare needs
+//   UV_TRIP_DEBOUNCE_TICKS (20 = 2 ms at 10 kHz, build_config.h) CONSECUTIVE sub-threshold ticks; any tick at or
+//   above resets the count, and the counter is held at 0 outside RUN / when disarmed so re-entering RUN starts
+//   fresh. **OVERVOLTAGE stays compile-time (MOTOR_OV_TRIP_V) on purpose** -- lowering a UV trip is conservative,
+//   but a live OV threshold would let an operator disarm the dangerous direction from the host.
 
 // src/sensor_qep.c   (Step 3 verification)
 volatile uint32_t g_dbg_qep_count;        // QPOSCNT
@@ -353,7 +500,23 @@ volatile uint16_t  g_resolver_dir_inv;  // 1 = mirror mech angle th→2π−th (
 //   control uses a fixed 24 V and UV is bypassed; in production: measured bus,
 //   UV armed. Set vbus_ovr=0 + uv_en=1 to switch control/UV back to the measured
 //   bus once the sensor is calibrated. OV stays always-armed against s_refs.vbus.
-//   MOTOR_UV_TRIP_V still 18 V (24 V bench; raise toward ~200 V for the HV bus).
+//   **[2026-07-29] Hand-back order, once vbuscal agrees with a meter:** vbus_ovr=0
+//   (control + trips follow the measured bus) -> uv_trip_v=<70-80% of the bus you
+//   are running> -> uv_en=1. The UV threshold is a LIVE param now (0x0054), so no
+//   re-flash per bench voltage; MOTOR_UV_TRIP_V is only its boot seed (**EMRAX 12 V,
+//   Teknic 18 V** — the "still 18 V" in the older note was the Teknic value).
+//   **[2026-07-29] The EMRAX 12 V seed is now UNREACHABLE and the UV trip is inert
+//   until you raise it**: with VBUS_OFFSET_CODE -73.1 the reading floors at +16.4 V
+//   (ADC code 0), so `vbus < 12.0` can never be true. Set uv_trip_v explicitly.
+//   Mirror risk on OV (compile-time 460 V vs VBUS_MAX 470): the fitted curve is
+//   COMPRESSIVE, so at HV it reads low and OV fires LATE — re-verify near the real
+//   bus before relying on it.
+//   Size it against the noisy MINIMUM on the "vbus" scope channel under load, not
+//   the mean -- though the compare is on the FILTERED bus and needs 2 ms of
+//   sustained sag (UV_TRIP_DEBOUNCE_TICKS), so it is far less twitchy than the old
+//   instantaneous one. Keep vbus_ovr > 0 until the fit is trusted: while the ratio
+//   is wrong the control loop would run 1/vbus SVGEN and vmax_dyn off a bus that
+//   reads 40% low, which SCALES DUTY UP by vbus_real/vbus_read.
 //   BENCH_NO_POWER_STAGE / "module_faults_en" UNCHANGED (power stage still off).
 
 // src/isr.c                 (Step 9 — HW trip-zone)
