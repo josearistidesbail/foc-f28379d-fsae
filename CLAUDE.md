@@ -175,7 +175,10 @@ volatile uint16_t g_isense_map;        // "isense_map" 0x004C, NEEDS_IDLE: chann
 volatile uint16_t g_isense_inv;        // "isense_inv" 0x004D, NEEDS_IDLE: polarity bitmask bit0=chA bit1=chB bit2=chC
 volatile float    g_isense_ch_amps[3]; // channel-domain currents [A] (offset+sign applied, PRE phase-scatter)
 volatile uint16_t g_isense_id_status;  // "phase_id_status" 0x0124 RO: low nibble 0=never/1=applied/2=rejected;
-                                       //   0x0010<<c weak ch c, 0x0100<<c ambiguous ch c, 0x0800 duplicate phase
+                                       //   0x0010<<c driven dwell < PHASE_ID_MIN_A on ch c (no current flowed),
+                                       //   0x0100<<c no usable SIGN pattern on ch c (all three dwells one sign, or
+                                       //     some dwell < PHASE_ID_SIGN_MIN_A so its sign is noise),
+                                       //   0x0800 two channels claimed the same phase
 volatile uint16_t g_phase_id_en;       // "phase_id_en" 0x004E, NEEDS_IDLE; default PHASE_ID_DEFAULT_EN
                                        //   (hw_control_v2.h = 1; BOOSTXL/others = 0)
 volatile float32_t g_phase_id_a;       // "phase_id_a" 0x004F, NEEDS_IDLE: governed dwell current target [A],
@@ -246,11 +249,16 @@ volatile float32_t g_vdq_max_frac;     // "vmax_frac" 0x0051, LIVE; boot VDQ_MAX
 //   yet-unverified map/sign is positive feedback (PI rails to vmax_dyn, folds a current-limited supply the instant
 //   ALIGN begins). Phase-ID therefore verifies+commits the wiring before ANY stage that consumes current feedback;
 //   dwell 0 sits at theta=0 so the rotor pre-parks for free. iloop_en does NOT need to be 1 for phase-ID -- the
-//   dwells always use their own governed open-loop drive regardless.** d-axis injection at dwell k puts +I on phase k and -I/2 on the
-//   other two, so per channel: phase = argmax_k |avg|, clamp direction = sign of that peak (avg carries the CURRENT
-//   inv mask, so a negative peak XOR-flips the bit). adc_isense_phase_id_commit() validates (peak >= PHASE_ID_MIN_A
-//   0.3 A; dominance >= PHASE_ID_DOMINANCE 1.3x runner-up, ideal is 2x; channels must claim distinct phases) and
-//   commits map+inv. REJECT => keep old map, freeze the align carrier, latch NEW fault bit FAULT_CURRENT_SENSE
+//   dwells always use their own governed open-loop drive regardless.** d-axis injection at dwell k puts +I_k on
+//   phase k and -I_k/2 on the other two, so for a channel on phase p with sign s: avg[c][k] = s*I_k*(k==p ? 1 : -0.5).
+//   **[2026-08-01] The solver reads the SIGN PATTERN, not peak magnitude.** I_k > 0 always, so the sign at k==p is
+//   opposite to the other two REGARDLESS of how unequal the three dwell amplitudes are: p = the odd sign out, s = its
+//   sign (avg carries the CURRENT inv mask, so a negative peak XOR-flips the bit). adc_isense_phase_id_commit()
+//   validates (driven dwell >= PHASE_ID_MIN_A 0.3 A; EVERY dwell >= PHASE_ID_SIGN_MIN_A = MIN_A/2, else that dwell's
+//   sign is noise and the pattern is fabricated; exactly one sign differs; channels must claim distinct phases) and
+//   commits map+inv. **PHASE_ID_DOMINANCE and the argmax are GONE** -- see the 2026-08-01 bench entry below for why
+//   magnitude is not comparable across dwells on this inverter.
+//   REJECT => keep old map, freeze the align carrier, latch NEW fault bit FAULT_CURRENT_SENSE
 //   (1<<7, "CURRENT_SENSE" in the GUI) -- running closed-loop on unverified current wiring is positive feedback.
 //   The dwells FORCE an open-loop duty drive (unity SVGEN bus) even when iloop_en=1, because current feedback is
 //   untrusted while the map is being measured -- so detection works with any prior map/sign.
@@ -261,12 +269,27 @@ volatile float32_t g_vdq_max_frac;     // "vmax_frac" 0x0051, LIVE; boot VDQ_MAX
 //   the duty (PHASE_ID_MOD_SLEW_PER_S 0.4/s) until max|channel| current = g_phase_id_a ("phase_id_a", default
 //   ALIGN_ID_INJECT_A = 1 A; size it to the SUPPLY, it only needs to clear PHASE_ID_MIN_A 0.3 A), then FREEZES the
 //   duty for all three dwells. Channel |amplitude| is a legit feedback while the map is unknown (magnitude is map-
-//   and polarity-independent). The FREEZE is essential: one shared duty = identical current amplitude at all three
-//   angles (same R), preserving the exact +I / -I/2 ratios the solver reads; re-regulating per dwell would
-//   normalize away those ratios (worst case: both clamps on -I/2 phases -> that dwell doubles -> argmax ties).
-//   Duty capped at g_ol_mod (worst case = old behavior). "phase_id_mod" RO shows what the governor settled at --
-//   if it rails at the ol_mod cap AND phase_id_status shows weak flags, the target current was unreachable
-//   (supply limit / clamp not closed / lead open).
+//   and polarity-independent). Freezing (rather than re-regulating per dwell) keeps one shared drive level; a
+//   per-dwell governor would actively normalize away the +I / -I/2 structure (worst case: both clamps on -I/2
+//   phases -> that dwell doubles). Duty capped at g_ol_mod (worst case = old behavior). "phase_id_mod" RO shows
+//   what the governor settled at -- if it rails at the ol_mod cap AND phase_id_status shows weak flags, the
+//   target current was unreachable (supply limit / clamp not closed / lead open).
+//   **[2026-08-01 bench] ONE SHARED DUTY EQUALIZES VOLTS, NOT AMPS -- the argmax solver died on this and was
+//   replaced by the sign-pattern solver.** Symptom: CURRENT_SENSE on every calibrate, phase_id_status = 0x0802
+//   (duplicate phase; NO weak, NO ambiguous bits), phase_id_mod = 0.058 (governor reached its 1 A target and did
+//   NOT rail, so the drive was working). The Iu/Iv/Iw scope showed the three dwells drawing ~1 A / ~5.5 A / ~1 A.
+//   Both channels' magnitude therefore peaked at dwell 1, both claimed phase V, duplicate -> reject.
+//   ROOT CAUSE is the dead zone again (see the vmax_frac block above): at 1 A the 18 mOhm EMRAX needs ~36 mV of
+//   NET loop drive out of ~2.7 V commanded -- ~99% is dead-time + IGBT Vce + diode Vf. The dwell current is a
+//   difference of two nearly equal large numbers, so a few-percent change in that tax between angles swings the
+//   current by hundreds of percent. Corollary tell: dwells 0 and 2 showed a TWO-PHASE (+I, 0, -I) pattern instead
+//   of (+I, -I/2, -I/2) -- classic dead-time zero-current clamping of the leg with the small commanded volts.
+//   The FIX is free because the SIGN pattern is amplitude-invariant (avg = s*I_k*(k==p ? 1 : -0.5), I_k > 0): the
+//   very same rejected capture reads chA [+,-,-] -> U and chB [-,-,+] -> W, distinct and unambiguous = map 1,
+//   inv 0. Verified by replaying the bench numbers through the new solver before flashing.
+//   NOT worth doing instead: raising phase_id_a helps only weakly (the knee is a hard 0->large step, so even 10 A
+//   sits a few mV past it), and RAISING THE BUS DOES NOT HELP AT ALL -- the tax is fixed volts and its dead-time
+//   term actually GROWS with Vbus. The real cure is dead-time compensation feedforward (still TODO).
 //   Workflow after re-clamping the LEMs: just run align (g_dbg_sm_cmd=1); map+inv self-configure (~1.8 s extra).
 //   Manual entry: GUI Config tab dropdown ("A=U B=W (C=V)" etc.) or write isense_map/isense_inv in IDLE.
 //   NOTE: phase-ID identifies channel WIRING, not commutation direction -- U/V/W phase ORDER vs the electrical

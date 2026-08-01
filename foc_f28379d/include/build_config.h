@@ -120,11 +120,17 @@
 #define PHASE_ID_AVG_S          0.6f // averaged tail of each dwell (was 0.2)
 #endif
 #ifndef PHASE_ID_MIN_A
-#define PHASE_ID_MIN_A          0.3f // peak dwell average below this = no signal
+#define PHASE_ID_MIN_A          0.3f // driven-dwell average below this = no signal
 #endif
-#ifndef PHASE_ID_DOMINANCE
-#define PHASE_ID_DOMINANCE      1.3f // peak must exceed runner-up by this ratio
-                                     // (ideal is 2.0; ~1 = ambiguous wiring)
+// [2026-08-01] PHASE_ID_DOMINANCE (peak vs runner-up magnitude ratio) is GONE:
+// the solver now decides on the dwell SIGN pattern, which is invariant to the
+// dwell-to-dwell amplitude inequality the bench actually produces (see
+// adc_isense_phase_id_commit). What still needs a magnitude gate is trusting a
+// SIGN at all -- a dwell averaging ~0 has a random sign and would fabricate a
+// pattern. The two undriven phases carry half the driven one, so this floor is
+// half of PHASE_ID_MIN_A.
+#ifndef PHASE_ID_SIGN_MIN_A
+#define PHASE_ID_SIGN_MIN_A     (0.5f * PHASE_ID_MIN_A)
 #endif
 // Dwell-current governor: the dwells do NOT use the fixed ol_mod drag drive
 // (sized to move the rotor -- far more current than a measurement needs, and

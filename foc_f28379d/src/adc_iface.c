@@ -214,14 +214,33 @@ uint16_t adc_isense_recon_phase(void)
 // Solve channel->phase mapping + polarity from the ALIGN phase-ID dwell
 // averages and commit them. avg[c][k] = mean current of channel c while the
 // commanded field sat at electrical angle k*120 deg. With the drive on the
-// d-axis, phase k carries +I at dwell k and -I/2 at the other two, so for a
-// channel clamped on phase p with effective sign s: avg[c][k] = s*I*(k==p ?
-// 1 : -0.5). Hence p = argmax_k |avg[c][k]| and s = sign at that dwell.
-// Acceptance gates: the peak must clear PHASE_ID_MIN_A (rules out "no current
-// flowed": gate disabled, clamp not on any driven phase), must dominate the
-// runner-up by PHASE_ID_DOMINANCE (ideal ratio is 2; near 1 means the channel
-// saw two phases equally = broken wiring or a stalled drive), and no two
-// channels may claim the same phase. On reject the current map/inv are KEPT.
+// d-axis, phase k carries +I_k at dwell k and -I_k/2 at the other two, so for a
+// channel clamped on phase p with effective sign s:
+//     avg[c][k] = s * I_k * (k == p ? 1.0 : -0.5)
+// The decision is taken on the SIGN PATTERN: I_k > 0 always, so the sign at
+// k == p is opposite to the sign at the other two dwells NO MATTER how much the
+// three dwell amplitudes differ. p is the odd sign out, and s is its sign.
+//
+// [2026-08-01] This replaces an argmax_k |avg[c][k]| + dominance-ratio solver,
+// which silently assumed all three dwells drew the SAME current. They do not.
+// The governor freezes one duty across the dwells, which equalizes VOLTS, not
+// amps: at the 24 V bench a ~1 A dwell needs only ~36 mV of net loop drive out
+// of ~2.7 V commanded -- everything else is the inverter dead zone (dead-time +
+// IGBT/diode drops). The current is then the difference of two nearly equal
+// large numbers, so a few-percent change in that tax between angles swings it
+// by hundreds of percent. Measured: dwells 0/2 drew ~1 A, dwell 1 ~5.5 A, so
+// BOTH channels' magnitude peaked at dwell 1, both claimed the same phase, and
+// detection rejected with 0x0802 -- even though the sign patterns ([+,-,-] and
+// [-,-,+]) were clean, distinct and unambiguous. Sign is the robust feature
+// here; magnitude only says whether a sign can be trusted at all.
+//
+// Acceptance gates (all must pass, else the current map/inv are KEPT):
+//   0x0010<<c  the driven dwell is below PHASE_ID_MIN_A -- no current flowed
+//              (gate disabled, clamp not on any driven phase, open lead)
+//   0x0100<<c  no usable sign pattern: all three dwells share a sign (never a
+//              d-axis response), or some dwell is below PHASE_ID_SIGN_MIN_A so
+//              its sign is noise and the "pattern" would be fabricated
+//   0x0800     two channels claim the same phase
 // Called once per align from ISR context (same discipline as
 // adc_set_sincos_scale). Returns the status word it stores.
 uint16_t adc_isense_phase_id_commit(float avg[3][3])
@@ -233,22 +252,41 @@ uint16_t adc_isense_phase_id_commit(float avg[3][3])
 
     for(c = 0U; c < ISENSE_NUM_CHANNELS; c++)
     {
-        uint16_t best_k = 0U;
-        float best = 0.0f, second = 0.0f;
+        uint16_t npos     = 0U;    // dwells with a positive average
+        uint16_t odd_k    = 0U;    // the driven dwell = the odd sign out
+        uint16_t want_pos;
+        float    smallest = 0.0f;  // min |avg| over the three dwells
+        float    peak;
+
         for(k = 0U; k < 3U; k++)
         {
-            float m = avg[c][k];
-            if(m < 0.0f) m = -m;
-            if(m > best)        { second = best; best = m; best_k = k; }
-            else if(m > second) { second = m; }
+            float m = (avg[c][k] < 0.0f) ? -avg[c][k] : avg[c][k];
+            if(k == 0U || m < smallest) smallest = m;
+            if(avg[c][k] > 0.0f) npos++;
         }
-        if(best < PHASE_ID_MIN_A)              status |= (uint16_t)(0x0010U << c);
-        if(best < PHASE_ID_DOMINANCE * second) status |= (uint16_t)(0x0100U << c);
-        phase_of[c] = best_k;
+
+        // 1 positive  -> that dwell is the driven one, s = +1
+        // 2 positive  -> the lone negative dwell is driven, s = -1
+        // 0 or 3      -> not a d-axis response at all
+        if(npos != 1U && npos != 2U) status |= (uint16_t)(0x0100U << c);
+        want_pos = (npos == 1U) ? 1U : 0U;
+        for(k = 0U; k < 3U; k++)
+        {
+            uint16_t is_pos = (avg[c][k] > 0.0f) ? 1U : 0U;
+            if(is_pos == want_pos) odd_k = k;
+        }
+
+        // A sign is only information if that dwell actually drew current.
+        if(smallest < PHASE_ID_SIGN_MIN_A) status |= (uint16_t)(0x0100U << c);
+
+        peak = (avg[c][odd_k] < 0.0f) ? -avg[c][odd_k] : avg[c][odd_k];
+        if(peak < PHASE_ID_MIN_A) status |= (uint16_t)(0x0010U << c);
+
+        phase_of[c] = odd_k;
         // The averages already include the CURRENT inversion mask, so a
         // negative peak means "flip relative to what is applied now" (XOR),
         // and a positive peak means the existing bit is already right.
-        if(avg[c][best_k] < 0.0f) inv_new ^= (uint16_t)(1U << c);
+        if(avg[c][odd_k] < 0.0f) inv_new ^= (uint16_t)(1U << c);
     }
 
 #if ISENSE_NUM_CHANNELS == 2

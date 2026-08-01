@@ -274,8 +274,11 @@ static bool        s_align_done;
 // CLOSED-LOOP, and closed loop on an unverified map/sign is positive feedback
 // (d-PI rails to vmax_dyn, folds a current-limited bench supply the instant
 // ALIGN begins -- bench 2026-07-27).
-// The channel that peaks at dwell k is clamped on phase k; the sign of that
-// peak is the clamp direction. adc_isense_phase_id_commit() validates and
+// A channel's driven dwell is the one whose current sign is opposite to the
+// other two (d-axis injection puts +I on the driven phase and -I/2 on the other
+// two), and that sign is the clamp direction. adc_isense_phase_id_commit()
+// decides on the sign pattern rather than peak magnitude -- see the comment
+// there for why magnitude is not trustworthy across dwells. It validates and
 // stores the map + inversion mask ("isense_map"/"isense_inv"), so physically
 // re-clamping the LEMs needs no manual reconfiguration -- just re-align.
 // The stage FORCES the open-loop duty drive (g_ol_mod on the d-axis) even when
@@ -305,12 +308,16 @@ static float32_t   s_pid_sum[3][3];    // [channel][dwell] current sums
 // PHASE_ID_TARGET_A = ALIGN_ID_INJECT_A), then FREEZE it for everything after.
 // Channel amplitude is a valid feedback while the map is unknown (magnitude is
 // map- and polarity-independent). Freezing (instead of re-regulating each
-// dwell) is essential: the solver's +I vs -I/2 structure relies on the SAME
-// current amplitude at all three angles, which one shared duty guarantees
-// (identical R at every angle); a per-dwell governor would normalize away the
-// very ratios being measured (worst case: both clamps on -I/2 phases reads
-// I/2, the governor doubles that dwell's current, and argmax ties). Duty is
-// capped at g_ol_mod so the worst case equals the old fixed drive.
+// dwell) keeps one shared drive level for all three angles; a per-dwell
+// governor would actively normalize away the +I vs -I/2 structure being
+// measured (worst case: both clamps sit on -I/2 phases, that dwell reads I/2,
+// the governor doubles it). Duty is capped at g_ol_mod so the worst case
+// equals the old fixed drive.
+// [2026-08-01] NOTE one shared duty equalizes VOLTS, not amps -- at the bench
+// bus the dead zone eats ~99% of the commanded volts, so the dwells can still
+// differ several-fold in current (measured 1 A / 5.5 A / 1 A). The solver no
+// longer depends on them matching (it reads the sign pattern), so this is now a
+// drive-sizing choice, not a correctness requirement.
 volatile float32_t g_phase_id_a = PHASE_ID_TARGET_A;   // target dwell current [A]
 volatile float32_t g_dbg_phaseid_mod;  // governed duty ("phase_id_mod" RO param)
 static float32_t   s_phaseid_mod;      // governor state, frozen after dwell 0 settle

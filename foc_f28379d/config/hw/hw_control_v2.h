@@ -108,7 +108,7 @@
 //      when the real high-current transducer is fitted.
 //   !! adc_calibrate_offsets() captures the true zero each CALIBRATE, so
 //      ISENSE_ZERO_CODE is only a pre-cal placeholder.
-#define LEM_V_PER_A             0.0786f     // 78.6 mV/A, bench-measured 2026-07-22
+#define LEM_V_PER_A             0.0075f     // 7.5 mV/A
 #define ADC_VREF_V              3.0f        // VREFHI = 3.0 V (resolver 0-3.3 V clips -> confirms 3.0)
 #define ADC_FULL_SCALE_CODE     4096.0f
 #define ISENSE_AMPS_PER_CODE    (ADC_VREF_V / ADC_FULL_SCALE_CODE / LEM_V_PER_A)
