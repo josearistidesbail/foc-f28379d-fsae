@@ -162,5 +162,153 @@ class TestStepMetrics(unittest.TestCase):
             self.assertAlmostEqual(m.t_rise, 2.197 * tau, delta=0.25e-3)
 
 
+class TestStepDiagnostics(unittest.TestCase):
+    """step_diagnostics separates "ran out of volts" from "dead-zone ramp"."""
+
+    @staticmethod
+    def _cap(**chans):
+        names = list(chans)
+        return names, [chans[n] for n in names]
+
+    def test_empty_capture_returns_empty_string(self):
+        self.assertEqual(autotune.step_diagnostics([], [], 0), "")
+
+    def test_reports_nothing_extra_when_only_currents_captured(self):
+        names, data = self._cap(Id=[0.0] * 8, Iq=[1.0] * 8)
+        self.assertEqual(autotune.step_diagnostics(names, data, 2), "")
+
+    def test_vdq_expressed_as_fraction_of_half_bus(self):
+        # |Vdq| = 3-4-5 triangle => 5.0 V on a 40 V bus => 5/20 = 0.250
+        names, data = self._cap(Vd=[3.0] * 8, Vq=[4.0] * 8, vbus=[40.0] * 8)
+        out = autotune.step_diagnostics(names, data, 0)
+        self.assertIn("|Vdq|max=5.00 V", out)
+        self.assertIn("0.250 of vbus/2", out)
+
+    def test_vdq_without_bus_omits_the_fraction(self):
+        names, data = self._cap(Vd=[3.0] * 8, Vq=[4.0] * 8)
+        out = autotune.step_diagnostics(names, data, 0)
+        self.assertIn("|Vdq|max=5.00 V", out)
+        self.assertNotIn("vbus/2", out)
+
+    def test_identifies_the_phase_sitting_in_the_compensation_ramp(self):
+        # Balanced 3 A vector at an angle where one leg is near zero: that leg
+        # gets almost no dead-time compensation, which is the position-dependent
+        # failure this exists to catch.
+        names, data = self._cap(Iu=[2.6] * 8, Iv=[0.05] * 8, Iw=[-2.6] * 8)
+        out = autotune.step_diagnostics(names, data, 0)
+        self.assertIn("min mean|Iph|=0.05 A (Iv)", out)
+
+    def test_uses_magnitude_so_a_negative_leg_is_not_mistaken_for_small(self):
+        names, data = self._cap(Iu=[-3.0] * 8, Iv=[1.5] * 8, Iw=[1.5] * 8)
+        out = autotune.step_diagnostics(names, data, 0)
+        self.assertIn("(Iv)", out)          # ties resolve to the first, not to Iu
+        self.assertIn("min mean|Iph|=1.50 A", out)
+
+    def test_skips_the_transient_edge_after_the_trigger(self):
+        # A large pre-step / edge sample must not contaminate the plateau numbers.
+        names, data = self._cap(Vd=[0.0] * 10, Vq=[99.0, 99.0, 99.0, 99.0] + [2.0] * 6,
+                                vbus=[40.0] * 10)
+        out = autotune.step_diagnostics(names, data, 2)   # lo = 2 + skip(2) = 4
+        self.assertIn("|Vdq|max=2.00 V", out)
+
+    def test_clamps_index_inside_the_capture(self):
+        names, data = self._cap(Vd=[0.0] * 4, Vq=[1.0] * 4)
+        out = autotune.step_diagnostics(names, data, 999)
+        self.assertIn("|Vdq|max=1.00 V", out)
+
+
+class TestStepDiagnosticsData(unittest.TestCase):
+    """The structured form the GUI lays out in its detail grid."""
+
+    def _cap(self, **cols):
+        names = list(cols)
+        return names, [list(cols[n]) for n in names]
+
+    def test_returns_only_the_keys_it_could_compute(self):
+        names, data = self._cap(Iq=[1.0] * 8)
+        d = autotune.step_diagnostics_data(names, data, 0)
+        self.assertNotIn("vmag", d)
+        self.assertNotIn("iph", d)
+        self.assertEqual(d["i0"], 2)          # i_step 0 + default skip 2
+
+    def test_reports_magnitude_bus_and_fraction(self):
+        names, data = self._cap(Vd=[3.0] * 8, Vq=[4.0] * 8, vbus=[40.0] * 8)
+        d = autotune.step_diagnostics_data(names, data, 0)
+        self.assertAlmostEqual(d["vmag"], 5.0)
+        self.assertAlmostEqual(d["vbus"], 40.0)
+        self.assertAlmostEqual(d["vmag_frac"], 5.0 / 20.0)
+
+    def test_omits_the_fraction_without_a_usable_bus(self):
+        names, data = self._cap(Vd=[0.0] * 8, Vq=[2.0] * 8)
+        d = autotune.step_diagnostics_data(names, data, 0)
+        self.assertAlmostEqual(d["vmag"], 2.0)
+        self.assertNotIn("vmag_frac", d)
+        self.assertNotIn("vbus", d)
+
+    def test_names_the_phase_in_the_compensation_ramp(self):
+        names, data = self._cap(Iu=[2.6] * 8, Iv=[0.05] * 8, Iw=[-2.6] * 8)
+        d = autotune.step_diagnostics_data(names, data, 0)
+        self.assertEqual(d["iph_name"], "Iv")
+        self.assertAlmostEqual(d["iph"], 0.05)
+
+    def test_string_form_is_a_view_over_the_data(self):
+        # The one-line verdict must not drift from the structured numbers.
+        names, data = self._cap(Vd=[3.0] * 8, Vq=[4.0] * 8, vbus=[40.0] * 8,
+                                Iu=[2.0] * 8, Iv=[0.1] * 8, Iw=[-2.1] * 8)
+        d = autotune.step_diagnostics_data(names, data, 0)
+        s = autotune.step_diagnostics(names, data, 0)
+        self.assertIn("%.2f" % d["vmag"], s)
+        self.assertIn("%.3f" % d["vmag_frac"], s)
+        self.assertIn(d["iph_name"], s)
+
+
+class TestStepLevels(unittest.TestCase):
+    """Level read-outs (y_final / y_peak / noise / settled) used by the detail grid."""
+
+    DT = 1e-4
+
+    def _step(self, y_pre, y_post, n_pre=20, n_post=80):
+        return [y_pre] * n_pre + [y_post] * n_post
+
+    def test_final_and_peak_on_a_clean_step(self):
+        y = self._step(0.0, 2.0)
+        m = autotune.step_metrics(y, self.DT, ref0=0.0, ref1=2.0, i_step=20)
+        self.assertTrue(m.ok, m.reason)
+        self.assertAlmostEqual(m.y_final, 2.0)
+        self.assertAlmostEqual(m.y_peak, 2.0)
+        self.assertTrue(m.settled)
+
+    def test_undershoot_is_reported_even_though_the_step_is_clean(self):
+        # Reaches only 1.2 of a commanded 3.0 -- the dead-zone signature. The
+        # metrics still parse (ref1 is given), and y_final carries the shortfall.
+        y = self._step(0.0, 1.2)
+        m = autotune.step_metrics(y, self.DT, ref0=0.0, ref1=3.0, i_step=20)
+        self.assertAlmostEqual(m.y_final, 1.2)
+        self.assertFalse(m.settled)      # never enters the +/-2% band around 3.0
+
+    def test_levels_survive_a_failed_analysis(self):
+        # Flat trace: no detectable step, but the level is still the useful fact.
+        y = [1.5] * 100
+        m = autotune.step_metrics(y, self.DT, i_step=20)
+        self.assertFalse(m.ok)
+        self.assertEqual(m.reason, "no detectable step")
+        self.assertAlmostEqual(m.y_final, 1.5)
+
+    def test_noise_is_the_larger_segment_deviation(self):
+        y = [0.0, 0.2, -0.2, 0.0] * 5 + [2.0] * 80
+        m = autotune.step_metrics(y, self.DT, ref0=0.0, ref1=2.0, i_step=20)
+        self.assertGreater(m.noise, 0.1)
+
+    def test_settled_false_when_still_short_at_the_window_edge(self):
+        # Slow ramp that has only reached ~75% of the commanded 2.0 A when the
+        # 128-sample window runs out -- a settling time measured off this would
+        # otherwise read as "settled at the last sample".
+        y = [0.0] * 20 + [1.5 * k / 79.0 for k in range(80)]
+        m = autotune.step_metrics(y, self.DT, ref0=0.0, ref1=2.0, i_step=20)
+        self.assertTrue(m.ok, m.reason)
+        self.assertAlmostEqual(m.y_final, 1.43, delta=0.05)
+        self.assertFalse(m.settled)
+
+
 if __name__ == "__main__":
     unittest.main()

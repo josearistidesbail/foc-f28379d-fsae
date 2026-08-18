@@ -3,3 +3,6 @@
 **/Release*/
 
 **/Production*/
+
+# Bench step-response logs written by the debug GUI (one CSV pair per session)
+foc_f28379d/host/step_logs/

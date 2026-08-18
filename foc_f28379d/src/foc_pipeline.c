@@ -168,6 +168,56 @@ volatile float32_t g_iq_cmd_max = IQ_CMD_MAX_DEFAULT_A;
 // high-speed feature; do not exercise it with vmax_frac lowered).
 volatile float32_t g_vdq_max_frac = VDQ_MAX_FRACTION;
 
+// ---- Dead-zone (dead-time + device drop) compensation feedforward --------
+// Cancels the inverter's own voltage error so the current PIs face a roughly
+// linear plant. See build_config.h DTC_* for the model, the two-term bus
+// scaling, and the phase_id_mod calibration recipe.
+// WHY feedforward and not gain (bench 2026-08-01): the dead zone is a plant
+// nonlinearity ~25-50 A wide on this motor, and no linear PI can be tuned
+// through it. Below the delay-limited gain ceiling the integrator needs
+// milliseconds of open-loop winding just to cross it (kp=0.7 never reached a
+// 2 A step); above the ceiling the loop limit-cycles the moment it pops out the
+// far side (kp=1.5 burst to +/-10 A). Both symptoms are the same wall.
+// Applied in FOC_RUN ONLY, after SVGEN, in the duty domain -- deliberately NOT
+// in ALIGN/OPENLOOP: those run the open-loop g_ol_mod drag drive whose values
+// (and the phase-ID governor built on them) are bench-calibrated against the
+// UNcompensated bridge, and the dwell solver reads current ratios that this
+// would alter.
+volatile uint16_t  g_dtc_en      = DTC_DEFAULT_EN;      // "dtc_en"   param, LIVE
+volatile float32_t g_dtc_duty    = DTC_DEADTIME_DUTY;   // "dtc_duty" param, LIVE
+volatile float32_t g_dtc_v       = DTC_VDROP_V;         // "dtc_v"    param, LIVE
+volatile float32_t g_dtc_ith     = DTC_ITH_A;           // "dtc_ith"  param, LIVE
+volatile float32_t g_dtc_inv_ith = 1.0f / DTC_ITH_A;    // derived, setter-maintained
+volatile float32_t g_dbg_dtc_k;   // total duty offset applied this tick ("dtc_k" RO)
+
+// One phase: duty += k * sat(i / ith). The ramp (rather than a hard sign) is
+// what keeps this from becoming a noise-driven +/-Vdt square wave at low
+// current -- on an 18 mOhm winding that would be tens of amps of command.
+static inline void dtc_apply(volatile FOC_Duty_t *d, volatile FOC_Iabc_t *i,
+                             float32_t inv_vbus)
+{
+    float32_t k = g_dtc_duty + g_dtc_v * inv_vbus;
+    float32_t inv_ith = g_dtc_inv_ith;
+    uint16_t  p;
+
+    g_dbg_dtc_k = k;
+    for(p = 0U; p < 3U; p++)
+    {
+        float32_t s = i->value[p] * inv_ith;
+        float32_t v;
+        if(s >  1.0f) s =  1.0f;
+        if(s < -1.0f) s = -1.0f;
+        // Per-phase clamp to the modulator's own range. Only the line-to-line
+        // differences drive the motor, so the common-mode part of this
+        // correction is free; clipping one phase distorts the vector, but it
+        // beats overflowing the CMPA conversion.
+        v = d->value[p] + k * s;
+        if(v >  0.5f) v =  0.5f;
+        if(v < -0.5f) v = -0.5f;
+        d->value[p] = v;
+    }
+}
+
 // ---- Step injector (current-loop step response) --------------------------
 // Applies a reference step and fires the datalog one-shot trigger in the SAME
 // ISR tick, so the captured window's trig_idx IS the first sample carrying the
@@ -957,16 +1007,22 @@ void foc_current_loop_isr(void)
     // so g_ol_mod maps directly to duty (the bench has vbus~=0, which would blow
     // up the real 1/vbus normalization). `iloop` is the step-3 latched copy so
     // the Vdq domain and this normalization can never disagree within a tick.
+    // Guarded reciprocal: a 0 V bus (bench, sense disconnected, no override)
+    // would make this infinite and blow up both SVGEN and the dead-zone term.
+    float32_t inv_vbus = (s_refs.vbus > 1.0f) ? (1.0f / s_refs.vbus) : 0.0f;
     if(st == FOC_OPENLOOP || ol_align)
         SVGEN_setOneOverDcBus_invV(s_svgen, 1.0f);
     else
-        SVGEN_setOneOverDcBus_invV(s_svgen, 1.0f / s_refs.vbus);
+        SVGEN_setOneOverDcBus_invV(s_svgen, inv_vbus);
 
     if(st == FOC_RUN || st == FOC_ALIGN_ROTOR || st == FOC_OPENLOOP)
     {
         IPARK_setup(s_ipark, s_sig.theta_elec);
         IPARK_run  (s_ipark, &s_sig.Vdq, &s_sig.Vab);
         SVGEN_run  (s_svgen, &s_sig.Vab, &s_sig.duty);
+        // Dead-zone feedforward: RUN only (ALIGN/OPENLOOP are calibrated
+        // against the uncompensated bridge -- see the g_dtc_* block above).
+        if(g_dtc_en && st == FOC_RUN) dtc_apply(&s_sig.duty, &s_sig.Iabc, inv_vbus);
         pwm_set_duty(&s_sig.duty);
     }
     else

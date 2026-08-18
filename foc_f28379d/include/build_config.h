@@ -145,6 +145,58 @@
 #define PHASE_ID_MOD_SLEW_PER_S 0.4f // governor duty slew rate [duty/s]
 #endif
 
+//----- Dead-time / dead-zone compensation feedforward ---------------------
+// [2026-08-01] The bridge does not deliver the volts it is told to: during the
+// dead-time interval neither device is on and the phase is clamped by whichever
+// diode the current picks, and on top of that every conducting device drops
+// Vce/Vf. Both errors OPPOSE the current, so the inverter behaves as a dead
+// zone of about
+//     Vdt = (Tdt * fsw) * Vbus   +   Vdrop
+// which the regulator can only cross by winding its integrator through it. On
+// the EMRAX (Rs = 18 mOhm) that dead zone is worth 25-50 A -- more than any
+// bench setpoint -- so the current loop has NO usable authority until it is
+// compensated: see the 2026-07-28 (railed Vd, zero current) and 2026-08-01
+// (kp=0.7 cannot reach 2 A / kp=1.5 limit-cycles) bench entries in CLAUDE.md.
+// The fix is feedforward, not gain: add +Vdt*sign(i_phase) back into each phase
+// duty AFTER SVGEN, so the regulator sees a near-linear plant.
+//
+// Split into two terms because they scale differently with the bus:
+//   DTC_DEADTIME_DUTY  pure dead time -- a fixed DUTY, bus-independent
+//   DTC_VDROP_V        semiconductor drops -- fixed VOLTS, duty = V/vbus
+// so one calibration extrapolates from the 24 V bench to the real HV bus.
+//
+// CALIBRATE IT, do not trust the default. "phase_id_mod" is exactly the right
+// instrument: the ALIGN dwell governor reports the peak-phase duty m needed for
+// phase_id_a amps, and on a milliohm winding the resistive share is negligible
+// (1 A through 1.5*Rs = 27 mV = 0.001 duty), so essentially all of it is tax.
+// The dwell drives one phase against the other two, i.e. 1.5*m*Vbus across a
+// loop carrying two devices' worth of tax:
+//     Vdt ~= 0.75 * phase_id_mod * Vbus
+// Bench 2026-08-01: phase_id_mod = 0.058 at 24 V -> Vdt ~= 1.04 V (0.0435 duty).
+// CAVEAT on splitting that total: whether a symmetric carrier loses one or two
+// dead-time intervals per period is a factor-of-2 the textbooks disagree on, so
+// DTC_DEADTIME_DUTY below assumes ONE (Tdt*fsw). If a bus-voltage sweep shows
+// the residual dead zone growing with Vbus, move budget from DTC_VDROP_V into
+// DTC_DEADTIME_DUTY (their sum at 24 V is what the measurement actually pins).
+#ifndef DTC_DEFAULT_EN
+#define DTC_DEFAULT_EN          0U   // OFF at boot -- enable per bench session
+#endif
+#ifndef DTC_DEADTIME_DUTY
+#define DTC_DEADTIME_DUTY       ((float32_t)PWM_DEADBAND_NS * 1.0e-9f * PWM_FREQ_HZ)
+#endif
+#ifndef DTC_VDROP_V
+#define DTC_VDROP_V             0.0f // per-hw; 0 = dead-time term only
+#endif
+// Zero-crossing ramp. A hard sign() would inject a +/-Vdt square wave whenever
+// measurement noise flips the sign of a near-zero phase current -- on this motor
+// that is tens of amps of command, a guaranteed limit cycle. Compensation is
+// therefore ramped linearly over +/-DTC_ITH_A instead of switched. Size it a few
+// times the phase-current noise floor: too small chatters, too large leaves the
+// dead zone uncompensated at low current.
+#ifndef DTC_ITH_A
+#define DTC_ITH_A               2.0f
+#endif
+
 //----- Control mode (outer-loop source of iq_ref) -------------------------
 #define FOC_MODE_TORQUE         0U   // iq_ref commanded directly (bring-up)
 #define FOC_MODE_SPEED          1U   // iq_ref from the speed PI (omega_ref)

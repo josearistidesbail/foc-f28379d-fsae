@@ -141,6 +141,13 @@ class StepMetrics:
     overshoot_pct: float = 0.0  # percent past the final value
     t_settle: float = 0.0       # time from edge to within the settle band [s]
     bw_hz: float = 0.0          # effective bandwidth ~0.35/t_rise [Hz]
+    # Level read-outs. These are filled in even when ok=False (as long as there
+    # were enough samples to average), because "the step did not reach target"
+    # is exactly the case where the operator wants to know how far it got.
+    y_final: float = 0.0        # mean of the trailing 10% of the window
+    y_peak: float = 0.0         # extreme value after the edge, in the step direction
+    noise: float = 0.0          # larger of the pre-step / post-step sample std dev
+    settled: bool = False       # last sample lies inside the settle band
 
 
 def _mean(seq) -> float:
@@ -186,17 +193,19 @@ def step_metrics(y, dt: float, ref0=None, ref1=None,
         i_step = None
         pre = y[:tail]
 
+    y_final = _mean(y[-tail:])
     if ref0 is None:
         ref0 = _mean(pre)
     if ref1 is None:
-        ref1 = _mean(y[-tail:])
+        ref1 = y_final
     delta = ref1 - ref0
     # Reject when the level change is not large compared with the in-segment
     # noise -- i.e. there is no real step, just a noisy flat trace.
     noise = max(_std(pre), _std(y[-tail:]))
     if abs(delta) < max(1e-9, 5.0 * noise):
         return StepMetrics(ok=False, reason="no detectable step", ref0=ref0,
-                           ref1=ref1, i_step=i_step if known_edge else -1)
+                           ref1=ref1, i_step=i_step if known_edge else -1,
+                           y_final=y_final, noise=noise)
 
     # Normalized progress 0->1 across the step (sign-agnostic via /delta).
     frac = [(v - ref0) / delta for v in y]
@@ -206,7 +215,8 @@ def step_metrics(y, dt: float, ref0=None, ref1=None,
         i_step = next((i for i, f in enumerate(frac) if f >= 0.5), -1)
         if i_step < 0:
             return StepMetrics(ok=False, reason="step edge not in window",
-                               ref0=ref0, ref1=ref1)
+                               ref0=ref0, ref1=ref1, y_final=y_final,
+                               noise=noise)
 
     # 10-90% rise. With a known edge, scan forward from it so pre-step noise can
     # never supply the 10% crossing; otherwise scan the whole window as before.
@@ -226,11 +236,17 @@ def step_metrics(y, dt: float, ref0=None, ref1=None,
         if abs(frac[i] - 1.0) > settle_frac:
             t_settle = (i - i_step) * dt
             break
+    # A trace that never enters the band yields t_settle == (n-1-i_step)*dt, which
+    # reads exactly like "settled at the end of the window". Flag the difference
+    # rather than reporting a settling time that never happened.
+    settled = abs(frac[n - 1] - 1.0) <= settle_frac
 
     bw = (0.35 / t_rise) if t_rise > 0.0 else 0.0
     return StepMetrics(ok=True, i_step=i_step, ref0=ref0, ref1=ref1,
                        t_rise=t_rise, overshoot_pct=overshoot,
-                       t_settle=t_settle, bw_hz=bw)
+                       t_settle=t_settle, bw_hz=bw, y_final=y_final,
+                       y_peak=ref0 + peak * delta, noise=noise,
+                       settled=settled)
 
 
 def fit_slope(y, dt: float, i0: int = 0, i1: int | None = None) -> float:
@@ -248,3 +264,88 @@ def fit_slope(y, dt: float, i0: int = 0, i1: int | None = None) -> float:
     num = sum((x - mx) * (yy - my) for x, yy in zip(xs, ys))
     den = sum((x - mx) ** 2 for x in xs)
     return num / den if den != 0.0 else 0.0
+
+
+def _median(seq) -> float:
+    seq = sorted(seq)
+    n = len(seq)
+    if n == 0:
+        return 0.0
+    return seq[n // 2] if n % 2 else 0.5 * (seq[n // 2 - 1] + seq[n // 2])
+
+
+def step_diagnostics_data(names, data, i_step: int, skip: int = 2) -> dict:
+    """Structured form of :func:`step_diagnostics` -- see there for the rationale.
+
+    Returns only the keys it could compute, so callers must use ``.get()``:
+
+    ``vmag``      peak ``|Vdq|`` over the post-step plateau [V]
+    ``vbus``      median DC-bus over the same samples [V]
+    ``vmag_frac`` ``vmag / (vbus/2)`` -- compare directly against ``vmax_frac``
+    ``iph``       smallest mean ``|phase current|`` [A]
+    ``iph_name``  which phase that was
+    ``i0``        first sample index used (the post-step plateau starts here)
+    """
+    idx = {n: i for i, n in enumerate(names)}
+    n_samp = len(data[0]) if len(data) else 0
+    if n_samp == 0:
+        return {}
+    lo = max(0, min(int(i_step) + skip, n_samp - 1))
+
+    def col(name):
+        i = idx.get(name)
+        return None if i is None else [float(v) for v in data[i][lo:]]
+
+    out = {"i0": lo}
+    vd, vq, vbus = col("Vd"), col("Vq"), col("vbus")
+    if vd and vq:
+        out["vmag"] = max(math.hypot(a, b) for a, b in zip(vd, vq))
+        vb = _median(vbus) if vbus else 0.0
+        if vb > 1.0:
+            out["vbus"] = vb
+            out["vmag_frac"] = out["vmag"] / (0.5 * vb)
+    phases = [(n, col(n)) for n in ("Iu", "Iv", "Iw")]
+    phases = [(n, c) for n, c in phases if c]
+    if phases:
+        mag, name = min((_mean([abs(v) for v in c]), n) for n, c in phases)
+        out["iph"], out["iph_name"] = mag, name
+    return out
+
+
+def step_diagnostics(names, data, i_step: int, skip: int = 2) -> str:
+    """One-line verdict on a current step that missed its target: volts, or dead zone?
+
+    `names`/`data` are a scope capture's channel names and parallel sample rows.
+    Only channels that are present are reported, so this is safe on a capture
+    that carries just Id/Iq.
+
+    A step that fails to reach its reference at standstill has only two plausible
+    causes, and both are visible in the post-step plateau of the same capture --
+    no second experiment, so the answer cannot drift between runs:
+
+    * ``|Vdq|`` sitting at the PI clamp means the loop ran out of VOLTAGE. The
+      clamp is ``vmax_frac * vbus * 0.5``, so the magnitude is reported as a
+      fraction of ``vbus/2`` and compares directly against the vmax_frac
+      parameter without having to read it.
+    * a phase current near ZERO means that leg sat inside the dead-time
+      compensation ramp (``dtc_ith``) and received almost none of the
+      compensation -- even though the dead-zone error itself is independent of
+      current magnitude. Which leg lands there is set by the electrical angle
+      with 60 deg period, which is why it presents as rotor-position-dependent
+      flakiness rather than a consistent fault.
+
+    Note this is deliberately NOT a pass/fail: it reports the two numbers that
+    discriminate the causes and leaves the judgement to the operator, because
+    the thresholds depend on bench conditions (bus, vmax_frac, step size).
+    """
+    d = step_diagnostics_data(names, data, i_step, skip)
+    bits = []
+    if "vmag" in d:
+        if "vmag_frac" in d:
+            bits.append("|Vdq|max=%.2f V (%.3f of vbus/2 -> vs vmax_frac)"
+                        % (d["vmag"], d["vmag_frac"]))
+        else:
+            bits.append("|Vdq|max=%.2f V" % d["vmag"])
+    if "iph" in d:
+        bits.append("min mean|Iph|=%.2f A (%s)" % (d["iph"], d["iph_name"]))
+    return "   ".join(bits)
