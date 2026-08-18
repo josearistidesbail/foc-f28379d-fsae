@@ -120,11 +120,17 @@
 #define PHASE_ID_AVG_S          0.6f // averaged tail of each dwell (was 0.2)
 #endif
 #ifndef PHASE_ID_MIN_A
-#define PHASE_ID_MIN_A          0.3f // peak dwell average below this = no signal
+#define PHASE_ID_MIN_A          0.3f // driven-dwell average below this = no signal
 #endif
-#ifndef PHASE_ID_DOMINANCE
-#define PHASE_ID_DOMINANCE      1.3f // peak must exceed runner-up by this ratio
-                                     // (ideal is 2.0; ~1 = ambiguous wiring)
+// [2026-08-01] PHASE_ID_DOMINANCE (peak vs runner-up magnitude ratio) is GONE:
+// the solver now decides on the dwell SIGN pattern, which is invariant to the
+// dwell-to-dwell amplitude inequality the bench actually produces (see
+// adc_isense_phase_id_commit). What still needs a magnitude gate is trusting a
+// SIGN at all -- a dwell averaging ~0 has a random sign and would fabricate a
+// pattern. The two undriven phases carry half the driven one, so this floor is
+// half of PHASE_ID_MIN_A.
+#ifndef PHASE_ID_SIGN_MIN_A
+#define PHASE_ID_SIGN_MIN_A     (0.5f * PHASE_ID_MIN_A)
 #endif
 // Dwell-current governor: the dwells do NOT use the fixed ol_mod drag drive
 // (sized to move the rotor -- far more current than a measurement needs, and
@@ -137,6 +143,58 @@
 #endif
 #ifndef PHASE_ID_MOD_SLEW_PER_S
 #define PHASE_ID_MOD_SLEW_PER_S 0.4f // governor duty slew rate [duty/s]
+#endif
+
+//----- Dead-time / dead-zone compensation feedforward ---------------------
+// [2026-08-01] The bridge does not deliver the volts it is told to: during the
+// dead-time interval neither device is on and the phase is clamped by whichever
+// diode the current picks, and on top of that every conducting device drops
+// Vce/Vf. Both errors OPPOSE the current, so the inverter behaves as a dead
+// zone of about
+//     Vdt = (Tdt * fsw) * Vbus   +   Vdrop
+// which the regulator can only cross by winding its integrator through it. On
+// the EMRAX (Rs = 18 mOhm) that dead zone is worth 25-50 A -- more than any
+// bench setpoint -- so the current loop has NO usable authority until it is
+// compensated: see the 2026-07-28 (railed Vd, zero current) and 2026-08-01
+// (kp=0.7 cannot reach 2 A / kp=1.5 limit-cycles) bench entries in CLAUDE.md.
+// The fix is feedforward, not gain: add +Vdt*sign(i_phase) back into each phase
+// duty AFTER SVGEN, so the regulator sees a near-linear plant.
+//
+// Split into two terms because they scale differently with the bus:
+//   DTC_DEADTIME_DUTY  pure dead time -- a fixed DUTY, bus-independent
+//   DTC_VDROP_V        semiconductor drops -- fixed VOLTS, duty = V/vbus
+// so one calibration extrapolates from the 24 V bench to the real HV bus.
+//
+// CALIBRATE IT, do not trust the default. "phase_id_mod" is exactly the right
+// instrument: the ALIGN dwell governor reports the peak-phase duty m needed for
+// phase_id_a amps, and on a milliohm winding the resistive share is negligible
+// (1 A through 1.5*Rs = 27 mV = 0.001 duty), so essentially all of it is tax.
+// The dwell drives one phase against the other two, i.e. 1.5*m*Vbus across a
+// loop carrying two devices' worth of tax:
+//     Vdt ~= 0.75 * phase_id_mod * Vbus
+// Bench 2026-08-01: phase_id_mod = 0.058 at 24 V -> Vdt ~= 1.04 V (0.0435 duty).
+// CAVEAT on splitting that total: whether a symmetric carrier loses one or two
+// dead-time intervals per period is a factor-of-2 the textbooks disagree on, so
+// DTC_DEADTIME_DUTY below assumes ONE (Tdt*fsw). If a bus-voltage sweep shows
+// the residual dead zone growing with Vbus, move budget from DTC_VDROP_V into
+// DTC_DEADTIME_DUTY (their sum at 24 V is what the measurement actually pins).
+#ifndef DTC_DEFAULT_EN
+#define DTC_DEFAULT_EN          0U   // OFF at boot -- enable per bench session
+#endif
+#ifndef DTC_DEADTIME_DUTY
+#define DTC_DEADTIME_DUTY       ((float32_t)PWM_DEADBAND_NS * 1.0e-9f * PWM_FREQ_HZ)
+#endif
+#ifndef DTC_VDROP_V
+#define DTC_VDROP_V             0.0f // per-hw; 0 = dead-time term only
+#endif
+// Zero-crossing ramp. A hard sign() would inject a +/-Vdt square wave whenever
+// measurement noise flips the sign of a near-zero phase current -- on this motor
+// that is tens of amps of command, a guaranteed limit cycle. Compensation is
+// therefore ramped linearly over +/-DTC_ITH_A instead of switched. Size it a few
+// times the phase-current noise floor: too small chatters, too large leaves the
+// dead zone uncompensated at low current.
+#ifndef DTC_ITH_A
+#define DTC_ITH_A               2.0f
 #endif
 
 //----- Control mode (outer-loop source of iq_ref) -------------------------

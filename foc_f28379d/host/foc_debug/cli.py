@@ -19,7 +19,7 @@ One-shot commands (auto-connect, run once, exit):
                                                       # fit saved 'vbus' captures
 
 REPL commands (type at the foc> prompt — no flags):
-    ports, connect [port], disconnect, ping [text], list,
+    ports [all], connect [port], disconnect, ping [text], list,
     read <name>, write <name> <val>, config <decim>, scope [csv],
     run, stop, clearfault, state, vbuscal [--apply|-n500], help, quit
 """
@@ -31,7 +31,7 @@ import sys
 
 from . import proto
 from .api import FocDebug
-from .link import SerialLink, LinkError, NackError, autodetect_port
+from .link import SerialLink, LinkError, NackError, autodetect_port, debug_ports
 from .log import setup_logging
 
 
@@ -218,11 +218,16 @@ def _do_vbuscal(dbg, args: list) -> int:
     return 0
 
 
-def _print_ports():
+def _print_ports(all_ports=False):
     from serial.tools import list_ports
 
-    for p in list_ports.comports():
+    shown = list(list_ports.comports()) if all_ports else debug_ports()
+    for p in shown:
         print(f"  {p.device}\t{p.description}")
+    if not all_ports:
+        hidden = len(list_ports.comports()) - len(shown)
+        if hidden > 0:
+            print(f"  ({hidden} hidden: JTAG channels / non-USB ports — 'ports all')")
     print(f"  auto-detect guess: {autodetect_port()}")
 
 
@@ -235,7 +240,7 @@ def run_command(sess: Session, argv: list) -> int:
 
     # Commands that work without (or manage) a connection.
     if cmd in ("ports", "lsports"):
-        _print_ports()
+        _print_ports(all_ports=bool(args) and args[0].lower() == "all")
         return 0
     if cmd in ("connect", "open"):
         try:

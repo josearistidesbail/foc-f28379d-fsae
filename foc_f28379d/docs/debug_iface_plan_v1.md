@@ -214,3 +214,10 @@ all steps are complete:
 - Parameter persistence to flash (NVM).
 - Authentication / safety-critical command gating beyond `needs_idle`.
 - Migrating any of this to CPU2 (revisit only if profiling shows real ISR jitter from comms — not expected).
+
+
+## how to run
+
+cd host
+source .venv/bin/activate.fish
+python -m foc_debug

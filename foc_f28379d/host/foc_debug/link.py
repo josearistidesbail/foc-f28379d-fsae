@@ -34,25 +34,131 @@ class NackError(LinkError):
         super().__init__(f"NACK {name} (ctx=0x{ctx:02X})")
 
 
-def autodetect_port() -> str | None:
-    """Best-effort pick of the XDS100v2 backchannel UART.
+# A debug probe shows up TWICE in the port list: one tty node per USB interface.
+# On the XDS100v2 (FT2232, 0403:A6D0) interface 0 is channel A = the JTAG/MPSSE
+# engine and interface 1 is channel B = the SCI backchannel; Linux's ftdi_sio
+# binds a ttyUSB to both, even though only B is a UART. On CDC probes (XDS110)
+# the LOWER interface is the user UART and the higher one is the auxiliary data
+# port. Device-name order does NOT track this — on the bench box ttyUSB0 is
+# interface 1 and ttyUSB1 is interface 0 — so identify the channel, never take
+# "the last ttyUSB".
+#
+# How the channel is identified, per platform (pyserial 3.5 backends):
+#   Linux    ListPortInfo.location = '1-3.1:1.1' for multi-interface devices
+#            (list_ports_linux.py:56) -> authoritative bInterfaceNumber.
+#   Windows  composite/usbser devices: MI_xx from the hardware ID is appended to
+#            location as ':x.1' (list_ports_windows.py:367) -> same parse. Under
+#            the FTDI VCP driver the FTDIBUS ID hides the location entirely, but
+#            it appends the channel LETTER to the serial ('TI7FRMJRA').
+#   macOS    location is bus/port only ('1-3.1'), no interface number, but the
+#            device node carries the letter ('/dev/cu.usbserial-TI7FRMJRB').
+# Anything else falls through to "show both", which is the safe direction: a
+# duplicate entry is an annoyance, a hidden working port is a dead GUI.
+FTDI_VID = 0x0403
 
-    The LAUNCHXL-F28379D presents an FT2232 with two interfaces; the second
-    (higher) one is the SCI backchannel. We match on description/manufacturer
-    and prefer the second matching port.
+_PROBE_KEYS = ("xds100", "xds110", "ft2232", "texas", "ti ", "tiva", "dual rs232")
+_CHANNEL_LETTERS = "ABCD"
+
+
+def usb_interface_num(p) -> int | None:
+    """bInterfaceNumber of a port, parsed from pyserial's location string.
+
+    Linux and Windows give e.g. '1-3.1:1.1' / '1-3:x.1' (bus-port:config.iface).
+    Returns None when the platform does not report it (macOS, Windows+FTDI).
     """
-    candidates = []
-    for p in list_ports.comports():
-        hay = " ".join(
-            str(x) for x in (p.description, p.manufacturer, p.product, p.interface)
-        ).lower()
-        if any(k in hay for k in ("xds100", "ft2232", "texas", "ti ", "tiva", "dual rs232")):
-            candidates.append(p.device)
-    if not candidates:
+    loc = getattr(p, "location", None)
+    if not loc or ":" not in str(loc):
         return None
-    # Backchannel UART is typically the second interface (e.g. ttyUSB1).
-    candidates.sort()
-    return candidates[-1]
+    try:
+        return int(str(loc).rsplit(":", 1)[1].split(".")[-1])
+    except ValueError:
+        return None
+
+
+def _ftdi_channel(p) -> int | None:
+    """Channel index from the A/B/C/D suffix multi-channel FTDI parts carry.
+
+    Fallback for the platforms that hide the interface number. Only consulted
+    for FTDI VIDs, and only ever used to tell siblings of ONE device apart.
+    """
+    if getattr(p, "vid", None) != FTDI_VID:
+        return None
+    for s in (p.serial_number, p.device):
+        if s and str(s)[-1] in _CHANNEL_LETTERS:
+            return _CHANNEL_LETTERS.index(str(s)[-1])
+    return None
+
+
+def _channel_rank(p) -> int | None:
+    """Which channel of its parent device this port is, or None if unknown."""
+    n = usb_interface_num(p)
+    return n if n is not None else _ftdi_channel(p)
+
+
+def _group_key(p):
+    """Identity of the physical device a port belongs to.
+
+    The Windows FTDI driver reports a per-CHANNEL serial ('…A'/'…B'), so strip
+    that suffix or the two halves of one probe never meet. Two distinct
+    single-channel FTDI cables whose serials differ only in a trailing A vs B
+    would alias here — indistinguishable from one dual-channel part at this
+    layer, and vanishingly unlikely with factory-random serials.
+    """
+    sn = p.serial_number
+    if sn and _ftdi_channel(p) is not None and str(sn)[-1] in _CHANNEL_LETTERS:
+        sn = str(sn)[:-1]
+    return (p.vid, p.pid, sn)
+
+
+def _is_probe(p) -> bool:
+    hay = " ".join(
+        str(x) for x in (p.description, p.manufacturer, p.product, p.interface)
+    ).lower()
+    return any(k in hay for k in _PROBE_KEYS)
+
+
+def debug_ports(ports=None) -> list:
+    """USB serial ports, with each debug probe's non-UART sibling removed.
+
+    Drops the pure-virtual /dev/ttyS*/COM motherboard ports (no VID) as well:
+    they are never the backchannel and there can be dozens of them.
+
+    Pruning applies ONLY to devices that identify as a debug probe — a plain
+    FT4232 quad-UART adapter keeps all four nodes, since there every channel is
+    a real port.
+    """
+    ports = list(list_ports.comports() if ports is None else ports)
+    usb = [p for p in ports if getattr(p, "vid", None) is not None]
+
+    groups: dict = {}
+    for p in usb:
+        groups.setdefault(_group_key(p), []).append(p)
+
+    keep = []
+    for (vid, _pid, _sn), grp in groups.items():
+        ranks = [(_channel_rank(p), p) for p in grp]
+        unknown = any(r is None for r, _ in ranks)
+        ambiguous = len({r for r, _ in ranks}) != len(ranks)
+        if len(grp) == 1 or unknown or ambiguous or not any(_is_probe(p) for p in grp):
+            keep.extend(grp)
+            continue
+        # FTDI probes put the UART on the LAST channel (B), CDC probes such as
+        # the XDS110 put the user UART on the FIRST (the aux data port follows).
+        pick = max if vid == FTDI_VID else min
+        keep.append(pick(ranks, key=lambda t: t[0])[1])
+
+    keep.sort(key=lambda p: p.device)
+    return keep
+
+
+def autodetect_port() -> str | None:
+    """Best-effort pick of the backchannel UART."""
+    cands = debug_ports()
+    probes = [p for p in cands if _is_probe(p)]
+    if probes:
+        return probes[0].device
+    # No recognisable probe: only guess when there is nothing to guess between.
+    return cands[0].device if len(cands) == 1 else None
 
 
 class SerialLink:

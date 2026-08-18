@@ -80,4 +80,24 @@ SECTIONS
     .text:adc_isense_phase_id_commit  : > FLASHA   PAGE = 0, ALIGN(8)
     .text:myADCA_init                 : > FLASHA   PAGE = 0, ALIGN(8)
     .text:myADCB_init                 : > FLASHA   PAGE = 0, ALIGN(8)
+
+    /* Dead-zone compensation feedforward (dtc_apply + its four live params) hit
+     * the same wall (#10099: .cinit 0x5c, FLASHB 0x0 free). This has now recurred
+     * on six consecutive features, so rather than free the minimum again, take
+     * ~0x337 words at once for lasting headroom -- FLASHA still had 0x124c free.
+     * NOTE all F2837xD flash banks share the same wait-state configuration, so
+     * FLASHA vs FLASHB is purely an address choice with no speed cost; the only
+     * rule being kept is that foc_current_loop_isr and the per-tick helpers it
+     * calls stay put. Everything below runs once at startup, once per
+     * calibrate/align, or on a host serial request:
+     *   dispatch (0x18f)  debug_iface serial command handler, main-loop context
+     *   adc_set_sincos_scale (0x87)  once per align, same as the phase-ID solver
+     *   adc_init (0x55) / Device_init (0x3f) / main (0x34)  one-time startup
+     *   adc_calibrate_offsets (0x39)  once per CALIBRATE, blocking spin loop */
+    .text:dispatch                    : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:adc_set_sincos_scale        : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:adc_init                    : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:adc_calibrate_offsets       : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:Device_init                 : > FLASHA   PAGE = 0, ALIGN(8)
+    .text:main                        : > FLASHA   PAGE = 0, ALIGN(8)
 }

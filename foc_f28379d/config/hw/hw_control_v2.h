@@ -31,6 +31,17 @@
 #define PWM_FREQ_HZ             10000.0f
 #define PWM_DEADBAND_NS         1500U       // larger for high-power IGBT/SiC
 
+// ---- Dead-zone compensation (see build_config.h DTC_* for the model) -----
+// PrimeSTACK 6PS04512E43W39693, a 900 V-class IGBT stack run at a 24 V bench
+// bus, so the fixed-volts tax is at its worst here relative to the commanded
+// volts. Measured 2026-08-01 via the ALIGN dwell governor: phase_id_mod = 0.058
+// at 24 V => Vdt ~= 0.75 * 0.058 * 24 ~= 1.04 V total (0.0435 duty). The
+// dead-time term at 1.5 us / 10 kHz accounts for 0.015 duty = 0.36 V of that,
+// leaving ~0.68 V of IGBT Vce(sat) + diode Vf -- a believable pair of drops at
+// ~1 A on a stack sized for hundreds. RE-MEASURE at the real bus before trusting
+// the split (see the caveat in build_config.h).
+#define DTC_VDROP_V             0.68f
+
 // ---- ADC mapping (phase currents via external LEM clamps) --------------
 // Two macro sets that MUST stay consistent with board_control_v2.syscfg:
 //   ADC_BASE_*/ADC_CH_*       -> the analog module + channel (the SOC's soc*Channel)
@@ -108,7 +119,7 @@
 //      when the real high-current transducer is fitted.
 //   !! adc_calibrate_offsets() captures the true zero each CALIBRATE, so
 //      ISENSE_ZERO_CODE is only a pre-cal placeholder.
-#define LEM_V_PER_A             0.0786f     // 78.6 mV/A, bench-measured 2026-07-22
+#define LEM_V_PER_A             0.0075f     // 7.5 mV/A
 #define ADC_VREF_V              3.0f        // VREFHI = 3.0 V (resolver 0-3.3 V clips -> confirms 3.0)
 #define ADC_FULL_SCALE_CODE     4096.0f
 #define ISENSE_AMPS_PER_CODE    (ADC_VREF_V / ADC_FULL_SCALE_CODE / LEM_V_PER_A)
@@ -127,64 +138,10 @@
 // resistor divider -> ADCINC2. NOT a raw bus tap: the PrimeSTACK output is a
 // SENSOR that gives 6.5 V typ at 900 V bus (datasheet 6.4/6.5/6.6 V), i.e. a
 // gain of 900/6.5 = 138.46 V(bus) per V(sensor). The external divider is two
-// equal 69 kOhm resistors = /2 (source impedance 69k||69k = 34.5k -> needs the
-// long ADC acquisition window, see myADCC SOC1 = 512 cycles, and ideally an
-// RC cap at the pin). Total bus->pin gain = (6.5/900)*(1/2) = 1/276.9, so:
-//     VBUS_DIVIDER_RATIO = (900/6.5) * 2 = 276.92
-// Sanity: 30 V bus -> pin 108 mV -> ~30 V reading; 400 V -> pin 1.44 V.
-// Ceiling: pin reaches the 3.0 V VREF at ~831 V bus (> VBUS_MAX 470, OK).
-// TRIM against a meter: the 6.5 V sensor point is +/-1.5% and the resistors have
-// tolerance. Bench 24-30 V is only ~3% of the 900 V range (pin ~0.1 V, noisy /
-// low-res) -- calibrate nearer the real bus if you can. The old 74.18 was
-// calibrated against a settling-corrupted reading and is invalid; 138.46 (the
-// prior value) was the sensor factor alone and omitted the /2 divider.
-//   !! [2026-07-29] BENCH-FITTED (8-point live vbuscal, 20-150 V), replacing the
-//      276.92 model above. The old (ratio 276.92, offset 0) read 21.0 / 44.8 /
-//      66.2 V at a metered 40 / 65 / 90 -- **~-19 to -24 V of error, nearly
-//      CONSTANT IN VOLTS, i.e. an OFFSET signature, not a gain error** (the sense
-//      sits ~94-117 codes below the proportional model). A gain-only retrim
-//      anchored at 65 V (ratio 401.4) would have left -9.6 V at 40 V and +6.0 V at
-//      90 V; the affine fit lands inside +/-1.1 V. That is the argument for the
-//      affine form, measured -- and why the earlier single-point "verified at 30 V"
-//      cross-check could not have caught it.
-//      Measured codes (interleaved order, meter-verified):
-//        20 V -> 27.41   30 V -> 64.50    40 V -> 103.66   65 V -> 221.48
-//        90 V -> 327.36  115 V -> 444.13  150 V -> 610.28  40 V -> 104.67 (repeat)
-//   !! FITTED OVER 40-150 V ONLY, DELIBERATELY EXCLUDING 20/30 V. Local segment
-//      gain [codes/V] is flat above 40 V and COMPRESSED below it:
-//        20->30: 3.709   30->40: 3.916 | 40->65: 4.672  65->90: 4.235
-//                                        90->115: 4.671 115->150: 4.747
-//      Codes 27 and 64 are 0.7% and 1.6% of ADC full scale -- deep in the region
-//      where the SAR's own INL/offset dominate. Including them biased the slope 1%
-//      and doubled the residual RMS (0.67 -> 1.12 V), so they are kept as EVIDENCE
-//      that the sense is unusable below ~40 V, not as fit inputs.
-//      **The negative offset is what drags the bench range into the ADC's worst
-//      decade** (150 V is only code 610 = 15% of scale). At the real 400 V bus the
-//      code is ~1750 = 43% of scale, where the ADC is well behaved -- so most of
-//      this nonlinearity is a BENCH artifact and should shrink as the bus rises.
-//   !! RESOLVED / OPEN:
-//      * DRIFT IS NOT THE PROBLEM. The 40 V repeat moved only +1.01 codes
-//        (+0.22 V) across the whole session, inside 3 sigma; and 40/65/90 V
-//        reproduced the PREVIOUS session within ~1 code. The sense is stable.
-//      * The 65->90 V gain dip (4.235 vs ~4.7 either side) REPRODUCED exactly
-//        across both sessions (4.220 then 4.235) -- a real, localized feature, not
-//        noise and not smooth curvature. 90 V is the largest residual (+1.11 V).
-//        Codes 221->327 cross the 256 major-carry boundary, where SAR INL is
-//        typically worst; suspect ADC INL rather than the analog front end.
-//      * offset -79.4 codes puts the reading at +17.4 V when the ADC reads code 0,
-//        so below ~40 V it OVER-reads and the bench idle bus (~6 V of gate-drive
-//        back-feed) shows ~17-20 V. Fine for a UV threshold near the operating bus;
-//        **never use this fit to judge bus-discharged / safe-to-touch.**
-//      * Extrapolation to 400 V: +/-3.4 V statistical (0.84% slope), but which
-//        subset you fit moves it 395-400 V. RE-RUN vbuscal near the real bus before
-//        relying on the 460 V OV trip.
-#define VBUS_DIVIDER_RATIO      298.35f
+// Always run a callibration run after changes to the frontend
+#define VBUS_DIVIDER_RATIO      297.14f
 #define VBUS_VOLTS_PER_CODE     (ADC_VREF_V * VBUS_DIVIDER_RATIO / ADC_FULL_SCALE_CODE)
-// ADC code at 0 V bus, from the affine fit above (NOT a guess -- an invented offset
-// is indistinguishable from a gain error at a single operating point). Negative is
-// legitimate: it means the line crosses 0 V at a code the unipolar ADC cannot
-// reach, i.e. the chain has a real negative zero error (~-52 mV at the pin).
-#define VBUS_OFFSET_CODE        -79.4f
+#define VBUS_OFFSET_CODE        11.4f
 
 // ---- RM44AC notes -------------------------------------------------------
 // The RM44AC is a magnetic sin/cos angle sensor (already-demodulated Va/Vb
@@ -263,23 +220,13 @@
 // g_module_faults_en flag (live-toggle via the "module_faults_en" serial param)
 // and pwm_init() drops the OSHT trip-zone sources.
 //   *** SET BACK TO 0 BEFORE CONNECTING THE INVERTER / POWER STAGE. ***
-#define BENCH_NO_POWER_STAGE    1U
+#define BENCH_NO_POWER_STAGE    0U
 // Bench DC-bus handling while the PrimeSTACK sensor scale is untrusted at low
 // voltage: the CONTROL loop + OV/UV trips run on a fixed override (24 V bench
 // nominal), and the SW UV trip is bypassed. The scope/"vbus" readout still show
 // the live measured bus. Both revert to normal (measured bus, UV armed) in
 // production (BENCH_NO_POWER_STAGE = 0). Remove once the sensor is calibrated.
-#define VBUS_OVERRIDE_DEFAULT_V (BENCH_NO_POWER_STAGE ? 24.0f : 0.0f)
+#define VBUS_OVERRIDE_DEFAULT_V (BENCH_NO_POWER_STAGE ? 60.0f : 0.0f)
 #define UV_FAULT_EN_DEFAULT     (BENCH_NO_POWER_STAGE ? 0U : 1U)
-
-// Handing control back to the measured bus, once vbuscal agrees with a meter:
-//   vbus_ovr = 0    -> control loop + OV/UV trips run on the measured bus
-//   uv_trip_v = <V> -> set the UV threshold for the bus you are actually running
-//                      (live param; ~70-80% of nominal is a reasonable start).
-//                      It is debounced UV_TRIP_DEBOUNCE_TICKS and armed only in RUN.
-//   uv_en = 1       -> arm the UV trip
-// Do that in this order and verify on the "vbus" scope channel first: the UV
-// compare is against the FILTERED bus, so size the threshold below the observed
-// noisy MINIMUM under load, not the mean.
 
 #endif // HW_CONTROL_V2_H

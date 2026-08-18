@@ -31,9 +31,9 @@ import sys
 import threading
 from dataclasses import dataclass
 
-from . import autotune, proto
+from . import autotune, proto, steplog
 from .api import FocDebug, ParamInfo, fault_reason
-from .link import SerialLink, LinkError, NackError, autodetect_port
+from .link import SerialLink, LinkError, NackError, autodetect_port, debug_ports
 from .log import setup_logging
 
 log = logging.getLogger(__name__)
@@ -69,10 +69,16 @@ def _require_qt():
         )
 
 
-def list_serial_ports():
+def list_serial_ports(all_ports=False):
+    """(device, description) pairs for the port combo.
+
+    Default hides the probe's JTAG-channel twin and the motherboard ttyS* ports
+    (see link.debug_ports); "All" un-hides everything for an unknown adapter.
+    """
     from serial.tools import list_ports
 
-    return [(p.device, p.description) for p in list_ports.comports()]
+    ports = list_ports.comports() if all_ports else debug_ports()
+    return [(p.device, p.description) for p in ports]
 
 
 def build(pg, QtCore, QtGui, QtWidgets):
@@ -348,6 +354,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
         dbg.scope_config(decim=int(decim), mask=int(mask))
         dbg.write_param("step_go", 0)          # release any stale frozen buffer
         dbg.write_param("step_pre", int(pretrig))
+        health = {}
+        try:
+            health["tz_trip_before"] = int(dbg.read_param("tz_trip"))
+        except Exception:              # noqa: BLE001 - param may not exist
+            pass
         dbg.request_run()
         try:
             at_wait_state(dbg, ST_RUN, run_timeout)   # may align (~3 s) first
@@ -372,6 +383,20 @@ def build(pg, QtCore, QtGui, QtWidgets):
                                    "(device left RUN, or no samples logged?)")
             cap = dbg.capture_scope(timeout=2.0, retries=1)
             i_step = int(dbg.read_param("trig_idx"))
+            # Drive health, read BEFORE the finally block stops the motor so it
+            # describes the run the capture came from. A step that shows the
+            # current PI integrating open-loop into ZERO current means the volts
+            # never reached the motor, and the usual reason is a latched ePWM
+            # one-shot trip zone: the bridge is held in active-short and the CPU
+            # keeps computing duties that go nowhere. tz_trip counts those events,
+            # so comparing it across steps says whether the bridge was live --
+            # which no amount of staring at Vd/Vq/Iabc can tell you.
+            for name, key in (("state", "state"), ("tz_trip", "tz_trip"),
+                              ("module_fault", "module_fault")):
+                try:
+                    health[key] = int(dbg.read_param(name))
+                except Exception:      # noqa: BLE001 - older firmware, keep going
+                    pass
         finally:
             # Always relax the command, release the frozen buffer and stop the
             # motor, even if the run never reached RUN (timeout/FAULT) or the
@@ -391,7 +416,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
                     op()
                 except Exception:   # noqa: BLE001 - best-effort safe-down
                     pass
-        return cap, decim / isr_freq, i_step
+        return cap, decim / isr_freq, i_step, health
 
     class MainWindow(QtWidgets.QMainWindow):
         def __init__(self, initial_port=None):
@@ -435,6 +460,13 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._at_gain_spins = {}
             self._at_gain_dirty = set()
             self._at_gain_prog = False
+            # Every step of this GUI session is appended to one CSV pair under
+            # step_logs/. Created lazily on the first step (see _at_log_step) so
+            # a session that never steps leaves nothing behind; the timestamp is
+            # taken now, at construction, which is what makes it per-SESSION
+            # rather than per-step.
+            self._step_log = None
+            self._step_log_dir = pathlib.Path(__file__).parent.parent / "step_logs"
 
             # Rolling scope buffers (one deque per channel) + dirty flag. The
             # deques are (re)created by _rebuild_plots to match the currently
@@ -495,6 +527,12 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.port_combo.setMinimumWidth(260)
             self.refresh_ports_btn = QtWidgets.QPushButton("↻ Ports")
             self.refresh_ports_btn.clicked.connect(lambda: self._refresh_ports())
+            self.all_ports_chk = QtWidgets.QCheckBox("All")
+            self.all_ports_chk.setToolTip(
+                "Show every serial port, including the probe's JTAG channel\n"
+                "and the motherboard ttyS*/COM ports."
+            )
+            self.all_ports_chk.toggled.connect(lambda _on: self._refresh_ports())
             self.connect_btn = QtWidgets.QPushButton("Connect")
             self.connect_btn.clicked.connect(self._toggle_connect)
             self.ping_btn = QtWidgets.QPushButton("Ping")
@@ -503,6 +541,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             bar.addWidget(QtWidgets.QLabel("Port:"))
             bar.addWidget(self.port_combo)
             bar.addWidget(self.refresh_ports_btn)
+            bar.addWidget(self.all_ports_chk)
             bar.addWidget(self.connect_btn)
             bar.addWidget(self.ping_btn)
             bar.addWidget(self.conn_label, 1)
@@ -702,7 +741,9 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self.tab_widget.addTab(page, tab_label)
 
             self.tab_widget.addTab(self._build_motor_page(), "Motor")
-            self.tab_widget.addTab(self._build_autotune_page(), "Autotune")
+            self._at_tab_index = self.tab_widget.addTab(
+                self._build_autotune_page(), "Autotune")
+            self.tab_widget.currentChanged.connect(self._on_tab_changed)
 
             lv.addWidget(self.tab_widget, 1)
 
@@ -716,7 +757,12 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
             split.addWidget(left)
 
-            # ---- Right: scope ----
+            # ---- Right: live scope, or the Autotune step-response panel ----
+            # Two pages of a stack rather than two panes: a step is a one-shot
+            # 128-sample record you read closely (levels, rise, settling), and
+            # while it runs the firmware ring is frozen so the live scope has
+            # nothing to show anyway. Selecting the Autotune tab hands the whole
+            # right pane to the step panel; leaving it hands it back.
             right = QtWidgets.QWidget()
             rv = QtWidgets.QVBoxLayout(right)
             sc = QtWidgets.QHBoxLayout()
@@ -772,8 +818,12 @@ def build(pg, QtCore, QtGui, QtWidgets):
             rv.addWidget(self.glw, 1)
             self._rebuild_plots(self._selected_names())
 
-            split.addWidget(right)
+            self.right_stack = QtWidgets.QStackedWidget()
+            self.right_stack.addWidget(right)                        # page 0
+            self.right_stack.addWidget(self._build_at_result_panel())  # page 1
+            split.addWidget(self.right_stack)
             split.setSizes([520, 580])
+            self._on_tab_changed(self.tab_widget.currentIndex())
 
             self.statusBar().showMessage("Ready. Pick a port and Connect.")
             _jab = QtWidgets.QLabel(
@@ -853,16 +903,18 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
         # ---- ports / connection -----------------------------------------
         def _refresh_ports(self, select=None):
+            keep = self.port_combo.currentData()
             self.port_combo.clear()
-            ports = list_serial_ports()
+            ports = list_serial_ports(self.all_ports_chk.isChecked())
             for dev, desc in ports:
                 self.port_combo.addItem(f"{dev}  —  {desc}", dev)
-            guess = select or autodetect_port()
-            if guess:
-                for i in range(self.port_combo.count()):
-                    if self.port_combo.itemData(i) == guess:
-                        self.port_combo.setCurrentIndex(i)
-                        break
+            # Toggling "All" must not move the selection; fall back to the
+            # autodetect guess only when the held port is gone (or on startup).
+            devs = [dev for dev, _ in ports]
+            for guess in (select, keep, autodetect_port()):
+                if guess in devs:
+                    self.port_combo.setCurrentIndex(devs.index(guess))
+                    break
             if not ports:
                 self.port_combo.addItem("(no serial ports found)", None)
 
@@ -919,6 +971,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 treg["table"].setEnabled(on)
             self.port_combo.setEnabled(not on)
             self.refresh_ports_btn.setEnabled(not on)
+            self.all_ports_chk.setEnabled(not on)
             if not on:
                 self.state_label.setText("—")
 
@@ -1553,11 +1606,9 @@ def build(pg, QtCore, QtGui, QtWidgets):
             outer = QtWidgets.QVBoxLayout(page)
             outer.setContentsMargins(4, 4, 4, 4)
 
-            # The controls and the step-response plot share the page through a
-            # splitter: the boxes are taller than the panel, so a fixed plot
-            # height would leave only a sliver of scrollable room. Drag to taste.
-            vsplit = QtWidgets.QSplitter(QtCore.Qt.Vertical)
-
+            # Controls only -- the step-response plot and its metrics live on the
+            # right pane (_build_at_result_panel), which this tab takes over from
+            # the live scope. That leaves the whole column for the tuning boxes.
             scroll = QtWidgets.QScrollArea()
             scroll.setWidgetResizable(True)
             inner = QtWidgets.QWidget()
@@ -1568,36 +1619,221 @@ def build(pg, QtCore, QtGui, QtWidgets):
             iv.addWidget(self._build_at_fw_box())
             iv.addStretch(1)
             scroll.setWidget(inner)
-            vsplit.addWidget(scroll)
+            outer.addWidget(scroll, 1)
 
-            res_box = QtWidgets.QGroupBox("Last verify (step response)")
-            res_v = QtWidgets.QVBoxLayout(res_box)
+            self._at_refresh_all_previews()
+            return page
+
+        # ---- step-response result panel (right pane on the Autotune tab) ----
+        # Fixed name -> pen so a signal keeps its colour across captures; a legend
+        # is only useful if the mapping is stable. "ref" is the commanded level,
+        # not a captured channel, hence the pseudo-entry.
+        AT_CURVE_PENS = {
+            "ref":        ((220,  60,  60), 1.5, True),
+            "Id":         (( 90, 200, 250), 1.0, False),
+            "Iq":         ((255, 255, 255), 1.6, False),
+            "theta_elec": ((160, 160, 160), 1.0, False),
+            "omega_elec": ((255, 255, 255), 1.6, False),
+            "Vd":         ((120, 190, 255), 1.0, False),
+            "Vq":         ((255, 190, 120), 1.0, False),
+            "Iu":         ((140, 220, 140), 1.0, False),
+            "Iv":         ((220, 140, 220), 1.0, False),
+            "Iw":         ((220, 220, 140), 1.0, False),
+            "res_sin":    ((150, 150, 200), 1.0, False),
+            "res_cos":    ((200, 150, 150), 1.0, False),
+            "res_w_lpf":  ((180, 180, 120), 1.0, False),
+            "vbus":       ((120, 220, 220), 1.0, True),
+        }
+        # Order the checkbox row by usefulness, not by wire order.
+        AT_CURVE_ORDER = ["ref", "Iq", "Id", "omega_elec", "Vd", "Vq",
+                          "Iu", "Iv", "Iw", "vbus", "theta_elec",
+                          "res_sin", "res_cos", "res_w_lpf"]
+        # Start unticked: these share the one y axis with amps and volts but are
+        # an order of magnitude larger (vbus, res_* ADC codes) or unrelated in
+        # scale (theta), so leaving them on would squash everything else. The
+        # numbers that matter from them are in the detail grid anyway.
+        AT_CURVE_DEFAULT_OFF = {"vbus", "theta_elec",
+                                "res_sin", "res_cos", "res_w_lpf"}
+
+        # (label, key) pairs for the detail grid, laid out in two columns.
+        AT_METRIC_ROWS = [
+            ("Target (ref)",       "target"),
+            ("|Vdq| max",          "vmag"),
+            ("Final (measured)",   "final"),
+            ("|Vdq| / (vbus/2)",   "vfrac"),
+            ("Steady-state error", "sserr"),
+            ("DC bus",             "vbus"),
+            ("Peak",               "peak"),
+            ("min mean |Iphase|",  "iph"),
+            ("Overshoot",          "overshoot"),
+            ("Pre-step noise σ",   "noise"),
+            ("Rise 10–90%",        "rise"),
+            ("Sample period",      "dt"),
+            ("Settling (±2%)",     "settle"),
+            ("Window",             "window"),
+            ("Eff. bandwidth",     "bw"),
+            ("Trigger sample",     "trig"),
+        ]
+
+        @staticmethod
+        def _at_label_rgb(rgb):
+            """Pen colour dimmed enough to read as text on the widget background.
+
+            Curve pens are chosen for a black plot, so the brightest of them
+            (white Iq/omega_elec) vanish when reused as checkbox label colours on
+            a light theme. Scale by perceived luminance rather than picking a
+            second palette: the hue is preserved, so the checkbox still names the
+            same curve, and colours that were already dark are left alone.
+            """
+            r, g, b = rgb
+            lum = 0.299 * r + 0.587 * g + 0.114 * b
+            if lum <= 120.0:
+                return rgb
+            k = 120.0 / lum
+            return (int(r * k), int(g * k), int(b * k))
+
+        def _build_at_result_panel(self):
+            panel = QtWidgets.QWidget()
+            pv = QtWidgets.QVBoxLayout(panel)
+            pv.setContentsMargins(4, 4, 4, 4)
+
+            head = QtWidgets.QHBoxLayout()
+            self.at_title_lbl = QtWidgets.QLabel("Step response — run a verify")
+            f = self.at_title_lbl.font()
+            f.setBold(True)
+            self.at_title_lbl.setFont(f)
+            head.addWidget(self.at_title_lbl, 1)
+            # Capture resolution for the CURRENT step (the speed step sizes its own
+            # decimation from the firmware accel ramp). The window is always 128
+            # samples, so this trades span against resolution: a ~1 ms current-loop
+            # rise is only 3 samples at decim=3, which quantizes rise time and
+            # bandwidth badly -- but a loop that is still crawling after 30 ms needs
+            # the span. Neither default suits both, hence the knob.
+            head.addWidget(QtWidgets.QLabel("iq step decim:"))
+            self.at_cur_decim = QtWidgets.QSpinBox()
+            self.at_cur_decim.setRange(1, 50)
+            self.at_cur_decim.setValue(3)
+            self.at_cur_decim.valueChanged.connect(lambda _v: self._at_decim_label())
+            head.addWidget(self.at_cur_decim)
+            self.at_decim_lbl = QtWidgets.QLabel("")
+            self.at_decim_lbl.setStyleSheet("color: gray;")
+            head.addWidget(self.at_decim_lbl)
+            _auto_btn = QtWidgets.QPushButton("Fit")
+            _auto_btn.setToolTip("Auto-range both axes to the visible signals")
+            _auto_btn.clicked.connect(lambda: self.at_plot.getViewBox().autoRange())
+            head.addWidget(_auto_btn)
+            self.at_save_csv_btn = QtWidgets.QPushButton("Save step to CSV…")
+            self.at_save_csv_btn.setToolTip(
+                "Write the last step capture (all channels) to CSV")
+            self.at_save_csv_btn.clicked.connect(self._at_save_csv)
+            self.at_save_csv_btn.setEnabled(False)
+            head.addWidget(self.at_save_csv_btn)
+            pv.addLayout(head)
+
+            # Where the automatic per-session log is going. Shown rather than
+            # merely logged so the file is findable mid-bench, without digging
+            # through the console.
+            logrow = QtWidgets.QHBoxLayout()
+            self._step_log_lbl = QtWidgets.QLabel("log: (created on first step)")
+            self._step_log_lbl.setStyleSheet("color: gray;")
+            self._step_log_lbl.setToolTip(
+                "Every step this session is appended to a CSV pair under "
+                "step_logs/ — one row per sample, plus a one-row-per-step "
+                "summary with metrics, rotor angle and the gains in force.")
+            logrow.addWidget(self._step_log_lbl, 1)
+            _open_btn = QtWidgets.QPushButton("Open log folder")
+            _open_btn.clicked.connect(self._at_open_log_dir)
+            logrow.addWidget(_open_btn)
+            pv.addLayout(logrow)
+
+            # One checkbox per signal. Hiding a curve also drops it from the
+            # y-autorange (pyqtgraph skips invisible items), which is the only
+            # practical way to read amps and volts off a single shared axis.
+            sig = QtWidgets.QHBoxLayout()
+            sig.addWidget(QtWidgets.QLabel("Signals:"))
+            self.at_sig_checks = {}
+            for name in self.AT_CURVE_ORDER:
+                cb = QtWidgets.QCheckBox(name)
+                cb.setChecked(name not in self.AT_CURVE_DEFAULT_OFF)
+                cb.setVisible(False)   # shown once a capture carries the channel
+                cb.setStyleSheet(
+                    "color: rgb(%d,%d,%d);"
+                    % self._at_label_rgb(self.AT_CURVE_PENS[name][0]))
+                cb.toggled.connect(self._at_apply_curve_visibility)
+                self.at_sig_checks[name] = cb
+                sig.addWidget(cb)
+            sig.addStretch(1)
+            pv.addLayout(sig)
+
             self.at_plot = pg.PlotWidget()
             self.at_plot.showGrid(x=True, y=True, alpha=0.3)
-            self.at_plot.setMinimumHeight(120)
-            self.at_meas_curve = self.at_plot.plot(pen=pg.mkPen(width=1))
-            self.at_ref_curve = self.at_plot.plot(
-                pen=pg.mkPen(color=(220, 60, 60), width=1.5, style=QtCore.Qt.DashLine))
+            self.at_plot.setLabel("bottom", "t (ms)")
+            self.at_legend = self.at_plot.addLegend(offset=(-10, 10))
+            # pyqtgraph also toggles a curve when its legend swatch is clicked,
+            # which would silently disagree with the checkbox. Mirror it back.
+            self.at_legend.sigSampleClicked.connect(self._at_legend_clicked)
+            # Every catalog channel gets a curve up front so the colour mapping is
+            # fixed across captures; a capture only fills the ones it carries, and
+            # the legend is rebuilt per capture so absent channels leave no dead
+            # rows. The step freezes the datalog ring, so these overlays are the
+            # only view of the loop during the step -- and they are free: the ring
+            # records all columns every sample, the mask only picks what is sent.
+            self.at_curves = {}
+            for name in self.AT_CURVE_ORDER:
+                rgb, width, dashed = self.AT_CURVE_PENS[name]
+                pen = pg.mkPen(color=rgb, width=width,
+                               style=QtCore.Qt.DashLine if dashed
+                               else QtCore.Qt.SolidLine)
+                # No name= : entries are added to the legend per capture below.
+                self.at_curves[name] = self.at_plot.plot(pen=pen)
             # Marks t=0, the device-reported trigger sample (firmware one-shot
             # trigger). Everything left of it is genuine pre-step baseline.
             self.at_trig_line = pg.InfiniteLine(
                 pos=0.0, angle=90, movable=False,
-                pen=pg.mkPen(color=(120, 190, 255), width=1, style=QtCore.Qt.DashLine))
+                pen=pg.mkPen(color=(150, 150, 150), width=1,
+                             style=QtCore.Qt.DotLine))
             self.at_trig_line.setVisible(False)
             self.at_plot.addItem(self.at_trig_line)
-            res_v.addWidget(self.at_plot)
-            self.at_metrics_lbl = QtWidgets.QLabel("—")
-            self.at_metrics_lbl.setWordWrap(True)
-            res_v.addWidget(self.at_metrics_lbl)
-            vsplit.addWidget(res_box)
+            pv.addWidget(self.at_plot, 1)
 
-            vsplit.setStretchFactor(0, 3)
-            vsplit.setStretchFactor(1, 1)
-            vsplit.setSizes([460, 200])
-            outer.addWidget(vsplit, 1)
+            det = QtWidgets.QGroupBox("Step detail")
+            grid = QtWidgets.QGridLayout(det)
+            grid.setVerticalSpacing(2)
+            self.at_status_lbl = QtWidgets.QLabel("—")
+            self.at_status_lbl.setWordWrap(True)
+            grid.addWidget(self.at_status_lbl, 0, 0, 1, 4)
+            self.at_metric_vals = {}
+            mono = QtGui.QFont("monospace")
+            mono.setStyleHint(QtGui.QFont.Monospace)
+            for i, (label, key) in enumerate(self.AT_METRIC_ROWS):
+                row, col = 1 + i // 2, 2 * (i % 2)
+                lab = QtWidgets.QLabel(label + ":")
+                lab.setStyleSheet("color: gray;")
+                val = QtWidgets.QLabel("—")
+                val.setFont(mono)
+                val.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+                grid.addWidget(lab, row, col)
+                grid.addWidget(val, row, col + 1)
+                self.at_metric_vals[key] = val
+            grid.setColumnStretch(1, 1)
+            grid.setColumnStretch(3, 1)
+            pv.addWidget(det)
+            self._at_decim_label()
+            return panel
 
-            self._at_refresh_all_previews()
-            return page
+        def _at_decim_label(self):
+            """Spell out what the decimation buys: total span and sample period."""
+            isr = self._mc("isr_freq_hz") or 10000.0
+            dt = self.at_cur_decim.value() / isr
+            self.at_decim_lbl.setText(
+                f"→ {128 * dt * 1e3:.1f} ms window @ {dt * 1e6:.0f} µs")
+
+        def _on_tab_changed(self, index):
+            """Hand the right pane to the step panel while on the Autotune tab."""
+            stack = getattr(self, "right_stack", None)
+            if stack is not None:
+                stack.setCurrentIndex(
+                    1 if index == getattr(self, "_at_tab_index", -1) else 0)
 
         # ---- manual gains -------------------------------------------------
         # Same apply / apply+verify machinery as the model-based boxes below,
@@ -1960,6 +2196,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._at_current_preview()
             self._at_speed_preview()
             self._at_fw_preview()
+            if hasattr(self, "at_cur_decim"):
+                self._at_decim_label()   # window/resolution follow isr_freq_hz
 
         # ---- preview (compute) handlers ---------------------------------
         def _at_current_preview(self):
@@ -2099,14 +2337,29 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self._report(f"no valid {which} gains", logging.WARNING)
                 return
             isr = self._mc("isr_freq_hz")
-            mask = proto.names_to_mask(["Id", "Iq"])
+            # Capture the diagnostics alongside the step. Extra channels are free
+            # at the firmware end (the ring already stores every column; the mask
+            # only picks what is transmitted) and they are the only view of the
+            # loop during the step, since the one-shot trigger freezes the ring
+            # and stops the live scope until it is released. theta_elec is in
+            # here for the step LOG rather than the plot: it is what turns
+            # "results vary wildly" into outcome-vs-rotor-angle.
+            # res_sin/res_cos are here because theta is only as good as they are:
+            # if the angle used for IPARK degrades, the applied vector direction
+            # goes with it, and the raw SIN/COS are the only way to tell a real
+            # rotor movement from a front-end problem.
+            # 11 ch x 128 x 4 = 5632 B, inside FRAME_MAX_PAYLOAD (8192).
+            mask = proto.names_to_mask(
+                ["Id", "Iq", "Vd", "Vq", "Iu", "Iv", "Iw", "vbus", "theta_elec",
+                 "res_sin", "res_cos"])
             self._report(f"{which} verify: applying gains + stepping iq…")
+            self._at_gains_in_force = dict(gains)   # recorded in the step log
             self._at_set_busy(True)
             self.worker.submit(
                 "at_verify_cur",
-                fn=lambda d, g=dict(gains): at_run_step(
+                fn=lambda d, g=dict(gains), dc=self.at_cur_decim.value(): at_run_step(
                     d, mode=0, ref_param="iq_ref", ref_value=iq, mask=mask,
-                    decim=3, isr_freq=isr, pre_gains=g, axis=1, pretrig=32),
+                    decim=dc, isr_freq=isr, pre_gains=g, axis=1, pretrig=32),
                 on_done=lambda res, iq=iq, w=which: self._at_verify_done(
                     "Iq", res, 0.0, iq, w),
                 on_fail=self._at_verify_failed)
@@ -2133,6 +2386,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             decim = int(max(20, min(200, round(total_t * isr / 128.0))))
             mask = proto.names_to_mask(["omega_elec"])
             self._report(f"{which} verify: applying gains + stepping RPM…")
+            self._at_gains_in_force = dict(gains)   # recorded in the step log
             self._at_set_busy(True)
             self.worker.submit(
                 "at_verify_spd",
@@ -2164,10 +2418,215 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._at_set_busy(False)
             self._report(f"experiment failed: {msg}", logging.ERROR)
 
+        def _at_apply_curve_visibility(self, *_):
+            """Show the ticked curves that this capture actually carries.
+
+            Hiding also removes a curve from the y autorange (pyqtgraph skips
+            invisible items), which is what makes a single shared axis workable
+            for signals in amps, volts and rad/s at the same time -- hence the
+            autoRange() here rather than only on a new capture.
+            """
+            present = getattr(self, "_at_present", ())
+            for name, curve in self.at_curves.items():
+                curve.setVisible(name in present
+                                 and self.at_sig_checks[name].isChecked())
+            self.at_plot.getViewBox().autoRange()
+
+        def _at_legend_clicked(self, item):
+            """Legend swatch toggled a curve -- push that back onto its checkbox."""
+            for name, curve in self.at_curves.items():
+                if curve is item:
+                    cb = self.at_sig_checks[name]
+                    if cb.isChecked() != curve.isVisible():
+                        cb.setChecked(curve.isVisible())   # re-applies visibility
+                    break
+
+        def _at_plot_capture(self, cap, xs, chan, ref1=None):
+            """Draw every channel in `cap`; reveal the matching checkboxes/legend.
+
+            All channels come from the same frozen one-shot window, so they share
+            `xs` exactly and are aligned to the step by construction -- there is
+            no cross-capture timing to reconcile.
+            """
+            present = []
+            for name, curve in self.at_curves.items():
+                if name != "ref" and name in cap.names:
+                    curve.setData(
+                        xs, np.asarray(cap.data[cap.names.index(name)], dtype=float))
+                    present.append(name)
+                elif name != "ref":
+                    curve.setData([], [])
+            if ref1 is None:
+                self.at_curves["ref"].setData([], [])
+            else:
+                self.at_curves["ref"].setData(
+                    [float(xs[0]), float(xs[-1])], [float(ref1), float(ref1)])
+                present.append("ref")
+            # Keep the declared order so the legend and checkbox row agree.
+            self._at_present = tuple(n for n in self.AT_CURVE_ORDER if n in present)
+            for name, cb in self.at_sig_checks.items():
+                cb.setVisible(name in self._at_present)
+            for name, curve in self.at_curves.items():
+                self.at_legend.removeItem(curve)
+            for name in self._at_present:
+                label = f"{name} (measured)" if name == chan else name
+                self.at_legend.addItem(self.at_curves[name], label)
+            self._at_apply_curve_visibility()
+            self.at_trig_line.setPos(0.0)
+            self.at_trig_line.setVisible(True)
+
+        @staticmethod
+        def _at_unit_for(chan):
+            if chan.startswith("omega") or chan.startswith("res_w"):
+                return "rad/s"
+            if chan.startswith("I"):
+                return "A"
+            if chan.startswith("V") or chan == "vbus":
+                return "V"
+            return ""
+
+        def _at_clear_metrics(self):
+            for lbl in self.at_metric_vals.values():
+                lbl.setText("—")
+
+        def _at_fill_metrics(self, m, dt, n, i_step, ref1, diag, unit):
+            """Populate the detail grid from the metrics + the same capture's
+            diagnostics. Every field that could be computed is shown even when
+            the step analysis failed -- "did not reach target" is precisely when
+            the raw levels matter most."""
+            self._at_clear_metrics()
+            u = f" {unit}" if unit else ""
+            set_ = lambda k, v: self.at_metric_vals[k].setText(v)
+            set_("dt", f"{dt * 1e6:.0f} µs  ({1.0 / dt / 1e3:.1f} kHz)")
+            set_("window", f"{n} samples, {n * dt * 1e3:.2f} ms")
+            set_("trig", f"#{int(i_step)}  (t = 0)")
+            if ref1 is not None:
+                set_("target", f"{ref1:.4g}{u}")
+            set_("final", f"{m.y_final:.4g}{u}")
+            if m.noise:
+                set_("noise", f"{m.noise:.4g}{u}")
+            if ref1:
+                err = m.y_final - ref1
+                set_("sserr", f"{err:+.4g}{u}  ({100.0 * err / ref1:+.1f}%)")
+            if m.ok:
+                set_("peak", f"{m.y_peak:.4g}{u}")
+                set_("overshoot", f"{m.overshoot_pct:.1f}%")
+                set_("rise", (f"{m.t_rise * 1e3:.3f} ms" if m.t_rise > 0.0
+                              else "< 1 sample"))
+                set_("settle", (f"{m.t_settle * 1e3:.3f} ms" if m.settled
+                                else f"not within {n * dt * 1e3:.1f} ms window"))
+                set_("bw", f"{m.bw_hz:.0f} Hz" if m.bw_hz > 0.0 else "—")
+            if "vmag" in diag:
+                set_("vmag", f"{diag['vmag']:.3f} V")
+            if "vmag_frac" in diag:
+                set_("vfrac", f"{diag['vmag_frac']:.3f}   (cf. vmax_frac)")
+            if "vbus" in diag:
+                set_("vbus", f"{diag['vbus']:.2f} V")
+            if "iph" in diag:
+                set_("iph", f"{diag['iph']:.3f} A   ({diag['iph_name']})")
+
+        # ---- automatic per-session step log -------------------------------
+        def _at_log_step(self, cap, dt, i_step, which, chan, ref1, m, diag,
+                         health=None):
+            """Append this capture to the session's CSV pair.
+
+            Every step is logged, not just the ones the operator remembers to
+            save: the interesting comparisons on this rig are BETWEEN steps
+            (position to position, gain to gain), and those are exactly the ones
+            lost when saving is a manual act after the fact.
+            """
+            try:
+                if self._step_log is None:
+                    self._step_log = steplog.StepLog(
+                        self._step_log_dir,
+                        [n for _b, n in proto.SCOPE_CATALOG])
+                th = self._at_channel(cap, "theta_elec")
+                gains = getattr(self, "_at_gains_in_force", None) or {}
+                summary = {
+                    "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+                    "which": which, "chan": chan,
+                    "target": ref1, "final": m.y_final,
+                    "peak": m.y_peak if m.ok else None,
+                    "overshoot_pct": m.overshoot_pct if m.ok else None,
+                    "t_rise_ms": m.t_rise * 1e3 if m.ok else None,
+                    "t_settle_ms": m.t_settle * 1e3 if m.ok else None,
+                    "settled": m.settled if m.ok else None,
+                    "bw_hz": m.bw_hz if m.ok else None,
+                    "noise": m.noise, "ok": m.ok, "reason": m.reason,
+                    "theta_at_step": th[i_step] if th and i_step < len(th) else None,
+                    "theta_at_end": th[-1] if th else None,
+                    "vbus": diag.get("vbus"),
+                    "vmag_max": diag.get("vmag"),
+                    "vmag_frac": diag.get("vmag_frac"),
+                    "iph_min": diag.get("iph"),
+                    "iph_min_name": diag.get("iph_name"),
+                    "dt_s": dt, "n_samples": cap.n_samples, "i_step": int(i_step),
+                }
+                h = health or {}
+                summary["state"] = h.get("state")
+                summary["module_fault"] = h.get("module_fault")
+                summary["tz_trip"] = h.get("tz_trip")
+                if h.get("tz_trip_before") is not None and h.get("tz_trip") is not None:
+                    summary["tz_tripped"] = h["tz_trip"] > h["tz_trip_before"]
+                if ref1:
+                    summary["err"] = m.y_final - ref1
+                    summary["err_pct"] = 100.0 * (m.y_final - ref1) / ref1
+                for g in ("kp_d", "ki_d", "kp_q", "ki_q", "kp_w", "ki_w"):
+                    if g in gains:
+                        summary[g] = float(gains[g])
+                n = self._step_log.append(cap.names, cap.data, dt, i_step, summary)
+            except OSError as e:
+                # Never let a full disk / read-only checkout kill a bench run.
+                self._step_log_lbl.setText("step log: write failed")
+                self._report(f"step log: {e}", logging.ERROR)
+                return
+            self._step_log_lbl.setText(
+                f"log: {self._step_log.samples_path.name}  ({n} step"
+                f"{'' if n == 1 else 's'})")
+            self._step_log_lbl.setToolTip(
+                f"Every step this session is appended to:\n"
+                f"{self._step_log.samples_path}   (samples)\n"
+                f"{self._step_log.summary_path}   (one row per step)")
+
+        @staticmethod
+        def _at_channel(cap, name):
+            if name not in cap.names:
+                return None
+            return [float(v) for v in cap.data[cap.names.index(name)]]
+
+        def _at_open_log_dir(self):
+            path = (self._step_log.samples_path.parent if self._step_log
+                    else self._step_log_dir)
+            QtGui.QDesktopServices.openUrl(
+                QtCore.QUrl.fromLocalFile(str(path)))
+
+        def _at_save_csv(self):
+            cap = self._at_last_cap
+            if not cap:
+                self._report("no step capture yet")
+                return
+            path, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self, "Save step capture", "step.csv", "CSV (*.csv)")
+            if not path:
+                return
+            dt = getattr(self, "_at_last_dt", 0.0) or 0.0
+            i0 = getattr(self, "_at_last_istep", 0) or 0
+            with open(path, "w") as fh:
+                fh.write("sample,t_ms," + ",".join(cap.names) + "\n")
+                for i in range(cap.n_samples):
+                    t = (i - i0) * dt * 1e3
+                    fh.write(",".join(
+                        [str(i), f"{t:.6g}"]
+                        + [f"{cap.data[c][i]:.6g}" for c in range(cap.n_channels)])
+                        + "\n")
+            self._report(f"saved {path}")
+
         def _at_verify_done(self, chan, res, ref0, ref1, which):
             self._at_set_busy(False)
-            cap, dt, i_step = res
-            self._at_last_cap = cap
+            cap, dt, i_step, health = res
+            self._at_last_cap, self._at_last_dt = cap, dt
+            self._at_last_istep = i_step
+            self.at_save_csv_btn.setEnabled(True)
             if chan not in cap.names:
                 self._report(f"verify: channel {chan} not in capture", logging.ERROR)
                 return
@@ -2176,32 +2635,50 @@ def build(pg, QtCore, QtGui, QtWidgets):
             # t=0 is the device-reported trigger sample, so the pre-step baseline
             # sits at negative time and the response starts exactly at the origin.
             xs = (np.arange(len(y)) - i_step) * dt * 1e3
-            self.at_meas_curve.setData(xs, np.asarray(y, dtype=float))
-            self.at_ref_curve.setData([float(xs[0]), float(xs[-1])], [ref1, ref1])
-            self.at_trig_line.setPos(0.0)
-            self.at_trig_line.setVisible(True)
-            self.at_plot.setTitle(f"{which} verify — {chan}")
-            self.at_plot.setLabel("bottom", "t (ms)")
+            self._at_plot_capture(cap, xs, chan, ref1)
+            self.at_title_lbl.setText(
+                f"{which} verify — step {chan} to {ref1:.4g} "
+                f"{self._at_unit_for(chan)}")
+            # Volts-vs-dead-zone verdict from the same capture (autotune.py, tested).
+            diag = autotune.step_diagnostics_data(cap.names, cap.data, i_step)
+            self._at_fill_metrics(m, dt, len(y), i_step, ref1, diag,
+                                  self._at_unit_for(chan))
+            self._at_log_step(cap, dt, i_step, which, chan, ref1, m, diag, health)
+            # A hardware trip zone fired during the step: the bridge latched into
+            # active-short and every volt the PI commanded went nowhere. Say so
+            # loudly -- the plot alone looks like a tuning problem.
+            if health.get("tz_trip_before") is not None and \
+                    health.get("tz_trip", 0) > health["tz_trip_before"]:
+                self.at_status_lbl.setStyleSheet("color: rgb(230,80,80);")
+                self.at_status_lbl.setText(
+                    "HW TRIP ZONE FIRED during this step "
+                    f"(tz_trip {health['tz_trip_before']} → {health['tz_trip']}, "
+                    f"module_fault=0x{health.get('module_fault', 0):04X}). The "
+                    "bridge was latched in active-short — the current loop had no "
+                    "authority, so the metrics below describe the trip, not the "
+                    "tuning.")
             if m.ok:
-                self.at_metrics_lbl.setText(
-                    f"rise(10–90%)={m.t_rise * 1e3:.2f} ms   "
-                    f"overshoot={m.overshoot_pct:.1f}%   "
-                    f"settle={m.t_settle * 1e3:.2f} ms   "
-                    f"eff.BW≈{m.bw_hz:.0f} Hz")
+                self.at_status_lbl.setStyleSheet("")
+                self.at_status_lbl.setText(
+                    "step analyzed" + ("" if m.settled else
+                                       " — did not settle inside the window"))
                 self._report(
                     f"{which} verify: overshoot {m.overshoot_pct:.1f}%, "
                     f"rise {m.t_rise * 1e3:.2f} ms")
             else:
-                self.at_metrics_lbl.setText(
+                self.at_status_lbl.setStyleSheet("color: rgb(230,160,60);")
+                self.at_status_lbl.setText(
                     f"could not analyze step ({m.reason}) — try a larger step "
-                    "or different decimation")
+                    "or different decimation. Levels below are still valid.")
                 self._report(f"{which} verify: {m.reason}", logging.WARNING)
             self._refresh_values()
 
         def _at_km_done(self, res, iq):
             self._at_set_busy(False)
-            cap, dt, _i_step = res
-            self._at_last_cap = cap
+            cap, dt, _i_step, _health = res
+            self._at_last_cap, self._at_last_dt = cap, dt
+            self._at_last_istep = _i_step
+            self.at_save_csv_btn.setEnabled(True)
             if "omega_elec" not in cap.names:
                 self._report("Km: omega channel missing from capture", logging.ERROR)
                 return
@@ -2231,12 +2708,21 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.at_spd_j.blockSignals(False)
             self._at_speed_preview()
             xs = (np.arange(n) - _i_step) * dt * 1e3
-            self.at_meas_curve.setData(xs, np.asarray(y, dtype=float))
-            self.at_ref_curve.setData([], [])
-            self.at_trig_line.setPos(0.0)
-            self.at_trig_line.setVisible(True)
-            self.at_plot.setTitle("Km measure — omega ramp")
-            self.at_plot.setLabel("bottom", "t (ms)")
+            self._at_plot_capture(cap, xs, "omega_elec", None)
+            self.at_title_lbl.setText(
+                f"Km measure — omega ramp at iq = {iq:.4g} A")
+            # A ramp is not a step, so the step metrics do not apply; report the
+            # fit instead and blank the rest rather than showing stale numbers.
+            self._at_clear_metrics()
+            self.at_status_lbl.setStyleSheet("")
+            self.at_status_lbl.setText(
+                f"Km = {Km:.4g} rad/s²/A  (slope {slope:.4g} rad/s² over "
+                f"samples {i0}..{n}), implied J ≈ {J:.3g} kg·m²")
+            self.at_metric_vals["dt"].setText(
+                f"{dt * 1e6:.0f} µs  ({1.0 / dt / 1e3:.1f} kHz)")
+            self.at_metric_vals["window"].setText(
+                f"{n} samples, {n * dt * 1e3:.2f} ms")
+            self.at_metric_vals["trig"].setText(f"#{int(_i_step)}  (t = 0)")
             self._report(f"Km measured: {Km:.4g} (rad/s²/A), implied J≈{J:.3g} kg·m²")
 
         # ---- scope -------------------------------------------------------
@@ -2574,6 +3060,10 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.render_timer.stop()
             self.worker.set_scope(False)
             self.worker.stop()
+            if self._step_log is not None:
+                # Data is already on disk (flushed per step); this just releases
+                # the handles so the file is not left open on Windows.
+                self._step_log.close()
             super().closeEvent(ev)
 
     return MainWindow

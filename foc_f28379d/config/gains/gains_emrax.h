@@ -49,11 +49,8 @@
                                             // open-loop drag (ol_mod=0.11) was
                                             // bench-proven at
 
-// Boot default for g_ol_mod ("ol_mod" param): open-loop drive in the DUTY domain
-// (~peak duty deviation). 0.11 is the value bench-proven to drag the EMRAX rotor
-// open-loop at ~6 Hz electrical (2026-07-14) -- enough to move it, low enough not
-// to slam current into a stalled rotor.
-#define OL_MOD_DEFAULT              0.11f
+
+#define OL_MOD_DEFAULT              0.06f
 
 // Compile-time default for g_align_offset_en ("align_off_en" param). 0 = skip
 // the offset-capture sweep entirely and pin the electrical offset to 0, so

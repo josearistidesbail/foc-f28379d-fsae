@@ -32,6 +32,12 @@ extern volatile float32_t g_dbg_phaseid_mod;            // src/foc_pipeline.c
 // Runtime command-current clamp [A] (bench supply guard; see foc_pipeline.c).
 extern volatile float32_t g_iq_cmd_max;                 // src/foc_pipeline.c
 extern volatile float32_t g_vdq_max_frac;               // src/foc_pipeline.c
+extern volatile uint16_t  g_dtc_en;                     // src/foc_pipeline.c
+extern volatile float32_t g_dtc_duty;                   // src/foc_pipeline.c
+extern volatile float32_t g_dtc_v;                      // src/foc_pipeline.c
+extern volatile float32_t g_dtc_ith;                    // src/foc_pipeline.c
+extern volatile float32_t g_dtc_inv_ith;                // src/foc_pipeline.c
+extern volatile float32_t g_dbg_dtc_k;                  // src/foc_pipeline.c
 
 // Cross-coupling/back-EMF feedforward toggle + captured alignment offset [deg].
 extern volatile uint16_t  g_dbg_decouple_en;            // src/foc_pipeline.c
@@ -223,6 +229,41 @@ static void set_vmax_frac(uint32_t  r){ float32_t a = raw_to_f32(r);
                                         if(a < 0.0f) a = 0.0f;
                                         if(a > VDQ_MAX_FRACTION) a = VDQ_MAX_FRACTION;
                                         g_vdq_max_frac = a; }
+
+// Dead-zone (dead-time + device drop) compensation. All LIVE so the whole set
+// can be A/B'd inside a single RUN -- toggling dtc_en on a running step is the
+// cleanest way to see the dead zone appear and disappear.
+static void get_dtc_en(uint32_t *r)  { *r = (uint32_t)g_dtc_en; }
+static void set_dtc_en(uint32_t  r)  { g_dtc_en = (uint16_t)(r ? 1U : 0U); }
+
+// Bus-INDEPENDENT term (pure dead time). Clamped to a sane duty range: beyond a
+// few percent this is no longer a dead-time model, and over-compensation turns
+// the feedforward into positive feedback around the current zero crossing.
+static void get_dtc_duty(uint32_t *r){ *r = f32_to_raw(g_dtc_duty); }
+static void set_dtc_duty(uint32_t  r){ float32_t a = raw_to_f32(r);
+                                       if(a < 0.0f)  a = 0.0f;
+                                       if(a > 0.15f) a = 0.15f;
+                                       g_dtc_duty = a; }
+
+// Fixed-VOLTS term (Vce + Vf), divided by the live bus in the ISR.
+static void get_dtc_v(uint32_t *r)   { *r = f32_to_raw(g_dtc_v); }
+static void set_dtc_v(uint32_t  r)   { float32_t a = raw_to_f32(r);
+                                       if(a < 0.0f) a = 0.0f;
+                                       if(a > 5.0f) a = 5.0f;
+                                       g_dtc_v = a; }
+
+// Zero-crossing ramp width. Floored well above zero: at ith -> 0 this degenerates
+// to a hard sign() and the compensation becomes a noise-driven square wave worth
+// tens of amps of command on a milliohm winding. The reciprocal is precomputed
+// here so the ISR stays division-free.
+static void get_dtc_ith(uint32_t *r) { *r = f32_to_raw(g_dtc_ith); }
+static void set_dtc_ith(uint32_t  r) { float32_t a = raw_to_f32(r);
+                                       if(a < 0.1f)   a = 0.1f;
+                                       if(a > 100.0f) a = 100.0f;
+                                       g_dtc_ith     = a;
+                                       g_dtc_inv_ith = 1.0f / a; }
+
+static void get_dtc_k(uint32_t *r)   { *r = f32_to_raw(g_dbg_dtc_k); }
 
 // Decoupling feedforward toggle. Live (no NEEDS_IDLE) so it can be A/B'd in RUN.
 static void get_decouple(uint32_t *r){ *r = (uint32_t)g_dbg_decouple_en; }
@@ -514,6 +555,10 @@ const param_entry_t g_param_table[] =
     { 0x004FU, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "phase_id_a",   get_phase_id_a,  set_phase_id_a  },
     { 0x0050U, PARAM_TYPE_F32, 0,                     "iq_max",       get_iq_max,      set_iq_max      },
     { 0x0051U, PARAM_TYPE_F32, 0,                     "vmax_frac",    get_vmax_frac,   set_vmax_frac   },
+    { 0x0055U, PARAM_TYPE_U16, 0,                     "dtc_en",       get_dtc_en,      set_dtc_en      },
+    { 0x0056U, PARAM_TYPE_F32, 0,                     "dtc_duty",     get_dtc_duty,    set_dtc_duty    },
+    { 0x0057U, PARAM_TYPE_F32, 0,                     "dtc_v",        get_dtc_v,       set_dtc_v       },
+    { 0x0058U, PARAM_TYPE_F32, 0,                     "dtc_ith",      get_dtc_ith,     set_dtc_ith     },
     { 0x0031U, PARAM_TYPE_U16, 0,                     "decouple_en",  get_decouple, set_decouple },
     { 0x0032U, PARAM_TYPE_U16, 0,                     "control_mode", get_mode,     set_mode     },
     { 0x0033U, PARAM_TYPE_U16, 0,                     "fw_en",        get_fw_en,    set_fw_en    },
@@ -593,6 +638,7 @@ const param_entry_t g_param_table[] =
     { 0x0114U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "i_peak_a",      get_i_peak_a,      0       },
     { 0x0115U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "vbus",          get_vbus,          0       },
     { 0x0126U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "vbus_raw",      get_vbus_raw,      0       },
+    { 0x0127U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "dtc_k",         get_dtc_k,         0       },
     { 0x0116U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "isr_freq_hz",   get_isr_freq_hz,   0       },
     { 0x0117U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "speed_loop_ts", get_speed_loop_ts, 0       },
     { 0x0118U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "fw_vmax_frac",  get_fw_vmax_frac,  0       },
