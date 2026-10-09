@@ -11,7 +11,7 @@
 #include "inverter_iface.h"
 #include "foc_pipeline.h"
 #include "foc_state_machine.h"
-#include "sensor_iface.h"
+#include "pos_src.h"       // position loss verdict of the ACTIVE source (Step 12)
 
 static volatile uint16_t s_latched;
 
@@ -49,6 +49,9 @@ static uint16_t s_uv_ticks;
 //   0x08 OVERTEMP     0x10 GATE_DRIVER  0x20 SENSOR_LOSS   0x40 WATCHDOG
 volatile uint16_t g_dbg_fault_code;
 
+// Warning word (Warn_Bits_t). Read by the host ("warn_code"); never faults.
+volatile uint16_t g_warn_code;
+
 // TODO: Debugging Step 6, remove after. Snapshot of the three phase currents at
 // the instant the phase-OC check first latches FAULT_OVERCURRENT, plus which
 // phase breached (1=U, 2=V, 3=W). Lets us see the ACTUAL tripping current rather
@@ -64,7 +67,10 @@ void safety_init(void)        { s_latched = 0; s_uv_ticks = 0U;
 void safety_latch(uint16_t b) { s_latched |= b; }
 bool safety_is_clear(void)    { return s_latched == 0; }
 uint16_t safety_get_latched(void) { return s_latched; }
-void safety_clear(void)       { s_latched = 0; }
+void safety_clear(void)       { s_latched = 0; g_warn_code = 0U; }
+void safety_warn(uint16_t b)  { g_warn_code |= b; }
+uint16_t safety_get_warnings(void) { return g_warn_code; }
+void safety_clear_warnings(void)   { g_warn_code = 0U; }
 
 void safety_check_isr(void)
 {
@@ -117,11 +123,15 @@ void safety_check_isr(void)
 
     if(inverter_is_faulted()) safety_latch(FAULT_GATE_DRIVER);
 
-    // Position-sensor loss. Only act in states that commutate on the angle; the
-    // backend has already debounced (resolver: sin^2+cos^2 window per ISR; QEP:
-    // drive-vs-response in the slow loop). enter(FOC_FAULT) then reads the
+    // Position loss. Only act in states that commutate on the angle. The
+    // verdict comes from the position-source supervisor (pos_src.c): with the
+    // sensor active it is the backend's debounced latch (resolver: sin^2+cos^2
+    // window per ISR; QEP: drive-vs-response in the slow loop), unless AUTO
+    // fail-over just handed commutation to a healthy observer; with the
+    // observer active it is the observer losing health (below the speed floor,
+    // no longer converged). enter(FOC_FAULT) then reads the active source's
     // last-healthy speed to choose active-short (clamp back-EMF) vs coast.
-    if((st == FOC_RUN || st == FOC_ALIGN_ROTOR) && sensor_is_lost())
+    if((st == FOC_RUN || st == FOC_ALIGN_ROTOR) && pos_src_is_lost())
         safety_latch(FAULT_SENSOR_LOSS);
 
     if(s_latched) sm_raise_fault(s_latched);

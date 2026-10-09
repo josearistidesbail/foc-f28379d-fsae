@@ -32,7 +32,7 @@ import threading
 from dataclasses import dataclass
 
 from . import autotune, proto, steplog
-from .api import FocDebug, ParamInfo, fault_reason
+from .api import FocDebug, ParamInfo, fault_reason, pos_status_reason, warn_reason
 from .link import SerialLink, LinkError, NackError, autodetect_port, debug_ports
 from .log import setup_logging
 
@@ -233,6 +233,12 @@ def build(pg, QtCore, QtGui, QtWidgets):
             "A=W  B=U  (C=V)",
             "A=W  B=V  (C=U)",
         ],
+        # Sensorless (Step 12): which source commutates (the supervisor mediates
+        # every transition, so this is LIVE), which observer feeds the PLL, and
+        # which voltage the observers integrate.
+        "angle_src": ["sensor", "observer", "auto"],
+        "obs_mode": ["flux", "smo"],
+        "obs_vsrc": ["duty*vbus - deadzone", "duty*vbus", "cmd Vab"],
     }
 
     # Scope signal → firmware reference param that should be overlaid in red.
@@ -245,6 +251,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
     # Firmware state codes (api.STATE_NAMES).
     ST_IDLE, ST_RUN, ST_FAULT = 0, 3, 4
+    # pos_status bit: observer is the commutation source (api.POS_STATUS_BITS).
+    POS_OBS_ACTIVE = 0x0001
 
     # Fallback motor/loop constants used when the firmware predates the
     # read-only autotune params (host degrades gracefully; fields stay editable).
@@ -695,6 +703,16 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 ("Config",     {"isense_recon", "isense_map", "isense_inv",
                                 "phase_id_en", "phase_id_a", "phase_id_mod",
                                 "phase_id_status"}),
+                ("Sensorless", {"angle_src", "angle_act", "pos_status", "warn_code",
+                                "obs_mode", "obs_vsrc", "obs_healthy",
+                                "theta_est", "omega_est", "theta_err", "obs_dtheta",
+                                "obs_flux_err", "obs_smo_err", "obs_resets",
+                                "obs_gamma", "obs_smo_kslide", "obs_smo_e0",
+                                "obs_smo_lpf_hz", "obs_smo_lpf_k", "obs_pll_bw",
+                                "obs_min_speed", "obs_flux_tol", "obs_smo_tol",
+                                "obs_rs", "obs_ls", "obs_err_trip", "obs_iq_max",
+                                "pos_force_lost", "pos_inj_err", "pos_trig_en",
+                                "isr_cycles", "isr_cycles_max", "isr_cyc_rst"}),
                 ("Advanced",   None),
             ]
             self.tab_widget = QtWidgets.QTabWidget()
@@ -3030,7 +3048,17 @@ def build(pg, QtCore, QtGui, QtWidgets):
                         vbus = float(d.read_param("vbus"))
                     except Exception:
                         vbus = None
-                    return (st, fault, vbus)
+                    # Sensorless supervisor status (Step 12): drives the amber
+                    # "SENSORLESS" banner; tolerate firmware without pos_status.
+                    pos_status = 0
+                    warn = 0
+                    try:
+                        pos_status = int(d.read_param("pos_status"))
+                        if pos_status & POS_OBS_ACTIVE:
+                            warn = int(d.read_param("warn_code"))
+                    except Exception:
+                        pos_status = 0
+                    return (st, fault, vbus, pos_status, warn)
 
                 self.worker.submit("state", fn=poll_state,
                                    on_done=self._state_done, on_fail=self._state_failed)
@@ -3039,12 +3067,19 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
         def _state_done(self, res):
             self._state_pending = False
-            st, fault, vbus = res
+            st, fault, vbus, pos_status, warn = res
             text = FocDebug.state_name(st)
             if st == ST_FAULT:
                 if fault:
                     text += "  —  " + fault_reason(fault)
                 self.state_label.setStyleSheet("color: #d33;")
+            elif pos_status & POS_OBS_ACTIVE:
+                # Running on the observer: amber, with why (fail-over reason or
+                # FORCED) and the warning word if the supervisor raised one.
+                text += "  —  SENSORLESS (" + pos_status_reason(pos_status) + ")"
+                if warn:
+                    text += "  [" + warn_reason(warn) + "]"
+                self.state_label.setStyleSheet("color: #c80;")
             else:
                 self.state_label.setStyleSheet("")
             self.state_label.setText(text)

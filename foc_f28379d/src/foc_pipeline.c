@@ -13,6 +13,9 @@
 #include "pwm_iface.h"
 #include "safety.h"
 #include "debug_hooks.h"
+#include "foc_math_inline.h"
+#include "observer.h"
+#include "pos_src.h"
 
 #include "clarke.h"
 #include "park.h"
@@ -218,6 +221,66 @@ static inline void dtc_apply(volatile FOC_Duty_t *d, volatile FOC_Iabc_t *i,
     }
 }
 
+// ---- Observer voltage input (Step 12) --------------------------------------
+// Reconstruct the alpha/beta terminal voltage from the LAST tick's final duty
+// (post-SVGEN, post-dtc_apply, in [-0.5, +0.5] about the bus midpoint) times
+// the bus SVGEN normalized with. Must be called BEFORE this tick overwrites
+// s_sig.duty / s_refs.vbus.
+// TIMING: the ADC samples at counter zero of PWM_U (EPWM4 SOCA at TBCTR_ZERO)
+// and CMPA is shadow-loaded at counter zero (SysConfig default, not
+// overridden). The duty written in ISR k-1 therefore becomes active at the
+// counter zero where tick k's current is sampled: this function returns the
+// voltage the bridge applies over (k, k+1], NOT the one that produced i[k].
+// The ISR holds the result for one tick (s_obs_vhold) so the observers pair
+// i[k] with the voltage over (k-1, k]. Without the hold the observers see the
+// voltage one tick early: an angle lead of ~w*Ts, 36 deg at 6000 rpm.
+// The dead-zone sign uses i[k], the current at the start of the interval the
+// duty is applied over.
+//   OBS_VSRC_DUTY_DZ  duty*vbus minus the dead-zone model: with dtc_en=1 the
+//                     duty already carries +Vdt*sat(i), so this recovers the
+//                     commanded volts; with dtc_en=0 it recovers what the bridge
+//                     really delivered (command - dead zone). Default.
+//   OBS_VSRC_DUTY     raw duty*vbus (what the modulator was asked for).
+//   OBS_VSRC_CMD      last tick's pre-SVGEN Vab (volts only in closed-loop RUN).
+// Works in OPENLOOP / ol_align too: there the duty IS the command (unity SVGEN
+// bus), and duty*vbus is still the real terminal voltage. The Clarke transform
+// drops the common mode, so the modulator's zero-sequence offset is free.
+static float32_t s_obs_vhold[2];   // voltage over (k-1, k], one-tick hold
+
+static inline void obs_voltage_ab(float32_t *va, float32_t *vb)
+{
+    uint16_t src = g_obs_vsrc;
+    if(src == OBS_VSRC_CMD)
+    {
+        *va = s_sig.Vab.value[0];
+        *vb = s_sig.Vab.value[1];
+        return;
+    }
+    {
+        float32_t vbus    = s_refs.vbus;
+        float32_t k       = (src == OBS_VSRC_DUTY_DZ) ? (g_dtc_duty * vbus + g_dtc_v) : 0.0f;
+        float32_t inv_ith = g_dtc_inv_ith;
+        MATH_Vec3 vabc;
+        MATH_Vec2 vab;
+        uint16_t  p;
+        for(p = 0U; p < 3U; p++)
+        {
+            float32_t v = s_sig.duty.value[p] * vbus;
+            if(k != 0.0f)
+            {
+                float32_t s = s_sig.Iabc.value[p] * inv_ith;
+                if(s >  1.0f) s =  1.0f;
+                if(s < -1.0f) s = -1.0f;
+                v -= k * s;
+            }
+            vabc.value[p] = v;
+        }
+        CLARKE_run(s_clarke, &vabc, &vab);
+        *va = vab.value[0];
+        *vb = vab.value[1];
+    }
+}
+
 // ---- Step injector (current-loop step response) --------------------------
 // Applies a reference step and fires the datalog one-shot trigger in the SAME
 // ISR tick, so the captured window's trig_idx IS the first sample carrying the
@@ -266,24 +329,8 @@ volatile float32_t g_ol_freq_hz = 5.0f;    // electrical frequency [Hz]
 volatile float32_t g_ol_mod     = OL_MOD_DEFAULT;  // q-axis drive (~peak duty dev, 0..0.5)
 static   float32_t s_ol_theta;             // synthetic electrical angle [rad]
 
-//-----------------------------------------------------------------------------
-// Trig/RTS-free square root for the flux-priority current-circle limit. The SDK
-// <math.h> resolves to the motor-control math header (no C99 sqrtf), and pulling
-// the RTS trig/sqrt routines risks flash overflow (see CLAUDE.md pitfalls), so
-// use a self-contained fast inverse-sqrt seed + two Newton refinements. ~1e-4
-// relative accuracy -- ample for bounding a current reference.
-//-----------------------------------------------------------------------------
-static inline float32_t foc_fast_sqrt(float32_t x)
-{
-    if(x <= 0.0f) return 0.0f;
-    union { float32_t f; uint32_t u; } c;
-    c.f = x;
-    c.u = 0x5f3759dfU - (c.u >> 1);              // initial 1/sqrt(x) estimate
-    float32_t y = c.f;
-    y = y * (1.5f - 0.5f * x * y * y);           // Newton iter 1 (refine 1/sqrt)
-    y = y * (1.5f - 0.5f * x * y * y);           // Newton iter 2
-    return x * y;                                 // sqrt(x) = x * (1/sqrt(x))
-}
+// foc_fast_sqrt() (trig/RTS-free, used by the current-circle limit) now lives
+// in foc_math_inline.h, shared with the sensorless observers.
 
 // Reset the FW regulator: zero the commanded weakening current and the PI
 // integrator. Called on entry to FOC_RUN and whenever not running.
@@ -730,19 +777,16 @@ void foc_set_gain(foc_gain_id_t which, float32_t value)
 }
 
 //-----------------------------------------------------------------------------
-// Current loop, called from ADCA1 EOC ISR at FOC_ISR_FREQ_HZ.
-// Placed in .TI.ramfunc by the linker pragma in isr.c (where it is called).
+// Current loop, called from ADCA1 EOC ISR at FOC_ISR_FREQ_HZ. Runs from flash
+// (FLASHC via app_ebss.cmd; only the adcA1_isr wrapper is in .TI.ramfunc).
 //-----------------------------------------------------------------------------
 void foc_current_loop_isr(void)
 {
     debug_isr_scope_high();
 
-    // 1. Sensor + angle. During ALIGN the angle is the controller's commanded
-    //    carrier (settle at 0, then a slow open-loop sweep); the encoder is
-    //    still read so align_step() can average the offset. Otherwise use the
-    //    corrected encoder angle.
+    // 1. State + entry edges. The sensor itself is read inside
+    //    pos_src_update_isr() (step 1c) after the observers have run.
     FOC_State_t st = sm_get_state();
-    sensor_update_isr();
 
     if(st == FOC_ALIGN_ROTOR && s_prev_state != FOC_ALIGN_ROTOR) align_reset();
     if(st == FOC_RUN         && s_prev_state != FOC_RUN)  { fw_reset(); s_step_id = 0.0f; }
@@ -785,14 +829,47 @@ void foc_current_loop_isr(void)
         }
     }
 
-    if(st == FOC_ALIGN_ROTOR)   s_sig.theta_elec = align_step();
-    else if(st == FOC_OPENLOOP) s_sig.theta_elec = openloop_step();
-    else                        s_sig.theta_elec = sensor_get_elec_angle();
-    s_sig.omega_elec = sensor_get_elec_speed();
-
-    // 2. Phase currents -> Clarke -> Park
+    // 1a. Phase currents -> Clarke. Angle-independent, so it runs first: the
+    //     observers below need THIS tick's i_ab against the voltage applied
+    //     over the PWM period that just ended, (k-1, k].
     adc_read_phase_currents(&s_sig.Iabc);
     CLARKE_run(s_clarke, &s_sig.Iabc, &s_sig.Iab);
+
+    // 1b. Sensorless observers (Step 12). Both estimators run whenever the
+    //     bridge is being driven (RUN for real, ALIGN/OPENLOOP in shadow so the
+    //     scope can compare them against the sensor / the carrier). Anywhere
+    //     else PWM is force-safe and the stale duty means nothing: hold reset.
+    //     The voltage passes through a one-tick hold: see obs_voltage_ab().
+    if(st == FOC_RUN || st == FOC_ALIGN_ROTOR || st == FOC_OPENLOOP)
+    {
+        float32_t va, vb;
+        obs_voltage_ab(&va, &vb);               // applied over (k, k+1]
+        obs_update_isr(s_obs_vhold[0], s_obs_vhold[1],   // applied over (k-1, k]
+                       s_sig.Iab.value[0], s_sig.Iab.value[1]);
+        s_obs_vhold[0] = va;
+        s_obs_vhold[1] = vb;
+    }
+    else
+    {
+        obs_reset();
+        s_obs_vhold[0] = 0.0f;
+        s_obs_vhold[1] = 0.0f;
+    }
+
+    // 1c. Position-source supervisor: reads the sensor, decides sensor vs
+    //     observer (angle_src / fail-over), blends the hand-over, publishes the
+    //     angle/speed/loss the rest of the pipeline consumes.
+    pos_src_update_isr(st, s_sig.Iab.value[0], s_sig.Iab.value[1]);
+
+    // 1d. Commutation angle. During ALIGN the angle is the controller's
+    //     commanded carrier (settle at 0, then a slow open-loop sweep);
+    //     OPENLOOP uses the synthetic ramp; otherwise the supervisor's output.
+    if(st == FOC_ALIGN_ROTOR)   s_sig.theta_elec = align_step();
+    else if(st == FOC_OPENLOOP) s_sig.theta_elec = openloop_step();
+    else                        s_sig.theta_elec = pos_src_get_theta();
+    s_sig.omega_elec = pos_src_get_omega();
+
+    // 2. Park
     PARK_setup(s_park, s_sig.theta_elec);
     PARK_run  (s_park, &s_sig.Iab, &s_sig.Idq);
 
@@ -866,6 +943,7 @@ void foc_current_loop_isr(void)
         // current genuinely approaches the commanded amps (I ~= V/R), so the
         // clamp directly bounds what the supply is asked for.
         float iq_max = g_iq_cmd_max;
+        if(pos_src_observer_active() && (g_obs_iq_max < iq_max)) iq_max = g_obs_iq_max;
         float id_c = MATH_max(-iq_max, MATH_min(iq_max, s_refs.id_ref));
         float iq_c = MATH_max(-iq_max, MATH_min(iq_max, s_refs.iq_ref));
         float vd = MOTOR_RS_OHM * id_c;
@@ -889,9 +967,16 @@ void foc_current_loop_isr(void)
         float iq_cmd = s_refs.iq_ref;
         {
             float iq_max = g_iq_cmd_max;
+            // Sensorless-active clamp (Step 12): while commutating on the
+            // observer, bound the consequence of a wrong-angle current vector
+            // (the torque loss is cos(err); the risk is the sin(err) part).
+            if(pos_src_observer_active() && (g_obs_iq_max < iq_max)) iq_max = g_obs_iq_max;
             iq_cmd = MATH_max(-iq_max, MATH_min(iq_max, iq_cmd));
         }
-        if(st == FOC_RUN && g_dbg_fw_en)
+        // Field weakening stays OFF while sensorless: id = -150 A with a 10 deg
+        // angle error leaks 26 A into q, and the (Ld+Lq)/2 observer model error
+        // grows with |id|. fw_en itself is left alone (fw_id reads 0).
+        if(st == FOC_RUN && g_dbg_fw_en && !pos_src_observer_active())
         {
             float id_now    = s_refs.id_ref;
             float iq_lim_sq = (MOTOR_I_PEAK_A * MOTOR_I_PEAK_A) - id_now * id_now;
@@ -968,7 +1053,7 @@ void foc_current_loop_isr(void)
             // step 3). The FW regulator is meaningless without the current loop.
             fw_reset();
         }
-        else if(g_dbg_fw_en)
+        else if(g_dbg_fw_en && !pos_src_observer_active())
         {
             float vmax_fw = FW_VMAX_FRACTION * s_refs.vbus * 0.5f;
             PI_run(s_pi_fw, vmax_fw * vmax_fw, vmag_sq, &s_fw_id);   // s_fw_id <= 0
@@ -1057,8 +1142,8 @@ void foc_speed_loop_tick(void)
     // visible on the scope and usable by the back-EMF feedforward. Must run
     // unconditionally: the QEP estimator differences the count over a fixed
     // slow-loop period and would mis-scale if calls were skipped.
-    sensor_update_speed_slow();
-    float32_t we = sensor_get_elec_speed();     // electrical rad/s
+    pos_src_update_slow();                      // backend slow-loop work (QEP speed/loss)
+    float32_t we = pos_src_get_omega();         // electrical rad/s, ACTIVE source
 
     if(sm_get_state() == FOC_RUN)
     {

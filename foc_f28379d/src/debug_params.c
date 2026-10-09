@@ -14,11 +14,15 @@
 #include "pwm_iface.h"
 #include "inverter_iface.h"
 #include "adc_iface.h"      // isense map/inv/phase-ID status + recon readback
+#include "observer.h"       // sensorless observers: obs_* params + telemetry
+#include "pos_src.h"        // position-source supervisor: angle_src / pos_* / status
 
 // Live torque command consumed by foc_speed_loop_tick() while in FOC_RUN.
 extern volatile float32_t g_dbg_iq_ref;   // src/foc_pipeline.c
 extern volatile uint32_t  g_isr_count;    // src/isr.c
 extern volatile uint32_t  g_dbg_tz_trip;  // src/isr.c (HW trip-zone event count)
+extern volatile uint32_t  g_dbg_isr_cycles;      // src/isr.c (last ISR cost, SYSCLK cycles)
+extern volatile uint32_t  g_dbg_isr_cycles_max;  // src/isr.c (max-hold)
 
 // KCL phase-current reconstruction selector (0=none,1=U,2=V,3=W).
 extern volatile uint16_t  g_isense_reconstruct_phase;   // src/adc_iface.c
@@ -453,6 +457,75 @@ static void set_res_wlpf_hz(uint32_t  r){ sensor_rm44ac_apply_wlpf_hz(raw_to_f32
 static void get_align_off_en(uint32_t *r){ *r = (uint32_t)g_align_offset_en; }
 static void set_align_off_en(uint32_t  r){ g_align_offset_en = (uint16_t)(r ? 1U : 0U); }
 
+// ---- Sensorless observers + position-source supervisor (Step 12) ----------
+// Every obs_* float setter funnels through obs_apply_params(), which clamps the
+// value in place and re-derives the ISR coefficients (F/G, k_flux, PLL gains)
+// in one spot -- same discipline as sensor_rm44ac_apply_pll_bw(). All LIVE:
+// the point is to A/B them on the bench while the observer runs in shadow.
+static void get_obs_mode(uint32_t *r){ *r = (uint32_t)g_obs_mode; }
+static void set_obs_mode(uint32_t  r){ g_obs_mode = (uint16_t)((r == OBS_MODE_SMO) ? OBS_MODE_SMO : OBS_MODE_FLUX); }
+static void get_obs_vsrc(uint32_t *r){ *r = (uint32_t)g_obs_vsrc; }
+static void set_obs_vsrc(uint32_t  r){ if(r <= OBS_VSRC_CMD) g_obs_vsrc = (uint16_t)r; }
+#define OBS_F32_PARAM(fn, var) \
+    static void get_##fn(uint32_t *r){ *r = f32_to_raw(var); } \
+    static void set_##fn(uint32_t  r){ var = raw_to_f32(r); obs_apply_params(); }
+OBS_F32_PARAM(obs_gamma,      g_obs_gamma)
+OBS_F32_PARAM(obs_smo_kslide, g_obs_smo_kslide)
+OBS_F32_PARAM(obs_smo_e0,     g_obs_smo_e0)
+OBS_F32_PARAM(obs_smo_lpf_hz, g_obs_smo_lpf_hz)
+OBS_F32_PARAM(obs_smo_lpf_k,  g_obs_smo_lpf_k)
+OBS_F32_PARAM(obs_pll_bw,     g_obs_pll_bw_hz)
+OBS_F32_PARAM(obs_min_speed,  g_obs_min_speed)
+OBS_F32_PARAM(obs_flux_tol,   g_obs_flux_tol)
+OBS_F32_PARAM(obs_smo_tol,    g_obs_smo_tol)
+OBS_F32_PARAM(obs_rs,         g_obs_rs)
+OBS_F32_PARAM(obs_ls,         g_obs_ls)
+#undef OBS_F32_PARAM
+// angle_src is LIVE on purpose: the supervisor mediates every transition
+// (SENSOR->OBSERVER only when the observer is healthy, OBSERVER->SENSOR only
+// when the sensor is not lost, both blended), and the essential bench
+// experiment -- spin up sensored, flip live, compare, flip back -- needs it.
+static void get_angle_src(uint32_t *r){ *r = (uint32_t)g_angle_src; }
+static void set_angle_src(uint32_t  r){ if(r <= ANGLE_SRC_AUTO) g_angle_src = (uint16_t)r; }
+static void get_obs_err_trip(uint32_t *r){ *r = f32_to_raw(g_obs_err_trip); }
+static void set_obs_err_trip(uint32_t  r){ float32_t v = raw_to_f32(r);
+                                           if(v < 0.05f) v = 0.05f;
+                                           if(v > 3.0f)  v = 3.0f;
+                                           g_obs_err_trip = v; }
+static void get_obs_iq_max(uint32_t *r){ *r = f32_to_raw(g_obs_iq_max); }
+static void set_obs_iq_max(uint32_t  r){ float32_t v = raw_to_f32(r);
+                                         if(v < 0.0f) v = 0.0f;
+                                         if(v > IQ_REF_MAX_A) v = IQ_REF_MAX_A;
+                                         g_obs_iq_max = v; }
+// Bench aids (auto-cleared on IDLE entry): pretend the sensor is lost, inject
+// an angle error into the sensor as the supervisor sees it (provokes the
+// DISAGREE path without unplugging anything), and fire the scope one-shot at
+// the hand-over tick so the blend is captured coherently.
+static void get_pos_force_lost(uint32_t *r){ *r = (uint32_t)g_pos_force_lost; }
+static void set_pos_force_lost(uint32_t  r){ g_pos_force_lost = (uint16_t)(r ? 1U : 0U); }
+static void get_pos_inj_err(uint32_t *r){ *r = f32_to_raw(g_pos_inj_err); }
+static void set_pos_inj_err(uint32_t  r){ g_pos_inj_err = raw_to_f32(r); }
+static void get_pos_trig_en(uint32_t *r){ *r = (uint32_t)g_pos_trig_en; }
+static void set_pos_trig_en(uint32_t  r){ g_pos_trig_en = (uint16_t)(r ? 1U : 0U); }
+// Telemetry.
+static void get_theta_est(uint32_t *r)  { *r = f32_to_raw(g_obs_theta_est); }
+static void get_omega_est(uint32_t *r)  { *r = f32_to_raw(g_obs_omega_est); }
+static void get_theta_err(uint32_t *r)  { *r = f32_to_raw(g_pos_theta_err); }
+static void get_obs_flux_err(uint32_t *r){ *r = f32_to_raw(g_obs_flux_err); }
+static void get_obs_smo_err(uint32_t *r){ *r = f32_to_raw(g_obs_smo_err); }
+static void get_obs_smo_ierr(uint32_t *r){ *r = f32_to_raw(g_obs_smo_ierr); }
+static void get_obs_dtheta(uint32_t *r) { *r = f32_to_raw(g_obs_dtheta); }
+static void get_angle_act(uint32_t *r)  { *r = (uint32_t)g_pos_angle_act; }
+static void get_pos_status(uint32_t *r) { *r = (uint32_t)g_pos_status; }
+static void get_obs_healthy(uint32_t *r){ *r = (uint32_t)g_obs_healthy; }
+static void get_obs_resets(uint32_t *r) { *r = (uint32_t)g_obs_resets; }
+static void get_warn_code(uint32_t *r)  { *r = (uint32_t)safety_get_warnings(); }
+// ISR cost (SYSCLK cycles; budget 20,000). isr_cyc_rst: any write zeroes the max-hold.
+static void get_isr_cycles(uint32_t *r)    { *r = g_dbg_isr_cycles; }
+static void get_isr_cycles_max(uint32_t *r){ *r = g_dbg_isr_cycles_max; }
+static void get_isr_cyc_rst(uint32_t *r)   { *r = 0U; }
+static void set_isr_cyc_rst(uint32_t  r)   { (void)r; g_dbg_isr_cycles_max = 0U; }
+
 // ---- Read-only telemetry -------------------------------------------------
 static void get_state(uint32_t *r){ *r = (uint32_t)(uint16_t)sm_get_state(); }
 static void get_isr_count(uint32_t *r){ *r = g_isr_count; }
@@ -580,6 +653,28 @@ const param_entry_t g_param_table[] =
     // Step injector / one-shot scope trigger (bench PI tuning). step_go:
     // 0 = release the frozen buffer, 1 = step step_axis to step_a + trigger
     // (FOC_RUN only), 2 = trigger only (any state, coherent gap-free window).
+    // Sensorless observers + position-source supervisor (Step 12). All LIVE.
+    { 0x0059U, PARAM_TYPE_U16, 0,                     "isr_cyc_rst",    get_isr_cyc_rst,    set_isr_cyc_rst    },
+    { 0x0060U, PARAM_TYPE_U16, 0,                     "obs_mode",       get_obs_mode,       set_obs_mode       },
+    { 0x0061U, PARAM_TYPE_U16, 0,                     "obs_vsrc",       get_obs_vsrc,       set_obs_vsrc       },
+    { 0x0062U, PARAM_TYPE_F32, 0,                     "obs_gamma",      get_obs_gamma,      set_obs_gamma      },
+    { 0x0063U, PARAM_TYPE_F32, 0,                     "obs_smo_kslide", get_obs_smo_kslide, set_obs_smo_kslide },
+    { 0x0064U, PARAM_TYPE_F32, 0,                     "obs_smo_e0",     get_obs_smo_e0,     set_obs_smo_e0     },
+    { 0x0065U, PARAM_TYPE_F32, 0,                     "obs_smo_lpf_hz", get_obs_smo_lpf_hz, set_obs_smo_lpf_hz },
+    { 0x0066U, PARAM_TYPE_F32, 0,                     "obs_smo_lpf_k",  get_obs_smo_lpf_k,  set_obs_smo_lpf_k  },
+    { 0x0067U, PARAM_TYPE_F32, 0,                     "obs_pll_bw",     get_obs_pll_bw,     set_obs_pll_bw     },
+    { 0x0068U, PARAM_TYPE_F32, 0,                     "obs_min_speed",  get_obs_min_speed,  set_obs_min_speed  },
+    { 0x0069U, PARAM_TYPE_F32, 0,                     "obs_flux_tol",   get_obs_flux_tol,   set_obs_flux_tol   },
+    { 0x006AU, PARAM_TYPE_F32, 0,                     "obs_smo_tol",    get_obs_smo_tol,    set_obs_smo_tol    },
+    { 0x006BU, PARAM_TYPE_F32, 0,                     "obs_rs",         get_obs_rs,         set_obs_rs         },
+    { 0x006CU, PARAM_TYPE_F32, 0,                     "obs_ls",         get_obs_ls,         set_obs_ls         },
+    { 0x006DU, PARAM_TYPE_U16, 0,                     "angle_src",      get_angle_src,      set_angle_src      },
+    { 0x006EU, PARAM_TYPE_F32, 0,                     "obs_err_trip",   get_obs_err_trip,   set_obs_err_trip   },
+    { 0x006FU, PARAM_TYPE_F32, 0,                     "obs_iq_max",     get_obs_iq_max,     set_obs_iq_max     },
+    { 0x0070U, PARAM_TYPE_U16, 0,                     "pos_force_lost", get_pos_force_lost, set_pos_force_lost },
+    { 0x0071U, PARAM_TYPE_F32, 0,                     "pos_inj_err",    get_pos_inj_err,    set_pos_inj_err    },
+    { 0x0072U, PARAM_TYPE_U16, 0,                     "pos_trig_en",    get_pos_trig_en,    set_pos_trig_en    },
+
     { 0x0048U, PARAM_TYPE_U16, 0,                     "step_go",   get_step_go,   set_step_go   },
     { 0x0049U, PARAM_TYPE_U16, 0,                     "step_axis", get_step_axis, set_step_axis },
     { 0x004AU, PARAM_TYPE_F32, 0,                     "step_a",    get_step_a,    set_step_a    },
@@ -614,6 +709,21 @@ const param_entry_t g_param_table[] =
     // ALIGN phase-ID (current-sense wiring auto-detect) result + governed duty.
     { 0x0124U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "phase_id_status", get_phase_id_status, 0 },
     { 0x0125U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "phase_id_mod",    get_phase_id_mod,    0 },
+    // ISR cost + sensorless telemetry (Step 12).
+    { 0x0128U, PARAM_TYPE_U32, PARAM_FLAG_RO,         "isr_cycles",     get_isr_cycles,     0 },
+    { 0x0129U, PARAM_TYPE_U32, PARAM_FLAG_RO,         "isr_cycles_max", get_isr_cycles_max, 0 },
+    { 0x012AU, PARAM_TYPE_F32, PARAM_FLAG_RO,         "theta_est",      get_theta_est,      0 },
+    { 0x012BU, PARAM_TYPE_F32, PARAM_FLAG_RO,         "omega_est",      get_omega_est,      0 },
+    { 0x012CU, PARAM_TYPE_F32, PARAM_FLAG_RO,         "theta_err",      get_theta_err,      0 },
+    { 0x012DU, PARAM_TYPE_F32, PARAM_FLAG_RO,         "obs_flux_err",   get_obs_flux_err,   0 },
+    { 0x012EU, PARAM_TYPE_F32, PARAM_FLAG_RO,         "obs_smo_err",    get_obs_smo_err,    0 },
+    { 0x012FU, PARAM_TYPE_F32, PARAM_FLAG_RO,         "obs_dtheta",     get_obs_dtheta,     0 },
+    { 0x0130U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "angle_act",      get_angle_act,      0 },
+    { 0x0131U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "pos_status",     get_pos_status,     0 },
+    { 0x0132U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "obs_healthy",    get_obs_healthy,    0 },
+    { 0x0133U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "obs_resets",     get_obs_resets,     0 },
+    { 0x0134U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "warn_code",      get_warn_code,      0 },
+    { 0x0135U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "obs_smo_ierr",   get_obs_smo_ierr,   0 },
 
 #if SENSOR_BACKEND_RM44AC
     // Resolver front-end diagnostics (raw ADC codes + vector magnitude).

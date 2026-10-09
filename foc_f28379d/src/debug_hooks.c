@@ -5,6 +5,8 @@
 #include "device.h"
 #include "build_config.h"
 #include "debug_hooks.h"
+#include "observer.h"       // g_obs_theta_est   (scope col 6)
+#include "pos_src.h"        // g_pos_theta_err   (scope col 14)
 
 // Raw resolver SIN/COS ADC codes (adc_iface.c). Logged as scope cols 10/11 so
 // the host can watch the two resolver channels the angle is derived from. 0 on
@@ -49,9 +51,9 @@ static volatile uint16_t s_dl_release = 0U;
 // Catalog bit -> g_datalog column map (see debug_proto.h SCOPE_BIT_*):
 //   bit0 Id=1, bit1 Iq=2, bit2 theta=0, bit3 omega=5, bit4 Vd=3, bit5 Vq=4,
 //   bit6 Iu=7, bit7 Iv=8, bit8 Iw=9, bit9 res_sin=10, bit10 res_cos=11,
-//   bit11 res_w_lpf=12, bit12 vbus=13
+//   bit11 res_w_lpf=12, bit12 vbus=13, bit13 theta_est=6, bit14 theta_err=14
 static const uint16_t s_scope_cols[SCOPE_MAX_CHANNELS] =
-    { 1U, 2U, 0U, 5U, 3U, 4U, 7U, 8U, 9U, 10U, 11U, 12U, 13U };
+    { 1U, 2U, 0U, 5U, 3U, 4U, 7U, 8U, 9U, 10U, 11U, 12U, 13U, 6U, 14U };
 
 void debug_init(void)
 {
@@ -61,6 +63,17 @@ void debug_init(void)
     g_dl_trig_idx   = 0;
     // SysConfig pinned LED_STATUS_GPIO and SCOPE_PIN_ISR_GPIO already.
     GPIO_writePin(LED_STATUS_GPIO, 0);
+
+    // Free-running SYSCLK cycle counter for the ISR cost measurement (isr.c).
+    // CPUTIMER1 is otherwise unused by this project (no SysConfig cputimer
+    // module; Device_init leaves it alone). Down-counter, full 32-bit period,
+    // keeps running under emulation halt so a breakpoint does not stall it.
+    CPUTimer_stopTimer(CPUTIMER1_BASE);
+    CPUTimer_setPeriod(CPUTIMER1_BASE, 0xFFFFFFFFUL);
+    CPUTimer_setPreScaler(CPUTIMER1_BASE, 0U);
+    CPUTimer_setEmulationMode(CPUTIMER1_BASE, CPUTIMER_EMULATIONMODE_RUNFREE);
+    CPUTimer_reloadTimerCounter(CPUTIMER1_BASE);
+    CPUTimer_startTimer(CPUTIMER1_BASE);
 }
 
 void debug_datalog_trigger(uint16_t pretrig)
@@ -107,7 +120,7 @@ void debug_datalog_push(const FOC_Signals_t *s, uint16_t state)
     g_datalog[i][3] = s->Vdq.value[0];   // Vd
     g_datalog[i][4] = s->Vdq.value[1];   // Vq
     g_datalog[i][5] = s->omega_elec;
-    g_datalog[i][6] = (float)state;
+    g_datalog[i][6] = g_obs_theta_est;        // observer PLL angle (shadow or active)
     g_datalog[i][7] = s->Iabc.value[0];  // Iu
     g_datalog[i][8] = s->Iabc.value[1];  // Iv
     g_datalog[i][9] = s->Iabc.value[2];  // Iw
@@ -115,6 +128,8 @@ void debug_datalog_push(const FOC_Signals_t *s, uint16_t state)
     g_datalog[i][11] = (float)g_dbg_cos_raw;  // raw resolver COS ADC code
     g_datalog[i][12] = g_dbg_omega_lpf_elec;  // legacy diff+LPF elec speed (A/B)
     g_datalog[i][13] = g_dbg_vbus_v;          // measured DC-bus voltage [V]
+    g_datalog[i][14] = g_pos_theta_err;       // wrap(theta_est - theta_sensor) [rad]
+    (void)state;                              // no longer stored (col 6 reused)
     g_datalog_idx = (i + 1U) & (DATALOG_LEN_SAMPLES - 1U);
 
     // One-shot countdown. Runs on STORED samples (i.e. after decimation) so the

@@ -12,6 +12,10 @@
 
 // ---- Inner current loop -------------------------------------------------
 // L * omega_c (1 kHz BW) = 125 uH * 2*pi*1000 = 0.785
+// NOTE: these gains were derived from the pre-v1.7 parameter set (125/130 uH,
+// 18 mOhm) and are left as commissioned on the 24 V bench. With the v1.7 HV
+// Ld = 110 uH the loop crosses at ~1.14 kHz (and Rs*wc*Ts = 0.0080 for KI);
+// retune on the bench rather than here.
 #define GAIN_KP_ID              0.785f
 #define GAIN_KI_ID              0.0113f     // 0.018 * 6283 * 1e-4
 #define GAIN_KP_IQ              0.816f      // uses Lq = 130 uH
@@ -98,5 +102,33 @@
 #define FW_VMAX_FRACTION        0.90f
 // Compile-time default for the runtime enable g_dbg_fw_en (like FOC_DECOUPLE_DEFAULT).
 #define FW_DEFAULT              0
+
+// ---- Sensorless observers (Step 12) --------------------------------------
+// Boot values for observer.c / pos_src.c; every one is a LIVE param (obs_*,
+// angle_src, obs_err_trip, obs_iq_max). Starting points from the offline sim
+// (host/foc_debug/observer_sim.py DEFAULTS["emrax"]) -- keep both in sync.
+// SMO: F = 0.9887, G = (1-F)/Rs = 0.884 on this 12.8 mOhm / 112.5 uH machine
+// (v1.7 HV). Kslide = 1.0 V/A keeps the current-model pole p = F - G*Kslide =
+// +0.105 (monotonic; the setter caps Kslide at 0.9*(1+F)/G = 2.0). The steady
+// current-model error at 6000 rpm is G*e/|z - p| = 234 A (e = 243 V; the
+// continuous e/|Kslide+Rs+j*w*Ls| = 197 A underestimates it), so E0 = 200 A
+// keeps the observer linear up to ~85 % of 6000 rpm (5330 rad/s) and the
+// boundary layer clips above that; on the 24 V bench the error never exceeds
+// ~12 A, so E0 is only a clamp there.
+// MIN_SPEED: 400 elec rad/s (~380 rpm) is sized for the HV bus (dead zone
+// ~6.7 V -> 5*Vdt/lambda ~ 870; DTC-compensated it comes down). On the 24 V
+// bench the motor tops out near 300 rad/s (back-EMF = bus/2): set
+// obs_min_speed = 150 live and treat bench results as bench-only.
+#define OBS_GAMMA_DEFAULT        1000.0f
+#define OBS_SMO_KSLIDE_DEFAULT   1.0f     // [V/A]
+#define OBS_SMO_E0_DEFAULT       200.0f   // [A]
+#define OBS_SMO_LPF_HZ_DEFAULT   10.0f    // back-EMF LPF floor [Hz]
+#define OBS_SMO_LPF_K_DEFAULT    1.0f
+#define OBS_PLL_BW_HZ_DEFAULT    40.0f
+#define OBS_MIN_SPEED_DEFAULT    400.0f   // elec rad/s
+#define OBS_FLUX_TOL_DEFAULT     0.30f
+#define OBS_SMO_TOL_DEFAULT      0.5f     // |e_hat|^2/predicted^2 - 1 [pu]
+#define OBS_ERR_TRIP_DEFAULT     0.6f     // rad; resolver angle noise ~0.11 rad RMS -> >5 sigma
+#define OBS_IQ_MAX_A             (0.5f * IQ_REF_MAX_A)
 
 #endif // GAINS_EMRAX_H

@@ -234,4 +234,67 @@
 #endif
 #endif
 
+//----- Sensorless observers + position-source supervisor (Step 12) --------
+// observer.c runs an Ortega flux observer AND a TI-eSMO-style sliding-mode
+// observer every ISR (g_obs_mode selects which feeds the common PLL); pos_src.c
+// decides whether the sensor or the observer commutates and fails over
+// automatically (angle_src = AUTO). Per-motor starting values live in
+// gains_*.h (OBS_*_DEFAULT); these #ifndef fallbacks keep every variant
+// compiling, and the fixed timing/clamp constants below are shared.
+#ifndef OBS_MODE_DEFAULT
+#define OBS_MODE_DEFAULT        0U      // 0 = flux observer, 1 = SMO
+#endif
+#ifndef OBS_VSRC_DEFAULT
+#define OBS_VSRC_DEFAULT        0U      // 0 = duty*vbus - dead-zone model
+#endif
+#ifndef OBS_GAMMA_DEFAULT
+#define OBS_GAMMA_DEFAULT       1000.0f // flux radial correction rate [1/s]
+#endif
+#ifndef OBS_SMO_KSLIDE_DEFAULT
+#define OBS_SMO_KSLIDE_DEFAULT  1.0f    // [V/A]; setter caps at 0.9*(1+F)/G
+#endif
+#ifndef OBS_SMO_E0_DEFAULT
+#define OBS_SMO_E0_DEFAULT      10.0f   // [A]; >= e_max/|Kslide+Rs+j*w*Ls| keeps it linear
+#endif
+#ifndef OBS_SMO_LPF_HZ_DEFAULT
+#define OBS_SMO_LPF_HZ_DEFAULT  20.0f   // back-EMF LPF cutoff floor [Hz]
+#endif
+#ifndef OBS_SMO_LPF_K_DEFAULT
+#define OBS_SMO_LPF_K_DEFAULT   1.0f    // LPF cutoff = k * |omega_e|
+#endif
+#ifndef OBS_PLL_BW_HZ_DEFAULT
+#define OBS_PLL_BW_HZ_DEFAULT   40.0f
+#endif
+#ifndef OBS_MIN_SPEED_DEFAULT
+#define OBS_MIN_SPEED_DEFAULT   300.0f  // observer trusted above this |omega_e| [rad/s]
+#endif
+#ifndef OBS_FLUX_TOL_DEFAULT
+#define OBS_FLUX_TOL_DEFAULT    0.30f   // |eta|^2 error tolerance [pu of lambda^2]
+#endif
+#ifndef OBS_SMO_TOL_DEFAULT
+#define OBS_SMO_TOL_DEFAULT     0.5f    // |e_hat|^2/predicted^2 - 1 tolerance [pu]
+#endif
+#ifndef OBS_ERR_TRIP_DEFAULT
+#define OBS_ERR_TRIP_DEFAULT    0.5f    // sensor-vs-observer disagreement trip [rad]
+#endif
+#ifndef OBS_IQ_MAX_A
+#define OBS_IQ_MAX_A            (0.5f * IQ_REF_MAX_A)      // |iq| clamp while sensorless
+#endif
+#ifndef OBS_LS_DEFAULT
+#define OBS_LS_DEFAULT          (0.5f * (MOTOR_LD_H + MOTOR_LQ_H))
+#endif
+#ifndef ANGLE_SRC_DEFAULT
+#define ANGLE_SRC_DEFAULT       0U      // boot on the SENSOR; observers in shadow
+#endif
+// Fixed constants (ISR ticks unless noted).
+#define OBS_GAMMA_MIN           10.0f
+#define OBS_GAMMA_MAX           5000.0f // discrete radial pole 1 - gamma*Ts >= 0.5
+#define OBS_PLL_BW_MIN_HZ       1.0f
+#define OBS_PLL_BW_MAX_HZ       200.0f
+#define OBS_PLL_ERR_CLAMP       0.5f    // PLL acquisition clamp [rad]
+#define OBS_CONVERGED_TICKS     200U    // 20 ms of tracking before "healthy"
+#define OBS_UNHEALTHY_TICKS     50U     // 5 ms of not-tracking drops it
+#define OBS_ERR_DEBOUNCE_TICKS  50U     // 5 ms of sustained disagreement
+#define OBS_BLEND_TICKS         500U    // 50 ms bumpless hand-over blend
+
 #endif // BUILD_CONFIG_H

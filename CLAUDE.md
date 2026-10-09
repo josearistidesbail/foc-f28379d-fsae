@@ -35,6 +35,17 @@ Two independent hardware variants share the same source tree, selected at build 
 **Important**: `_LAUNCHXL_F28379D` must be defined for the LaunchPad (10 MHz crystal vs 20 MHz
 on the controlCARD). Verify it is in the Debug config Predefined Symbols if the CPU runs at half speed.
 
+**Toolchain (Linux box, 2026-09-22)**: CCS **21.0.1** at `~/ti/ccs2101` (CGT 25.11.1.LTS, SysConfig 1.28.1;
+`.mcp.json` + `.claude/ccs.settings.md` point there). C2000Ware 26.01 at `~/ti/C2000Ware_26_01_00_00` and
+**MotorControl SDK 6.00** at `~/ti/C2000Ware_MotorControl_SDK_6_00_00_00`. The project files still hard-code
+`~/ti/c2000/C2000Ware_26_01_00_00` and `~/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00`, satisfied by
+**symlinks** under `~/ti/c2000/` (the 5.04 name points at the 6.00 install). 6.00 was checked API-compatible
+for every SDK symbol this firmware uses (4-arg series `PI_run` still at `pi.h:641`, `PARK_setup` via
+`__sin/__cos`, `MATH_max/min`, `SVGEN_*`, `CLARKE_*`, same source paths for the five `ti_lib` links) — a
+proper re-point of the project path variables through CCS (never by hand-editing `.cproject`, per CCS.md) is
+still owed, as is fixing the `.project` link for `board_control_v2.syscfg` (points at an empty
+`~/workspace_ccstheia/…`; the real file is `syscfg/board_control_v2.syscfg`).
+
 ## Source Layout
 
 ```
@@ -53,6 +64,12 @@ libraries/       TI Motor Control SDK header-only math (path-matched to SDK inst
 ```
 
 `build_config.h` is the single include funnel — it pulls in the correct hw/motor/sensor headers.
+
+Step 12 additions: `src/observer.c` + `include/observer.h` (sensorless flux observer + SMO + PLL),
+`src/pos_src.c` + `include/pos_src.h` (position-source supervisor: sensor/observer selection, AUTO fail-over,
+bumpless blend), `include/foc_math_inline.h` (TMU trig macros, wraps, `foc_atan2`/`foc_fast_sqrt` hoisted
+out of the resolver header / pipeline), `host/foc_debug/observer_sim.py` (stdlib-only offline SMO-vs-flux
+simulation, the oracle for the C equations and the source of the `OBS_*` defaults), `docs/sensorless.md`.
 
 ## SysConfig (Debug Variant)
 
@@ -168,6 +185,58 @@ Device_init() → Device_initGPIO() → Interrupt_initModule/VectorTable() → B
   only smooths what already survived aliasing. (The old header note claiming a "0..3.3 V span that clips" was never
   measured and is wrong in both bias and amplitude.)
 - [~] Step 11 — **Field weakening** (built, Teknic Debug links clean; HW test pending). Fills the Step-10 `TODO[FW]` hooks. **Voltage-feedback regulator** `s_pi_fw` runs in the current-loop ISR (`foc_pipeline.c` step 3b, RUN only, gated by `g_dbg_fw_en`/`fw_en` param, default `FW_DEFAULT=0`): a TI `PI_run` on the **squared** voltage-margin error (`ref = vmax_fw²`, `fbk = |Vdq|²`) winds `s_fw_id` negative (clamped `[FW_ID_MIN_A, 0]`) when the inverter saturates, relaxing to 0 with headroom. **Squared error keeps the path sqrt-free** (no C99 `sqrtf` in this build); the squared-error loop gain (~`2·vmax`) is folded into the tuned `GAIN_KI_FW·GAIN_KP_FW` (TI PI is *series* form — **both Kp and Ki must be nonzero** or the integrator is dead). `vmax_fw = FW_VMAX_FRACTION·vbus·0.5` reuses the per-axis PI-clamp budget; **`FW_VMAX_FRACTION` must be < `VDQ_MAX_FRACTION`** so FW reacts just before the q-axis clamp bites (`|Vdq| ≥ |Vq|`). **`id_ref` ownership moved to the ISR**: `id_ref = ID_REF_NOMINAL_A + s_fw_id` each RUN tick (removed the old `id_ref = NOMINAL` line from `foc_speed_loop_tick`); reset on RUN entry via the `s_prev_state` transition. **Flux-priority current-circle limit**: before the q-PI, clamp `iq` to `±√(I_PEAK² − id²)` via a self-contained `foc_fast_sqrt()` (inverse-sqrt bit-trick + 2 Newton steps — **no RTS trig/sqrt tables**, same flash-pressure reason as the trig-free align averager) so `id²+iq² ≤ I_PEAK²` stays under `MOTOR_OC_TRIP_A`. **Drive-by fix**: `gains_emrax.h` was missing `FOC_DECOUPLE_DEFAULT` (referenced unconditionally in `foc_init` → the Production/EMRAX config didn't compile); added. **Flash**: relocated `foc_init`/`foc_speed_loop_tick`/`sm_tick_1khz` to FLASHA in `app_ebss.cmd` (FLASHB was 100% full; #10099). Test on bench: `fw_en=1`, ramp speed (SPEED mode), watch `g_dbg_vmag` plateau at `≈FW_VMAX_FRACTION·vbus·0.5`, `g_dbg_fw_id`<0 past base speed, `g_dbg_iq_lim` shrink as `|id|` grows. **TODO[FW] remaining**: per-motor gain tuning on real hardware (current values are conservative placeholders), MTPA (still `ID_REF_NOMINAL_A=0`), and revisit `FAULT_ASC_OMEGA_ELEC` against the real bus once FW is exercised (EMRAX `Isc≈306 A > OC 260 A`). Production/EMRAX config not built through the harness (buildProject can't switch the active config) — verified statically that every shared-code macro is defined in the EMRAX include chain.
+
+- [~] Step 12 — **Sensorless mode + automatic sensor-loss fail-over** (built 2026-09-22; compile-checked in
+  both configs with `cl2000` into the scratchpad — the real CCS build, flash `.map` check and all bench tests
+  are still pending). See `docs/sensorless.md` for equations, params, the decision table and the offline
+  comparison. **Two observers run every ISR** (`src/observer.c`), selected by `obs_mode` (LIVE) to feed one
+  type-II PLL (the resolver ATO equations): `0` = **Ortega nonlinear flux observer** (stator-flux integral pulled
+  onto the |η| = λ circle; θ = atan2(η)); `1` = **classic sliding-mode current observer** (current model driven by
+  v − z, z = Kslide·sat(î−i, ±E0), back-EMF = speed-scaled LPF(z); **e_hat is NOT fed back into the model** —
+  TI's eSMO does that and it makes z and ê share the back-EMF, so the textbook lag compensation is wrong;
+  ours applies the **exact discrete phase** of `Kslide·G·α·z^1.5/((z−p)(z−q))`, including the half-sample the
+  back-EMF is averaged over — at the EMRAX's 0.63 rad/tick the continuous `atan(ω/ωc)` is 2–3× off and even
+  the half sample is 7° at Teknic top speed). Both consume the voltage the bridge actually applied last tick
+  (`obs_voltage_ab()`: final duty × the bus SVGEN normalized with, minus the dead-zone model — `obs_vsrc`
+  selects raw duty·vbus or commanded Vab for A/B) against this tick's Clarke current (one-tick alignment;
+  currents+Clarke now run BEFORE the angle select in the ISR). **Position-source supervisor** (`src/pos_src.c`)
+  is now the ONLY consumer of `sensor_iface.h` for commutation: `angle_src` (LIVE) = SENSOR (observers in
+  shadow) / OBSERVER (engages when healthy, `REQ_PENDING` until then) / **AUTO** (one-way fail-over per RUN
+  when the backend latches loss, OR a debounced |θ_sensor − θ_est| > `obs_err_trip` disagreement, both only
+  with a healthy observer: above `obs_min_speed`, PLL tracking, convergence metric in tolerance for
+  `OBS_CONVERGED_TICKS`). Every switch is **bumpless** (angle+speed offset decays over `OBS_BLEND_TICKS`;
+  a LOSS switch jumps, the sensor angle it would blend from is garbage). Fail-over raises a **WARNING**
+  (`safety_warn(WARN_SENSORLESS_FAILOVER)`, new parallel word `warn_code` — never `safety_latch`, which always
+  ends in FOC_FAULT) and the GUI banner turns amber "SENSORLESS (…)". Loss while sensorless (below the floor /
+  lost convergence) → the existing `FAULT_SENSOR_LOSS` path via `pos_src_is_lost()`; `enter(FOC_FAULT)` now
+  picks ASC/coast from `pos_src_get_healthy_speed()` (the ACTIVE source). While sensorless: |iq| clamped to
+  `obs_iq_max` (50 % of IQ_REF_MAX) and field weakening forced off. **Scope**: col 6 (state, never streamable)
+  is now `theta_est`, new col 14 `theta_err` = wrap(θ_est − θ_sensor) computed in firmware → 15 channels
+  (16 is UB on the 16-bit mask AND overflows FRAME_MAX_PAYLOAD). **ISR cycle counter** added (CPUTIMER1
+  free-running, `isr_cycles`/`isr_cycles_max`/`isr_cyc_rst`) — measure the baseline BEFORE trusting the
+  observer's cost estimate (+500–900 cycles of a 20,000 budget). **Flash**: observer, supervisor and
+  `foc_current_loop_isr` itself placed in **FLASHC** (`app_ebss.cmd`; FLASHB was 100 % full). **Offline sim
+  verdict (host/foc_debug/observer_sim.py, 14 unit tests)**: flux observer locks instantly from the seed and
+  works down to ~2 % speed in an ideal model but is *parameter-sensitive* (Rs ±30 % → 10–22° at 20 % speed
+  on the Teknic, λ −10 % → 9–13°, a 10 % bus error → 8–30°, an unmodelled dead zone → ~20°); the SMO is
+  *robust* to Rs/λ/bus error (< 2°) and equally accurate in steady state (0.1–0.5°) but needs 5–100 ms to
+  lock, needs the speed sign (±178° through zero) and dies below its LPF floor. Recommendation: **SMO as the
+  default fail-over source above ~10 % speed, flux observer for the bench/low-speed comparison**; ship
+  `obs_mode=0` (flux) only until the SMO's E0/Kslide are confirmed on hardware. **EMRAX on the 24 V bench tops
+  out at ~250 elec rad/s (back-EMF = bus/2), below the 400 rad/s HV floor → set `obs_min_speed=150` live,
+  `dtc_en=1`, `obs_vsrc=0`, `vbus_ovr=0`; only the flux observer is meaningfully testable there.** Bench plan
+  (Teknic first): 1) `isr_cycles_max` baseline vs after; 2) shadow `angle_src=0` at 3–4 speeds, `theta_err`
+  mean within ±0.1 rad, sweep `obs_mode`×`obs_vsrc`×`dtc_en`×`obs_rs` (bench half of the comparison);
+  3) find the floor (`theta_err` RMS > 0.3 rad) → `obs_min_speed ≥ 1.3×`; 4) forced hand-over `angle_src=1`
+  live with `pos_trig_en=1` (one-shot shows col0−col14 decaying linearly over 500 samples, Iq disturbance
+  < 10 %), `step_go` q-steps vs sensored, flip back; 5) AUTO: `pos_force_lost=1` at speed → `angle_act=1`,
+  `pos_status=0x63`, `warn_code=1`, RUN continues; then unplug encoder A/B under torque / pull a resolver
+  channel; `pos_inj_err=1.0` → DISAGREE switch in 5 ms; 6) sensorless coast below the floor →
+  `FAULT_SENSOR_LOSS`, `pos_status` LOST|BELOW_MIN_SPD; 7) `pos_force_lost=1` at low rpm → today's FAULT.
+  **Deferred (hooks only)**: I/f open-loop start from standstill (`POS_ST_IF_ACTIVE` reserved; designed as a
+  RUN sub-state owned by the supervisor with a *stability* hand-over criterion, since I/f runs at a load angle);
+  HFI. **Also**: the speed loop now closes on the supervisor's ω — in sensorless it sees the 40 Hz PLL, so
+  SPEED mode needs `kp_w` re-tuned for crossover ≤ f_bw/4 (same gate as the resolver PLL note).
 
 ## Temporary Debug Globals + Hacks (remove before production)
 
@@ -780,6 +849,40 @@ volatile float32_t g_dbg_iq_lim;        // flux-priority current-circle limit on
 //   foc_fast_sqrt() (static) = trig/RTS-free sqrt for the iq circle limit.
 ```
 
+// src/observer.c + src/pos_src.c   (Step 12 — sensorless; all params LIVE)
+volatile uint16_t  g_obs_mode;        // "obs_mode" 0x0060: 0 flux / 1 smo (both run every ISR; selects the PLL input)
+volatile uint16_t  g_obs_vsrc;        // "obs_vsrc" 0x0061: 0 duty*vbus - dead-zone model (default) / 1 duty*vbus / 2 cmd Vab
+volatile float32_t g_obs_gamma;       // "obs_gamma" 0x0062 [1/s] flux radial rate; clamp [10, 5000] (pole 1-gamma*Ts)
+volatile float32_t g_obs_smo_kslide;  // "obs_smo_kslide" 0x0063 [V/A]; setter caps at 0.9*(1+F)/G (discrete stability)
+volatile float32_t g_obs_smo_e0;      // "obs_smo_e0" 0x0064 [A] boundary layer; >= e_max/|Kslide+Rs+j*w*Ls| keeps it linear
+volatile float32_t g_obs_smo_lpf_hz;  // "obs_smo_lpf_hz" 0x0065 back-EMF LPF floor; g_obs_smo_lpf_k 0x0066 = cutoff/|w|
+volatile float32_t g_obs_pll_bw_hz;   // "obs_pll_bw" 0x0067 [Hz], zeta=1, clamp [1, 200]
+volatile float32_t g_obs_min_speed;   // "obs_min_speed" 0x0068 [elec rad/s]: unhealthy below (no back-EMF)
+volatile float32_t g_obs_flux_tol, g_obs_smo_tol;   // 0x0069 / 0x006A [pu] convergence tolerances
+volatile float32_t g_obs_rs, g_obs_ls;              // 0x006B / 0x006C model params (boot MOTOR_RS_OHM, (Ld+Lq)/2) -- for +/-30% A/B
+volatile float32_t g_obs_theta_est, g_obs_omega_est;   // RO theta_est 0x012A / omega_est 0x012B (PLL; scope col 6 = theta_est)
+volatile float32_t g_obs_theta_flux, g_obs_theta_smo, g_obs_dtheta;  // raw angles + wrap(flux - smo) (RO obs_dtheta 0x012F)
+volatile float32_t g_obs_flux_err;    // RO 0x012D (|eta|^2 - lam^2)/lam^2: 0 converged, -1 no flux
+volatile float32_t g_obs_smo_err;     // RO 0x012E |e_hat|^2/predicted(w)^2 - 1: 0 converged, -1 no back-EMF (linear-regime metric)
+volatile float32_t g_obs_smo_ierr;    // RO 0x0135 |i_hat - i| [A] -- sizes E0
+volatile uint16_t  g_obs_healthy;     // RO 0x0132: asymmetric debounce (200 ticks to trust, 50 to drop)
+volatile uint16_t  g_obs_resets;      // RO 0x0133: blow-up guard trips
+volatile uint16_t  g_angle_src;       // "angle_src" 0x006D LIVE: 0 SENSOR / 1 OBSERVER / 2 AUTO (supervisor-mediated, blended)
+volatile float32_t g_obs_err_trip;    // "obs_err_trip" 0x006E [rad] disagreement trip (debounced OBS_ERR_DEBOUNCE_TICKS=50)
+volatile float32_t g_obs_iq_max;      // "obs_iq_max" 0x006F [A] |iq| clamp while sensorless (FW also forced off)
+volatile uint16_t  g_pos_force_lost;  // "pos_force_lost" 0x0070 bench: pretend the sensor is lost (RUN only; auto-cleared in IDLE)
+volatile float32_t g_pos_inj_err;     // "pos_inj_err" 0x0071 bench: add [rad] to the sensor angle the supervisor sees (DISAGREE test)
+volatile uint16_t  g_pos_trig_en;     // "pos_trig_en" 0x0072 bench: fire the scope one-shot on the hand-over tick
+volatile uint16_t  g_pos_angle_act;   // RO "angle_act" 0x0130: 0 sensor / 1 observer commutating
+volatile uint16_t  g_pos_status;      // RO "pos_status" 0x0131: POS_ST_* bits (OBS_ACTIVE 1, SENSOR_LOST 2, DISAGREE 4,
+                                      //   OBS_UNHEALTHY 8, BELOW_MIN_SPD 0x10, FAILOVER_DONE 0x20, DEGRADED 0x40, BLENDING 0x80,
+                                      //   FORCED 0x100, LOST 0x200, REQ_PENDING 0x400, IF_ACTIVE 0x800 reserved)
+volatile float32_t g_pos_theta_err;   // RO "theta_err" 0x012C = wrap(theta_est - theta_sensor); scope col 14 (bit 0x4000)
+volatile uint16_t  g_warn_code;       // RO "warn_code" 0x0134 (safety.c): WARN_SENSORLESS_FAILOVER = 1; cleared with faults / IDLE
+// src/isr.c   (Step 12 instrumentation)
+volatile uint32_t  g_dbg_isr_cycles, g_dbg_isr_cycles_max;  // RO isr_cycles 0x0128 / isr_cycles_max 0x0129 (SYSCLK cycles,
+                                      //   CPUTIMER1 free-running from debug_init); "isr_cyc_rst" 0x0059 zeroes the max. Budget 20,000.
+
 **Code hacks pending removal:**
 
 - `src/main.c` — temporary `inverter_enable_gate()` call right after `sm_init()` (guarded by `HW_BOOSTXL_DRV8305`). Holds DRV8305 awake so current-amp bias can be verified without engaging PWM. Remove once state machine drives EN_GATE through its proper transitions.
@@ -804,7 +907,10 @@ volatile float32_t g_dbg_iq_lim;        // flux-priority current-circle limit on
   4. **VDS Sense Control (0x0C) wrote `0x0086`** → VDS_MODE=`b'110` (RESERVED; Table 19 defines only 000/001/010). Fixed to `0x0080` (VDS_LEVEL 0.403 V, VDS_MODE=000 latched). NOTE: level is still loose (~0.4 V); tighten toward the intended ~0.18–0.2 V (e.g. `0x0030`) before closed-loop RUN.
   - **Ordering lesson**: a CPU/JTAG restart does **not** reset the external DRV8305 — it keeps its registers and latched faults. So `inverter_clear_faults()` must run **after** the gate-drive/VDS config, or a stale bad-blanking config re-latches VDS the instant you clear. Always decode `drv8305_xfer()` values against datasheet SLVSCX2 Tables 9/10/16/19 — never trust the inline comment.
 - **[2026-06-05] FLASHB is full — adding code overflows `.cinit` (linker #10099 "FAILED TO ALLOCATE").** The SDK device `.cmd` pins `.cinit : > FLASHB` (single sector) and starts `.text : >> FLASHB|FLASHC|...` in the same 0x2000 sector. `.text` now fills FLASHB almost exactly (~0x15 free), too little for `.cinit` (~0x34); adding the align controller tipped it over. **Fix (no SDK-file edit, no placement clash): in project-root `app_ebss.cmd` relocate a large function to the otherwise-empty FLASHA via its `--gen_func_subsections` name** — e.g. `.text:align_step : > FLASHA PAGE = 0, ALIGN(8)`. A named `.text:<func>` placement does NOT clash with the SDK catch-all `.text`; the named subsection just wins. FLASHA (0x1FFE) and FLASHC (0x2000) are both empty. Expect to repeat this for the next sizable function you add — flash is essentially full. (Same file already redirects `.ebss`.)
-- **No `sinf`/`cosf`/`atan2f` in this build.** `#include <math.h>` resolves to the C2000 motor-control `libraries/math/include/math.h` (which provides `MATH_PI`/`MATH_Vec`, NOT the C99 float trig), so those calls compile only with an implicit-declaration warning, link to the wrong/`int`-returning symbol, AND pull RTS trig tables that overflow flash. The align averager is deliberately **trig-free** (anchor first sample + average wrapped deviations). If you need trig: the TI transform libs (`PARK_setup`/`IPARK_setup`) do their own sin/cos internally, or add a LUT (see `imported/qep-calibration/sine_table.c`).
+- **No `sinf`/`cosf`/`atan2f` in this build.** `#include <math.h>` resolves to the C2000 motor-control `libraries/math/include/math.h` (which provides `MATH_PI`/`MATH_Vec`, NOT the C99 float trig), so those calls compile only with an implicit-declaration warning, link to the wrong/`int`-returning symbol, AND pull RTS trig tables that overflow flash. The align averager is deliberately **trig-free** (anchor first sample + average wrapped deviations). **[2026-09-22] But hardware trig IS available and already in use**: both configs build with `--tmu_support=tmu0`, and the SDK's `PARK_setup`/`IPARK_setup` compile to `SINPUF32/COSPUF32` (TMU, 4–5 cycles, no tables). Use the macros in `include/foc_math_inline.h` — `FOC_SIN/FOC_COS` (`__sin/__cos`), `FOC_ATAN2` (`__atan2puf32`·2π, the same intrinsic TI's esmo.h uses), `FOC_ATAN` — never the `<math.h>` names. A plain `/` is already `DIVF32` under `--fp_mode=relaxed`. Verify in the kept `.asm`: `SINPUF32/ATANPUF32/QUADF32` present, no `LCR #sinf`-style RTS call (the observer build checks this).
+- **[Step 12] Discrete-time phase compensation is not the continuous formula.** The SMO's back-EMF chain `Ê/E = Kslide·G·α·z^1.5/((z−p)(z−q))` must be evaluated at `z = e^{jωTs}`: at the EMRAX's 0.63 rad per tick the textbook `atan(ω/ωc)` is 2–3× off, and forgetting the half sample by which the back-EMF is *averaged* into the current model costs 7° at Teknic top speed (the sim caught both as "never locks"). Same lesson applies to the PLL: publish the estimate for THIS sample (`state + kp·perr`), not the one-step-ahead state, or `theta_est` leads the sensor by ω·Ts (0.63 rad at 6283 rad/s — enough to trip the disagreement detector by itself).
+- **[Step 12] Scope catalog caps at 15 channels, not 16.** `debug_iface.c` clamps the mask with `(1U << SCOPE_MAX_CHANNELS) - 1U` — UB on the 16-bit int at 16 — and a 16-channel capture (8197 B) exceeds `FRAME_MAX_PAYLOAD` 8192. The ring's write-only `state` column was repurposed for `theta_est` for that reason.
+- **[Step 12] TI's eSMO feeds its back-EMF estimate back into the current model** (`v − Ealpha − Zalpha`). That makes z and ê each settle at HALF the back-EMF (harmless for atan2) but the closed-loop phase becomes that of `H/(1+H)`, not `H`, so the textbook LPF lag compensation over-corrects (~18° at fc = fe). The firmware SMO is the classic form (no ê feedback) with the exact discrete phase; if you ever port TI's structure, re-derive the compensation.
 - **[2026-07-15] The host GUI scope plot is BURST-captured and its x-axis is NOT time — this reads as "the ADC is broken" and isn't.** `DATALOG_LEN_SAMPLES = 128`, so one `SCOPE_CAPTURE` = **128 samples = 12.8 ms** at decim=1; the worker (`gui.py`, `_scope_interval = 0.25`) requests one only **every 250 ms**; `_on_capture` `extend`s each block into a `maxlen=8000` deque and `_render_scope` draws `setData(np.arange(n), y)` — a **sample counter**. So an 8000-wide plot = ~62 blocks of 12.8 ms glued end-to-end with **~237 ms of deleted dead time between each**: ~15.6 s of wall clock holding 0.8 s of data. 127 of every 128 gaps are 100 µs; the 128th is ~2400× wider and drawn the same width. On a slow signal you get flat noisy plateaus (within 12.8 ms a 1 Hz sine moves ≤80 codes — less than the ~344-code noise floor, so its slope is buried) separated by big vertical jumps (the sine advanced ~85° during the gap), aliasing into fake uneven "cycles". **Tell: every plateau is exactly 128 samples wide — count them.** To actually see the waveform, raise the **decim** spinbox: one capture spans `128·decim/10000` s, so decim≈78 puts a full 1 Hz cycle in one block. **But go back to decim=1 to diagnose NOISE** — `debug_datalog_push` stores an instantaneous sample (no averaging, no anti-alias filter), so decimating folds everything above `5 kHz/decim` down and destroys the noise's frequency structure. decim costs nothing in CPU (early return) or link (always 128 samples); it only trades resolution for span.
 - **[Step 9] ePWM one-shot trip-zone (OST) latch ≠ interrupt flag.** Two separate flags: the **OST flag** holds the forced output state (ASC) and **must be cleared manually** by `EPWM_clearTripZoneFlag(base, EPWM_TZ_FLAG_OST)` — a CPU/JTAG restart does NOT clear it; the **interrupt flag** (`EPWM_TZ_INTERRUPT`) only re-arms the ISR. In `epwm_tz_isr` clear ONLY the interrupt flag and leave OST latched (that's what keeps the bridge safe while the SW state machine catches up); clearing OST is deferred to `pwm_clear_trip()` on `enter(FOC_IDLE)` after the operator clears the fault. If RUN produces no PWM after a trip, you forgot to clear OST. Also: TZ acts **after** the dead-band, so ASC needs **TZA=LOW + TZB=HIGH** (forcing both low = coast, not a short). TZ inputs are **active-low** (trip on logic-low), which matches nFAULT/open-collector module flags directly — no Input X-BAR inversion needed for active-low sources.
 

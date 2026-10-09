@@ -100,4 +100,23 @@ SECTIONS
     .text:adc_calibrate_offsets       : > FLASHA   PAGE = 0, ALIGN(8)
     .text:Device_init                 : > FLASHA   PAGE = 0, ALIGN(8)
     .text:main                        : > FLASHA   PAGE = 0, ALIGN(8)
+
+    /* Step 12 (sensorless): the observers, the position-source supervisor and
+     * the current-loop ISR itself go to FLASHC (0x2000 words, previously empty).
+     * The ISR grew (observer voltage reconstruction + supervisor call + angle
+     * source switch) and FLASHB had 0 free, so this time the hot path moves
+     * too -- all F2837xD flash banks share the same wait states, so FLASHC vs
+     * FLASHB is purely an address choice (see the NOTE above). Nothing here is
+     * a .TI.ramfunc candidate (only the adcA1_isr wrapper lives in RAM). */
+    .text:foc_current_loop_isr        : > FLASHC   PAGE = 0, ALIGN(8)
+    .text:obs_update_isr              : > FLASHC   PAGE = 0, ALIGN(8)
+    .text:obs_apply_params            : > FLASHC   PAGE = 0, ALIGN(8)
+    .text:obs_reset                   : > FLASHC   PAGE = 0, ALIGN(8)
+    .text:obs_seed                    : > FLASHC   PAGE = 0, ALIGN(8)
+    .text:obs_init                    : > FLASHC   PAGE = 0, ALIGN(8)
+    .text:pos_src_update_isr          : > FLASHC   PAGE = 0, ALIGN(8)
+    .text:pos_src_update_slow         : > FLASHC   PAGE = 0, ALIGN(8)
+    .text:pos_src_get_healthy_speed   : > FLASHC   PAGE = 0, ALIGN(8)
+    .text:pos_src_clear_loss          : > FLASHC   PAGE = 0, ALIGN(8)
+    .text:pos_src_init                : > FLASHC   PAGE = 0, ALIGN(8)
 }

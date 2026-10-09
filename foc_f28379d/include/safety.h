@@ -23,6 +23,19 @@ typedef enum {
                                        // channel->phase wiring unverifiable
 } Fault_Bits_t;
 
+// Non-fatal WARNINGS: a parallel word that is deliberately NOT routed through
+// safety_latch() (any latched fault bit ends in FOC_FAULT). Cleared with the
+// faults (safety_clear) and on every IDLE entry. Host RO param "warn_code".
+typedef enum {
+    WARN_NONE                = 0,
+    WARN_SENSORLESS_FAILOVER = (1u << 0),  // AUTO handed commutation to the observer
+} Warn_Bits_t;
+
+extern volatile uint16_t g_warn_code;
+extern void     safety_warn(uint16_t bits);      // OR into the warning word
+extern uint16_t safety_get_warnings(void);
+extern void     safety_clear_warnings(void);
+
 extern void     safety_init(void);
 extern void     safety_check_isr(void);          // call last in foc ISR
 extern void     safety_latch(uint16_t bits);     // OR into latched mask

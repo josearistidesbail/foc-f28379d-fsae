@@ -19,12 +19,26 @@ volatile uint32_t g_isr_count = 0;
 // TODO: Debugging Step 9, remove after. Count of hardware trip-zone events.
 volatile uint32_t g_dbg_tz_trip = 0;
 
+// ISR execution time in SYSCLK cycles (Step 12 instrumentation). CPUTIMER1 is
+// started free-running (down-counter, prescaler 0) in debug_init(); the
+// difference across foc_current_loop_isr() is the cost of one control tick.
+// Budget: SYS_CLK_HZ / FOC_ISR_FREQ_HZ = 20,000 cycles. RO params "isr_cycles"
+// (last) / "isr_cycles_max" (max-hold, reset via "isr_cyc_rst").
+volatile uint32_t g_dbg_isr_cycles = 0;
+volatile uint32_t g_dbg_isr_cycles_max = 0;
+
 #pragma CODE_SECTION(adcA1_isr, ".TI.ramfunc")
 
 __interrupt void adcA1_isr(void)
 {
+    uint32_t t0 = CPUTimer_getTimerCount(CPUTIMER1_BASE);
     g_isr_count++;
     foc_current_loop_isr();
+    {
+        uint32_t dt = t0 - CPUTimer_getTimerCount(CPUTIMER1_BASE);  // down-counter
+        g_dbg_isr_cycles = dt;
+        if(dt > g_dbg_isr_cycles_max) g_dbg_isr_cycles_max = dt;
+    }
 
     // Clear ADC INT flag and PIE ack. ADC_ISR_INT_BASE is ADCA (Debug) or ADCC
     // (Control_V2) depending on which ADC carries the EOC interrupt.

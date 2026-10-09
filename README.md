@@ -8,9 +8,13 @@ variants out of the box:
 | **Debug** | BOOSTXL-DRV8305 BoosterPack | Teknic M-2310P-LN-04K | eQEP encoder |
 | **Production** | Custom `Control_Board_v2` | EMRAX 208 | RM44AC sin/cos resolver |
 
-Code is thin C wrappers over **C2000Ware MotorControl SDK 5.04** math
-libraries (`CLARKE_run`, `PARK_run`, `IPARK_run`, `SVGEN_run`, `PI_run`).
-The RM44AC angle is `atan2f(sin, cos)` of the ADC-sampled SIN/COS pair.
+Code is thin C wrappers over **C2000Ware MotorControl SDK** math libraries
+(`CLARKE_run`, `PARK_run`, `IPARK_run`, `SVGEN_run`, `PI_run`) — the project
+pins 5.04 but builds unchanged against 6.00 (API-checked; the Linux bench uses
+6.00 through a symlink at the 5.04 path). The RM44AC angle is the TMU
+`atan2` of the ADC-sampled SIN/COS pair; a sensorless observer
+(`src/observer.c`, see `foc_f28379d/docs/sensorless.md`) can take over
+commutation if the sensor fails.
 Peripherals are configured in **SysConfig**.
 
 ## Project layout (what to edit)
@@ -51,9 +55,10 @@ symbols, linker cmd, ccxml, driverlib.lib) in one import.
 
 If CCS complains about a missing `C2000WARE_MC_SDK_INSTALL_DIR` or path
 variable, the SDK is expected at
-`C:\ti\C2000Ware_MotorControl_SDK_5_04_00_00`. Edit the `<pathVariable>`
-lines in `foc_f28379d.projectspec` if yours is somewhere else, then
-re-import.
+`C:\ti\C2000Ware_MotorControl_SDK_5_04_00_00` (Linux:
+`~/ti/c2000/C2000Ware_MotorControl_SDK_5_04_00_00`, which may be a symlink to
+the 6.00 install). Edit the `<pathVariable>` lines in
+`foc_f28379d.projectspec` if yours is somewhere else, then re-import.
 
 ## SysConfig setup (the one bit you still do by hand)
 

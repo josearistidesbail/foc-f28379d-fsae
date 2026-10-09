@@ -40,23 +40,67 @@ FAULT_BITS = (
 )
 
 
+# Non-fatal warning bits, mirrors Warn_Bits_t in firmware safety.h (RO param
+# "warn_code"). Warnings never put the drive in FAULT; the GUI shows them in
+# the state banner.
+WARN_BITS = (
+    (1 << 0, "SENSORLESS_FAILOVER"),   # AUTO handed commutation to the observer
+)
+
+# Position-source supervisor status, mirrors POS_ST_* in firmware pos_src.h
+# (RO param "pos_status").
+POS_STATUS_BITS = (
+    (0x0001, "OBS_ACTIVE"),
+    (0x0002, "SENSOR_LOST"),
+    (0x0004, "DISAGREE"),
+    (0x0008, "OBS_UNHEALTHY"),
+    (0x0010, "BELOW_MIN_SPD"),
+    (0x0020, "FAILOVER_DONE"),
+    (0x0040, "DEGRADED"),
+    (0x0080, "BLENDING"),
+    (0x0100, "FORCED"),
+    (0x0200, "LOST"),
+    (0x0400, "REQ_PENDING"),
+    (0x0800, "IF_ACTIVE"),
+)
+
+# angle_src param values (pos_src.h angle_src_t) and the angle_act readback.
+ANGLE_SRC_NAMES = {0: "sensor", 1: "observer", 2: "auto"}
+ANGLE_ACT_NAMES = {0: "sensor", 1: "observer"}
+
+
+def _decode_bits(code: int, table) -> str:
+    """' | '-join the names of the set bits; unknown bits appended as hex."""
+    code = int(code) & 0xFFFF
+    if code == 0:
+        return "none"
+    names = [name for bit, name in table if code & bit]
+    known = 0
+    for bit, _ in table:
+        known |= bit
+    extra = code & ~known
+    if extra:
+        names.append(f"0x{extra:X}")
+    return " | ".join(names)
+
+
 def fault_reason(code: int) -> str:
     """Decode a latched fault mask to a human-readable ' | '-joined string.
 
     Returns "none" for 0. Any bits outside FAULT_BITS are appended as hex so an
     unexpected mask is still visible rather than silently dropped.
     """
-    code = int(code) & 0xFFFF
-    if code == 0:
-        return "none"
-    names = [name for bit, name in FAULT_BITS if code & bit]
-    known = 0
-    for bit, _ in FAULT_BITS:
-        known |= bit
-    extra = code & ~known
-    if extra:
-        names.append(f"0x{extra:X}")
-    return " | ".join(names)
+    return _decode_bits(code, FAULT_BITS)
+
+
+def warn_reason(code: int) -> str:
+    """Decode the firmware warning word ("warn_code")."""
+    return _decode_bits(code, WARN_BITS)
+
+
+def pos_status_reason(code: int) -> str:
+    """Decode the position-source supervisor status ("pos_status")."""
+    return _decode_bits(code, POS_STATUS_BITS)
 
 
 @dataclass

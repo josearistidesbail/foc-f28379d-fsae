@@ -20,7 +20,8 @@ FRAME_SYNC0 = 0xAA
 FRAME_SYNC1 = 0x55
 # Largest response payload the host will accept. The SCOPE_CAPTURE frame is the
 # biggest: with every catalog signal selected, 5 + DATALOG_LEN_SAMPLES(128) *
-# SCOPE_MAX_CHANNELS(13) * 4 = 6661 bytes, so this stays comfortably above that.
+# SCOPE_MAX_CHANNELS(15) * 4 = 7685 bytes, so this stays above that. (16 signals
+# would not fit -- 8197 B -- which is why the firmware catalog is capped at 15.)
 # Enforced in link.py on RX. Keep in sync with debug_proto.h.
 FRAME_MAX_PAYLOAD = 8192
 
@@ -101,6 +102,13 @@ SCOPE_CATALOG = [
     # Measured DC-bus voltage [V] (all backends). Watch it sag under load to size
     # the undervoltage trip; mirrors the static "vbus" RO param.
     (12, "vbus"),
+    # Sensorless observer (Step 12): the observer PLL's electrical angle, and its
+    # error against the physical sensor wrap(theta_est - theta_sensor) [rad],
+    # computed in firmware so it is a live shadow comparison whichever source is
+    # commutating. theta_est is column 6 of the ring (the old never-streamed
+    # state column), theta_err column 14.
+    (13, "theta_est"),
+    (14, "theta_err"),
 ]
 SCOPE_MAX_CHANNELS = len(SCOPE_CATALOG)
 

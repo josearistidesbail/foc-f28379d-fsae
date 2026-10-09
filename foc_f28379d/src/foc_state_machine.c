@@ -5,7 +5,7 @@
 #include "foc_state_machine.h"
 #include "foc_pipeline.h"
 #include "inverter_iface.h"
-#include "sensor_iface.h"
+#include "pos_src.h"
 #include "pwm_iface.h"
 #include "adc_iface.h"
 #include "safety.h"
@@ -51,6 +51,7 @@ static void enter(FOC_State_t next)
         inverter_disable_gate();
         pwm_force_safe();
         pwm_clear_trip();   // release any latched HW trip-zone so RUN can resume
+        safety_clear_warnings();   // a sensorless fail-over warning ends with the run
         break;
     case FOC_CALIBRATE_OFFSETS:
         inverter_enable_gate();
@@ -89,10 +90,12 @@ static void enter(FOC_State_t next)
             // from rectifying into the DC link (uncontrolled generation ->
             // overvoltage) during field-weakening. Below the threshold COAST:
             // disable the gate driver so every FET tristates and the motor
-            // freewheels. Uses the LAST-HEALTHY speed because on sensor loss the
-            // live estimate is already garbage. This also keeps software in
-            // agreement with the HW trip-zone, which latches the same ASC.
-            float32_t w = sensor_get_healthy_speed();
+            // freewheels. Uses the LAST-HEALTHY speed of the ACTIVE position
+            // source (pos_src.c): on sensor loss the live estimate is already
+            // garbage, and after a sensorless fail-over the sensor's own latched
+            // speed is stale. This also keeps software in agreement with the
+            // HW trip-zone, which latches the same ASC.
+            float32_t w = pos_src_get_healthy_speed();
             if(w < 0.0f) w = -w;
             bool asc = (w > FAULT_ASC_OMEGA_ELEC);
             g_dbg_fault_asc = (uint16_t)asc;
@@ -125,7 +128,8 @@ void sm_request_stop(void)   { s_requested = FOC_IDLE; }
 // safety_check_isr() runs at FOC_ISR_FREQ_HZ, so the order here matters:
 //
 //   1. safety_clear()      -- drop safety.c's latched mask.
-//   2. sensor_clear_loss() -- drop the backend's one-way lost latch. Without
+//   2. pos_src_clear_loss() -- drop the backend's one-way lost latch (and the
+//      supervisor's observer-loss latch). Without
 //      this the mask clears but sensor_is_lost() stays true forever, and the
 //      first ISR tick back in RUN/ALIGN re-latches FAULT_SENSOR_LOSS. Since
 //      Run skips ALIGN once s_aligned is set (the only path that used to
@@ -143,7 +147,7 @@ void sm_clear_fault(void)
     if(s_state == FOC_FAULT)
     {
         safety_clear();
-        sensor_clear_loss();
+        pos_src_clear_loss();      // backend re-arm + the supervisor's own latch
         s_fault_pending = false;
         s_requested     = FOC_IDLE;
     }

@@ -180,6 +180,18 @@ Each value has a home in code; capture the real number on the bench and commit i
     ASC (high speed) vs coast (low speed) off the last-healthy speed.
 11. **Field weakening** (optional, HV) — `fw_en=1`, ramp speed; `g_dbg_vmag`
     plateaus, `g_dbg_fw_id<0` past base speed, `g_dbg_iq_lim` shrinks.
+12. **Sensorless shadow + fail-over** (see `docs/sensorless.md`) — needs the real
+    bus (`vbus_ovr=0`), `dtc_en=1`, `obs_vsrc=0`. On the 24 V bench the EMRAX
+    tops out near 250 elec rad/s, below the 400 rad/s HV `obs_min_speed`: set
+    `obs_min_speed=150` live and expect only the flux observer (`obs_mode=0`) to
+    be meaningful there. With `angle_src=0` (shadow) spin in TORQUE mode and watch
+    the `theta_err` scope channel (wrap(θ_est − θ_resolver)): mean within
+    ±0.1 rad, RMS ≲ 0.15 (resolver noise). Then `angle_src=1` live (bumpless
+    hand-over, `pos_trig_en=1` captures it), then `angle_src=2` +
+    `pos_force_lost=1` → `angle_act=1`, `pos_status=0x63`, `warn_code=1`, RUN
+    continues; pull one resolver channel under torque for the real thing.
+    Sensorless keeps |iq| ≤ `obs_iq_max` and forces FW off. HV: re-verify the
+    floor and the SMO's `obs_smo_e0` (185 A of current-model error at 6000 rpm).
 
 Only after 1–10 pass at low voltage, raise the DC link toward the HV pack in
 steps, re-checking OC/OV trips and the ASC boundary at each level.
