@@ -1,0 +1,104 @@
+
+== teknic_handover_back_smo_w1000_d8.csv  (128 samples, decim 8, 6 ch)
+   omega_elec: mean   1009.6 rad/s  sd   5.12
+   theta_err : mean -11.70 deg  RMS  11.70 deg  sd   0.35 deg  max  12.52 deg
+   switch at sample 16 (trig_idx from LOG.md; t = 12.8 ms into the window), offset -12.14 -> -11.76 deg across the switch
+   blend: reaches 5 % after 48.0 ms; linear fit slope 235.6 deg/s, residual 0.00 deg (500 ticks = 50 ms expected for a blended switch, ~0 for a LOSS jump)
+   Iq: pre-switch mean 0.381 A (sd 0.014, max dev 0.032), max deviation after switch 0.046 A (12.1 %, 3.2 pre-sd), post mean 0.378 A
+   theta_err RMS before 12.21 deg, after 11.63 deg
+
+== teknic_handover_disagree_smo_w1000_d8.csv  (128 samples, decim 8, 6 ch)
+   omega_elec: mean    898.8 rad/s  sd  46.12
+   theta_err : mean -63.54 deg  RMS  65.38 deg  sd  15.38 deg  max  70.99 deg
+   switch at sample 16 (trig_idx from LOG.md; t = 12.8 ms into the window), offset 58.70 -> 57.96 deg across the switch
+   blend: reaches 5 % after 47.2 ms; linear fit slope -1168.5 deg/s, residual 0.00 deg (500 ticks = 50 ms expected for a blended switch, ~0 for a LOSS jump)
+   Iq: pre-switch mean 0.916 A (sd 1.364, max dev 4.715), max deviation after switch 0.820 A (89.6 %, 0.6 pre-sd), post mean 0.338 A
+   theta_err RMS before 40.51 deg, after 68.20 deg
+
+== teknic_handover_forced_smo_w1000_d8.csv  (128 samples, decim 8, 6 ch)
+   omega_elec: mean   1004.4 rad/s  sd   3.32
+   theta_err : mean -12.00 deg  RMS  12.01 deg  sd   0.36 deg  max  12.80 deg
+   switch at sample 16 (trig_idx from LOG.md; t = 12.8 ms into the window), offset 12.29 -> 12.23 deg across the switch
+   blend: reaches 5 % after 47.2 ms; linear fit slope -247.0 deg/s, residual 0.00 deg (500 ticks = 50 ms expected for a blended switch, ~0 for a LOSS jump)
+   Iq: pre-switch mean 0.379 A (sd 0.014, max dev 0.026), max deviation after switch 0.038 A (10.1 %, 2.8 pre-sd), post mean 0.379 A
+   theta_err RMS before 11.71 deg, after 12.05 deg
+
+== teknic_handover_lost_smo_w1000_d8.csv  (128 samples, decim 8, 6 ch)
+   omega_elec: mean   1003.1 rad/s  sd   4.01
+   theta_err : mean -12.08 deg  RMS  12.09 deg  sd   0.32 deg  max  12.69 deg
+   switch at sample 16 (trig_idx from LOG.md; t = 12.8 ms into the window), offset 12.01 -> 0.00 deg across the switch
+   no blend offset (jump switch or offset below 0.5 deg)
+   Iq: pre-switch mean 0.392 A (sd 0.014, max dev 0.028), max deviation after switch 0.194 A (49.6 %, 13.9 pre-sd), post mean 0.393 A
+   theta_err RMS before 11.93 deg, after 12.11 deg
+
+== teknic_shadow_flux_w1000_d1.csv  (128 samples, decim 1, 6 ch)
+   omega_elec: mean    999.4 rad/s  sd   2.99
+   theta_err : mean   0.35 deg  RMS   0.53 deg  sd   0.40 deg  max   1.06 deg
+
+== teknic_shadow_flux_w1500_d1.csv  (128 samples, decim 1, 6 ch)
+   omega_elec: mean   1497.9 rad/s  sd   2.23
+   theta_err : mean  -0.11 deg  RMS   0.46 deg  sd   0.44 deg  max   1.02 deg
+
+== teknic_shadow_flux_w500_d1.csv  (128 samples, decim 1, 6 ch)
+   omega_elec: mean    497.6 rad/s  sd   0.94
+   theta_err : mean   4.00 deg  RMS   4.00 deg  sd   0.15 deg  max   4.32 deg
+
+== teknic_shadow_smo_w1000_d1.csv  (128 samples, decim 1, 6 ch)
+   omega_elec: mean   1000.6 rad/s  sd   1.38
+   theta_err : mean  -0.91 deg  RMS   0.96 deg  sd   0.31 deg  max   1.33 deg
+
+== teknic_shadow_smo_w1500_d1.csv  (128 samples, decim 1, 6 ch)
+   omega_elec: mean   1498.7 rad/s  sd   2.28
+   theta_err : mean  -0.80 deg  RMS   0.95 deg  sd   0.52 deg  max   1.63 deg
+
+== teknic_shadow_smo_w500_d1.csv  (128 samples, decim 1, 6 ch)
+   omega_elec: mean    496.3 rad/s  sd   0.52
+   theta_err : mean  -0.69 deg  RMS   0.72 deg  sd   0.20 deg  max   1.06 deg
+
+== teknic_unplug_auto_flux_w1000_d8.csv  (128 samples, decim 8, 6 ch)
+   omega_elec: mean    957.5 rad/s  sd   1.34
+   theta_err : mean   1.90 deg  RMS  98.11 deg  sd  98.09 deg  max 177.92 deg
+   switch at sample 16 (trig_idx from LOG.md; t = 12.8 ms into the window), offset -7.69 -> 0.00 deg across the switch
+   no blend offset (jump switch or offset below 0.5 deg)
+   Iq: pre-switch mean 0.389 A (sd 0.012, max dev 0.025), max deviation after switch 0.066 A (17.0 %, 5.4 pre-sd), post mean 0.384 A
+   theta_err RMS before 5.01 deg, after 104.87 deg
+
+== teknic_unplug_auto_flux_w1000_d8_fault.csv  (128 samples, decim 1, 6 ch)
+   omega_elec: mean    473.2 rad/s  sd 498.94
+   theta_err : mean  75.83 deg  RMS 115.23 deg  sd  86.77 deg  max 160.94 deg
+   switch at sample 63 (largest jump; t = 6.3 ms into the window), offset 64.23 -> -156.55 deg across the switch
+   blend: offset did not decay inside the window
+   Iq: pre-switch mean 0.606 A (sd 1.409, max dev 6.646), max deviation after switch 0.580 A (95.7 %, 0.4 pre-sd), post mean 0.048 A
+   theta_err RMS before 41.14 deg, after 156.55 deg
+
+== teknic_unplug_auto_smo_w1000_d8.csv  (128 samples, decim 8, 6 ch)
+   omega_elec: mean   1048.2 rad/s  sd   4.28
+   theta_err : mean  -0.68 deg  RMS  97.40 deg  sd  97.40 deg  max 179.99 deg
+   switch at sample 16 (trig_idx from LOG.md; t = 12.8 ms into the window), offset 11.72 -> 0.00 deg across the switch
+   no blend offset (jump switch or offset below 0.5 deg)
+   Iq: pre-switch mean 0.393 A (sd 0.014, max dev 0.030), max deviation after switch 0.091 A (23.1 %, 6.4 pre-sd), post mean 0.392 A
+   theta_err RMS before 11.60 deg, after 104.04 deg
+
+== teknic_unplug_auto_smo_w1000_d8_fault.csv  (128 samples, decim 1, 6 ch)
+   omega_elec: mean    507.2 rad/s  sd 491.69
+   theta_err : mean  -7.19 deg  RMS  31.98 deg  sd  31.16 deg  max 174.09 deg
+   switch at sample 69 (largest jump; t = 6.9 ms into the window), offset 61.56 -> 10.49 deg across the switch
+   blend: offset did not decay inside the window
+   Iq: pre-switch mean 0.600 A (sd 1.280, max dev 6.703), max deviation after switch 0.674 A (112.3 %, 0.5 pre-sd), post mean -0.040 A
+   theta_err RMS before 42.46 deg, after 10.49 deg
+
+== teknic_handover_lost_smo_w1000_d8.csv  (128 samples, decim 8, 6 ch)
+   omega_elec: mean    981.6 rad/s  sd   0.69
+   theta_err : mean  -0.50 deg  RMS   0.60 deg  sd   0.34 deg  max   1.17 deg
+   switch at sample 16 (trig_idx from LOG.md; t = 12.8 ms into the window), offset 0.62 -> 0.00 deg across the switch
+   no blend offset (jump switch or offset below 0.5 deg)
+   Iq: pre-switch mean 0.384 A (sd 0.017, max dev 0.035), max deviation after switch 0.033 A (8.7 %, 2.0 pre-sd), post mean 0.386 A
+   theta_err RMS before 0.73 deg, after 0.58 deg
+
+== teknic_unplug_auto_smo_w1000_d8.csv  (128 samples, decim 8, 6 ch)
+   omega_elec: mean   1071.7 rad/s  sd   0.78
+   theta_err : mean  -3.09 deg  RMS  97.09 deg  sd  97.04 deg  max 178.91 deg
+   switch at sample 16 (trig_idx from LOG.md; t = 12.8 ms into the window), offset -15.39 -> 0.00 deg across the switch
+   no blend offset (jump switch or offset below 0.5 deg)
+   Iq: pre-switch mean 0.380 A (sd 0.014, max dev 0.028), max deviation after switch 0.112 A (29.6 %, 7.9 pre-sd), post mean 0.379 A
+   theta_err RMS before 3.87 deg, after 103.78 deg

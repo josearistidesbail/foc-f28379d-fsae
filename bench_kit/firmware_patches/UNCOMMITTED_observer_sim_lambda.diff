@@ -1,0 +1,14 @@
+foc_f28379d/host/foc_debug/observer_sim.py | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+--- Changes ---
+
+foc_f28379d/host/foc_debug/observer_sim.py
+  @@ -112,7 +112,8 @@ class MotorParams:
+  -TEKNIC = MotorParams("teknic", 0.36, 235e-6, 235e-6, 0.0046, 4, 7.1, 6000.0, 48.0,
+  +# lambda bench-FITTED 2026-10-09 (0.006067 Vs, see motor_teknic_m2310p.h); the old 0.0046 was 32 % low.
+  +TEKNIC = MotorParams("teknic", 0.36, 235e-6, 235e-6, 0.006067, 4, 7.1, 6000.0, 48.0,
+                        deadtime_duty=500e-9 * 10e3, vdrop=0.30, ith=2.0)
+   # EMRAX 208 HV, datasheet v1.7 (Rs at 25 degC); i_peak = the firmware's 240 A amplitude limit.
+   EMRAX = MotorParams("emrax", 0.01277, 110e-6, 115e-6, 0.03867, 10, 240.0, 6000.0, 400.0,
+  +2 -1

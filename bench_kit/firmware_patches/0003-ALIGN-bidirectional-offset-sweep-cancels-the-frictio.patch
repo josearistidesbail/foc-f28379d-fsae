@@ -1,0 +1,222 @@
+From 259d21efb8d29abd1d4e531f6d17c6d06f04771d Mon Sep 17 00:00:00 2001
+From: Jose Bail <jose.ars.bail@gmail.com>
+Date: Fri, 9 Oct 2026 22:59:50 -0300
+Subject: [PATCH 3/3] ALIGN: bidirectional offset sweep cancels the friction
+ load angle
+
+The forward-only open-loop sweep baked the rotor's friction load angle into
+the captured sensor offset (rotor trails the carrier by delta, so the sensor
+then reads AHEAD of the true rotor by delta). On the Teknic bench this was
+the whole ~-11 deg "observer bias": a +/-1000 rad/s direction test showed
+it was direction-independent (-11.2 +/- 0.5 deg on both observers), i.e. in
+the reference, not in the observers or the DRV8305.
+
+ALIGN_RAMP_BIDIR (default 1): sweep ALIGN_RAMP_MECH_REVS forward, hold
+ALIGN_REVERSE_DWELL_S (0.3 s) so both passes start from rest, sweep the same
+backward; average the two direction means with equal weight. New RO param
+align_delta (0x0137) = half the pass difference = the measured load angle.
+
+Bench 2026-10-09: align_delta = 11.52 deg. Shadow theta_err after the fix:
+flux +4.00 / +0.35 / -0.11 deg and SMO -0.69 / -0.91 / -0.80 deg at
+500 / 1000 / 1500 rad/s elec (was -7..-12 deg); +/-1000 rad/s within 0.75 deg.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ CLAUDE.md                          |  2 +-
+ foc_f28379d/include/build_config.h | 17 ++++++++
+ foc_f28379d/src/debug_params.c     |  3 ++
+ foc_f28379d/src/foc_pipeline.c     | 64 +++++++++++++++++++++++-------
+ 4 files changed, 71 insertions(+), 15 deletions(-)
+
+diff --git a/CLAUDE.md b/CLAUDE.md
+index ae05bf2..3355ca4 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -147,7 +147,7 @@ Device_init() → Device_initGPIO() → Interrupt_initModule/VectorTable() → B
+ - [~] Step 3 — eQEP1: QPOSCNT changes with rotation ✓, but **`QEPSTS` first-index bit and `QPOSILAT` stay at 0** (likely Z wire / differential routing issue), and **direction flag flips while spinning steadily one way** (likely hand-dither at quadrature edges or A/B phase issue). Resume by physically verifying Z wire to J14 index pin, optionally toggle SysConfig `inputPolarity` "Invert Index", and watch `g_dbg_qep_status` bits 0x01 (POS_CNT_ERROR) and 0x04 (CAP_DIR_ERROR) for HW-flagged quadrature errors.
+ - [~] Step 4 — DRV8305 awake, EN_GATE high, nFAULT clear, **SO2 and SO3 biased correctly on B2/A2 (~2290 codes ≈ 1.68 V)**, Vbus tracks supply on A3. **SO1 dead on bench BOOSTXL** — see "Bench-Specific Hardware Quirks". Step is effectively closed for the alive channels; revisit Iu when SO1 hardware is fixed. **[2026-05-28] nFAULT later regressed to stuck-low (gate driver "not enabling"); root-caused to four bugs (ISR switching in IDLE + three mis-encoded `drv8305_xfer()` writes) and fixed/verified on HW — nFAULT high, EN_GATE stays high, SO bias ~2300. See Pitfalls "DRV8305 nFAULT stuck low".**
+ - [x] Step 5 — DRV8305 SPI alive over SPIA. SHUNT_AMP write/readback verified (`g_dbg_spi_rd_shunt == 0x0040` matches the write); status registers all 0; nFAULT clear. SysConfig SPI mode is **POL0PHA0** (the C2000 mode naming does not match standard SPI conventions — TI's reference uses POL0PHA0 for DRV8305). CS on its own GPIO61/SPISTEA pin (not EN_GATE). `drv8305_xfer()` uses `SPI_writeDataBlockingFIFO()` + `SPI_readDataBlockingFIFO()`; `SPI_isBusy()` on F2837xD only watches TX FIFO occupancy, not actual transmission completion — do NOT use it for sync.
+-- [x] Step 6 — Rotor alignment, **ramp-and-average offset capture** (verified on HW 2026-06-05). Replaces the old single-shot `sensor_capture_zero()` snapshot, which settled off the true d-axis under cogging/stiction → ~15° electrical offset that varied **~50° across rotor start positions** (repeatable per-position ±4–8 counts, but inaccurate). New scheme is the align controller `align_step()` in `foc_pipeline.c` (runs in the ISR while `FOC_ALIGN_ROTOR`): settle 1 s at θ=0 with `ALIGN_ID_INJECT_A` (now **1.0 A**, was 0.3 — too weak to drag through detent) → sweep the commanded field open-loop through `ALIGN_RAMP_MECH_REVS` (2) whole mech revs at ~1 rev/s → **circular-average `(encoder_raw − commanded)`** electrical angle → store as the offset. Averaging over integer mech revs cancels cogging. The QEP angle now carries an **electrical-radian offset** `g_qep_theta_offset_elec` (set via `sensor_set_elec_offset()`), replacing the removed count offset `g_qep_mech_offset_cnt`; `sensor_update_isr()` exposes `g_qep_theta_raw_elec` for the averager. State machine just polls `foc_align_done()`. **Result: offset repeats within a few degrees across start positions; steady Vd dropped 0.44→~0.32 V (≈15°→~4–5° electrical); Id/Iq feedback much cleaner.** Test: `g_dbg_sm_cmd = 1` (align-only), watch the ~1 s lock + 2 slow revs, read `g_dbg_align_offset_elec` (DEGREES) — should agree across positions. **TODO (only if you ever want the last few degrees): bidirectional sweep.** The residual ~4–5° is the forward-only sweep's load-angle bias (rotor lags the moving carrier by a constant load angle that gets baked into the mean). Sweep 1 rev forward + 1 rev back and accumulate both — the +δ/−δ load angles cancel. Not worth it yet (`cos 5° ≈ 0.4%` torque). NOTE: `_LAUNCHXL_F28379D` IS in the Debug predefined symbols — full 200 MHz clock, real 115200 SCI (verified 2026-06-04); the old "half-clock / 57600" claim is stale.
++- [x] Step 6 — Rotor alignment, **ramp-and-average offset capture** (verified on HW 2026-06-05). Replaces the old single-shot `sensor_capture_zero()` snapshot, which settled off the true d-axis under cogging/stiction → ~15° electrical offset that varied **~50° across rotor start positions** (repeatable per-position ±4–8 counts, but inaccurate). New scheme is the align controller `align_step()` in `foc_pipeline.c` (runs in the ISR while `FOC_ALIGN_ROTOR`): settle 1 s at θ=0 with `ALIGN_ID_INJECT_A` (now **1.0 A**, was 0.3 — too weak to drag through detent) → sweep the commanded field open-loop through `ALIGN_RAMP_MECH_REVS` (2) whole mech revs at ~1 rev/s → **circular-average `(encoder_raw − commanded)`** electrical angle → store as the offset. Averaging over integer mech revs cancels cogging. The QEP angle now carries an **electrical-radian offset** `g_qep_theta_offset_elec` (set via `sensor_set_elec_offset()`), replacing the removed count offset `g_qep_mech_offset_cnt`; `sensor_update_isr()` exposes `g_qep_theta_raw_elec` for the averager. State machine just polls `foc_align_done()`. **Result: offset repeats within a few degrees across start positions; steady Vd dropped 0.44→~0.32 V (≈15°→~4–5° electrical); Id/Iq feedback much cleaner.** Test: `g_dbg_sm_cmd = 1` (align-only), watch the ~1 s lock + 2 slow revs, read `g_dbg_align_offset_elec` (DEGREES) — should agree across positions. **[2026-10-09] Bidirectional sweep DONE** (`ALIGN_RAMP_BIDIR`, default 1): forward N revs, 0.3 s hold, back N revs, equal-weight mean; RO param `align_delta` = half the pass difference = the friction load angle. The old "~4-5 deg" estimate was wrong: bench measured **delta = 11.5 deg** at 1 A on the Teknic -- it was the entire ~-11 deg sensorless-observer "bias" (a +/-1000 rad/s direction test showed it was direction-independent, i.e. in the reference). After the fix both observers sit within ~1 deg of the QEP. NOTE: `_LAUNCHXL_F28379D` IS in the Debug predefined symbols — full 200 MHz clock, real 115200 SCI (verified 2026-06-04); the old "half-clock / 57600" claim is stale.
+ - [~] Step 7 — Closed-loop current control. Iq/Id track much better after the Step-6 alignment fix. **Cross-coupling / back-EMF feedforward decoupling added** (`foc_pipeline.c`, gated by `g_dbg_decouple_en`, default OFF via `FOC_DECOUPLE_DEFAULT`): `ff_d = −ωe·Lq·iq_ref`, `ff_q = ωe·(Ld·id_ref + λpm)`, folded into the PI clamp (`±vmax_dyn − ff`) so the TI PI anti-windup stays valid. **As predicted, ~no steady-state change on this 235 µH motor at low current** (cross-coupling ≈0.07 V; back-EMF FF only redistributes Vq from PI integrator → feedforward, total Vq unchanged) — confirmed on HW (decouple on/off identical at iq=0.3, Vq≈4.9, Vd≈0.32). It earns its keep in **transients** and at **higher current/speed** (cross-coupling scales with both). Keep default-off; flip `g_dbg_decouple_en` or the `decouple_en` serial param when pushing the envelope. Confirm it engages via `g_dbg_ff_q` (≈ `ωe·λpm`). Also: `VDQ_MAX_FRACTION` raised 0.30→0.60 (bench) for more voltage headroom → higher unsaturated speed.
+   **[2026-08-01 EMRAX bench — current-PI tuning; TWO independent ceilings, know which one you are hitting.]**
+   1. **Delay-limited gain ceiling.** With the PI zero cancelling the plant pole the open loop is `Kp/(sL)·e^{-sTd}`,
+diff --git a/foc_f28379d/include/build_config.h b/foc_f28379d/include/build_config.h
+index cb3b912..a806af7 100644
+--- a/foc_f28379d/include/build_config.h
++++ b/foc_f28379d/include/build_config.h
+@@ -265,6 +265,23 @@
+ #ifndef OBS_PLL_BW_HZ_DEFAULT
+ #define OBS_PLL_BW_HZ_DEFAULT   40.0f
+ #endif
++
++// ---- ALIGN offset sweep direction (foc_pipeline.c align_step) ------------
++// A forward-only open-loop sweep bakes the friction load angle into the
++// captured offset: the rotor trails the carrier by delta, so the sensor ends up
++// reading AHEAD of the true rotor by delta. Bench 2026-10-09 (Teknic, 1 A):
++// both observers sat at -11.2 +/- 0.5 deg vs the QEP in BOTH rotation
++// directions (direction-independent => reference error, not observer error).
++// BIDIR sweeps ALIGN_RAMP_MECH_REVS forward, holds, then the same backward;
++// the two direction means are +/-delta about the true offset and are averaged
++// with equal weight. Their half-difference is published as "align_delta".
++#ifndef ALIGN_RAMP_BIDIR
++#define ALIGN_RAMP_BIDIR        1U
++#endif
++#ifndef ALIGN_REVERSE_DWELL_S
++#define ALIGN_REVERSE_DWELL_S   0.3f    // hold between the passes so BOTH start from rest
++#endif
++
+ #ifndef OBS_MIN_SPEED_DEFAULT
+ #define OBS_MIN_SPEED_DEFAULT   300.0f  // observer trusted above this |omega_e| [rad/s]
+ #endif
+diff --git a/foc_f28379d/src/debug_params.c b/foc_f28379d/src/debug_params.c
+index 95b6a60..aa88f4e 100644
+--- a/foc_f28379d/src/debug_params.c
++++ b/foc_f28379d/src/debug_params.c
+@@ -46,6 +46,7 @@ extern volatile float32_t g_dbg_dtc_k;                  // src/foc_pipeline.c
+ // Cross-coupling/back-EMF feedforward toggle + captured alignment offset [deg].
+ extern volatile uint16_t  g_dbg_decouple_en;            // src/foc_pipeline.c
+ extern volatile float32_t g_dbg_align_offset_elec;      // src/foc_pipeline.c
++extern volatile float32_t g_dbg_align_delta_deg;        // src/foc_pipeline.c
+ 
+ // ALIGN offset-capture enable (0 = skip the sweep, pin the offset to 0).
+ extern volatile uint16_t  g_align_offset_en;            // src/foc_pipeline.c
+@@ -541,6 +542,7 @@ static void set_isr_cyc_rst(uint32_t  r)   { (void)r; g_dbg_isr_cycles_max = 0U;
+ static void get_state(uint32_t *r){ *r = (uint32_t)(uint16_t)sm_get_state(); }
+ static void get_isr_count(uint32_t *r){ *r = g_isr_count; }
+ static void get_align_off(uint32_t *r){ *r = f32_to_raw(g_dbg_align_offset_elec); }
++static void get_align_delta(uint32_t *r){ *r = f32_to_raw(g_dbg_align_delta_deg); }
+ 
+ // Motor pole-pairs (compile-time constant) — lets the GUI convert shaft RPM
+ // <-> electrical rad/s for the speed setpoint and the measured-speed readout.
+@@ -706,6 +708,7 @@ const param_entry_t g_param_table[] =
+     { 0x0100U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "state",      get_state,     0            },
+     { 0x0101U, PARAM_TYPE_U32, PARAM_FLAG_RO,         "isr_count",  get_isr_count, 0            },
+     { 0x0102U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "align_offset", get_align_off, 0          },
++    { 0x0137U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "align_delta",  get_align_delta, 0        },
+     { 0x0103U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "pole_pairs", get_pole_pairs, 0           },
+     { 0x0104U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "omega_meas", get_omega_meas, 0           },
+     { 0x0105U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "fw_id",      get_fw_id,     0            },
+diff --git a/foc_f28379d/src/foc_pipeline.c b/foc_f28379d/src/foc_pipeline.c
+index 324d298..af3a799 100644
+--- a/foc_f28379d/src/foc_pipeline.c
++++ b/foc_f28379d/src/foc_pipeline.c
+@@ -99,6 +99,10 @@ volatile float32_t g_vbus_override_v = VBUS_OVERRIDE_DEFAULT_V;
+ // single-shot capture varied ~50 deg). g_dbg_align_qep_cnt is the raw QPOSCNT at
+ // finalize (varies with start position, that's expected).
+ volatile float32_t g_dbg_align_offset_elec;
++// Bidirectional sweep (ALIGN_RAMP_BIDIR): half the difference between the
++// backward and forward pass means [DEGREES] = the friction load angle the
++// rotor trailed the carrier by. Positive = the expected sign. 0 if one-way.
++volatile float32_t g_dbg_align_delta_deg;
+ volatile int32_t   g_dbg_align_qep_cnt;
+ 
+ // Cross-coupling / back-EMF feedforward. g_dbg_decouple_en toggles it live (also
+@@ -358,6 +362,14 @@ static void fw_reset(void)
+ // Per-ISR carrier advance [elec rad]: mech_rev/s * 2pi * pole_pairs * Ts.
+ #define ALIGN_CARRIER_DTHETA \
+     (ALIGN_RAMP_MECH_SPEED_RPS * 2.0f * MATH_PI * (float32_t)MOTOR_POLE_PAIRS * FOC_ISR_TS)
++// Bidirectional sweep layout (ALIGN_RAMP_BIDIR, see build_config.h):
++//   [0, R) forward + accumulate | [R, R+D) hold, no samples | [R+D, 2R+D) backward + accumulate
++#define ALIGN_REVERSE_DWELL_TICKS ((uint32_t)(ALIGN_REVERSE_DWELL_S * FOC_ISR_FREQ_HZ))
++#if ALIGN_RAMP_BIDIR
++#define ALIGN_SWEEP_TICKS   (2U * ALIGN_RAMP_TICKS + ALIGN_REVERSE_DWELL_TICKS)
++#else
++#define ALIGN_SWEEP_TICKS   ALIGN_RAMP_TICKS
++#endif
+ 
+ static FOC_State_t s_prev_state    = FOC_IDLE;
+ static uint32_t    s_align_ticks;
+@@ -451,8 +463,10 @@ static float32_t   s_align_carrier;     // commanded electrical angle during ALI
+ // anchor on the first sample and average the wrapped deviation from it -- no
+ // sinf/cosf needed (which would pull large RTS tables into flash).
+ static float32_t   s_align_ref;         // first (raw - carrier) sample
+-static float32_t   s_align_sum;         // sum of wrapped deviations from ref
++static float32_t   s_align_sum;         // sum of wrapped deviations from ref (forward pass)
+ static uint32_t    s_align_n;
++static float32_t   s_align_sum_b;       // same, backward pass (ALIGN_RAMP_BIDIR)
++static uint32_t    s_align_n_b;
+ 
+ static void align_reset(void)
+ {
+@@ -463,6 +477,8 @@ static void align_reset(void)
+     s_align_ref     = 0.0f;
+     s_align_sum     = 0.0f;
+     s_align_n       = 0;
++    s_align_sum_b   = 0.0f;
++    s_align_n_b     = 0;
+     // Phase-ID: latch the enable (same mid-align-write immunity as the others).
+     s_phaseid_ticks  = g_phase_id_en ? PHASE_ID_TOTAL_TICKS : 0U;
+     s_phaseid_active = false;
+@@ -474,7 +490,7 @@ static void align_reset(void)
+             s_pid_sum[c][k] = 0.0f;
+     // Latch the enable so a mid-align host write cannot change the tick budget
+     // out from under the phase comparisons (same reason as s_align_cal_ticks).
+-    s_align_ramp_ticks = g_align_offset_en ? ALIGN_RAMP_TICKS : 0U;
++    s_align_ramp_ticks = g_align_offset_en ? ALIGN_SWEEP_TICKS : 0U;
+ #if SENSOR_BACKEND_RM44AC
+     s_align_cal_ticks = g_res_cal_en ? ALIGN_CAL_TICKS : 0U;  // latch: immune to mid-align writes
+     g_res_cal_sin_min = 0xFFFFU;
+@@ -632,16 +648,31 @@ static float32_t align_step(void)
+     else if(s_align_ticks < pid_ticks + ALIGN_SETTLE_TICKS + cal_ticks
+                             + s_align_ramp_ticks)
+     {
+-        s_align_carrier += ALIGN_CARRIER_DTHETA;        // slow open-loop sweep
+-        if(s_align_carrier >= 2.0f * MATH_PI) s_align_carrier -= 2.0f * MATH_PI;
+-
+-        float32_t e = sensor_get_elec_angle_raw() - s_align_carrier;
+-        if(s_align_n == 0) s_align_ref = e;             // anchor on first sample
+-        float32_t d = e - s_align_ref;                  // wrap deviation to [-pi, pi)
+-        while(d <  -MATH_PI)        d += 2.0f * MATH_PI;
+-        while(d >=  MATH_PI)        d -= 2.0f * MATH_PI;
+-        s_align_sum += d;
+-        s_align_n++;
++        // Slow open-loop sweep. Forward pass first; with ALIGN_RAMP_BIDIR a hold
++        // and an equal backward pass follow (layout at ALIGN_SWEEP_TICKS).
++        const uint32_t tr = s_align_ticks - (pid_ticks + ALIGN_SETTLE_TICKS + cal_ticks);
++        const bool fwd  = (tr < ALIGN_RAMP_TICKS);
++        const bool hold = !fwd && (tr < ALIGN_RAMP_TICKS + ALIGN_REVERSE_DWELL_TICKS);
++        if(fwd)
++        {
++            s_align_carrier += ALIGN_CARRIER_DTHETA;
++            if(s_align_carrier >= 2.0f * MATH_PI) s_align_carrier -= 2.0f * MATH_PI;
++        }
++        else if(!hold)
++        {
++            s_align_carrier -= ALIGN_CARRIER_DTHETA;
++            if(s_align_carrier < 0.0f) s_align_carrier += 2.0f * MATH_PI;
++        }
++        if(!hold)
++        {
++            float32_t e = sensor_get_elec_angle_raw() - s_align_carrier;
++            if(s_align_n == 0 && s_align_n_b == 0) s_align_ref = e;   // anchor on first sample
++            float32_t d = e - s_align_ref;              // wrap deviation to [-pi, pi)
++            while(d <  -MATH_PI)        d += 2.0f * MATH_PI;
++            while(d >=  MATH_PI)        d -= 2.0f * MATH_PI;
++            if(fwd) { s_align_sum   += d; s_align_n++;   }
++            else    { s_align_sum_b += d; s_align_n_b++; }
++        }
+     }
+     else if(!s_align_done)
+     {
+@@ -649,10 +680,15 @@ static float32_t align_step(void)
+         // explicitly rather than just skipping the sweep -- a previous align's
+         // offset must not survive into this one.
+         float32_t off = 0.0f;
++        g_dbg_align_delta_deg = 0.0f;
+         if(s_align_ramp_ticks)
+         {
+-            off = s_align_ref +
+-                  (s_align_n ? s_align_sum / (float32_t)s_align_n : 0.0f);
++            float32_t mf = s_align_n   ? s_align_sum   / (float32_t)s_align_n   : 0.0f;
++            float32_t mb = s_align_n_b ? s_align_sum_b / (float32_t)s_align_n_b : mf;
++            // Equal weight per direction: the +delta / -delta load-angle biases
++            // cancel even if the two passes collected different sample counts.
++            off = s_align_ref + 0.5f * (mf + mb);
++            g_dbg_align_delta_deg = 0.5f * (mb - mf) * (180.0f / MATH_PI);
+             while(off <  0.0f)         off += 2.0f * MATH_PI;
+             while(off >= 2.0f*MATH_PI) off -= 2.0f * MATH_PI;
+         }
+-- 
+2.54.0
+

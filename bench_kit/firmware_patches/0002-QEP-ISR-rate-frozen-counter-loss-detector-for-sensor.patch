@@ -1,0 +1,227 @@
+From c84d75a8dbf3a80785de347cb078aa67d259f023 Mon Sep 17 00:00:00 2001
+From: Jose Bail <jose.ars.bail@gmail.com>
+Date: Fri, 9 Oct 2026 22:34:36 -0300
+Subject: [PATCH 2/3] QEP: ISR-rate frozen-counter loss detector for sensorless
+ ride-through
+
+A physical encoder unplug at ~1000 rad/s elec (bench 2026-10-09, Teknic,
+24 V, AUTO) was only caught by the 5 ms sensor/observer disagreement
+debounce: the drive ran mis-commutated for 5-6 ms, |I| reached 7.4-7.7 A,
+both observers lost lock and it ended in FAULT_SENSOR_LOSS (coast) on SMO
+and flux alike. The existing QEP loss check runs at 1 kHz over a 100 ms
+window and never got a chance.
+
+New check in sensor_update_isr(): latch g_qep_lost when the counter moves
+<= 1 count/tick for 3 consecutive ticks right after averaging >= 4
+counts/tick over the preceding 8 (~251 rad/s elec on 1000-line/4 pp).
+Going from >= 4 to <= 1 count/tick inside ~1 ms needs > 1.9e5 rad/s^2
+elec, ~3x what the motor can produce. Armed only in FOC_RUN (slow loop)
+and while qep_fast_en = 1 (new LIVE param 0x0073; RO qep_fast_trips
+0x0136). The latch drives AUTO through the existing LOSS hand-over (jump).
+
+Bench results:
+- false-trip check, encoder connected: speed steps 350<->1450 rad/s and
+  3x +/-3 A torque bursts -> 0 trips
+- unplug at ~1000 rad/s, SMO: detected in ~0.3 ms, peak |I| 1.06 A,
+  RUN on the observer, speed undisturbed
+- unplug at ~960 rad/s, flux: ~0.7 ms, peak |I| 0.68 A, ride-through
+- forced-loss hand-over (A6) regression unchanged
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ foc_f28379d/config/sensor/sensor_qep.h  | 22 ++++++++++++
+ foc_f28379d/include/sensor_qep_inline.h | 45 +++++++++++++++++++++++++
+ foc_f28379d/src/debug_params.c          | 15 +++++++++
+ foc_f28379d/src/sensor_qep.c            | 21 ++++++++++++
+ 4 files changed, 103 insertions(+)
+
+diff --git a/foc_f28379d/config/sensor/sensor_qep.h b/foc_f28379d/config/sensor/sensor_qep.h
+index d1221d0..97cdcff 100644
+--- a/foc_f28379d/config/sensor/sensor_qep.h
++++ b/foc_f28379d/config/sensor/sensor_qep.h
+@@ -44,4 +44,26 @@
+ #define SENSOR_QEP_LOSS_MIN_MOVE    4       // min total |count| movement per window
+                                             //   when alive (4 cnt/100 ms ~= <1 rpm)
+ 
++// ---- FAST frozen-counter detection (ISR rate) ------------------------------
++// The window above takes ~100 ms; the sensorless fail-over needs the loss in a
++// fraction of a millisecond, because until it is declared the drive commutates
++// on a frozen angle. Bench 2026-10-09 (unplug at 1036 rad/s elec): the 5 ms
++// disagreement debounce won the race, the mis-commutation reached |I| = 7.4-7.7 A
++// and knocked BOTH observers out of lock -> FAULT_SENSOR_LOSS, no ride-through.
++// Physics: at w_e the counter advances w_e/pp/(2pi)*CPR_X4*Ts counts per ISR
++// tick (15.9 at 1000 rad/s elec). Trip when the counter has moved <= STILL_MAX
++// counts per tick for STILL_TICKS consecutive ticks right after averaging
++// >= MIN_CNT_PER_TICK over the preceding 8 ticks (FAST_REF_TICKS). Going from
++// >= 4 to <= 1 count/tick inside ~1 ms needs > 1.9e5 rad/s^2 elec, ~3x what
++// this motor can produce at I_PEAK, so a real rotor cannot fake it. Armed only
++// in FOC_RUN (slow loop) and while qep_fast_en = 1. Latches g_qep_lost, so
++// AUTO takes the LOSS hand-over (jump, no blend) -- the A6-proven path.
++#define SENSOR_QEP_FAST_REF_TICKS        8U      // power of 2 (ring index mask)
++#define SENSOR_QEP_FAST_MIN_CNT_PER_TICK 4U      // ~251 rad/s elec on 1000-line/4pp
++#define SENSOR_QEP_FAST_STILL_MAX        1U      // a single noise edge still counts as "still"
++#define SENSOR_QEP_FAST_STILL_TICKS      3U      // 0.3 ms
++#ifndef SENSOR_QEP_FAST_DEFAULT_EN
++#define SENSOR_QEP_FAST_DEFAULT_EN       1U
++#endif
++
+ #endif // SENSOR_QEP_H
+diff --git a/foc_f28379d/include/sensor_qep_inline.h b/foc_f28379d/include/sensor_qep_inline.h
+index 8402a4f..7685c74 100644
+--- a/foc_f28379d/include/sensor_qep_inline.h
++++ b/foc_f28379d/include/sensor_qep_inline.h
+@@ -20,6 +20,17 @@ extern volatile float32_t g_qep_theta_offset_elec; // electrical zero offset [ra
+ extern volatile float32_t g_qep_omega_healthy;     // last speed while trusted
+ extern volatile uint16_t  g_qep_lost;              // 1 once feedback is lost
+ 
++// Fast frozen-counter detector state (owned by sensor_qep.c; see sensor_qep.h).
++extern volatile uint16_t  g_qep_fast_en;           // "qep_fast_en" param, LIVE
++extern volatile uint16_t  g_qep_fast_run;          // armed by the slow loop: RUN && fast_en
++extern volatile uint16_t  g_qep_fast_trips;        // "qep_fast_trips" RO: times it latched loss
++extern int32_t            g_qep_fast_prev_cnt;
++extern uint16_t           g_qep_fast_ring[SENSOR_QEP_FAST_REF_TICKS];
++extern uint16_t           g_qep_fast_idx;
++extern uint16_t           g_qep_fast_sum;          // sum of the ring = |counts| over the last 8 ticks
++extern uint16_t           g_qep_fast_ref;          // ring sum at the last MOVING tick
++extern uint16_t           g_qep_fast_still;        // consecutive "still" ticks
++
+ // Set the electrical zero offset (radians). Called by the align controller at
+ // the end of FOC_ALIGN_ROTOR; see sensor_qep.c.
+ extern void sensor_set_elec_offset(float32_t rad);
+@@ -58,6 +69,40 @@ static inline void sensor_update_isr(void)
+     if(th >= 2.0f * MATH_PI)   th -= 2.0f * MATH_PI;
+     g_qep_theta_elec = th;
+ 
++    // ---- Fast frozen-counter loss check (see SENSOR_QEP_FAST_* in sensor_qep.h).
++    // Runs every tick so the ring stays primed; only TRIPS while armed in RUN.
++    {
++        int32_t  d = cnt - g_qep_fast_prev_cnt;
++        uint16_t ad;
++        g_qep_fast_prev_cnt = cnt;
++        if(d >  SENSOR_QEP_CPR_X4 / 2) d -= SENSOR_QEP_CPR_X4;
++        if(d < -SENSOR_QEP_CPR_X4 / 2) d += SENSOR_QEP_CPR_X4;
++        if(d < 0) d = -d;
++        ad = (d > 1000) ? 1000U : (uint16_t)d;   // keeps the 8-tick sum inside uint16
++
++        g_qep_fast_sum = g_qep_fast_sum - g_qep_fast_ring[g_qep_fast_idx] + ad;
++        g_qep_fast_ring[g_qep_fast_idx] = ad;
++        g_qep_fast_idx = (g_qep_fast_idx + 1U) & (SENSOR_QEP_FAST_REF_TICKS - 1U);
++
++        if(ad > SENSOR_QEP_FAST_STILL_MAX)
++        {
++            g_qep_fast_still = 0U;
++            g_qep_fast_ref   = g_qep_fast_sum;     // speed reference = last 8 moving ticks
++        }
++        else if(g_qep_fast_still < 0xFFFFU)
++        {
++            g_qep_fast_still++;
++        }
++
++        if(g_qep_fast_run && !g_qep_lost
++           && (g_qep_fast_still >= SENSOR_QEP_FAST_STILL_TICKS)
++           && (g_qep_fast_ref >= SENSOR_QEP_FAST_REF_TICKS * SENSOR_QEP_FAST_MIN_CNT_PER_TICK))
++        {
++            g_qep_lost = 1U;
++            g_qep_fast_trips++;
++        }
++    }
++
+     // Speed update is computed in sensor_qep.c at SPEED_LOOP rate using QPOSLAT;
+     // here we just expose the latest value.
+ }
+diff --git a/foc_f28379d/src/debug_params.c b/foc_f28379d/src/debug_params.c
+index 038a75f..95b6a60 100644
+--- a/foc_f28379d/src/debug_params.c
++++ b/foc_f28379d/src/debug_params.c
+@@ -97,6 +97,11 @@ extern volatile float32_t g_vbus_vpc;                   // src/adc_iface.c (deri
+ extern volatile float32_t g_vbus_off_code;              // src/adc_iface.c
+ extern volatile uint16_t  g_dbg_vbus_raw;               // src/adc_iface.c
+ 
++#if SENSOR_BACKEND_QEP
++extern volatile uint16_t  g_qep_fast_en;                // src/sensor_qep.c
++extern volatile uint16_t  g_qep_fast_trips;             // src/sensor_qep.c
++#endif
++
+ #if SENSOR_BACKEND_RM44AC
+ // RM44AC SIN/COS input low-pass: runtime enable + cutoff [Hz]. The hz setter
+ // recomputes the IIR coefficient (g_resolver_filt_alpha). See sensor_rm44ac.c.
+@@ -507,6 +512,12 @@ static void get_pos_inj_err(uint32_t *r){ *r = f32_to_raw(g_pos_inj_err); }
+ static void set_pos_inj_err(uint32_t  r){ g_pos_inj_err = raw_to_f32(r); }
+ static void get_pos_trig_en(uint32_t *r){ *r = (uint32_t)g_pos_trig_en; }
+ static void set_pos_trig_en(uint32_t  r){ g_pos_trig_en = (uint16_t)(r ? 1U : 0U); }
++#if SENSOR_BACKEND_QEP
++// Fast frozen-counter loss detector (sensor_qep.h): live A/B + trip counter.
++static void get_qep_fast_en(uint32_t *r)   { *r = (uint32_t)g_qep_fast_en; }
++static void set_qep_fast_en(uint32_t  r)   { g_qep_fast_en = (uint16_t)(r ? 1U : 0U); }
++static void get_qep_fast_trips(uint32_t *r){ *r = (uint32_t)g_qep_fast_trips; }
++#endif
+ // Telemetry.
+ static void get_theta_est(uint32_t *r)  { *r = f32_to_raw(g_obs_theta_est); }
+ static void get_omega_est(uint32_t *r)  { *r = f32_to_raw(g_obs_omega_est); }
+@@ -724,6 +735,10 @@ const param_entry_t g_param_table[] =
+     { 0x0133U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "obs_resets",     get_obs_resets,     0 },
+     { 0x0134U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "warn_code",      get_warn_code,      0 },
+     { 0x0135U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "obs_smo_ierr",   get_obs_smo_ierr,   0 },
++#if SENSOR_BACKEND_QEP
++    { 0x0073U, PARAM_TYPE_U16, 0,                     "qep_fast_en",    get_qep_fast_en,    set_qep_fast_en },
++    { 0x0136U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "qep_fast_trips", get_qep_fast_trips, 0 },
++#endif
+ 
+ #if SENSOR_BACKEND_RM44AC
+     // Resolver front-end diagnostics (raw ADC codes + vector magnitude).
+diff --git a/foc_f28379d/src/sensor_qep.c b/foc_f28379d/src/sensor_qep.c
+index f697c6f..5d17fdd 100644
+--- a/foc_f28379d/src/sensor_qep.c
++++ b/foc_f28379d/src/sensor_qep.c
+@@ -39,6 +39,19 @@ volatile uint32_t g_dbg_qep_index_latch;  // QPOSILAT - count latched on index p
+ volatile uint16_t g_dbg_qep_status;       // QEPSTS bits: 0x20=fwd dir, 0x02=1st idx seen
+ volatile int16_t  g_dbg_qep_direction;    // +1 forward, -1 reverse
+ 
++// Fast frozen-counter detector (ISR side in sensor_qep_inline.h; constants and
++// rationale in sensor_qep.h). Plain globals because the inline ISR code reads
++// and writes them from another translation unit.
++volatile uint16_t g_qep_fast_en    = SENSOR_QEP_FAST_DEFAULT_EN;
++volatile uint16_t g_qep_fast_run   = 0U;
++volatile uint16_t g_qep_fast_trips = 0U;
++int32_t           g_qep_fast_prev_cnt;
++uint16_t          g_qep_fast_ring[SENSOR_QEP_FAST_REF_TICKS];
++uint16_t          g_qep_fast_idx;
++uint16_t          g_qep_fast_sum;
++uint16_t          g_qep_fast_ref;
++uint16_t          g_qep_fast_still;
++
+ static int32_t  s_last_cnt;
+ static float    s_omega_lpf;
+ static uint16_t s_loss_ticks;       // slow ticks elapsed in the current detection window
+@@ -55,6 +68,8 @@ void sensor_init(void)
+     s_loss_move   = 0U;
+     g_qep_lost    = 0U;
+     g_qep_omega_healthy = 0.0f;
++    g_qep_fast_run      = 0U;
++    g_qep_fast_prev_cnt = 0;
+ }
+ 
+ // Called from the slow loop (1 kHz) to update the filtered speed.
+@@ -107,6 +122,10 @@ void sensor_update_speed_slow(void)
+     }
+     g_dbg_qep_loss_move = s_loss_move;
+ 
++    // Arm the ISR-rate frozen-counter check only while actually running (the
++    // ring keeps updating regardless, so arming needs no warm-up).
++    g_qep_fast_run = ((sm_get_state() == FOC_RUN) && (g_qep_fast_en != 0U)) ? 1U : 0U;
++
+     // Independent HW signal: an illegal quadrature transition (noise/half-open
+     // channel) sets the position-counter error flag.
+     if(EQEP_getStatus(EQEP1_BASE) & EQEP_STS_POS_CNT_ERROR) g_qep_lost = 1U;
+@@ -129,6 +148,8 @@ void sensor_clear_loss(void)
+     g_qep_lost   = 0U;
+     s_loss_ticks = 0U;
+     s_loss_move  = 0U;
++    g_qep_fast_still = 0U;
++    g_qep_fast_ref   = 0U;     // must see a fresh moving window before it can trip again
+ }
+ 
+ // Store the electrical zero offset (radians), wrapped to [0, 2*pi). The align
+-- 
+2.54.0
+

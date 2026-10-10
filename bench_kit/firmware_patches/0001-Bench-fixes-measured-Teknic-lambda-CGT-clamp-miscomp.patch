@@ -1,0 +1,123 @@
+From 36cdfc6f02b76788c2b89221f9cb66a24e0929d5 Mon Sep 17 00:00:00 2001
+From: Jose Bail <jose.ars.bail@gmail.com>
+Date: Fri, 9 Oct 2026 22:13:39 -0300
+Subject: [PATCH 1/3] Bench fixes: measured Teknic lambda, CGT clamp
+ miscompile, blend-start step
+
+Found during the 2026-10-09 Teknic/QEP sensorless bench session (24 V):
+
+- motor_teknic_m2310p.h: MOTOR_FLUX_VS 0.0046 -> 0.006067 Vs, fitted from
+  sensored speed holds at 300..1300 rad/s elec (slope of Vq - Rs*iq vs we,
+  resid 7 mV, SE 0.15 %). The old value was 32 % low and kept both observers
+  permanently unhealthy (flux |eta| ~1.27x, SMO |e| ~1.34x the model).
+
+- observer.c obs_apply_params(): CGT 25.11.0.LTS if-converted the in-place
+  volatile clamps `if(g_obs_smo_kslide > ks_max) ...` and
+  `if(g_obs_smo_tol < 0.01f) ...` into UNCONDITIONAL stores of the clamp
+  constant, so kslide always read 4.24 and smo_tol always 0.01 at boot and
+  after any host write. Clamp local copies and write each global once.
+
+- pos_src.c start_blend(): the blend offset used last tick's output angle,
+  so every blended hand-over opened with a backward commutation step of
+  exactly w*Ts (-8.2 deg at 1400 rad/s, Iq +38 %). Project the previous
+  output forward one tick. Verified bumpless on HW (0.06-0.4 deg across the
+  switch, linear 50 ms blend).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ .../config/motor/motor_teknic_m2310p.h        |  7 ++++-
+ foc_f28379d/src/observer.c                    | 28 +++++++++++++++----
+ foc_f28379d/src/pos_src.c                     |  6 +++-
+ 3 files changed, 33 insertions(+), 8 deletions(-)
+
+diff --git a/foc_f28379d/config/motor/motor_teknic_m2310p.h b/foc_f28379d/config/motor/motor_teknic_m2310p.h
+index cb8f0b1..e112a5d 100644
+--- a/foc_f28379d/config/motor/motor_teknic_m2310p.h
++++ b/foc_f28379d/config/motor/motor_teknic_m2310p.h
+@@ -16,7 +16,12 @@
+ #define MOTOR_RS_OHM            0.36f       // line-to-line/2, datasheet typ.
+ #define MOTOR_LD_H              0.000235f   // 235 uH
+ #define MOTOR_LQ_H              0.000235f   // SPM -> Ld == Lq
+-#define MOTOR_FLUX_VS           0.0046f     // back-EMF constant (Vs/rad_elec, ~7.5 mVrms/krpm linev)
++#define MOTOR_FLUX_VS           0.006067f   // PM flux linkage [Vs/rad_elec, peak phase] = 3.11 Vrms/krpm line.
++                                            //   BENCH-FITTED 2026-10-09 (24 V, dtc_en=1): sensored SPEED holds at
++                                            //   300..1300 rad/s elec, slope of (Vq - Rs*iq) vs we, resid 7 mV,
++                                            //   SE 0.15 %. The old 0.0046 was 32 % low and kept both sensorless
++                                            //   observers permanently unhealthy (flux |eta| ~1.27x, SMO |e| ~1.34x
++                                            //   the model). Data: bench_kit/bench/lambda/*.csv.
+ 
+ // ---- Ratings ------------------------------------------------------------
+ #define MOTOR_I_CONT_A          3.0f        // continuous phase current (rms)
+diff --git a/foc_f28379d/src/observer.c b/foc_f28379d/src/observer.c
+index 67cd132..e83ac42 100644
+--- a/foc_f28379d/src/observer.c
++++ b/foc_f28379d/src/observer.c
+@@ -121,6 +121,11 @@ void obs_apply_params(void)
+     float32_t e0  = g_obs_smo_e0;
+     float32_t fhz = g_obs_smo_lpf_hz;
+     float32_t bw  = g_obs_pll_bw_hz;
++    float32_t ks  = g_obs_smo_kslide;
++    float32_t lk  = g_obs_smo_lpf_k;
++    float32_t wmn = g_obs_min_speed;
++    float32_t ftl = g_obs_flux_tol;
++    float32_t stl = g_obs_smo_tol;
+     float32_t a, wn;
+ 
+     // Clamp in place so PARAM_READ shows the value in force.
+@@ -132,11 +137,21 @@ void obs_apply_params(void)
+     if(fhz < 0.1f)             fhz = 0.1f;
+     if(bw < OBS_PLL_BW_MIN_HZ) bw = OBS_PLL_BW_MIN_HZ;
+     if(bw > OBS_PLL_BW_MAX_HZ) bw = OBS_PLL_BW_MAX_HZ;
+-    if(g_obs_smo_kslide < 0.0f) g_obs_smo_kslide = 0.0f;
+-    if(g_obs_smo_lpf_k  < 0.0f) g_obs_smo_lpf_k  = 0.0f;
+-    if(g_obs_min_speed  < 0.0f) g_obs_min_speed  = 0.0f;
+-    if(g_obs_flux_tol   < 0.01f) g_obs_flux_tol  = 0.01f;
+-    if(g_obs_smo_tol    < 0.01f) g_obs_smo_tol   = 0.01f;
++    // Clamp LOCAL copies and write each global back exactly once. Do NOT
++    // write `if(g_vol < c) g_vol = c;` on a volatile here: CGT 25.11.0.LTS
++    // if-converted the kslide and smo_tol forms of it into an UNCONDITIONAL
++    // store of the clamp constant (observer.asm, 2026-10-09) -- kslide always
++    // read back ks_max and smo_tol always 0.01, so the SMO could never be
++    // healthy and no host write could change either.
++    if(ks  < 0.0f)  ks  = 0.0f;
++    if(lk  < 0.0f)  lk  = 0.0f;
++    if(wmn < 0.0f)  wmn = 0.0f;
++    if(ftl < 0.01f) ftl = 0.01f;
++    if(stl < 0.01f) stl = 0.01f;
++    g_obs_smo_lpf_k  = lk;
++    g_obs_min_speed  = wmn;
++    g_obs_flux_tol   = ftl;
++    g_obs_smo_tol    = stl;
+     g_obs_gamma      = g;
+     g_obs_rs         = rs;
+     g_obs_ls         = ls;
+@@ -159,7 +174,8 @@ void obs_apply_params(void)
+     // never make the SMO diverge (p < 0 is allowed: oscillatory but stable).
+     {
+         float32_t ks_max = 0.9f * (1.0f + s_F) / s_G;
+-        if(g_obs_smo_kslide > ks_max) g_obs_smo_kslide = ks_max;
++        if(ks > ks_max) ks = ks_max;
++        g_obs_smo_kslide = ks;
+     }
+ 
+     s_wc_min = FOC_TWO_PI_F * fhz;
+diff --git a/foc_f28379d/src/pos_src.c b/foc_f28379d/src/pos_src.c
+index e1fe567..a946b94 100644
+--- a/foc_f28379d/src/pos_src.c
++++ b/foc_f28379d/src/pos_src.c
+@@ -61,7 +61,11 @@ static float32_t   s_w_prev;           // previous tick's output speed
+ 
+ static void start_blend(float32_t th_new, float32_t w_new)
+ {
+-    s_blend_dth = foc_wrap_pi(s_th_prev - th_new);
++    // Blend from where the OLD output is NOW, not where it was last tick:
++    // s_th_prev is one ISR old, so without the w*Ts projection every blended
++    // switch opened with a backward commutation step of exactly w*Ts
++    // (bench 2026-10-09: -8.2 deg at 1400 rad/s, Iq +38 %; 4.9 deg at 826).
++    s_blend_dth = foc_wrap_pi(s_th_prev + s_w_prev * FOC_ISR_TS - th_new);
+     s_blend_dw  = s_w_prev - w_new;
+     s_blend_n   = OBS_BLEND_TICKS;
+ }
+-- 
+2.54.0
+
