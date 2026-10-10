@@ -265,6 +265,23 @@
 #ifndef OBS_PLL_BW_HZ_DEFAULT
 #define OBS_PLL_BW_HZ_DEFAULT   40.0f
 #endif
+
+// ---- ALIGN offset sweep direction (foc_pipeline.c align_step) ------------
+// A forward-only open-loop sweep bakes the friction load angle into the
+// captured offset: the rotor trails the carrier by delta, so the sensor ends up
+// reading AHEAD of the true rotor by delta. Bench 2026-10-09 (Teknic, 1 A):
+// both observers sat at -11.2 +/- 0.5 deg vs the QEP in BOTH rotation
+// directions (direction-independent => reference error, not observer error).
+// BIDIR sweeps ALIGN_RAMP_MECH_REVS forward, holds, then the same backward;
+// the two direction means are +/-delta about the true offset and are averaged
+// with equal weight. Their half-difference is published as "align_delta".
+#ifndef ALIGN_RAMP_BIDIR
+#define ALIGN_RAMP_BIDIR        1U
+#endif
+#ifndef ALIGN_REVERSE_DWELL_S
+#define ALIGN_REVERSE_DWELL_S   0.3f    // hold between the passes so BOTH start from rest
+#endif
+
 #ifndef OBS_MIN_SPEED_DEFAULT
 #define OBS_MIN_SPEED_DEFAULT   300.0f  // observer trusted above this |omega_e| [rad/s]
 #endif

@@ -46,6 +46,7 @@ extern volatile float32_t g_dbg_dtc_k;                  // src/foc_pipeline.c
 // Cross-coupling/back-EMF feedforward toggle + captured alignment offset [deg].
 extern volatile uint16_t  g_dbg_decouple_en;            // src/foc_pipeline.c
 extern volatile float32_t g_dbg_align_offset_elec;      // src/foc_pipeline.c
+extern volatile float32_t g_dbg_align_delta_deg;        // src/foc_pipeline.c
 
 // ALIGN offset-capture enable (0 = skip the sweep, pin the offset to 0).
 extern volatile uint16_t  g_align_offset_en;            // src/foc_pipeline.c
@@ -541,6 +542,7 @@ static void set_isr_cyc_rst(uint32_t  r)   { (void)r; g_dbg_isr_cycles_max = 0U;
 static void get_state(uint32_t *r){ *r = (uint32_t)(uint16_t)sm_get_state(); }
 static void get_isr_count(uint32_t *r){ *r = g_isr_count; }
 static void get_align_off(uint32_t *r){ *r = f32_to_raw(g_dbg_align_offset_elec); }
+static void get_align_delta(uint32_t *r){ *r = f32_to_raw(g_dbg_align_delta_deg); }
 
 // Motor pole-pairs (compile-time constant) — lets the GUI convert shaft RPM
 // <-> electrical rad/s for the speed setpoint and the measured-speed readout.
@@ -706,6 +708,7 @@ const param_entry_t g_param_table[] =
     { 0x0100U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "state",      get_state,     0            },
     { 0x0101U, PARAM_TYPE_U32, PARAM_FLAG_RO,         "isr_count",  get_isr_count, 0            },
     { 0x0102U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "align_offset", get_align_off, 0          },
+    { 0x0137U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "align_delta",  get_align_delta, 0        },
     { 0x0103U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "pole_pairs", get_pole_pairs, 0           },
     { 0x0104U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "omega_meas", get_omega_meas, 0           },
     { 0x0105U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "fw_id",      get_fw_id,     0            },

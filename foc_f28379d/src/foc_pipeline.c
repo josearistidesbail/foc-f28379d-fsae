@@ -99,6 +99,10 @@ volatile float32_t g_vbus_override_v = VBUS_OVERRIDE_DEFAULT_V;
 // single-shot capture varied ~50 deg). g_dbg_align_qep_cnt is the raw QPOSCNT at
 // finalize (varies with start position, that's expected).
 volatile float32_t g_dbg_align_offset_elec;
+// Bidirectional sweep (ALIGN_RAMP_BIDIR): half the difference between the
+// backward and forward pass means [DEGREES] = the friction load angle the
+// rotor trailed the carrier by. Positive = the expected sign. 0 if one-way.
+volatile float32_t g_dbg_align_delta_deg;
 volatile int32_t   g_dbg_align_qep_cnt;
 
 // Cross-coupling / back-EMF feedforward. g_dbg_decouple_en toggles it live (also
@@ -358,6 +362,14 @@ static void fw_reset(void)
 // Per-ISR carrier advance [elec rad]: mech_rev/s * 2pi * pole_pairs * Ts.
 #define ALIGN_CARRIER_DTHETA \
     (ALIGN_RAMP_MECH_SPEED_RPS * 2.0f * MATH_PI * (float32_t)MOTOR_POLE_PAIRS * FOC_ISR_TS)
+// Bidirectional sweep layout (ALIGN_RAMP_BIDIR, see build_config.h):
+//   [0, R) forward + accumulate | [R, R+D) hold, no samples | [R+D, 2R+D) backward + accumulate
+#define ALIGN_REVERSE_DWELL_TICKS ((uint32_t)(ALIGN_REVERSE_DWELL_S * FOC_ISR_FREQ_HZ))
+#if ALIGN_RAMP_BIDIR
+#define ALIGN_SWEEP_TICKS   (2U * ALIGN_RAMP_TICKS + ALIGN_REVERSE_DWELL_TICKS)
+#else
+#define ALIGN_SWEEP_TICKS   ALIGN_RAMP_TICKS
+#endif
 
 static FOC_State_t s_prev_state    = FOC_IDLE;
 static uint32_t    s_align_ticks;
@@ -451,8 +463,10 @@ static float32_t   s_align_carrier;     // commanded electrical angle during ALI
 // anchor on the first sample and average the wrapped deviation from it -- no
 // sinf/cosf needed (which would pull large RTS tables into flash).
 static float32_t   s_align_ref;         // first (raw - carrier) sample
-static float32_t   s_align_sum;         // sum of wrapped deviations from ref
+static float32_t   s_align_sum;         // sum of wrapped deviations from ref (forward pass)
 static uint32_t    s_align_n;
+static float32_t   s_align_sum_b;       // same, backward pass (ALIGN_RAMP_BIDIR)
+static uint32_t    s_align_n_b;
 
 static void align_reset(void)
 {
@@ -463,6 +477,8 @@ static void align_reset(void)
     s_align_ref     = 0.0f;
     s_align_sum     = 0.0f;
     s_align_n       = 0;
+    s_align_sum_b   = 0.0f;
+    s_align_n_b     = 0;
     // Phase-ID: latch the enable (same mid-align-write immunity as the others).
     s_phaseid_ticks  = g_phase_id_en ? PHASE_ID_TOTAL_TICKS : 0U;
     s_phaseid_active = false;
@@ -474,7 +490,7 @@ static void align_reset(void)
             s_pid_sum[c][k] = 0.0f;
     // Latch the enable so a mid-align host write cannot change the tick budget
     // out from under the phase comparisons (same reason as s_align_cal_ticks).
-    s_align_ramp_ticks = g_align_offset_en ? ALIGN_RAMP_TICKS : 0U;
+    s_align_ramp_ticks = g_align_offset_en ? ALIGN_SWEEP_TICKS : 0U;
 #if SENSOR_BACKEND_RM44AC
     s_align_cal_ticks = g_res_cal_en ? ALIGN_CAL_TICKS : 0U;  // latch: immune to mid-align writes
     g_res_cal_sin_min = 0xFFFFU;
@@ -632,16 +648,31 @@ static float32_t align_step(void)
     else if(s_align_ticks < pid_ticks + ALIGN_SETTLE_TICKS + cal_ticks
                             + s_align_ramp_ticks)
     {
-        s_align_carrier += ALIGN_CARRIER_DTHETA;        // slow open-loop sweep
-        if(s_align_carrier >= 2.0f * MATH_PI) s_align_carrier -= 2.0f * MATH_PI;
-
-        float32_t e = sensor_get_elec_angle_raw() - s_align_carrier;
-        if(s_align_n == 0) s_align_ref = e;             // anchor on first sample
-        float32_t d = e - s_align_ref;                  // wrap deviation to [-pi, pi)
-        while(d <  -MATH_PI)        d += 2.0f * MATH_PI;
-        while(d >=  MATH_PI)        d -= 2.0f * MATH_PI;
-        s_align_sum += d;
-        s_align_n++;
+        // Slow open-loop sweep. Forward pass first; with ALIGN_RAMP_BIDIR a hold
+        // and an equal backward pass follow (layout at ALIGN_SWEEP_TICKS).
+        const uint32_t tr = s_align_ticks - (pid_ticks + ALIGN_SETTLE_TICKS + cal_ticks);
+        const bool fwd  = (tr < ALIGN_RAMP_TICKS);
+        const bool hold = !fwd && (tr < ALIGN_RAMP_TICKS + ALIGN_REVERSE_DWELL_TICKS);
+        if(fwd)
+        {
+            s_align_carrier += ALIGN_CARRIER_DTHETA;
+            if(s_align_carrier >= 2.0f * MATH_PI) s_align_carrier -= 2.0f * MATH_PI;
+        }
+        else if(!hold)
+        {
+            s_align_carrier -= ALIGN_CARRIER_DTHETA;
+            if(s_align_carrier < 0.0f) s_align_carrier += 2.0f * MATH_PI;
+        }
+        if(!hold)
+        {
+            float32_t e = sensor_get_elec_angle_raw() - s_align_carrier;
+            if(s_align_n == 0 && s_align_n_b == 0) s_align_ref = e;   // anchor on first sample
+            float32_t d = e - s_align_ref;              // wrap deviation to [-pi, pi)
+            while(d <  -MATH_PI)        d += 2.0f * MATH_PI;
+            while(d >=  MATH_PI)        d -= 2.0f * MATH_PI;
+            if(fwd) { s_align_sum   += d; s_align_n++;   }
+            else    { s_align_sum_b += d; s_align_n_b++; }
+        }
     }
     else if(!s_align_done)
     {
@@ -649,10 +680,15 @@ static float32_t align_step(void)
         // explicitly rather than just skipping the sweep -- a previous align's
         // offset must not survive into this one.
         float32_t off = 0.0f;
+        g_dbg_align_delta_deg = 0.0f;
         if(s_align_ramp_ticks)
         {
-            off = s_align_ref +
-                  (s_align_n ? s_align_sum / (float32_t)s_align_n : 0.0f);
+            float32_t mf = s_align_n   ? s_align_sum   / (float32_t)s_align_n   : 0.0f;
+            float32_t mb = s_align_n_b ? s_align_sum_b / (float32_t)s_align_n_b : mf;
+            // Equal weight per direction: the +delta / -delta load-angle biases
+            // cancel even if the two passes collected different sample counts.
+            off = s_align_ref + 0.5f * (mf + mb);
+            g_dbg_align_delta_deg = 0.5f * (mb - mf) * (180.0f / MATH_PI);
             while(off <  0.0f)         off += 2.0f * MATH_PI;
             while(off >= 2.0f*MATH_PI) off -= 2.0f * MATH_PI;
         }
