@@ -16,7 +16,12 @@
 #define MOTOR_RS_OHM            0.36f       // line-to-line/2, datasheet typ.
 #define MOTOR_LD_H              0.000235f   // 235 uH
 #define MOTOR_LQ_H              0.000235f   // SPM -> Ld == Lq
-#define MOTOR_FLUX_VS           0.0046f     // back-EMF constant (Vs/rad_elec, ~7.5 mVrms/krpm linev)
+#define MOTOR_FLUX_VS           0.006067f   // PM flux linkage [Vs/rad_elec, peak phase] = 3.11 Vrms/krpm line.
+                                            //   BENCH-FITTED 2026-10-09 (24 V, dtc_en=1): sensored SPEED holds at
+                                            //   300..1300 rad/s elec, slope of (Vq - Rs*iq) vs we, resid 7 mV,
+                                            //   SE 0.15 %. The old 0.0046 was 32 % low and kept both sensorless
+                                            //   observers permanently unhealthy (flux |eta| ~1.27x, SMO |e| ~1.34x
+                                            //   the model). Data: bench_kit/bench/lambda/*.csv.
 
 // ---- Ratings ------------------------------------------------------------
 #define MOTOR_I_CONT_A          3.0f        // continuous phase current (rms)

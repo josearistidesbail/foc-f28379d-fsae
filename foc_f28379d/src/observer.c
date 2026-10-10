@@ -121,6 +121,11 @@ void obs_apply_params(void)
     float32_t e0  = g_obs_smo_e0;
     float32_t fhz = g_obs_smo_lpf_hz;
     float32_t bw  = g_obs_pll_bw_hz;
+    float32_t ks  = g_obs_smo_kslide;
+    float32_t lk  = g_obs_smo_lpf_k;
+    float32_t wmn = g_obs_min_speed;
+    float32_t ftl = g_obs_flux_tol;
+    float32_t stl = g_obs_smo_tol;
     float32_t a, wn;
 
     // Clamp in place so PARAM_READ shows the value in force.
@@ -132,11 +137,21 @@ void obs_apply_params(void)
     if(fhz < 0.1f)             fhz = 0.1f;
     if(bw < OBS_PLL_BW_MIN_HZ) bw = OBS_PLL_BW_MIN_HZ;
     if(bw > OBS_PLL_BW_MAX_HZ) bw = OBS_PLL_BW_MAX_HZ;
-    if(g_obs_smo_kslide < 0.0f) g_obs_smo_kslide = 0.0f;
-    if(g_obs_smo_lpf_k  < 0.0f) g_obs_smo_lpf_k  = 0.0f;
-    if(g_obs_min_speed  < 0.0f) g_obs_min_speed  = 0.0f;
-    if(g_obs_flux_tol   < 0.01f) g_obs_flux_tol  = 0.01f;
-    if(g_obs_smo_tol    < 0.01f) g_obs_smo_tol   = 0.01f;
+    // Clamp LOCAL copies and write each global back exactly once. Do NOT
+    // write `if(g_vol < c) g_vol = c;` on a volatile here: CGT 25.11.0.LTS
+    // if-converted the kslide and smo_tol forms of it into an UNCONDITIONAL
+    // store of the clamp constant (observer.asm, 2026-10-09) -- kslide always
+    // read back ks_max and smo_tol always 0.01, so the SMO could never be
+    // healthy and no host write could change either.
+    if(ks  < 0.0f)  ks  = 0.0f;
+    if(lk  < 0.0f)  lk  = 0.0f;
+    if(wmn < 0.0f)  wmn = 0.0f;
+    if(ftl < 0.01f) ftl = 0.01f;
+    if(stl < 0.01f) stl = 0.01f;
+    g_obs_smo_lpf_k  = lk;
+    g_obs_min_speed  = wmn;
+    g_obs_flux_tol   = ftl;
+    g_obs_smo_tol    = stl;
     g_obs_gamma      = g;
     g_obs_rs         = rs;
     g_obs_ls         = ls;
@@ -159,7 +174,8 @@ void obs_apply_params(void)
     // never make the SMO diverge (p < 0 is allowed: oscillatory but stable).
     {
         float32_t ks_max = 0.9f * (1.0f + s_F) / s_G;
-        if(g_obs_smo_kslide > ks_max) g_obs_smo_kslide = ks_max;
+        if(ks > ks_max) ks = ks_max;
+        g_obs_smo_kslide = ks;
     }
 
     s_wc_min = FOC_TWO_PI_F * fhz;

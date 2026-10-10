@@ -61,7 +61,11 @@ static float32_t   s_w_prev;           // previous tick's output speed
 
 static void start_blend(float32_t th_new, float32_t w_new)
 {
-    s_blend_dth = foc_wrap_pi(s_th_prev - th_new);
+    // Blend from where the OLD output is NOW, not where it was last tick:
+    // s_th_prev is one ISR old, so without the w*Ts projection every blended
+    // switch opened with a backward commutation step of exactly w*Ts
+    // (bench 2026-10-09: -8.2 deg at 1400 rad/s, Iq +38 %; 4.9 deg at 826).
+    s_blend_dth = foc_wrap_pi(s_th_prev + s_w_prev * FOC_ISR_TS - th_new);
     s_blend_dw  = s_w_prev - w_new;
     s_blend_n   = OBS_BLEND_TICKS;
 }
