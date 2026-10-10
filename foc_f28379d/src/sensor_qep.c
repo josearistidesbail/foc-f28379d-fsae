@@ -39,6 +39,19 @@ volatile uint32_t g_dbg_qep_index_latch;  // QPOSILAT - count latched on index p
 volatile uint16_t g_dbg_qep_status;       // QEPSTS bits: 0x20=fwd dir, 0x02=1st idx seen
 volatile int16_t  g_dbg_qep_direction;    // +1 forward, -1 reverse
 
+// Fast frozen-counter detector (ISR side in sensor_qep_inline.h; constants and
+// rationale in sensor_qep.h). Plain globals because the inline ISR code reads
+// and writes them from another translation unit.
+volatile uint16_t g_qep_fast_en    = SENSOR_QEP_FAST_DEFAULT_EN;
+volatile uint16_t g_qep_fast_run   = 0U;
+volatile uint16_t g_qep_fast_trips = 0U;
+int32_t           g_qep_fast_prev_cnt;
+uint16_t          g_qep_fast_ring[SENSOR_QEP_FAST_REF_TICKS];
+uint16_t          g_qep_fast_idx;
+uint16_t          g_qep_fast_sum;
+uint16_t          g_qep_fast_ref;
+uint16_t          g_qep_fast_still;
+
 static int32_t  s_last_cnt;
 static float    s_omega_lpf;
 static uint16_t s_loss_ticks;       // slow ticks elapsed in the current detection window
@@ -55,6 +68,8 @@ void sensor_init(void)
     s_loss_move   = 0U;
     g_qep_lost    = 0U;
     g_qep_omega_healthy = 0.0f;
+    g_qep_fast_run      = 0U;
+    g_qep_fast_prev_cnt = 0;
 }
 
 // Called from the slow loop (1 kHz) to update the filtered speed.
@@ -107,6 +122,10 @@ void sensor_update_speed_slow(void)
     }
     g_dbg_qep_loss_move = s_loss_move;
 
+    // Arm the ISR-rate frozen-counter check only while actually running (the
+    // ring keeps updating regardless, so arming needs no warm-up).
+    g_qep_fast_run = ((sm_get_state() == FOC_RUN) && (g_qep_fast_en != 0U)) ? 1U : 0U;
+
     // Independent HW signal: an illegal quadrature transition (noise/half-open
     // channel) sets the position-counter error flag.
     if(EQEP_getStatus(EQEP1_BASE) & EQEP_STS_POS_CNT_ERROR) g_qep_lost = 1U;
@@ -129,6 +148,8 @@ void sensor_clear_loss(void)
     g_qep_lost   = 0U;
     s_loss_ticks = 0U;
     s_loss_move  = 0U;
+    g_qep_fast_still = 0U;
+    g_qep_fast_ref   = 0U;     // must see a fresh moving window before it can trip again
 }
 
 // Store the electrical zero offset (radians), wrapped to [0, 2*pi). The align

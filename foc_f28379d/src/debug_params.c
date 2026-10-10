@@ -97,6 +97,11 @@ extern volatile float32_t g_vbus_vpc;                   // src/adc_iface.c (deri
 extern volatile float32_t g_vbus_off_code;              // src/adc_iface.c
 extern volatile uint16_t  g_dbg_vbus_raw;               // src/adc_iface.c
 
+#if SENSOR_BACKEND_QEP
+extern volatile uint16_t  g_qep_fast_en;                // src/sensor_qep.c
+extern volatile uint16_t  g_qep_fast_trips;             // src/sensor_qep.c
+#endif
+
 #if SENSOR_BACKEND_RM44AC
 // RM44AC SIN/COS input low-pass: runtime enable + cutoff [Hz]. The hz setter
 // recomputes the IIR coefficient (g_resolver_filt_alpha). See sensor_rm44ac.c.
@@ -507,6 +512,12 @@ static void get_pos_inj_err(uint32_t *r){ *r = f32_to_raw(g_pos_inj_err); }
 static void set_pos_inj_err(uint32_t  r){ g_pos_inj_err = raw_to_f32(r); }
 static void get_pos_trig_en(uint32_t *r){ *r = (uint32_t)g_pos_trig_en; }
 static void set_pos_trig_en(uint32_t  r){ g_pos_trig_en = (uint16_t)(r ? 1U : 0U); }
+#if SENSOR_BACKEND_QEP
+// Fast frozen-counter loss detector (sensor_qep.h): live A/B + trip counter.
+static void get_qep_fast_en(uint32_t *r)   { *r = (uint32_t)g_qep_fast_en; }
+static void set_qep_fast_en(uint32_t  r)   { g_qep_fast_en = (uint16_t)(r ? 1U : 0U); }
+static void get_qep_fast_trips(uint32_t *r){ *r = (uint32_t)g_qep_fast_trips; }
+#endif
 // Telemetry.
 static void get_theta_est(uint32_t *r)  { *r = f32_to_raw(g_obs_theta_est); }
 static void get_omega_est(uint32_t *r)  { *r = f32_to_raw(g_obs_omega_est); }
@@ -724,6 +735,10 @@ const param_entry_t g_param_table[] =
     { 0x0133U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "obs_resets",     get_obs_resets,     0 },
     { 0x0134U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "warn_code",      get_warn_code,      0 },
     { 0x0135U, PARAM_TYPE_F32, PARAM_FLAG_RO,         "obs_smo_ierr",   get_obs_smo_ierr,   0 },
+#if SENSOR_BACKEND_QEP
+    { 0x0073U, PARAM_TYPE_U16, 0,                     "qep_fast_en",    get_qep_fast_en,    set_qep_fast_en },
+    { 0x0136U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "qep_fast_trips", get_qep_fast_trips, 0 },
+#endif
 
 #if SENSOR_BACKEND_RM44AC
     // Resolver front-end diagnostics (raw ADC codes + vector magnitude).
