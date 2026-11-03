@@ -55,11 +55,16 @@ __interrupt void adcA1_isr(void)
 // the OST flag latched. SysConfig enables this interrupt on PWM_U only.
 __interrupt void epwm_tz_isr(void)
 {
-    g_dbg_tz_trip++;
+    // A PIE request can be left pending by a one-shot latch that software has
+    // since released (the spurious boot latch cleared in pwm_apply_module_tz(),
+    // or pwm_clear_trip()). Only a trip that is STILL latched is a real event.
+    bool latched = (EPWM_getTripZoneFlagStatus(PWM_U_BASE) & EPWM_TZ_FLAG_OST) != 0U;
+    if(latched)
+        g_dbg_tz_trip++;
     // Bench bypass: count the event but don't latch a fault when module-fault
     // protection is disabled (no power stage). pwm_apply_module_tz() also drops
     // the OSHT sources in that mode, so this ISR normally won't even fire then.
-    if(g_module_faults_en)
+    if(latched && g_module_faults_en)
         sm_raise_fault(FAULT_OVERCURRENT);   // latches + flags FAULT for next tick
 
     EPWM_clearTripZoneFlag(PWM_U_BASE, EPWM_TZ_INTERRUPT);

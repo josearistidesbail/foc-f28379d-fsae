@@ -208,6 +208,14 @@
 #define BENCH_NO_POWER_STAGE    0U
 #endif
 
+// Does FOC_CALIBRATE_OFFSETS need the gate driver ENABLED to sample the
+// current-sense zero? 1 (default) for gate drivers that power their own
+// current-sense amps (DRV8305). Boards whose sensors are independent of the
+// gate enable set 0, so the bridge stays fully disabled while calibrating.
+#ifndef INVERTER_GATE_ON_FOR_CALIBRATE
+#define INVERTER_GATE_ON_FOR_CALIBRATE  1U
+#endif
+
 // Bench DC-bus override + UV-bypass defaults. Only the Control_V2 header sets the
 // bench values; everything else defaults to "off" (control uses the measured bus,
 // UV trip armed).

@@ -121,11 +121,11 @@ void inverter_init(void)
     GPIO_setPadConfig(DRV8305_NFAULT_GPIO, GPIO_PIN_TYPE_PULLUP);
     GPIO_setDirectionMode(DRV8305_NFAULT_GPIO, GPIO_DIR_MODE_IN);
 
-    // Force PWMs to safe state (CMPA = period → HS duty = 0%, LS on) before
-    // EN_GATE goes high. Without this, the ePWMs run at their SysConfig-initial
-    // CMPA = 2500 (50% duty) when the gate driver first wakes up, causing VDS
-    // overcurrent faults (VDS_LA/VDS_LB) on the first switching transients.
-    pwm_force_safe();
+    // Force all six PWM outputs LOW before EN_GATE goes high. Without this,
+    // the ePWMs run at their SysConfig-initial CMPA = 2500 (50% duty) when the
+    // gate driver first wakes up, causing VDS overcurrent faults (VDS_LA/VDS_LB)
+    // on the first switching transients.
+    pwm_force_off();
 
     // Wake the DRV8305 first: EN_GATE low -> high. The gate driver needs
     // ~1 ms after EN_GATE rising before SPI is responsive (datasheet 7.5.1.1).

@@ -49,14 +49,21 @@ static void enter(FOC_State_t next)
     {
     case FOC_IDLE:
         inverter_disable_gate();
-        pwm_force_safe();
+        pwm_force_off();    // all six LOW: the pattern the next enable starts from
         pwm_clear_trip();   // release any latched HW trip-zone so RUN can resume
         safety_clear_warnings();   // a sensorless fail-over warning ends with the run
         break;
     case FOC_CALIBRATE_OFFSETS:
+        // Offsets are sampled at zero current with the bridge OFF (all six
+        // LOW). Whether the gate driver must be ENABLED for that is per board:
+        // the DRV8305's current-sense amps only bias up while it is awake, but
+        // the FE_UFPR 4.0 / PrimeSTACK sensors are module-powered and need no
+        // gate enable -- so that board keeps GATE_EN LOW for the whole ~0.2 s.
+#if INVERTER_GATE_ON_FOR_CALIBRATE
         inverter_enable_gate();
+#endif
         inverter_clear_faults();        // clear any fault latched since last inverter_init()
-        pwm_force_safe();               // SO bias must be present before sampling offsets
+        pwm_force_off();
         adc_calibrate_offsets(CAL_SAMPLES);
         break;
     case FOC_ALIGN_ROTOR:
@@ -84,8 +91,8 @@ static void enter(FOC_State_t next)
         inverter_snapshot_fault_regs(); // read while EN_GATE still high — tells us what fired
         {
             // Speed-dependent safe-state. Above FAULT_ASC_OMEGA_ELEC hold a
-            // 3-phase ACTIVE SHORT: keep the gate driver ENABLED so the ISR's
-            // pwm_force_safe() (EPWMxA forced low -> dead-band makes EPWMxB high
+            // 3-phase ACTIVE SHORT: keep the gate driver ENABLED so
+            // pwm_force_asc() (EPWMxA forced low -> dead-band makes EPWMxB high
             // -> low-side FETs on) clamps the terminals. This stops back-EMF
             // from rectifying into the DC link (uncontrolled generation ->
             // overvoltage) during field-weakening. Below the threshold COAST:
@@ -99,10 +106,9 @@ static void enter(FOC_State_t next)
             if(w < 0.0f) w = -w;
             bool asc = (w > FAULT_ASC_OMEGA_ELEC);
             g_dbg_fault_asc = (uint16_t)asc;
-            if(asc) inverter_enable_gate();     // keep gate on -> low-side short
-            else    inverter_disable_gate();    // tristate -> coast
+            if(asc) { inverter_enable_gate();  pwm_force_asc(); }  // low-side short
+            else    { inverter_disable_gate(); pwm_force_off(); }  // tristate -> coast
         }
-        pwm_force_safe();
         break;
     }
 

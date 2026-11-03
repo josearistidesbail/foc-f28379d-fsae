@@ -552,14 +552,20 @@ static float32_t align_step(void)
         // ADC read runs after align_step) -- irrelevant at this slew rate.
         if(k == 0U && ti < PHASE_ID_DWELL_TICKS - PHASE_ID_AVG_TICKS)
         {
-            float32_t imax = 0.0f;
-            uint16_t c;
-            for(c = 0U; c < ISENSE_NUM_CHANNELS; c++)
-            {
-                float32_t m = g_isense_ch_amps[c];
-                if(m < 0.0f) m = -m;
-                if(m > imax) imax = m;
-            }
+            // max |I| over the sense channels, written straight-line ON PURPOSE:
+            // with 3 channels CGT 25.11.1 turns the loop into an RPTB whose body
+            // is only 8 words and the assembler rejects it ("[E0200] Block size
+            // 8 out of range 9..127"). No loop -> no repeat block.
+            float32_t imax = g_isense_ch_amps[0];
+            float32_t m    = g_isense_ch_amps[1];
+            if(imax < 0.0f) imax = -imax;
+            if(m < 0.0f)    m = -m;
+            if(m > imax)    imax = m;
+#if ISENSE_NUM_CHANNELS > 2
+            m = g_isense_ch_amps[2];
+            if(m < 0.0f)    m = -m;
+            if(m > imax)    imax = m;
+#endif
             if(imax < g_phase_id_a) s_phaseid_mod += PHASE_ID_MOD_STEP;
             else                    s_phaseid_mod -= PHASE_ID_MOD_STEP;
             if(s_phaseid_mod > g_ol_mod) s_phaseid_mod = g_ol_mod;
@@ -1111,7 +1117,7 @@ void foc_current_loop_isr(void)
     //    Keep vbus fresh every ISR (safety_check_isr() needs it for OV/UV),
     //    but only DRIVE the bridge when the state machine is actually
     //    commanding current. In IDLE/CALIBRATE/FAULT we must re-assert the
-    //    pwm_force_safe() state every tick: SVGEN's zero-voltage vector maps to
+    //    pwm_hold_safe() state every tick: SVGEN's zero-voltage vector maps to
     //    50% duty on all three legs, and pwm_set_duty() releases the AQCSFRC
     //    safe-force, so calling it here would switch all three half-bridges and
     //    trip DRV8305 high-side VDS over-current (nFAULT) while "idle".
@@ -1148,7 +1154,7 @@ void foc_current_loop_isr(void)
     }
     else
     {
-        pwm_force_safe();
+        pwm_hold_safe();    // OFF (all six LOW), or ASC in a high-speed FAULT
     }
 
     // 5. Decimated outer loop

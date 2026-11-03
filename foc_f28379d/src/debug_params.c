@@ -567,6 +567,26 @@ static void get_fault_code(uint32_t *r){ *r = (uint32_t)safety_get_latched(); }
 static void get_tz_trip(uint32_t *r)      { *r = g_dbg_tz_trip; }
 static void get_module_fault(uint32_t *r) { *r = (uint32_t)inverter_fault_status(); }
 
+#if defined(HW_CONTROL_BOARD_V2)
+// FE_UFPR 4.0 bring-up B (enable chain). sw_in: bit0 = main switch GPIO29,
+// bit1 = start GPIO59 (1 = ON). gate_en: readback of the two enable PINS,
+// bit0 = master GPIO66, bit1 = aux GPIO131 (board TP16 = their AND with the
+// main-switch interlock, board JP1).
+static void get_sw_in(uint32_t *r)   { *r = (uint32_t)board_switch_inputs(); }
+static void get_gate_en(uint32_t *r) { *r = (uint32_t)inverter_gate_en_readback(); }
+// gate_en_dbg (BENCH ONLY): write bit0/bit1 to drive GPIO66/GPIO131 directly so
+// each enable can be dropped on its own. Honored only in IDLE with module-fault
+// protection off (BENCH_NO_POWER_STAGE / module_faults_en = 0); ignored
+// otherwise. Reads back the pin levels. Any state transition overrides it
+// (IDLE entry drops the master, RUN / ol_run re-assert both).
+static void get_gate_en_dbg(uint32_t *r) { *r = (uint32_t)inverter_gate_en_readback(); }
+static void set_gate_en_dbg(uint32_t  r)
+{
+    if(sm_get_state() == FOC_IDLE && !g_module_faults_en)
+        inverter_dbg_set_gates((uint16_t)(r & 3U));
+}
+#endif
+
 // Phase-ID result: low nibble 0=never ran, 1=applied, 2=rejected;
 // 0x0010<<c = channel c too weak, 0x0100<<c = ambiguous, 0x0800 = duplicate.
 static void get_phase_id_status(uint32_t *r){ *r = (uint32_t)g_isense_id_status; }
@@ -716,6 +736,12 @@ const param_entry_t g_param_table[] =
     { 0x0107U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "fault_code", get_fault_code, 0           },
     { 0x0108U, PARAM_TYPE_U32, PARAM_FLAG_RO,         "tz_trip",    get_tz_trip,    0            },
     { 0x0109U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "module_fault", get_module_fault, 0        },
+#if defined(HW_CONTROL_BOARD_V2)
+    // FE_UFPR 4.0 board I/O: switch inputs, enable-pin readback, bench enable override.
+    { 0x0138U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "sw_in",       get_sw_in,       0         },
+    { 0x0139U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "gate_en",     get_gate_en,     0         },
+    { 0x0074U, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "gate_en_dbg", get_gate_en_dbg, set_gate_en_dbg },
+#endif
     // One-shot capture status: trig_state = DL_TRIG_OFF/ARMED/DONE, trig_idx =
     // chronological index of the trigger sample in the delivered capture.
     { 0x0122U, PARAM_TYPE_U16, PARAM_FLAG_RO,         "trig_state", get_trig_state, 0           },

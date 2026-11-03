@@ -24,11 +24,6 @@
 			<locationURI>C2000WARE_DEVICE_SUPPORT_ROOT/common/targetConfigs/TMS320F28379D.ccxml</locationURI>
 		</link>
 		<link>
-			<name>board_control_v2.syscfg</name>
-			<type>1</type>
-			<location>/home/jose/workspace_ccstheia/foc_f28379d/syscfg/board_control_v2.syscfg</location>
-		</link>
-		<link>
 			<name>driverlib.lib</name>
 			<type>1</type>
 			<locationURI>C2000WARE_DLIB_ROOT/ccs/Release/driverlib.lib</locationURI>
