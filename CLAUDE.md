@@ -30,7 +30,7 @@ Two independent hardware variants share the same source tree, selected at build 
 | CCS Config | Preprocessor Defines | Hardware | Motor | Sensor |
 |---|---|---|---|---|
 | `Debug_BOOSTXL_Teknic_QEP` | `HW_BOOSTXL_DRV8305`, `MOTOR_TEKNIC_M2310P`, `SENSOR_QEP`, `_DEBUG`, `_FLASH`, `CPU1`, `_F2837X`, `F2837x_DEVICE`, `_DUAL_HEADERS`, `LARGE_MODEL` | BOOSTXL-DRV8305EVM on LaunchPad | Teknic M-2310P-LN-04K | eQEP1 encoder |
-| `Production_CtrlV2_EMRAX_Resolver` | `HW_CONTROL_BOARD_V2`, `MOTOR_EMRAX_208`, `SENSOR_RM44AC`, … | Custom inverter board | EMRAX 208 | RM44AC resolver |
+| `Production_CtrlV2_EMRAX_Resolver` | `HW_CONTROL_BOARD_V2`, `MOTOR_EMRAX_208`, `SENSOR_RM44AC`, … | **FE_UFPR 4.0** inverter board (successor of Control_V2 — same variant macro, `hw_control_v2.h`, `board_control_v2.syscfg`) | EMRAX 208 | RM44AC resolver |
 
 **Important**: `_LAUNCHXL_F28379D` must be defined for the LaunchPad (10 MHz crystal vs 20 MHz
 on the controlCARD). Verify it is in the Debug config Predefined Symbols if the CPU runs at half speed.
@@ -43,8 +43,26 @@ on the controlCARD). Verify it is in the Debug config Predefined Symbols if the 
 for every SDK symbol this firmware uses (4-arg series `PI_run` still at `pi.h:641`, `PARK_setup` via
 `__sin/__cos`, `MATH_max/min`, `SVGEN_*`, `CLARKE_*`, same source paths for the five `ti_lib` links) — a
 proper re-point of the project path variables through CCS (never by hand-editing `.cproject`, per CCS.md) is
-still owed, as is fixing the `.project` link for `board_control_v2.syscfg` (points at an empty
-`~/workspace_ccstheia/…`; the real file is `syscfg/board_control_v2.syscfg`).
+still owed.
+**[2026-11-03] CCS workspace + project paths.** CCS's workspace is `~/workspace_ccstheia`; the project must be
+**imported as a LINK to the repo** (`File → Import Projects`, "Copy projects into workspace" UNCHECKED) — a copied
+import builds from a stale copy outside git. Verify with `getProjectDescriptors` → `location` =
+`/home/jose/foc-f28379d-fsae/foc_f28379d`. The stale root-level `board_control_v2.syscfg` link in `.project` is
+**removed** (Production compiled both; the real file is `syscfg/board_control_v2.syscfg`). The build variable
+`APP_ROOT` is still hard-coded to `/home/jose/workspace_ccstheia/foc_f28379d` (stale) and supplied the
+`include/`/`config/`/`imported/` paths; **worked around** by prepending `${PROJECT_ROOT}/include|config|imported`
+to both configs' compiler include paths (`setToolFlags`), because the CCS Properties dialog errored ("Cannot read
+properties of undefined (reading 'activeBuildConfiguration')"). Proper fix: set `APP_ROOT = ${PROJECT_ROOT}` once
+the dialog works, then drop the three extra paths. Check a build's `.d` files for `workspace_ccstheia` — there
+must be none. After a CCS restart / workspace switch the ccs-* MCP servers return `fetch failed` → `/mcp`
+reconnect. The active build config can only be switched in the CCS GUI (`buildProject` builds the active one).
+**Linux USB/serial (2026-11-03):** the TI udev rule was never installed → XDS100 **error -151**; fix with
+`sudo cp ~/ti/ccs2101/ccs/install_scripts/71-ti-permissions.rules /etc/udev/rules.d/` + `udevadm control
+--reload-rules && udevadm trigger` + replug (and restart CCS if it cached the failure). `/dev/ttyUSB*` is
+`root:uucp 660`: the user is now in `uucp` (re-login). The XDS100 exposes two FTDI interfaces: interface A = JTAG,
+interface B = the SCI backchannel — the backchannel is **`/dev/ttyUSB1`** when both enumerate and can become
+`ttyUSB0` while CCS holds interface A (check with `ls /dev/ttyUSB*`). Host tools need pyserial (not installed
+system-wide; use a venv).
 
 ## Source Layout
 
@@ -140,7 +158,8 @@ Device_init() → Device_initGPIO() → Interrupt_initModule/VectorTable() → B
 > The steps below are the **Debug** (BOOSTXL/Teknic/QEP) bring-up. For the
 > **Production** (Control_V2/EMRAX/RM44AC) variant see `foc_f28379d/docs/production_bringup.md`
 > (ordered sequence + bench-calibration) and `foc_f28379d/docs/control_v2_pinmap.md`
-> (schematic pin/parameter map to fill).
+> (schematic pin/parameter map to fill). The **FE_UFPR 4.0 board** bring-up (the current
+> production hardware) has its own log below Step 12.
 
 - [x] Step 1 — LED heartbeat blink — confirmed on hardware
 - [x] Step 2 — ePWM + ADC pipeline — ISR confirmed firing at 10 kHz
@@ -166,7 +185,7 @@ Device_init() → Device_initGPIO() → Interrupt_initModule/VectorTable() → B
      (`dtc_en`, see the `g_dtc_*` block below). **Do not tune kp/ki with `dtc_en=0`: you are measuring the dead
      zone, not the loop.**
 - [x] Step 8 — **Speed loop** (verified on HW 2026-06-05). Root cause of `omega_elec` stuck at 0: the QEP estimator `sensor_qep_update_speed_slow()` was fully written but **never called**. Renamed to the backend-contract `sensor_update_speed_slow()` (`sensor_iface.h`) and wired into `foc_speed_loop_tick()` **every 1 kHz tick in all states** — so speed is visible in torque mode/idle and the back-EMF FF finally sees real ωe. Added a **torque/speed mode selector** (`g_dbg_control_mode`, `control_mode` serial param, GUI combo): TORQUE = direct `iq_ref`; SPEED = accel-limited (`SPEED_RAMP_RAD_S2`) electrical setpoint through the existing `s_pi_spd` PI → `iq_ref`, output clamped to ±`IQ_REF_MAX_A`. Switch is **bumpless both directions** (inactive path primes `PI_setUi`=present iq and tracks present speed). Loop runs internally in **electrical rad/s**; the GUI enters/shows **shaft RPM**, converting via new RO params `pole_pairs` + `omega_meas`. The scope's red `omega_ref` overlay on the `omega_elec` trace is now unit-correct (both electrical). `speed_ref`/`omega_ref` semantics changed mechanical→**electrical rad/s**. Build clean, no flash overflow. Tune `kp_w`/`ki_w` live from the Gains tab.
-- [~] Step 9 — **HW trip-zone (CPU-independent fault shutdown)**. Built + generated, HW test pending. Debug: SysConfig routes DRV8305 **nFAULT (GPIO19) → Input X-BAR INPUT1 → ePWM1/2/3 one-shot TZ1**, action **TZA=LOW / TZB=HIGH** = low-side **active short (ASC)**, so the bridge clamps the instant nFAULT asserts, with the CPU halted. TZ one-shot interrupt registered on PWM_U → `epwm_tz_isr` (`src/isr.c`), PIE group 2: it only records `g_dbg_tz_trip` + `sm_raise_fault(FAULT_OVERCURRENT)` (the HW already latched ASC) and clears the TZ *interrupt* flag — the **OST latch is left set** (holds the bridge) and is released by `pwm_clear_trip()` (`src/pwm_iface.c`) on the next `enter(FOC_IDLE)` after the fault is cleared. **TZ action design: A=LOW + B=HIGH gives ASC because TZ acts post-deadband; AQCSFRC `pwm_force_safe()` gives the *same* ASC via the AQ→DB chain (force A low → DB makes B high) when the gate is enabled — two independent paths, one clamp.** Production: same framework extended to the 6PS04512E43W39693 flags (OC_A/B/C, OT, DC-OV) — **needs the schematic GPIO numbers + polarity** (placeholders in `hw_control_v2.h`; X-BAR not yet wired). Test on bench: RUN at low iq, force nFAULT low → scope shows EPWMxA low / EPWMxB high within a cycle, `g_dbg_tz_trip` increments, state→FAULT; `clearfault` from IDLE recovers.
+- [~] Step 9 — **HW trip-zone (CPU-independent fault shutdown)**. Built + generated, HW test pending. Debug: SysConfig routes DRV8305 **nFAULT (GPIO19) → Input X-BAR INPUT1 → ePWM1/2/3 one-shot TZ1**, action **TZA=LOW / TZB=HIGH** = low-side **active short (ASC)**, so the bridge clamps the instant nFAULT asserts, with the CPU halted. TZ one-shot interrupt registered on PWM_U → `epwm_tz_isr` (`src/isr.c`), PIE group 2: it only records `g_dbg_tz_trip` + `sm_raise_fault(FAULT_OVERCURRENT)` (the HW already latched ASC) and clears the TZ *interrupt* flag — the **OST latch is left set** (holds the bridge) and is released by `pwm_clear_trip()` (`src/pwm_iface.c`) on the next `enter(FOC_IDLE)` after the fault is cleared. **TZ action design: A=LOW + B=HIGH gives ASC because TZ acts post-deadband; AQCSFRC `pwm_force_asc()` gives the *same* ASC via the AQ→DB chain (force A low → DB makes B high) when the gate is enabled — two independent paths, one clamp.** (Since 2026-11-03 that AQ path is used ONLY for the high-speed FAULT; every other non-switching state is the all-LOW `pwm_force_off()`.) Production (FE_UFPR 4.0): the 6PS04512E43W39693 OC_A/B/C flags (GPIO25/27/26) → Input X-BAR INPUT1/2/3 → OSHT1/2/3 on EPWM4/5/6; OT (GPIO64) and DC-OV (GPIO52) are software-only. **The flags are active-HIGH** (open collector, released = fault, buffered non-inverting) → the pads are `PULLUP_INVERT` (see Pitfalls). The module asserts ALL THREE OC lines on any leg's overcurrent — they don't identify the phase. Test on bench: RUN at low iq, force nFAULT low → scope shows EPWMxA low / EPWMxB high within a cycle, `g_dbg_tz_trip` increments, state→FAULT; `clearfault` from IDLE recovers.
 - [~] Step 10 — **Position-sensor-loss detection + FW-safe shutdown** (new; built, HW test pending). Detection is backend-specific via `sensor_is_lost()` (sensor_iface contract): **resolver** = `sin²+cos²` magnitude window per ISR (`sensor_rm44ac_inline.h`, thresholds `SENSOR_RES_MAG_LOW/HIGH`, debounce `SENSOR_RES_LOSS_TICKS`); **QEP** = drive-vs-response + `QEPSTS` POS_CNT_ERROR in the 1 kHz slow loop (`sensor_qep.c`: in RUN with **|iq_ref|>`SENSOR_QEP_LOSS_MIN_IQ`**, if total count movement over a `SENSOR_QEP_LOSS_TICKS` window is < `SENSOR_QEP_LOSS_MIN_MOVE` → lost; also catches locked rotor). **Gate on COMMANDED current, NOT Vq** — when the angle freezes the rotor locks into DC injection and Vq collapses to ~Rs·iq, so a Vq gate goes blind exactly when you disconnect at low current (the first cut used |Vq| and failed to trip in torque mode — fixed 2026-06-05). Windowed motion accumulator (not consecutive-stall) rides out noise edges on floating lines. `safety_check_isr()` latches `FAULT_SENSOR_LOSS` in RUN/ALIGN. **Shutdown is speed-dependent** (`enter(FOC_FAULT)`): above `FAULT_ASC_OMEGA_ELEC` (per-motor) keep the gate ON → low-side **ASC** to clamp back-EMF (prevents uncontrolled generation → DC-link overvoltage in field-weakening); below it **coast** (gate off, tristate). Uses **last-healthy** speed (`sensor_get_healthy_speed()`) since the live estimate is garbage after loss. `g_dbg_fault_asc` shows which path. **This made ALL faults' safe-state speed-dependent** (previously every fault disabled the gate = coast, which would fight the HW TZ's ASC at speed). EMRAX threshold 2600 elec rad/s; Teknic 6000 (bench always coasts). FW controller itself deferred — `id_ref` pinned to nominal with `TODO[FW]` hooks (clamp + OC check already tolerate negative Id). **Caveat carried in motor header: EMRAX Isc=λpm/Ld≈306 A > 260 A OC trip, so a high-speed ASC may re-trip the module OC.** **[noise]** The resolver SIN/COS analog lines also carry a software matched-IIR low-pass (`sensor_rm44ac_inline.h`, before atan2) for HW noise that can't be filtered analog-side — **now default ON at 200 Hz with lag compensation**, live-tunable via `res_filt_en`/`res_filt_hz`/`res_filt_comp`; loss-of-signal stays on the RAW magnitude. See the `g_resolver_filt_*` debug-globals block below.
   **[2026-07-15 — THE RESOLVER NOW COMMUTATES; the motor spins.]** Three compounding faults, all fixed:
   1. **`RES_SINCOS_BIAS/AMPL_CODE` were guesses and catastrophically wrong** (2253/2253 assumed; bench-measured
@@ -237,6 +256,53 @@ Device_init() → Device_initGPIO() → Interrupt_initModule/VectorTable() → B
   RUN sub-state owned by the supervisor with a *stability* hand-over criterion, since I/f runs at a load angle);
   HFI. **Also**: the speed loop now closes on the supervisor's ω — in sensorless it sees the 40 Hz PLL, so
   SPEED mode needs `kp_w` re-tuned for crossover ≤ f_bw/4 (same gate as the resolver PLL note).
+
+### FE_UFPR 4.0 board bring-up (Production variant, started 2026-11-03)
+
+Board repo `/home/jose/Kicad/FE_UFPR_4_0` (tag `v4.0-release`); the firmware spec is its
+`S12_FIRMWARE_HANDOFF.md` (§13 = the define list, §14 = what only the bench settles); the bring-up sequence is
+`S12_FAB_PACKAGE.md` §5. A separate Claude session owns the board side and coordinates over `SendMessage`.
+Firmware for it: commit `7807299` on `sensorless-observer`. Bench state: **DB37 unplugged (no PrimeSTACK, no DC
+link)**, `BENCH_NO_POWER_STAGE 1`, LaunchPad powered from USB (JP1+JP2 in, JP3 out — a board rework wire for the
+LaunchPad 3.3 V is pending), so **USB ground is tied to board ground** for now.
+
+- [x] **A** — board power-up (board session).
+- [x] **B — enable chain** (2026-11-03). Board GATE_EN_3V3 (TP16, under the LaunchPad — watch board LED D9 or
+  R34 instead) = AND of GPIO66 (master) · GPIO131 (aux) · board JP1 (1-2 = SW_MAIN cockpit switch, 2-3 = +3V3
+  bypass). Boot: IDLE, `fault_code` 0, `tz_trip` 0, **`module_fault` = 0x1F** (all five module flags read
+  "fault" with the DB37 unplugged = the fail-safe the pad inversion is meant to give), `gate_en` 2. Driving
+  `gate_en_dbg` 3/1/2: D9 on only for 3; either enable alone drops it; with both enables high, pulling SW_MAIN
+  drops it through the JP1 hardware interlock alone; `sw_in` bit0 follows. SW_MAIN wiring: **J5 pin 3 = +
+  (12–24 V, TP1 `+24V_PROT` works), J5 pin 6 = return**; opto input ~5 mA. Pin 1 is the SQUARE pad, 1–4 along
+  one row, 8–5 back along the other. **Do not touch J5 pin 2 (`+5V_VEH`, D17 SMAJ5.0A to GND)** — the first
+  hookup most likely put 24 V there: the supply current-limited, the board rails collapsed, and the XDS100 cycled
+  on/off USB every ~2 s until the leads came off (D17 diode check still owed). Use a 2.2 kΩ series resistor on
+  the + lead for safe retries. **Board fault found and fixed: U6 (phase V UCC27524) pin 3 GND unsoldered** →
+  both V outputs sat at 1.86 V (IC ground floating up through the 10 k pull-downs); reflowed.
+  NOT tested: start input (J5 4/5, `sw_in` bit1).
+- [x] **All-LOW PWM at every gate enable** (2026-11-03, user + board session asked for it; the PrimeSTACK wants
+  all six inputs LOW at start). The old idle pattern forced AQ A LOW and the AHC dead band then drove B HIGH —
+  three low sides ON the instant the gate rose (~100 µs for `ol_run`, ~205 ms for every RUN/align via CALIBRATE).
+  Now `pwm_force_off()` (AQ A + B forced LOW, dead band bypassed, all six LOW) for IDLE/CALIBRATE/coast-FAULT/boot,
+  `pwm_force_asc()` only for the high-speed FAULT, `pwm_set_duty()` restores the dead band on the first duty write;
+  `INVERTER_GATE_ON_FOR_CALIBRATE 0` keeps GATE_EN LOW during CALIBRATE on this board. Verified: `gate_en_dbg = 3`
+  in IDLE → D9 on, **all six TPs 0 V** (before: TP11/13/15 ≈ 13.5 V). The scope capture of the enable edge was
+  skipped — covered by review + the static check only.
+- [x] **C — gate signals** (2026-11-03): `ol_mod 0.3`, `ol_freq 10`, `ol_run 1` → TP10–15 (UH UL VH VL WH WL)
+  0/13.5 V, complementary pairs, 1500 ns dead band on both edges, 120° phasing — all good on the scope.
+- [ ] **D — trip path**: fit the DB37 shorting plug (fault pins 2/22/5/6/16 → GND 19/25/37) → `module_fault` 0;
+  boot must show `tz_trip` 0 (checks the boot-OST fix below); `module_faults_en = 1` in IDLE; pull one OC wire →
+  `tz_trip` increments, state FAULT. At standstill FAULT = coast (gate off), so TP10–15 read 0 — probe GPIO6–11 at
+  the LaunchPad to see the TZ active short (A LOW / B HIGH).
+- [ ] **Phase 2 firmware (deferred)**: aux ADC SOCs (A3 3V3 monitor, A4/B5 current-sense reference cross-check,
+  B3 motor KTY, C3 module NTC) + temperature conversion + motor over-temperature stop; SW_MAIN as a FIRMWARE run
+  permissive (today only the hardware removes the gate when it drops, while the FW still thinks it runs); CAN-A
+  driver (GPIO4/5); runtime current-source param (JP3–5 internal vs LEM); `vbuscal` for `VBUS_OFFSET_CODE`.
+- **Bench values still owed (handoff §14):** internal current-sensor bias + sensitivity (4.8 mV/A assumes the
+  module is 8.00 mV/A; 5.66 mV/A would make it 3.396), sign of each current channel (phase-ID detects it),
+  `VBUS_OFFSET_CODE`, encoder amplitude at the connector, KTY reading vs a thermometer.
+- **Before closed loop:** `VBUS_OVERRIDE_DEFAULT_V` is still the old Control_V2 60 V — set `vbus_ovr` to the real
+  bench bus. And set `BENCH_NO_POWER_STAGE 0` before the module is connected.
 
 ## Temporary Debug Globals + Hacks (remove before production)
 
@@ -772,6 +838,12 @@ volatile uint16_t  g_align_offset_en;   // "align_off_en" 0x0044, NEEDS_IDLE; la
 
 // src/inverter_custom_v2.c  (Step 9/10 — production module faults; HW_CONTROL_BOARD_V2 only)
 volatile uint16_t g_dbg_module_fault;   // MODULE_FLT_* bitfield snapshot at fault entry (OC_A/B/C,OT,DCOV)
+// FE_UFPR 4.0 bring-up B params (src/debug_params.c -> inverter_custom_v2.c; HW_CONTROL_BOARD_V2 only):
+//   "sw_in"   0x0138 RO: bit0 = SW_MAIN GPIO29, bit1 = SW_START GPIO59 (1 = switch ON, 12 V at the cockpit input)
+//   "gate_en" 0x0139 RO: enable-PIN readback, bit0 = GPIO66 master, bit1 = GPIO131 aux (boot = 2)
+//   "gate_en_dbg" 0x0074 RW, BENCH ONLY: drive GPIO66/GPIO131 directly (same bits). Honored only in IDLE with
+//     module_faults_en = 0; any state transition overrides it (IDLE entry drops 66, RUN/ol_run re-assert both --
+//     inverter_enable_gate() now also re-asserts the aux enable).
 
 // src/debug_hooks.c + src/foc_pipeline.c   (one-shot scope trigger + step injector)
 volatile uint16_t g_dl_trig_state;   // DL_TRIG_OFF/ARMED/DONE; RO param "trig_state" 0x0122
@@ -901,7 +973,7 @@ volatile uint32_t  g_dbg_isr_cycles, g_dbg_isr_cycles_max;  // RO isr_cycles 0x0
 - **C2000 SPI mode names ≠ standard SPI CPOL/CPHA conventions.** For DRV8305 (datasheet says SDI latched on falling SCLK), my from-the-datasheet derivation pointed at C2000 Mode 1 (POL0PHA1). That wired clock + CS correctly but MISO came back all zeros. TI's own DRV8305 reference uses POL=0/PHA=0 (`SPI_PROT_POL0PHA0` → SysConfig "Mode 0"); copying that mode immediately fixed reads. Always cross-check SPI mode against a working TI reference, never derive solely from the slave datasheet.
 - **Iu via KCL while SO1 is dead**: the BOOSTXL on this bench reads Iu ≈ 0 (SO1 hardware fault). Without compensation, 3-sensor Clarke gives `alpha = Iu/3 actual`, so the Id measurement is ~1/3 the real current and the current PI pushes ~3x what was commanded. `hw_boostxl_drv8305.h` defines `ISENSE_RECONSTRUCT_U_FROM_KCL=1`, and `adc_read_phase_currents()` reconstructs `Iu = -Iv - Iw` after scaling. Flip the flag to 0 once SO1 is replaced.
 - **[2026-05-28] DRV8305 nFAULT stuck low — four separate bugs, all fixed & verified.** Symptom: `g_dbg_nfault=0`, `g_dbg_en_gate=0`, fault snapshot reg 0x01=`0x420` (`FAULT`+`VDS_STATUS`), reg 0x02=`0x2A0` (`VDS_LA/LB/LC` = low-side VDS OC on all phases). Root causes, all in `src/`:
-  1. **ISR switched the bridge in IDLE.** `foc_current_loop_isr()` called `pwm_set_duty()` every tick regardless of state; SVGEN's zero-voltage vector = 50% duty on all legs, and `pwm_set_duty()` releases the `AQCSFRC` safe-force — so the bridge switched at 50% in IDLE with EN_GATE forced high, tripping VDS. Fixed: gate the IPARK/SVGEN/`pwm_set_duty` block to `FOC_RUN`/`FOC_ALIGN_ROTOR`, else `pwm_force_safe()` (`foc_pipeline.c`).
+  1. **ISR switched the bridge in IDLE.** `foc_current_loop_isr()` called `pwm_set_duty()` every tick regardless of state; SVGEN's zero-voltage vector = 50% duty on all legs, and `pwm_set_duty()` releases the `AQCSFRC` safe-force — so the bridge switched at 50% in IDLE with EN_GATE forced high, tripping VDS. Fixed: gate the IPARK/SVGEN/`pwm_set_duty` block to `FOC_RUN`/`FOC_ALIGN_ROTOR`, else `pwm_force_safe()` (`foc_pipeline.c`; since 2026-11-03 that call is `pwm_hold_safe()`, the all-LOW OFF pattern).
   2. **`inverter_clear_faults()` wrote `0x0001` to IC_OPERATION (0x09)** = `SET_VCPH_UV` (bit 0), NOT the fault clear. `CLR_FLTS` is **bit 1 = `0x0002`** (Table 16). The clear never cleared anything.
   3. **Gate Drive Control (0x07) wrote `0x0080`** → PWM_MODE=`01` (3 inputs, not the "6x" the comment claimed) and **TBLANK=0/TVDS=0** (zero VDS blank/deglitch). With no blanking the low-side VDS comparators false-tripped at rest. Fixed to **`0x0216`** (6x, 1.75 µs blank, 3.5 µs deglitch — the datasheet default).
   4. **VDS Sense Control (0x0C) wrote `0x0086`** → VDS_MODE=`b'110` (RESERVED; Table 19 defines only 000/001/010). Fixed to `0x0080` (VDS_LEVEL 0.403 V, VDS_MODE=000 latched). NOTE: level is still loose (~0.4 V); tighten toward the intended ~0.18–0.2 V (e.g. `0x0030`) before closed-loop RUN.
@@ -913,4 +985,9 @@ volatile uint32_t  g_dbg_isr_cycles, g_dbg_isr_cycles_max;  // RO isr_cycles 0x0
 - **[Step 12] TI's eSMO feeds its back-EMF estimate back into the current model** (`v − Ealpha − Zalpha`). That makes z and ê each settle at HALF the back-EMF (harmless for atan2) but the closed-loop phase becomes that of `H/(1+H)`, not `H`, so the textbook LPF lag compensation over-corrects (~18° at fc = fe). The firmware SMO is the classic form (no ê feedback) with the exact discrete phase; if you ever port TI's structure, re-derive the compensation.
 - **[2026-07-15] The host GUI scope plot is BURST-captured and its x-axis is NOT time — this reads as "the ADC is broken" and isn't.** `DATALOG_LEN_SAMPLES = 128`, so one `SCOPE_CAPTURE` = **128 samples = 12.8 ms** at decim=1; the worker (`gui.py`, `_scope_interval = 0.25`) requests one only **every 250 ms**; `_on_capture` `extend`s each block into a `maxlen=8000` deque and `_render_scope` draws `setData(np.arange(n), y)` — a **sample counter**. So an 8000-wide plot = ~62 blocks of 12.8 ms glued end-to-end with **~237 ms of deleted dead time between each**: ~15.6 s of wall clock holding 0.8 s of data. 127 of every 128 gaps are 100 µs; the 128th is ~2400× wider and drawn the same width. On a slow signal you get flat noisy plateaus (within 12.8 ms a 1 Hz sine moves ≤80 codes — less than the ~344-code noise floor, so its slope is buried) separated by big vertical jumps (the sine advanced ~85° during the gap), aliasing into fake uneven "cycles". **Tell: every plateau is exactly 128 samples wide — count them.** To actually see the waveform, raise the **decim** spinbox: one capture spans `128·decim/10000` s, so decim≈78 puts a full 1 Hz cycle in one block. **But go back to decim=1 to diagnose NOISE** — `debug_datalog_push` stores an instantaneous sample (no averaging, no anti-alias filter), so decimating folds everything above `5 kHz/decim` down and destroys the noise's frequency structure. decim costs nothing in CPU (early return) or link (always 128 samples); it only trades resolution for span.
 - **[Step 9] ePWM one-shot trip-zone (OST) latch ≠ interrupt flag.** Two separate flags: the **OST flag** holds the forced output state (ASC) and **must be cleared manually** by `EPWM_clearTripZoneFlag(base, EPWM_TZ_FLAG_OST)` — a CPU/JTAG restart does NOT clear it; the **interrupt flag** (`EPWM_TZ_INTERRUPT`) only re-arms the ISR. In `epwm_tz_isr` clear ONLY the interrupt flag and leave OST latched (that's what keeps the bridge safe while the SW state machine catches up); clearing OST is deferred to `pwm_clear_trip()` on `enter(FOC_IDLE)` after the operator clears the fault. If RUN produces no PWM after a trip, you forgot to clear OST. Also: TZ acts **after** the dead-band, so ASC needs **TZA=LOW + TZB=HIGH** (forcing both low = coast, not a short). TZ inputs are **active-low** (trip on logic-low), which matches nFAULT/open-collector module flags directly — no Input X-BAR inversion needed for active-low sources.
+- **[2026-11-03] The F2837xD Input X-BAR has NO polarity control.** An ACTIVE-HIGH fault source (the FE_UFPR 4.0 PrimeSTACK flags) must be inverted at the GPIO PAD — `GPxINV`, SysConfig padConfig `PULLUP_INVERT` — which feeds both the X-BAR and `GPIO_readPin()`. So with the pad inverted the firmware also reads a fault as pin == 0; `inverter_custom_v2.c` `#error`s on any `MODULE_FAULT_ACTIVE_LOW`/`MODULE_FAULT_PAD_INVERT` combination that would reach the TZ backwards. Keep the pull-up so an open pin still reads as a fault.
+- **[2026-11-03] SysConfig `Board_init()` arms the trip zone BEFORE it applies the pad inversion** (`EPWM_init()` runs before `GPIO_init()`). For a few cycles a HEALTHY active-high module (lines LOW) reads as a trip and latches OST = active short at every boot. `pwm_apply_module_tz()` clears OST once the pads are final (the TZ input is level-sensitive, so a real fault re-latches at once), and `epwm_tz_isr` only counts/faults when OST is actually latched (a stale PIE request is ignored).
+- **[2026-11-03] AQCSFRC acts BEFORE the dead band.** In AHC mode EPWMxB is derived from A, so forcing AQ B does nothing and "force A LOW" means "low side ON". All-LOW needs the dead band bypassed (`DBCTL.OUT_MODE = 0`, one write for both edges; the DBCTL shadow is disabled in SysConfig, so it is immediate). **Order matters**: force A LOW while still in AHC (A falls at once, B can at most start a correctly delayed rise), THEN bypass. Bypassing first can hand AQ A to the pin inside the RED window = high side on with no dead time. Releasing: restore AHC with A still forced LOW, then release A.
+- **[2026-11-03] CGT 25.11.1 can emit an RPTB the assembler rejects** (`[E0200] Block size 8 out of range 9..127`) for a tiny fixed-count loop — hit by the phase-ID max-|I| loop when `ISENSE_NUM_CHANNELS` went 2 → 3. Write such loops straight-line. (Same family as the earlier "CGT clamp miscompile" note in the git log.)
+- **[2026-11-03] A hand-soldered SOIC with an unsoldered GND pin reads as an intermediate voltage on ALL outputs.** U6 (UCC27524) pin 3 open → both outputs at 1.86 V: the IC's quiescent current leaves through the output pull-downs and lifts its own ground; the inputs then look LOW relative to it. Two equal mid-rail outputs on a gate driver = suspect the GND joint first.
 
