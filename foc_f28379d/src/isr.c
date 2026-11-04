@@ -50,9 +50,18 @@ __interrupt void adcA1_isr(void)
 // has ALREADY forced the bridge to the active-short safe-state in hardware
 // (EPWMxA low / EPWMxB high) and the OST latch HOLDS it until the fault is
 // cleared (enter FOC_IDLE -> pwm_clear_trip()). Here we only record the event
-// and drive the software state machine to FOC_FAULT. We clear just the trip
-// INTERRUPT flag (so a later trip can interrupt again) and deliberately leave
-// the OST flag latched. SysConfig enables this interrupt on PWM_U only.
+// and drive the software state machine to FOC_FAULT. SysConfig enables this
+// interrupt on PWM_U only.
+//
+// The trip INTERRUPT flag (TZFLG.INT) is deliberately LEFT SET while OST is
+// latched. F2837xD TRM: clearing INT while any trip flag (OST, CBC, DCxEVTy) is
+// still set generates a NEW EPWMx_TZINT pulse at once. The old code cleared INT
+// here "so a later trip can interrupt again" -> the ISR re-entered forever,
+// starving the background loop (serial dead, ~1.4 M entries/s). Found in FE_UFPR
+// 4.0 bring-up D, 2026-11-03. A set INT blocks further TZ interrupts, which is
+// exactly right while the latch holds: pwm_clear_trip() / pwm_apply_module_tz()
+// clear OST and INT together, and that write is what re-arms the interrupt (a
+// fault still present re-latches and interrupts exactly once more).
 __interrupt void epwm_tz_isr(void)
 {
     // A PIE request can be left pending by a one-shot latch that software has
@@ -67,6 +76,9 @@ __interrupt void epwm_tz_isr(void)
     if(latched && g_module_faults_en)
         sm_raise_fault(FAULT_OVERCURRENT);   // latches + flags FAULT for next tick
 
-    EPWM_clearTripZoneFlag(PWM_U_BASE, EPWM_TZ_INTERRUPT);
+    // Stale request (OST already released): no trip flag is set, so clearing
+    // INT cannot re-pulse. Latched: leave INT set (see above).
+    if(!latched)
+        EPWM_clearTripZoneFlag(PWM_U_BASE, EPWM_TZ_INTERRUPT);
     Interrupt_clearACKGroup(INTERRUPT_ACK_GROUP2);
 }

@@ -16,6 +16,13 @@ static volatile FOC_State_t s_state = FOC_IDLE;
 static volatile FOC_State_t s_requested = FOC_IDLE;
 static volatile bool        s_align_only = false;
 static volatile bool        s_fault_pending = false;
+// FAULT is left ONLY through an explicit operator clear (sm_clear_fault). It
+// must not key on s_requested == FOC_IDLE: IDLE is also the resting request, so
+// a fault raised from IDLE (or a stop pressed while faulted) bounced
+// FAULT -> IDLE -> FAULT every 2 ms, and each IDLE entry released the HW
+// trip-zone latch (pwm_clear_trip) -- at speed that alternates active short and
+// coast at 500 Hz. Found in FE_UFPR 4.0 bring-up D, 2026-11-03.
+static volatile bool        s_clear_req = false;
 static volatile bool        s_aligned = false;      // rotor electrical offset captured?
 static uint32_t             s_state_ticks;
 
@@ -88,6 +95,7 @@ static void enter(FOC_State_t next)
         inverter_clear_faults();
         break;
     case FOC_FAULT:
+        s_clear_req = false;            // a stale clear must never pre-clear a fresh fault
         inverter_snapshot_fault_regs(); // read while EN_GATE still high — tells us what fired
         {
             // Speed-dependent safe-state. Above FAULT_ASC_OMEGA_ELEC hold a
@@ -148,6 +156,10 @@ void sm_request_stop(void)   { s_requested = FOC_IDLE; }
 //      fresh IDLE back into FOC_FAULT with an empty fault code. Clearing the
 //      sources first means any raise landing in between is a GENUINE live fault
 //      (OV / gate-driver are not state-gated) and correctly re-faults.
+//   4. s_clear_req = true -- LAST: it is the only thing that lets sm_tick_1khz()
+//      leave FOC_FAULT. A fault that is still live re-latches on the first ISR
+//      in IDLE and re-enters FAULT once (one IDLE tick, one trip-zone release);
+//      FAULT then holds until the next clear, it no longer bounces.
 void sm_clear_fault(void)
 {
     if(s_state == FOC_FAULT)
@@ -156,6 +168,7 @@ void sm_clear_fault(void)
         pos_src_clear_loss();      // backend re-arm + the supervisor's own latch
         s_fault_pending = false;
         s_requested     = FOC_IDLE;
+        s_clear_req     = true;
     }
 }
 void sm_raise_fault(uint16_t code) { safety_latch(code); s_fault_pending = true; }
@@ -245,8 +258,14 @@ void sm_tick_1khz(void)
         break;
 
     case FOC_FAULT:
-        if(s_requested == FOC_IDLE)
+        // Only an explicit clear leaves FAULT (see s_clear_req). A stop request
+        // while faulted is ignored here; RUN/align requests are overwritten by
+        // the clear (s_requested = IDLE), so a clear never resumes a run.
+        if(s_clear_req)
+        {
+            s_clear_req = false;
             enter(FOC_IDLE);
+        }
         break;
     }
 }
