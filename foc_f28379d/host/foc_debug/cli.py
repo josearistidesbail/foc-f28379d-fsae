@@ -368,6 +368,9 @@ def main(argv: list | None = None) -> int:
                         help="vbuscal: write the fitted calibration without prompting")
     parser.add_argument("--list-ports", action="store_true", help="list serial ports and exit")
     parser.add_argument("-v", "--verbose", action="store_true", help="verbose console logging (DEBUG)")
+    parser.add_argument("--lang", choices=("en", "pt"), default=None,
+                        help="GUI language for this run (default: the one chosen in the "
+                             "GUI's Language / Idioma menu)")
     parser.add_argument("command", nargs="*", help="omit for GUI; 'repl' for text mode")
     ns = parser.parse_args(argv)
 
@@ -386,6 +389,8 @@ def main(argv: list | None = None) -> int:
         gargs = ["-p", ns.port] if ns.port else []
         if ns.verbose:
             gargs.append("-v")
+        if ns.lang:
+            gargs += ["--lang", ns.lang]
         return gui.main(gargs)
 
     sess = Session(baud=ns.baud, timeout=ns.timeout)

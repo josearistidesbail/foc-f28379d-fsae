@@ -6,6 +6,9 @@ cell of a param-table row. Keep the order of ``g_param_table`` in
 ``src/debug_params.c``. ``test_param_docs.py`` fails when a firmware param has no
 entry here, or when an entry names a param the firmware no longer has.
 
+Every entry also needs its Portuguese twin in ``param_docs_pt.py`` (same key,
+same rules); the GUI shows that one when the language is Portuguese.
+
 Each entry is ``name: (unit, text)``. Rules for the text:
   * what it is, its units, the setter's clamp, the boot value;
   * at most one bench caveat;
@@ -21,6 +24,9 @@ from __future__ import annotations
 
 import html
 import re
+
+from . import i18n
+from .i18n import tr
 
 PARAM_DOCS: dict[str, tuple[str, str]] = {
     # ---- live references -------------------------------------------------
@@ -478,10 +484,10 @@ _GLUE_RE = re.compile(r"\b((?:0x[0-9A-Fa-f]+)|\d+) (?=[A-Z])")
 
 def _access_str(info) -> str:
     if getattr(info, "read_only", False):
-        return "read-only"
+        return tr("read-only")
     if getattr(info, "needs_idle", False):
-        return "write only in IDLE"
-    return "LIVE (write any time)"
+        return tr("write only in IDLE")
+    return tr("LIVE (write any time)")
 
 
 def tooltip_html(info) -> str:
@@ -493,6 +499,9 @@ def tooltip_html(info) -> str:
     which word-wraps.
     """
     unit, text = PARAM_DOCS.get(info.name, ("", ""))
+    if i18n.language() == "pt":
+        from .param_docs_pt import PARAM_DOCS_PT
+        unit, text = PARAM_DOCS_PT.get(info.name, (unit, text))
     head = f"<b>{html.escape(info.name)}</b>"
     if unit:
         head += f"&nbsp;&nbsp;[{html.escape(unit)}]"
@@ -500,5 +509,6 @@ def tooltip_html(info) -> str:
     if text:
         body = _GLUE_RE.sub(r"\1&nbsp;", html.escape(text)).replace("\n", "<br>")
     else:
-        body = "<i>No description in this host version (firmware newer than the GUI?).</i>"
+        body = ("<i>" + tr("No description in this host version "
+                           "(firmware newer than the GUI?).") + "</i>")
     return f"<qt>{head}<br><small>{meta}</small><br>{body}</qt>"

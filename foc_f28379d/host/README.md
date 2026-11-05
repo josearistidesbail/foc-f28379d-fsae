@@ -100,6 +100,17 @@ firmware isn't changed); **Reset to device values** drops your edits.
 **File menu.** **Save Parameters…** writes every parameter to JSON; **Load Parameters…** writes them
 back (read-only entries are skipped; load in IDLE so `needs_idle` ones are accepted).
 
+**Language / Idioma menu.** English or Português (Brasil). The choice is saved
+(`~/.config/UFPR Formula/foc_debug.conf` on Linux, the registry on Windows) and applies the next
+time the GUI starts; **Restart now** relaunches it at once, and is only enabled while disconnected.
+`python -m foc_debug --lang pt` (or `en`) overrides the saved choice for one run. On first start the
+system locale decides. Firmware names stay English in both languages (states, fault bits, parameter
+and signal names), so a Portuguese screen still matches the docs and the CSV logs.
+
+To add or change GUI text: wrap the English string in `tr()` (from `foc_debug/i18n.py`; use
+`tr("saved {path}", path=p)`, never an f-string) and add its Portuguese to `foc_debug/i18n_pt.py`.
+`test_i18n.py` lists anything missing, stale, or passed to a Qt widget without `tr()`.
+
 ### Scope signals
 
 The 15 signals in `proto.SCOPE_CATALOG` (mirrors `SCOPE_BIT_*` in `debug_proto.h`):
@@ -121,7 +132,8 @@ The 15 signals in `proto.SCOPE_CATALOG` (mirrors `SCOPE_BIT_*` in `debug_proto.h
 
 The firmware describes its own parameter table: `list` (CLI) prints every parameter with its type,
 flags and value, and the GUI shows the same with a tooltip per row. The tooltip texts live in
-`foc_debug/param_docs.py`; `test_param_docs.py` fails if a firmware parameter has no entry there.
+`foc_debug/param_docs.py`, with the Portuguese version in `foc_debug/param_docs_pt.py`;
+`test_param_docs.py` fails if a firmware parameter is missing from either.
 
 Flags: `ro` read-only, `rw` writable any time, `needs_idle` accepted only while the state machine is
 in IDLE (the write returns status `needs_idle` otherwise). The ones you meet first:
@@ -228,7 +240,7 @@ python -m unittest foc_debug.test_proto_scope     # one module
 ```
 
 They cover the protocol, link, API status decoding, autotuner math, step logger, `vbuscal` fit,
-parameter docs and `observer_sim.py`. That last one is the offline simulation the sensorless observer
+parameter docs, the English/Portuguese catalog and `observer_sim.py`. That last one is the offline simulation the sensorless observer
 defaults come from; see `../docs/sensorless.md`.
 
 ## Library use
