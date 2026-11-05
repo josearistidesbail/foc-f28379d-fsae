@@ -262,9 +262,11 @@ Device_init() → Device_initGPIO() → Interrupt_initModule/VectorTable() → B
 Board repo `/home/jose/Kicad/FE_UFPR_4_0` (tag `v4.0-release`); the firmware spec is its
 `S12_FIRMWARE_HANDOFF.md` (§13 = the define list, §14 = what only the bench settles); the bring-up sequence is
 `S12_FAB_PACKAGE.md` §5. A separate Claude session owns the board side and coordinates over `SendMessage`.
-Firmware for it: commit `7807299` on `sensorless-observer`. Bench state: **DB37 unplugged (no PrimeSTACK, no DC
-link)**, `BENCH_NO_POWER_STAGE 1`, LaunchPad powered from USB (JP1+JP2 in, JP3 out — a board rework wire for the
-LaunchPad 3.3 V is pending), so **USB ground is tied to board ground** for now.
+Firmware for it: commit `7807299` on `sensorless-observer` (bring-up A–D); E–F below are later commits. Bench state
+for A–D: DB37 unplugged (no PrimeSTACK, no DC link), `BENCH_NO_POWER_STAGE 1`, LaunchPad powered from USB (JP1+JP2
+in, JP3 out — a board rework wire for the LaunchPad 3.3 V is pending). **Since E (2026-11-04): PrimeSTACK + EMRAX
+connected, `BENCH_NO_POWER_STAGE 0` (protection armed), `BENCH_LOW_VOLTAGE_DC_LINK 1` (vbus override = the
+bench supply, UV trip off, `iq_max` 10 A), current-limited bench supply.**
 
 - [x] **A** — board power-up (board session).
 - [x] **B — enable chain** (2026-11-03). Board GATE_EN_3V3 (TP16, under the LaunchPad — watch board LED D9 or
@@ -312,15 +314,39 @@ LaunchPad 3.3 V is pending), so **USB ground is tied to board ground** for now.
   left and `module_faults_en` is NEEDS_IDLE — reset the LaunchPad (bench builds boot with protection off) to get back
   to bench mode. Also seen during D: the XDS100 dropped off USB once (CPU kept running) — same suspect as before, the
   USB-to-board ground tie.
+- [x] **E — current sense on the LEMs** (2026-11-04). The internal PrimeSTACK sensors don't idle at the 2.5 V the
+  ×0.6 stage assumes (INT_A/C 0 V, INT_B railed), so the firmware runs on the LA 100-P LEMs: `ISENSE_SOURCE_LEM 1`,
+  JP3–JP5 at 2-3. Zero check: every channel within ~1 code of ISNS_VREF (~1996 codes = 1.462 V; +5V ~0.4 % low).
+  A loop through sensor A moved only ADCINA5 (−7.5 codes ≈ 1.1 A·turn; the loop was reversed) → no A/C swap.
+  Read with temporary debugger SOCs (ADCA SOC2CTL 0x7414 CHSEL 4, **ADCB SOC2CTL 0x7494** CHSEL 5 — ADCB base is
+  0x7480; RAM-only, gone at reset) and GEL averaging (GEL params are not writable and `int` is 16 bit: use
+  straight-line `(unsigned long)*(unsigned short *)a` sums). The LEMs saturate at ±150 A, where the 260 A software
+  OC trip could never fire → new live **`oc_trip_a`** (0x0075): boots 40 A on the bench, ceiling
+  `OC_TRIP_CEIL_A` = min(motor limit, `ISENSE_OC_TRIP_MAX_A` = 130 A on the LEM path).
+- [x] **F — resolver + first closed-loop current** (2026-11-05, 31 V bench bus, supply current-limited at 5 A).
+  Encoder SIN/COS read 0–1.76 V: board fault, U17 pin 6 open (ENC_VREF_HI follower railed at 5 V); reflowed.
+  Now bias ~2050 / amplitude ~1585 codes (baked as `RES_SINCOS_*`), 2.6° elec rms angle noise before the filter
+  (old board ~26°), `res_dir_inv 0` correct (`ol_run` +5 Hz → `omega_meas` +31.1). **Don't hot-plug the encoder:**
+  it dropped the XDS100 off USB. ALIGN: phase-ID map 0 / inv 0 at `phase_id_a` **3 A** (1 A rejects — the dead
+  zone clamps the −I/2 legs, 0x0102; the governor now low-passes signed currents at 100 Hz, it used to park on
+  single-sample noise); `ol_mod` **0.10** (0.08 pole-slips the sweep — the rotor rocks back and forth); offset
+  capture back on (`align_off_en 1`): **106.6° elec, three runs within 0.02°**. Dead zone ≈ 0.053 duty
+  (~1.64 V at 31 V). Closed loop (`iloop_en 1`, `dtc_en 1`): **`vmax_frac` must clear the dead zone** — 0.05 gives
+  zero current (DTC adds ~nothing at i ≈ 0), 0.15 tracks 0→2→5 A q-steps in 1–2 ms with Id ≈ 0, +iq → +speed,
+  speed clamp-limited (~57 elec rad/s). All of that is now the boot default. Calibrate with `iloop_en 0` (it also
+  picks the ALIGN drive; 1 A closed-loop can't drag this rotor), then `iloop_en 1` before RUN.
+  **Bus trap:** the supply was 31 V while `vbus_ovr` said 24 — every commanded volt was ×1.29. `BENCH_DC_LINK_V`
+  is now 31; keep it equal to the supply. **Noise:** ~5 codes (~0.8 A) rms on EVERY ADC channel, including the
+  passive Vbus divider and the buffered ISNS_VREF, level-independent → ground (board GND vs LaunchPad VSSA), not
+  the LEM or encoder stages; it saturates the PI clamp with kp ≈ 0.8. Pending split: jumper LaunchPad J3-23
+  (ADCIN14, NC on the board) to J3-22 and read it.
 - [ ] **Phase 2 firmware (deferred)**: aux ADC SOCs (A3 3V3 monitor, A4/B5 current-sense reference cross-check,
   B3 motor KTY, C3 module NTC) + temperature conversion + motor over-temperature stop; SW_MAIN as a FIRMWARE run
   permissive (today only the hardware removes the gate when it drops, while the FW still thinks it runs); CAN-A
   driver (GPIO4/5); runtime current-source param (JP3–5 internal vs LEM); `vbuscal` for `VBUS_OFFSET_CODE`.
-- **Bench values still owed (handoff §14):** internal current-sensor bias + sensitivity (4.8 mV/A assumes the
-  module is 8.00 mV/A; 5.66 mV/A would make it 3.396), sign of each current channel (phase-ID detects it),
-  `VBUS_OFFSET_CODE`, encoder amplitude at the connector, KTY reading vs a thermometer.
-- **Before closed loop:** `VBUS_OVERRIDE_DEFAULT_V` is still the old Control_V2 60 V — set `vbus_ovr` to the real
-  bench bus. And set `BENCH_NO_POWER_STAGE 0` before the module is connected.
+- **Bench values still owed (handoff §14):** internal current-sensor bias + sensitivity (path abandoned for now,
+  see E), `VBUS_OFFSET_CODE` (the bus sense reads ~46–48 codes with the link off and ~77 at 31 V: run `vbuscal`),
+  KTY reading vs a thermometer. Done: current-channel signs (phase-ID), encoder amplitude (F).
 
 ## Temporary Debug Globals + Hacks (remove before production)
 
