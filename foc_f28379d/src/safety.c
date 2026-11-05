@@ -35,6 +35,13 @@ volatile uint16_t g_uv_fault_en = UV_FAULT_EN_DEFAULT;
 // from the host would let an operator disarm the dangerous direction.
 volatile float g_uv_trip_v;
 
+// Phase over-current threshold [A] ("oc_trip_a", LIVE). Boots at
+// OC_TRIP_DEFAULT_A; the setter caps it at OC_TRIP_CEIL_A (build_config.h), the
+// smaller of the motor limit and the current sensor's range. Live because the
+// right value depends on the bench: a 24 V / 5 A supply wants a trip near
+// the expected phase current, not at the 260 A machine limit.
+volatile float g_oc_trip_a;
+
 // Consecutive sub-threshold ISR ticks (UV_TRIP_DEBOUNCE_TICKS to latch). The
 // compare is on the IIR-filtered bus already, but on the high-Z PrimeSTACK sensor
 // divider single-sample spikes still punch through; an instantaneous compare
@@ -63,7 +70,9 @@ volatile float    g_dbg_trip_iw;
 volatile uint16_t g_dbg_trip_phase;
 
 void safety_init(void)        { s_latched = 0; s_uv_ticks = 0U;
-                                g_uv_trip_v = MOTOR_UV_TRIP_V; }
+                                g_uv_trip_v = MOTOR_UV_TRIP_V;
+                                g_oc_trip_a = (OC_TRIP_DEFAULT_A < OC_TRIP_CEIL_A)
+                                            ? OC_TRIP_DEFAULT_A : OC_TRIP_CEIL_A; }
 void safety_latch(uint16_t b) { s_latched |= b; }
 bool safety_is_clear(void)    { return s_latched == 0; }
 uint16_t safety_get_latched(void) { return s_latched; }
@@ -85,10 +94,11 @@ void safety_check_isr(void)
         float iu = s->Iabc.value[0];
         float iv = s->Iabc.value[1];
         float iw = s->Iabc.value[2];
+        float lim = g_oc_trip_a;        // one read: a mid-check host write can't split it
         uint16_t oc = 0;
-        if(iu > MOTOR_OC_TRIP_A || iu < -MOTOR_OC_TRIP_A)      oc = 1;
-        else if(iv > MOTOR_OC_TRIP_A || iv < -MOTOR_OC_TRIP_A) oc = 2;
-        else if(iw > MOTOR_OC_TRIP_A || iw < -MOTOR_OC_TRIP_A) oc = 3;
+        if(iu > lim || iu < -lim)      oc = 1;
+        else if(iv > lim || iv < -lim) oc = 2;
+        else if(iw > lim || iw < -lim) oc = 3;
 
         if(oc != 0)
         {

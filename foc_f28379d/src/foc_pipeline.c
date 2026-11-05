@@ -173,7 +173,7 @@ volatile float32_t g_iq_cmd_max = IQ_CMD_MAX_DEFAULT_A;
 // the scope, then walk it back up once the loop is proven. NOTE: the FW
 // regulator's vmax_fw target intentionally stays on FW_VMAX_FRACTION (FW is a
 // high-speed feature; do not exercise it with vmax_frac lowered).
-volatile float32_t g_vdq_max_frac = VDQ_MAX_FRACTION;
+volatile float32_t g_vdq_max_frac = VDQ_MAX_FRAC_DEFAULT;
 
 // ---- Dead-zone (dead-time + device drop) compensation feedforward --------
 // Cancels the inverter's own voltage error so the current PIs face a roughly
@@ -328,7 +328,8 @@ static float32_t   s_speed_cmd;
 // straight through IPARK/SVGEN/PWM -- no current loop, no sensor, no vbus
 // dependence (oneOverDcBus forced to 1 so g_ol_mod is ~peak duty deviation).
 // Used to scope the gate waveforms / deadband / sync with nothing connected;
-// entered only in bench mode (g_module_faults_en == 0) via the FOC_OPENLOOP state.
+// entered via the FOC_OPENLOOP state ("ol_run"); with the real module + motor it
+// drags the rotor (resolver direction check) with module-fault protection armed.
 volatile float32_t g_ol_freq_hz = 5.0f;    // electrical frequency [Hz]
 volatile float32_t g_ol_mod     = OL_MOD_DEFAULT;  // q-axis drive (~peak duty dev, 0..0.5)
 static   float32_t s_ol_theta;             // synthetic electrical angle [rad]
@@ -401,6 +402,7 @@ volatile uint16_t g_phase_id_en = PHASE_ID_DEFAULT_EN;   // "phase_id_en" param
 #define PHASE_ID_AVG_TICKS   ((uint32_t)(PHASE_ID_AVG_S   * FOC_ISR_FREQ_HZ))
 #define PHASE_ID_TOTAL_TICKS (3U * PHASE_ID_DWELL_TICKS)
 #define PHASE_ID_MOD_STEP    (PHASE_ID_MOD_SLEW_PER_S * FOC_ISR_TS)
+#define PHASE_ID_IFILT_ALPHA (2.0f * MATH_PI * PHASE_ID_IFILT_HZ * FOC_ISR_TS)
 static uint32_t    s_phaseid_ticks;    // latched budget at align entry (0 = off)
 static bool        s_phaseid_active;   // dwells running -> force open-loop drive
 static bool        s_phaseid_failed;   // rejected -> carrier frozen, fault latched
@@ -430,6 +432,7 @@ static float32_t   s_pid_sum[3][3];    // [channel][dwell] current sums
 volatile float32_t g_phase_id_a = PHASE_ID_TARGET_A;   // target dwell current [A]
 volatile float32_t g_dbg_phaseid_mod;  // governed duty ("phase_id_mod" RO param)
 static float32_t   s_phaseid_mod;      // governor state, frozen after dwell 0 settle
+static float32_t   s_pid_filt[3];      // governor's low-passed channel currents [A]
 
 #if SENSOR_BACKEND_RM44AC
 // SIN/COS scale-calibration phase, inserted between settle and the offset
@@ -485,6 +488,9 @@ static void align_reset(void)
     s_phaseid_failed = false;
     s_phaseid_mod    = 0.0f;           // governor ramps from zero each align
     g_dbg_phaseid_mod = 0.0f;
+    s_pid_filt[0] = 0.0f;
+    s_pid_filt[1] = 0.0f;
+    s_pid_filt[2] = 0.0f;
     for(c = 0U; c < 3U; c++)
         for(k = 0U; k < 3U; k++)
             s_pid_sum[c][k] = 0.0f;
@@ -556,13 +562,22 @@ static float32_t align_step(void)
             // with 3 channels CGT 25.11.1 turns the loop into an RPTB whose body
             // is only 8 words and the assembler rejects it ("[E0200] Block size
             // 8 out of range 9..127"). No loop -> no repeat block.
-            float32_t imax = g_isense_ch_amps[0];
-            float32_t m    = g_isense_ch_amps[1];
+            // [2026-11-05] Filter each channel's SIGNED current first. The
+            // governor used to compare single samples, and on the FE_UFPR 4.0
+            // LEMs (~0.8 A rms per sample) the max of three |noise| alone
+            // averages ~1 A -- the 1 A target was "met" at ~0.2 A of real
+            // current, so phase-ID rejected every time. Rectifying before
+            // filtering would keep that noise as a bias, hence signed.
+            s_pid_filt[0] += PHASE_ID_IFILT_ALPHA * (g_isense_ch_amps[0] - s_pid_filt[0]);
+            s_pid_filt[1] += PHASE_ID_IFILT_ALPHA * (g_isense_ch_amps[1] - s_pid_filt[1]);
+            float32_t imax = s_pid_filt[0];
+            float32_t m    = s_pid_filt[1];
             if(imax < 0.0f) imax = -imax;
             if(m < 0.0f)    m = -m;
             if(m > imax)    imax = m;
 #if ISENSE_NUM_CHANNELS > 2
-            m = g_isense_ch_amps[2];
+            s_pid_filt[2] += PHASE_ID_IFILT_ALPHA * (g_isense_ch_amps[2] - s_pid_filt[2]);
+            m = s_pid_filt[2];
             if(m < 0.0f)    m = -m;
             if(m > imax)    imax = m;
 #endif

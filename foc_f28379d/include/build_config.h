@@ -144,6 +144,14 @@
 #ifndef PHASE_ID_MOD_SLEW_PER_S
 #define PHASE_ID_MOD_SLEW_PER_S 0.4f // governor duty slew rate [duty/s]
 #endif
+// Low-pass on each channel's SIGNED current before the governor takes max|I|.
+// The dwell field is static, so the true current is DC and the per-sample noise
+// is broadband. 100 Hz cuts ~0.8 A rms to ~0.14 A while adding only ~1.6 ms of
+// lag -- short enough that the bang-bang governor's limit cycle stays well under
+// an amp on the steep dead-zone knee.
+#ifndef PHASE_ID_IFILT_HZ
+#define PHASE_ID_IFILT_HZ       100.0f
+#endif
 
 //----- Dead-time / dead-zone compensation feedforward ---------------------
 // [2026-08-01] The bridge does not deliver the volts it is told to: during the
@@ -240,6 +248,27 @@
 #else
 #define IQ_CMD_MAX_DEFAULT_A    IQ_REF_MAX_A
 #endif
+#endif
+
+// Software phase over-current trip (safety.c, RUN/ALIGN), live as "oc_trip_a".
+// A trip set above what the current SENSOR can read never fires -- the reading
+// saturates first -- so the ceiling is the smaller of the motor/module limit and
+// the sensing path's range (ISENSE_OC_TRIP_MAX_A, per hw_*.h; defaults to the
+// motor limit). The live param can be set anywhere up to that ceiling, never
+// above it. OC_TRIP_DEFAULT_A is the boot value (hw_*.h may lower it for the bench).
+// Boot value of the live PI voltage-clamp fraction "vmax_frac" (the setter
+// still caps it at VDQ_MAX_FRACTION). hw_*.h may lower it for a bench bus.
+#ifndef VDQ_MAX_FRAC_DEFAULT
+#define VDQ_MAX_FRAC_DEFAULT    VDQ_MAX_FRACTION
+#endif
+
+#ifndef ISENSE_OC_TRIP_MAX_A
+#define ISENSE_OC_TRIP_MAX_A    MOTOR_OC_TRIP_A
+#endif
+#define OC_TRIP_CEIL_A          ((ISENSE_OC_TRIP_MAX_A < MOTOR_OC_TRIP_A) ? \
+                                 ISENSE_OC_TRIP_MAX_A : MOTOR_OC_TRIP_A)
+#ifndef OC_TRIP_DEFAULT_A
+#define OC_TRIP_DEFAULT_A       OC_TRIP_CEIL_A
 #endif
 
 //----- Sensorless observers + position-source supervisor (Step 12) --------

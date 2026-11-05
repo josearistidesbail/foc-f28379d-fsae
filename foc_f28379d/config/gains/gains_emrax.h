@@ -54,7 +54,10 @@
                                             // bench-proven at
 
 
-#define OL_MOD_DEFAULT              0.06f
+// [2026-11-05, FE_UFPR 4.0, 31 V bench] 0.08 pole-slipped the ALIGN cal sweep
+// (rotor rocked back and forth); 0.10 drags it cleanly at ~17 A phase. This is
+// a DUTY, so the drive in volts scales with the bus: at 24 V use ~0.13.
+#define OL_MOD_DEFAULT              0.10f
 
 // Compile-time default for g_align_offset_en ("align_off_en" param). 0 = skip
 // the offset-capture sweep entirely and pin the electrical offset to 0, so
@@ -64,7 +67,11 @@
 // bench runs better on a plain zero offset. The SIN/COS scale cal sweep
 // (res_cal_en) is INDEPENDENT and stays on -- that one is still needed.
 // Re-enable once the conditioning is rescaled and the noise is down.
-#define ALIGN_OFFSET_CAPTURE_DEFAULT 0U
+// [2026-11-05] RE-ENABLED: the FE_UFPR 4.0 front end is rescaled (bias ~1.5 V,
+// ~1.16 V amplitude) and the angle noise is ~2.6 deg elec rms before the filter
+// (was ~26). The bidirectional sweep gave 106.62 / 106.61 / 106.63 deg on three
+// runs. Sequence with this on: ~33 s, rotor turns ~13 revs.
+#define ALIGN_OFFSET_CAPTURE_DEFAULT 1U
 
 // ---- Cross-coupling / back-EMF feedforward ------------------------------
 // Compile-time default for g_dbg_decouple_en (see gains_teknic.h for the full
@@ -79,6 +86,11 @@
 // directly as Vd=Rs*id_ref / Vq=Rs*iq_ref using the sensor angle. Keep 1 for
 // normal operation; flip live for bring-up. NOTE: this ignores back-EMF, so on
 // this traction motor only use open-loop mode at low/zero speed.
+// [2026-11-05] Stays 0 even though closed loop now works: iloop_en also picks
+// the ALIGN drive, and with 1 the settle + sweeps run the closed-loop d-PI at
+// ALIGN_ID_INJECT_A (1 A), far too little to drag this rotor (the open-loop
+// sweep needed ~17 A). So: Calibrate with iloop_en=0, then set iloop_en=1
+// before RUN.
 #define FOC_ILOOP_DEFAULT           0
 
 // ---- Field weakening (Step 11) ------------------------------------------

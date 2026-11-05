@@ -230,6 +230,15 @@ static void set_iq_max(uint32_t  r){ float32_t a = raw_to_f32(r);
                                      if(a > IQ_REF_MAX_A) a = IQ_REF_MAX_A;
                                      g_iq_cmd_max = a; }
 
+// Phase over-current trip [A]. LIVE: lowering it mid-run is always safe.
+// Floored at 0 (trips at once in RUN/ALIGN) and capped at OC_TRIP_CEIL_A, so a
+// host write can never set a threshold the current sensor is unable to read.
+static void get_oc_trip_a(uint32_t *r){ *r = f32_to_raw(g_oc_trip_a); }
+static void set_oc_trip_a(uint32_t  r){ float32_t a = raw_to_f32(r);
+                                        if(a < 0.0f) a = 0.0f;
+                                        if(a > OC_TRIP_CEIL_A) a = OC_TRIP_CEIL_A;
+                                        g_oc_trip_a = a; }
+
 // PI voltage-clamp scale (vmax_dyn = vmax_frac * vbus * 0.5). LIVE so it can be
 // walked up mid-run during closed-loop bring-up; floored at 0, capped at the
 // compile-time VDQ_MAX_FRACTION (its boot value). Unlike iq_max this bounds
@@ -340,8 +349,8 @@ static void set_vbus_ovr(uint32_t  r){ float32_t v = raw_to_f32(r);
                                        if(v < 0.0f) v = 0.0f;
                                        g_vbus_override_v = v; }
 
-// Open-loop PWM test mode (bench, no power stage). "ol_run" starts/stops the
-// FOC_OPENLOOP state (entry only honored in bench mode, g_module_faults_en==0);
+// Open-loop PWM test mode (bench). "ol_run" starts/stops the FOC_OPENLOOP
+// state (with or without module-fault protection since 2026-11-03);
 // it reads back the live state so the GUI shows whether the mode actually
 // engaged. ol_freq/ol_mod tune the rotating vector live while it runs.
 static void get_ol_run(uint32_t *r){ *r = (sm_get_state() == FOC_OPENLOOP) ? 1U : 0U; }
@@ -661,6 +670,7 @@ const param_entry_t g_param_table[] =
     { 0x004FU, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "phase_id_a",   get_phase_id_a,  set_phase_id_a  },
     { 0x0050U, PARAM_TYPE_F32, 0,                     "iq_max",       get_iq_max,      set_iq_max      },
     { 0x0051U, PARAM_TYPE_F32, 0,                     "vmax_frac",    get_vmax_frac,   set_vmax_frac   },
+    { 0x0075U, PARAM_TYPE_F32, 0,                     "oc_trip_a",    get_oc_trip_a,   set_oc_trip_a   },
     { 0x0055U, PARAM_TYPE_U16, 0,                     "dtc_en",       get_dtc_en,      set_dtc_en      },
     { 0x0056U, PARAM_TYPE_F32, 0,                     "dtc_duty",     get_dtc_duty,    set_dtc_duty    },
     { 0x0057U, PARAM_TYPE_F32, 0,                     "dtc_v",        get_dtc_v,       set_dtc_v       },

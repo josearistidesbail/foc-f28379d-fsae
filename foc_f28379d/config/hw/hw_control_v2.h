@@ -50,7 +50,20 @@
 // ~1 A on a stack sized for hundreds. Same PrimeSTACK on FE_UFPR 4.0, so the
 // value carries over. RE-MEASURE at the real bus before trusting the split
 // (see the caveat in build_config.h).
-#define DTC_VDROP_V             0.68f
+// [2026-11-05, FE_UFPR 4.0, 31 V bench bus] phase_id_mod = 0.0706 for 3 A =>
+// total ~= 0.75 * 0.0706 = 0.053 duty (~1.64 V at 31 V). The first closed-loop
+// run used 0.046 duty (~87 %, deliberately on the under-compensating side,
+// since over-compensation is positive feedback around the zero crossing):
+// 0.015 dead time + 0.95 V / 31 V. Note it is entered against vbus_ovr, so it
+// only means real volts when the override matches the real bus.
+#define DTC_VDROP_V             0.95f
+#define DTC_DEFAULT_EN          1U          // closed loop never works without it on this stack
+
+// Phase-ID dwell current target [A]. At 1 A the dead zone clamps the two legs
+// that should carry -I/2 to ~0, so one dwell gives no usable sign and the
+// solver rejects ("no sign pattern", status 0x0102 -- bench 2026-11-05). 3 A
+// clears it with margin and still costs the supply only a few watts.
+#define PHASE_ID_TARGET_A       3.0f
 
 // ---- ADC mapping -------------------------------------------------------
 // Two macro sets that MUST stay consistent with board_control_v2.syscfg:
@@ -156,12 +169,21 @@
 // Plausibility tell: DB37 unplugged / module unpowered -> internal sensor 0 V ->
 // reads about -312 A before CALIBRATE (and ~0 A after, since CALIBRATE then
 // captures the 0-code zero). The phase OC check only runs in RUN/ALIGN.
-#define ISENSE_SOURCE_LEM        0U          // JP3/JP4/JP5 at 1-2 (bench 2026-11-03)
+// 2026-11-04: switched to the LEMs. The internal sensors do not idle at the
+// 2.5 V the x0.6 stage assumes (bench, DB37 in, aux on: INT_A/C 0 V, INT_B
+// railed), so the internal path is unusable until the stage is re-biased.
+#define ISENSE_SOURCE_LEM        1U          // JP3/JP4/JP5 at 2-3 (bench 2026-11-04)
 #define ISENSE_V_PER_A_INTERNAL  0.004800f   // module 8.00 mV/A (assumed) x 0.600
 #define ISENSE_V_PER_A_LEM       0.004886f   // 23.5 R burden x 0.4158
 #if ISENSE_SOURCE_LEM
 #define ISENSE_V_PER_A           ISENSE_V_PER_A_LEM
 #define ISENSE_ZERO_CODE         2005        // pre-cal seed; adc_calibrate_offsets() overwrites
+// The LA 100-P saturates at about +/-150 A (0.736 / 2.201 V at the ADC pin), so
+// the motor-level MOTOR_OC_TRIP_A (260 A) could never fire on this path: the
+// reading clips first and the current loop goes blind up to the module's own
+// 625 A trip. Cap the software phase-OC trip inside the sensor's range.
+#define ISENSE_OC_TRIP_MAX_A     130.0f
+
 #else
 #define ISENSE_V_PER_A           ISENSE_V_PER_A_INTERNAL
 #define ISENSE_ZERO_CODE         2048        // pre-cal seed; adc_calibrate_offsets() overwrites
@@ -215,8 +237,11 @@
 //   !! These are only the BOOT scale -- the ALIGN cal sweep (SENSOR_RES_CAL_*)
 //      re-measures min/max and overrides them at runtime. They still matter:
 //      the angle is unusable until an align succeeds.
-#define RES_SINCOS_BIAS_CODE    2039.0f     // 1.4934 V at VREF 3.0 V (design)
-#define RES_SINCOS_AMPL_CODE    1745.0f     // 1.2782 V amplitude (design)
+// MEASURED 2026-11-05 (after the U17 pin-6 reflow): ALIGN cal sweep SIN
+// 467..3633, COS 465..3639 -> bias ~2050, amplitude ~1585. Below the 1745 design
+// value because this encoder sits at the low end of its 2.0-2.4 Vpp range.
+#define RES_SINCOS_BIAS_CODE    2050.0f     // design 2039 (1.4934 V)
+#define RES_SINCOS_AMPL_CODE    1585.0f     // design 1745 (1.2782 V at 2.2 Vpp)
 
 // ---- GPIO -------------------------------------------------------------
 // Two gate-driver enables, both ACTIVE-HIGH (confirmed on the 4.0 schematic),
@@ -311,23 +336,45 @@
 // to 1 to ignore those module-fault paths so the board stays in IDLE for
 // control-board-only testing: it seeds the runtime g_module_faults_en flag
 // (live-toggle via the "module_faults_en" serial param) and pwm_init() drops
-// the OSHT trip-zone sources. It is also what unlocks the bench-only open-loop
-// PWM ("ol_run") and the bench gate-enable override ("gate_en_dbg").
+// the OSHT trip-zone sources. It is also what unlocks the bench gate-enable
+// override ("gate_en_dbg"). (Open-loop "ol_run" no longer needs it: since
+// 2026-11-03 it runs with protection ON too, for spinning the real motor.)
 // Expected with the DB37 unplugged: RO "module_fault" = 0x1F, "tz_trip" stays 0.
 // Trip-path test (bring-up D): fit the DB37 shorting plug (fault pins 2/22/5/6/16
 // to GND 19/25/37) -> module_fault = 0; write module_faults_en = 1 in IDLE;
 // pull one OC wire -> tz_trip increments, state FAULT.
-//   *** SET BACK TO 0 BEFORE CONNECTING THE INVERTER / POWER STAGE. ***
-#define BENCH_NO_POWER_STAGE    1U      // FE_UFPR 4.0 bring-up B/C (2026-11-03)
-// Bench DC-bus handling while the PrimeSTACK sensor scale is untrusted at low
-// voltage: the CONTROL loop + OV/UV trips run on a fixed override, and the SW
-// UV trip is bypassed. The scope/"vbus" readout still show the live measured
-// bus. Both revert to normal (measured bus, UV armed) in production
-// (BENCH_NO_POWER_STAGE = 0). Remove once the sensor is calibrated.
-//   !! 60 V is the old Control_V2 bench bus. Irrelevant for open-loop bring-up
-//      (ol_run uses a unity SVGEN bus), but set vbus_ovr to the real bench bus
-//      before any closed-loop current control.
-#define VBUS_OVERRIDE_DEFAULT_V (BENCH_NO_POWER_STAGE ? 60.0f : 0.0f)
-#define UV_FAULT_EN_DEFAULT     (BENCH_NO_POWER_STAGE ? 0U : 1U)
+//   *** MUST BE 0 WHENEVER THE INVERTER / POWER STAGE IS CONNECTED. ***
+// 0 since 2026-11-03 (FE_UFPR 4.0: PrimeSTACK + EMRAX connected, 24 V bench).
+// With a healthy module the first boot must show tz_trip 0 / fault_code 0: that
+// is the check that pwm_apply_module_tz() discards Board_init's spurious OST.
+#define BENCH_NO_POWER_STAGE    0U
+
+// ---- Low-voltage bench DC link (power stage connected) -----------------
+// Independent of BENCH_NO_POWER_STAGE: protection is armed, but the bus sense
+// is not calibrated on this board yet (VBUS_OFFSET_CODE 0 is a placeholder,
+// handoff §14) and the bench bus is far below the EMRAX UV seed (45 V). So:
+//   - the CONTROL loop + OV/UV trips run on a fixed override (vbus_ovr). The
+//     scope / "vbus" readout still show the live MEASURED bus -- fit it with
+//     `foc_debug vbuscal`, then hand back: vbus_ovr = 0, uv_trip_v, uv_en = 1;
+//   - the SW UV trip is bypassed;
+//   - the commanded-current clamp ("iq_max") boots at 10 A, not the machine limit.
+// All three are live params; these are only their boot values. Set to 0 for
+// the real HV bus once vbuscal agrees with a meter.
+#define BENCH_LOW_VOLTAGE_DC_LINK   1U      // 2026-11-03: low-voltage bench supply
+// The bench bus vbus_ovr boots at. MUST match the supply: SVGEN divides by it,
+// so a wrong value scales every commanded volt by real/assumed. The first
+// closed-loop day ran a 31 V supply against a 24 V assumption (2026-11-05).
+#define BENCH_DC_LINK_V             31.0f
+
+#define VBUS_OVERRIDE_DEFAULT_V (BENCH_LOW_VOLTAGE_DC_LINK ? BENCH_DC_LINK_V : 0.0f)
+#define UV_FAULT_EN_DEFAULT     (BENCH_LOW_VOLTAGE_DC_LINK ? 0U : 1U)
+#if BENCH_LOW_VOLTAGE_DC_LINK
+#define IQ_CMD_MAX_DEFAULT_A    10.0f       // build_config.h keeps it otherwise
+#define OC_TRIP_DEFAULT_A       40.0f       // "oc_trip_a" boot value on the bench
+// PI voltage-clamp fraction at boot ("vmax_frac"). It must clear the ~0.053-duty
+// dead zone or no current flows at all: 0.05 gave zero current, 0.15 tracks
+// 0->2->5 A q-steps in 1-2 ms (bench 2026-11-05). Raise it live for speed.
+#define VDQ_MAX_FRAC_DEFAULT    0.15f
+#endif
 
 #endif // HW_CONTROL_V2_H

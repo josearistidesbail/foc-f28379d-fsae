@@ -58,5 +58,6 @@ extern volatile uint16_t g_uv_fault_en;
 // whatever bus is actually connected. Debounced by UV_TRIP_DEBOUNCE_TICKS and
 // armed only in FOC_RUN. OVERVOLTAGE stays compile-time (MOTOR_OV_TRIP_V).
 extern volatile float g_uv_trip_v;
+extern volatile float g_oc_trip_a;      // phase-OC trip [A], "oc_trip_a"
 
 #endif // SAFETY_H

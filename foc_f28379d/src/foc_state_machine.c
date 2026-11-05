@@ -87,10 +87,13 @@ static void enter(FOC_State_t next)
         foc_get_refs()->id_ref = ID_REF_NOMINAL_A;
         break;
     case FOC_OPENLOOP:
-        // Bench-only open-loop PWM (no power stage): enable the gate and clear any
-        // stale gate-driver latch. The rotating voltage vector is generated in the
-        // current-loop ISR; no current loop, sensor, or RUN-only fault check runs
-        // in this state, so it cannot fault on the missing bus/resolver/currents.
+        // Bench open-loop PWM: enable the gate and clear any stale gate-driver
+        // latch. The rotating voltage vector is generated in the current-loop
+        // ISR; no current loop, sensor, or RUN-only check (phase OC, UV, sensor
+        // loss) runs in this state, so it cannot fault on a missing bus/resolver/
+        // currents. With module-fault protection ON the HW trip-zone, the module
+        // fault latch and the OV trip still apply -- that is the point of
+        // allowing it with protection on.
         inverter_enable_gate();
         inverter_clear_faults();
         break;
@@ -212,10 +215,13 @@ void sm_tick_1khz(void)
         // "Stop then Run faults immediately").
         if(s_requested == FOC_ALIGN_ROTOR || s_requested == FOC_RUN)
             enter(FOC_CALIBRATE_OFFSETS);
-        else if(s_requested == FOC_OPENLOOP && !g_module_faults_en)
-            enter(FOC_OPENLOOP);            // bench-only diagnostic, no CALIBRATE
         else if(s_requested == FOC_OPENLOOP)
-            s_requested = FOC_IDLE;         // protection active -> openloop blocked
+            enter(FOC_OPENLOOP);            // bench diagnostic, no CALIBRATE
+        // ol_run used to be refused with module-fault protection ON (it was
+        // a power-stage-less bench tool). With the real module + motor it is
+        // how the resolver direction gets checked, and running it with the HW
+        // trip-zone + module fault latch armed is strictly safer than the old
+        // practice of disarming protection to use it (2026-11-03).
         break;
 
     case FOC_CALIBRATE_OFFSETS:
