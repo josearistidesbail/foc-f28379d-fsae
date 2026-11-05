@@ -24,8 +24,19 @@
 #define VDQ_MAX_FRACTION        0.95f
 
 // ---- Outer speed loop ---------------------------------------------------
-#define GAIN_KP_SPEED           1.50f
-#define GAIN_KI_SPEED           0.05f
+// Bench-tuned 2026-11-06 (FE_UFPR 4.0, 31 V, unloaded EMRAX, resolver PLL
+// speed estimate at 40 Hz). Series PI, units A per elec rad/s, Ts = 1 ms.
+// Plant: d(w_e)/dt = 1.5*pp^2*lambda/J * iq = ~227 (rad/s^2)/A with the bare
+// rotor (J ~0.0256 kg m^2 datasheet; the bench ramps gave ~0.3 A extra Iq for
+// +/-78 rad/s^2 over a ~0.85 A friction floor -> ~0.022), so kp 0.35 -> crossover ~79 rad/s (12.5 Hz), at
+// most a quarter of the 40 Hz estimator. Ki: PI zero at Ki/Ts = 20 rad/s, a
+// quarter of crossover. Ramp steps 0/30/60 elec rad/s: overshoot 2-3 rad/s,
+// no oscillation; kp 0.6 also well damped (only more Iq ripple). The old
+// 1.5 / 0.05 crossed at ~54 Hz, past the estimator bandwidth -> unstable with
+// the PLL. Crossover scales with 1/J: re-tune (raise kp) once the motor drives
+// real inertia (the car), keeping crossover <= f_estimator/4.
+#define GAIN_KP_SPEED           0.35f
+#define GAIN_KI_SPEED           0.02f
 #define IQ_REF_MAX_A            MOTOR_I_PEAK_A
 #define IQ_REF_MIN_A            (-MOTOR_I_PEAK_A)
 

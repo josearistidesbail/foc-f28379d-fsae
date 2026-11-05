@@ -365,6 +365,14 @@ bench supply, UV trip off, `iq_max` 10 A), current-limited bench supply.**
   (over), 0.85 → −0.13, **0.75 → −0.03**, 0.65 → +0.08. New defaults `DTC_ITH_A` 0.5, `DTC_VDROP_V` 0.75
   (was 2.0 / 0.95, which left +0.8 V at 1 A). Speed at the same clamp: 54 rpm off, 75 old, 96 new.
   The device drops grow with current: re-check the null at higher current.
+- [x] **I — speed mode** (2026-11-06, 31 V, `vmax_frac` 0.25, unloaded). The speed PI's output limit now
+  follows the live `iq_max` every tick (it was fixed at ±240 A → integrator wound up behind the 10 A clamp).
+  Tuned on 0/30/60/30/0 elec rad/s steps (ramped at 80 rad/s²): **`kp_w` 0.35, `ki_w` 0.02** (crossover
+  ~12.5 Hz on the bare rotor, PI zero 20 rad/s) and the resolver **PLL speed estimate (`res_w_mode` 1, 40 Hz)**,
+  now the default. vs the differentiate+LPF estimator: speed ripple 0.7–4.1 → 0.9–1.3 rad/s rms, overshoot
+  2–9 → 2–3 rad/s, Iq peak 2.3–4.9 → 1.7–2.3 A. `kp_w` 0.6 also well damped. Steady friction ≈ 0.85 A Iq;
+  ramp data gives J ≈ 0.022 kg·m². The old 1.5 / 0.05 crossed past the estimator bandwidth. Re-tune `kp_w`
+  up once the motor drives real inertia.
 - [ ] **Phase 2 firmware (deferred)**: aux ADC SOCs (A3 3V3 monitor, A4/B5 current-sense reference cross-check,
   B3 motor KTY, C3 module NTC) + temperature conversion + motor over-temperature stop; SW_MAIN as a FIRMWARE run
   permissive (today only the hardware removes the gate when it drops, while the FW still thinks it runs); CAN-A
@@ -840,7 +848,7 @@ volatile float32_t g_resolver_omega_lpf;// legacy estimator's mech-speed state; 
 //   ⚠️ **HARD GATE before FOC_MODE_SPEED:** the speed loop closes around omega. GAIN_KP_SPEED=1.5 crosses ~47 Hz on the
 //   bare rotor, where a 40 Hz observer adds ≈−93° → UNSTABLE. Any bandwidth cut (LPF or PLL) costs that phase. RE-TUNE
 //   kp_w for crossover ≤ f_bw/4 (start ≈0.31) before enabling speed mode. TORQUE mode has no loop around omega — safe.
-//   Once bench-proven, flip SENSOR_RES_W_MODE_DEFAULT → _PLL (document DEFAULT NOW 1 with date, like res_filt_en).
+//   **DEFAULT NOW 1 (PLL) [2026-11-06]** with kp_w 0.35 / ki_w 0.02 -- see bring-up I.
 
 // src/sensor_rm44ac.c       (SIN/COS input low-pass — software noise reduction; SENSOR_RM44AC only)
 volatile uint16_t  g_resolver_filt_en;     // 0=bypass, 1=filter; "res_filt_en" param. DEFAULT NOW 1 (was 0)

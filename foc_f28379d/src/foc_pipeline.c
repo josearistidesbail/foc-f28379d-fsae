@@ -156,9 +156,9 @@ static float32_t   s_fw_id;
 // Rs*i volts). Exists because on a current-limited bench supply a large
 // commanded current must never be *attempted*, whatever the source; production
 // boots at the machine limit (IQ_CMD_MAX_DEFAULT_A = IQ_REF_MAX_A) so the
-// clamp is transparent there. NOTE: the speed PI's own output limits stay at
-// +/-IQ_REF_MAX_A, so in SPEED mode it can wind up against this clamp --
-// acceptable for a bench guard, revisit if speed mode is used with a low clamp.
+// clamp is transparent there. The speed PI's output limits follow this clamp
+// every 1 kHz tick (foc_speed_loop_tick), so its integrator cannot wind up past
+// what the ISR will actually apply.
 volatile float32_t g_iq_cmd_max = IQ_CMD_MAX_DEFAULT_A;
 
 // Runtime scale on the per-axis PI voltage clamp ("vmax_frac" param, LIVE):
@@ -1224,7 +1224,12 @@ void foc_speed_loop_tick(void)
             else if(tgt < s_speed_cmd - dmax) s_speed_cmd -= dmax;
             else                              s_speed_cmd  = tgt;
 
-            // PI output is clamped to [IQ_REF_MIN_A, IQ_REF_MAX_A] (foc_init).
+            // Output limit = the live iq_max clamp (<= IQ_REF_MAX_A by its
+            // setter). The ISR clamps iq_ref to it anyway; limiting the PI too is
+            // what stops the integrator winding up behind that clamp (anti-windup
+            // in PI_run acts on the PI's own min/max).
+            float32_t lim = g_iq_cmd_max;
+            PI_setMinMax(s_pi_spd, -lim, lim);
             PI_run(s_pi_spd, s_speed_cmd, we, &s_refs.iq_ref);
             g_dbg_iq_ref = s_refs.iq_ref;       // mirror applied torque + bumpless
                                                 // back-transfer to TORQUE

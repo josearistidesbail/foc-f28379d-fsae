@@ -24,7 +24,12 @@
 // switch on a running bench. Anything other than _PLL selects the legacy path.
 #define SENSOR_RES_W_MODE_LPF       0U   // differentiate once per Ts, then LPF
 #define SENSOR_RES_W_MODE_PLL       1U   // type-II angle tracking observer
-#define SENSOR_RES_W_MODE_DEFAULT   SENSOR_RES_W_MODE_LPF   // -> _PLL once bench-proven
+// DEFAULT NOW _PLL [2026-11-06, FE_UFPR 4.0 + EMRAX, speed mode at kp_w 0.35]:
+// vs the LPF path the observer cut speed ripple 0.7-4.1 -> 0.9-1.3 elec rad/s
+// rms, overshoot 2-9 -> 2-3 rad/s and Iq peak 2.3-4.9 -> 1.7-2.3 A on 30/60
+// rad/s ramp steps. Its extra lag (~-35 deg at the 12.5 Hz speed crossover) is
+// affordable at that gain; it is NOT at the old kp_w 1.5 (see gains_emrax.h).
+#define SENSOR_RES_W_MODE_DEFAULT   SENSOR_RES_W_MODE_PLL
 
 // ---- Estimator A: differentiate-then-LPF (legacy) -----------------------
 // 1st-order low-pass on the differentiated angle.
