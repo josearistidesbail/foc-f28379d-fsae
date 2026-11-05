@@ -24,7 +24,9 @@ FAULT) it prints what was NOT restored: clear the fault and fix it by hand.
 | `noise.py [ncap] [tag]` | no (IDLE) | ADC noise per channel, cross-correlation, Iα/Iβ (bring-up G) |
 | `calibrate.py [8,5,3]` | **yes, ~33 s each** | ALIGN at given `align_id_a`; offset, load angle, I·sin δ (bring-up K) |
 | `run_noise.py [ncap] [iq]` | energized, holds still at iq 0 | closed-loop Id/Iq/Vd/Vq noise and clamp margin |
+| `zero_torque_noise.py [ncap] [dwell_s]` | energized, holds still at iq 0 | audible noise at zero torque: angle vs dead-time-comp vs PI path, by ear + numbers |
 | `id_steps.py [levels] [kp] [dtc_v]` | energized, should not turn | λ-free dead-time null (Vd − Rs·Id) + current-loop steps (H/J) |
+| `dtc_src_spin.py [rounds]` | **spins ≤ ~110 rpm** | dead-time comp sign source 0 vs 1 while spinning (clamped torque + speed mode); λ-free |
 | `dtc_sweep.py vmax iq points` | **spins ~100 rpm** | dead-time comp A/B while voltage-clamped (its "leftover" assumes λ!) |
 | `vmax_steps.py [iq] [steps]` | **spins** | clamp-limited speed per `vmax_frac` |
 | `speed_step.py [kp_w] [ki_w] [refs] [mode]` | **spins** | speed-loop ramp steps (bring-up I) |

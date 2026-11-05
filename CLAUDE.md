@@ -102,7 +102,7 @@ condensed). **Build + flash the tip before vbuscal.**
   `bench/calibrate.py` or the GUI). Healthy: `phase_id_status` 1 (map 0 / inv 0), `cal_status` 1,
   `align_offset` ≈ 106.6–107.3° elec, `align_delta` ≈ 6° at 8 A.
 - Boot defaults now in firmware: `align_id_a` 8 A, `kp_d`/`kp_q` 0.5, `dtc_v` 1.0,
-  `dtc_ith` 0.5, `kp_w` 0.35, `ki_w` 0.02, `res_w_mode` 1 (PLL), `vmax_frac` 0.15, `vbus_ovr` 31
+  `dtc_ith` 0.5, `dtc_src` 1 (reference sign, bring-up L), `kp_w` 0.35, `ki_w` 0.02, `res_w_mode` 1 (PLL), `vmax_frac` 0.15, `vbus_ovr` 31
   (= `BENCH_DC_LINK_V`), UV trip off, `iq_max` 10 A, `oc_trip_a` 40 A.
 - **`vbus_ovr` must equal the real DC link whenever the motor runs** (control uses it, not the
   sensor): at a different supply voltage every commanded volt is scaled by V_real/`vbus_ovr`.
@@ -457,6 +457,30 @@ bench supply, UV trip off, `iq_max` 10 A), current-limited bench supply.**
   Bench (31 V): 8/5/3 A all pass, offset 106.80/106.87/107.25° (old open-loop 106.64°), load angle 5.9/9.6/16.0°,
   **I·sin δ = 0.83 A constant = the friction** (speed mode measured 0.85 A). Coupled to a drivetrain the friction
   grows: lift the wheels or raise `align_id_a`. Bus-agnostic only if `s_refs.vbus` is right (override or vbuscal).
+- [x] **L — zero-torque audible noise = the dead-time comp, not a sensor** (2026-11-05 by the desktop clock,
+  after K). Audible hiss in RUN, torque mode, iq_ref 0. By ear: `res_filt_en` 0 (resolver angle noise ×~4) and
+  `kp_d`/`kp_q` 0.5 → 0.25 changed nothing; raising `dtc_ith` or `dtc_en` 0 made it much quieter. Why: inside
+  ±`dtc_ith` the ramp is a linear gain on the current it is fed, k·vbus/ith ≈ 0.047·31/0.5 = **2.9 V/A per phase**
+  (~6× kp), applied after SVGEN so `vmax_frac` doesn't bound it. Fed the MEASURED current it turns the ~0.07 A rms
+  sensor noise into ~0.2 V rms broadband phase voltage, and above the ~700 Hz current-loop crossover nothing pushes
+  back. Zero torque is the worst case (every phase sits in the ramp all the time). At standstill with zero refs the
+  angle only rotates ~zero vectors (error ≈ |Vdq|·Δθ, mV), which is why the resolver can't be it. **Fix (bench-
+  checked)**: live `dtc_src` (0x005A): 0 = measured (the old behaviour), 1 = the
+  id/iq refs the PIs track, back to phases at this tick's angle (noise-free, zero at zero torque). By ear `dtc_src`
+  1 is clearly quieter. `bench/zero_torque_noise.py`: the measured sign injects **0.29 V rms** (300–5000 Hz) of
+  per-period duty noise (0.14 at ith 1, 0.07 at ith 2, 0 with `dtc_src` 1); angle noise ×3.9 → 0.019 V.
+  **The measured current can't see the hiss**: in-band Iαβ 0.100 A (loud) vs 0.097 (`dtc_src` 1) vs 0.094 gate-off
+  floor. The ADC samples once per period (the period average); the noise is random line-to-line pulses every
+  period, i.e. the carrier ripple randomly modulated into a 5–15 kHz hiss. Judge it by V_dtc or by ear, not by I.
+  `id_steps.py` (31 V, standstill d-axis): steady leftover Vd − Rs·Id identical (2/5/10 A: +0.06/+0.38/+0.59 V
+  both), the 0 → 2 A step rises in **0.2 ms with `dtc_src` 1 vs 4.0 ms** with 0 (the measured sign is zero until
+  current flows, so the PI winds through the dead zone; the reference leads). Overshoot a few % higher with 1
+  (13/16/23 % vs 5/14/18 %, single shots, noise ±3–4 %). Spinning (`bench/dtc_src_spin.py`, 0/1/0/1 live, both
+  rounds agree): torque 2 A voltage-clamped (current only ~1 A, the worst case for the reference) 109.5 → 111.4
+  elec rad/s, Id/Iq ripple 0.33/0.39 → 0.23/0.18 A; speed mode 30 rad/s Vq −0.12 V at the same Iq, ripple
+  0.27/0.53 → 0.15/0.41; 60 rad/s Vq −0.05 V, ripple 0.23/0.39 → 0.13/0.34. **Boot default now 1 on FE_UFPR 4.0**
+  (`DTC_SRC_DEFAULT` in hw_control_v2.h; the build_config.h fallback stays 0). Neither source is advanced
+  for the PWM update delay (1.5·ω·Ts; ~50° elec at 6000 rpm on the EMRAX) — revisit at speed, with the IPARK angle.
 - [ ] **Phase 2 firmware (deferred)**: aux ADC SOCs (A3 3V3 monitor, A4/B5 current-sense reference cross-check,
   B3 motor KTY, C3 module NTC) + temperature conversion + motor over-temperature stop; SW_MAIN as a FIRMWARE run
   permissive (today only the hardware removes the gate when it drops, while the FW still thinks it runs); CAN-A
@@ -561,6 +585,8 @@ volatile float32_t g_dtc_v;       // "dtc_v"    0x0057, LIVE: fixed device drop 
 volatile float32_t g_dtc_ith;     // "dtc_ith"  0x0058, LIVE: zero-crossing ramp width [A]; hw_control_v2.h = 0.5
 volatile float32_t g_dtc_inv_ith; // derived 1/ith (setter-maintained; ISR stays division-free)
 volatile float32_t g_dbg_dtc_k;   // "dtc_k" 0x0127 RO: total duty offset applied = dtc_duty + dtc_v/vbus
+volatile uint16_t  g_dtc_src;     // "dtc_src"  0x005A, LIVE: current the ramp is fed, 0 measured (minus z) /
+                                  //   1 reference (id/iq refs -> phases). Boot DTC_SRC_DEFAULT: FE_UFPR 4.0 = 1, else 0. Bring-up L.
 //   Applied in dtc_apply() after SVGEN: duty[p] += k * sat((i_phase[p] - z)/ith), where z = (Iu+Iv+Iw)/3 is removed
 //   first (star, no neutral, so the true z is 0 and the measured one is the common ADC interference). Active in
 //   FOC_RUN and the CLOSED-LOOP part of ALIGN (bring-up K); NOT in the phase-ID dwells (the sign ramp needs the map

@@ -122,6 +122,11 @@ PARAM_DOCS: dict[str, tuple[str, str]] = {
         "Width of the linear ramp around each phase current's zero crossing "
         "(instead of a hard sign()). Clamped [0.1, 100]. Too small chatters, "
         "too large under-compensates. Boot (FE_UFPR 4.0): 0.5."),
+    "dtc_src": ("enum",
+        "Current the dead-time ramp is fed: 0 = measured phase currents (amplifies "
+        "sensor noise by ~2.9 V/A per phase inside the ramp — audible hiss at zero "
+        "torque), 1 = the id/iq references taken back to phases (noise-free, zero "
+        "at zero torque). Boot: FE_UFPR 4.0 (EMRAX) 1, other builds 0."),
 
     # ---- control modes ----------------------------------------------------
     "decouple_en": ("0/1",

@@ -43,6 +43,7 @@ extern volatile uint16_t  g_dtc_en;                     // src/foc_pipeline.c
 extern volatile float32_t g_dtc_duty;                   // src/foc_pipeline.c
 extern volatile float32_t g_dtc_v;                      // src/foc_pipeline.c
 extern volatile float32_t g_dtc_ith;                    // src/foc_pipeline.c
+extern volatile uint16_t  g_dtc_src;                    // src/foc_pipeline.c
 extern volatile float32_t g_dtc_inv_ith;                // src/foc_pipeline.c
 extern volatile float32_t g_dbg_dtc_k;                  // src/foc_pipeline.c
 
@@ -283,6 +284,11 @@ static void set_dtc_ith(uint32_t  r) { float32_t a = raw_to_f32(r);
                                        g_dtc_inv_ith = 1.0f / a; }
 
 static void get_dtc_k(uint32_t *r)   { *r = f32_to_raw(g_dbg_dtc_k); }
+
+// Dead-time comp sign source: 0 = measured phase current, 1 = current reference.
+// Live, so the two can be A/B'd in RUN (see dtc_phase_currents()).
+static void get_dtc_src(uint32_t *r) { *r = (uint32_t)g_dtc_src; }
+static void set_dtc_src(uint32_t  r) { g_dtc_src = (uint16_t)(r ? DTC_SRC_REF : DTC_SRC_MEAS); }
 
 // Decoupling feedforward toggle. Live (no NEEDS_IDLE) so it can be A/B'd in RUN.
 static void get_decouple(uint32_t *r){ *r = (uint32_t)g_dbg_decouple_en; }
@@ -672,6 +678,7 @@ const param_entry_t g_param_table[] =
     { 0x0056U, PARAM_TYPE_F32, 0,                     "dtc_duty",     get_dtc_duty,    set_dtc_duty    },
     { 0x0057U, PARAM_TYPE_F32, 0,                     "dtc_v",        get_dtc_v,       set_dtc_v       },
     { 0x0058U, PARAM_TYPE_F32, 0,                     "dtc_ith",      get_dtc_ith,     set_dtc_ith     },
+    { 0x005AU, PARAM_TYPE_U16, 0,                     "dtc_src",      get_dtc_src,     set_dtc_src     },
     { 0x0031U, PARAM_TYPE_U16, 0,                     "decouple_en",  get_decouple, set_decouple },
     { 0x0032U, PARAM_TYPE_U16, 0,                     "control_mode", get_mode,     set_mode     },
     { 0x0033U, PARAM_TYPE_U16, 0,                     "fw_en",        get_fw_en,    set_fw_en    },

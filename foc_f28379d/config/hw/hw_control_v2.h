@@ -71,6 +71,11 @@
 // high-frequency noise stays at the 0.12-0.15 A floor for ramps down to 0.25 A.
 #define DTC_ITH_A               0.5f
 #define DTC_DEFAULT_EN          1U          // closed loop never works without it on this stack
+// Sign source = the current REFERENCE (DTC_SRC_REF), bench 2026-11-05 (CLAUDE.md bring-up L). The measured
+// sign put 0.29 V rms of per-period duty noise on the bridge at zero torque (audible hiss); the reference
+// sign was equal or better in every test: same standstill null at 2/5/10 A, 0->2 A step 0.2 vs 4.0 ms,
+// and spinning (~30-110 elec rad/s) up to half the Id/Iq ripple, less PI voltage, more speed when clamped.
+#define DTC_SRC_DEFAULT         1U          // DTC_SRC_REF
 
 // Phase-ID dwell current target [A]. At 1 A the dead zone clamps the two legs
 // that should carry -I/2 to ~0, so one dwell gives no usable sign and the
