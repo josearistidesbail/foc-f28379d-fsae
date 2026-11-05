@@ -78,7 +78,7 @@ adc3.interruptPulseMode       = "ADC_PULSE_END_OF_CONV";
 adc3.enableInterrupt1         = true;
 adc3.interrupt1SOCSource      = "ADC_SOC_NUMBER1";
 adc3.registerInterrupts       = ["1"];
-adc3.soc1SampleWindow         = 512;
+adc3.soc1SampleWindow         = 15;
 adc3.adcInt1.enableInterrupt  = true;
 adc3.adcInt1.interruptHandler = "adcA1_isr";
 

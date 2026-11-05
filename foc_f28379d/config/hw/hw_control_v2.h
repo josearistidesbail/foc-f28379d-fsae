@@ -93,9 +93,14 @@
 //   Vbus -> ADCINC2 (ADC-C ch2, J3-27)
 //   SIN  -> ADCINA2 (ADC-A ch2, J3-29)
 //   COS  -> ADCINB2 (ADC-B ch2, J3-28)
-// SOC allocation chosen so each ADC's last SOC finishes together; the EOC
-// interrupt is taken on ADC-C SOC1 (Vbus, 512-cycle window -- the longest
-// conversion, so it is always the last one to finish).
+// Every SOC has the same 15-cycle window and all three ADCs run off the same
+// SOCA, so the three ADCs convert in lockstep and each one's SOC1 finishes on
+// the same cycle; the EOC interrupt is taken on ADC-C SOC1.
+// [2026-11-06] The Vbus window was 512 cycles: a Control_V2 fix for a high-Z
+// divider with no pin capacitor (the S/H charge-shared with the preceding Iv
+// sample). Here the 22 nF at the pin is the reservoir (S/H ~14.5 pF -> ~0.07 %
+// of the Iv-to-Vbus step, a ~1-2 code offset that vbuscal absorbs), and the
+// long window delayed every ISR by ~2.5 us. Run vbuscal on THIS sampling.
 //   ADC-A: SOC0=Iu, SOC1=SIN     ADC-B: SOC0=Iw, SOC1=COS    ADC-C: SOC0=Iv, SOC1=Vbus
 // ALL THREE CURRENTS SIT IN SOC0 = the same sampling instant on three ADCs
 // [2026-11-06 bench]. The board carries ~5 codes rms of MHz interference that
