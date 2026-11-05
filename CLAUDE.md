@@ -361,10 +361,13 @@ bench supply, UV trip off, `iq_max` 10 A), current-limited bench supply.**
   iq_ref 2 A, voltage-clamped (~1 A, ~100 rpm); metric = leftover q-voltage Vq − Rs·Iq − ω·λ. `dtc_apply` now
   subtracts the zero sequence z = (Iu+Iv+Iw)/3 before the sign ramp (star, no neutral → true z = 0; z is the
   common ADC interference, ~0.8 A rms). Without that, narrowing `dtc_ith` doubled the d/q noise (0.13 → 0.24 A);
-  with it the noise stays at 0.12–0.15 A down to 0.25 A. Then `dtc_v` at `dtc_ith` 0.5: 0.95 → −0.27 V
-  (over), 0.85 → −0.13, **0.75 → −0.03**, 0.65 → +0.08. New defaults `DTC_ITH_A` 0.5, `DTC_VDROP_V` 0.75
-  (was 2.0 / 0.95, which left +0.8 V at 1 A). Speed at the same clamp: 54 rpm off, 75 old, 96 new.
-  The device drops grow with current: re-check the null at higher current.
+  with it the noise stays at 0.12–0.15 A down to 0.25 A. `DTC_ITH_A` 0.5. **`dtc_v` from a standstill d-axis
+  test** (no back-EMF; leftover Vd − Rs·Id at 2/5/10 A): 0.75 → +0.45/+0.71/+0.91 V, **1.0 → +0.12/+0.39/
+  +0.59**, 1.2 → −0.16 (over)/+0.11/+0.33. The rise with current is continuous (device curve + ~30 mΩ bench
+  wiring), which the PI absorbs; DTC only cancels the zero-crossing jump → `DTC_VDROP_V` 1.0. A first same-day
+  "null at 0.75" from the spinning test was WRONG: its leftover Vq − ω·λ used the datasheet λ 0.0387, but the
+  30/60 rad/s speed data fit **λ ≈ 0.034 V·s (~12 % low; noisy, 0.031–0.037)** — measure λ properly before
+  trusting the flux observer / back-EMF FF. **Never null DTC against a model that assumes λ.**
 - [x] **I — speed mode** (2026-11-06, 31 V, `vmax_frac` 0.25, unloaded). The speed PI's output limit now
   follows the live `iq_max` every tick (it was fixed at ±240 A → integrator wound up behind the 10 A clamp).
   Tuned on 0/30/60/30/0 elec rad/s steps (ramped at 80 rad/s²): **`kp_w` 0.35, `ki_w` 0.02** (crossover
@@ -373,6 +376,9 @@ bench supply, UV trip off, `iq_max` 10 A), current-limited bench supply.**
   2–9 → 2–3 rad/s, Iq peak 2.3–4.9 → 1.7–2.3 A. `kp_w` 0.6 also well damped. Steady friction ≈ 0.85 A Iq;
   ramp data gives J ≈ 0.022 kg·m². The old 1.5 / 0.05 crossed past the estimator bandwidth. Re-tune `kp_w`
   up once the motor drives real inertia.
+- [x] **J — current loop retuned** (2026-11-06, standstill d-axis steps 2→5→10 A, `dtc_v` 1.0): `kp_d`/`kp_q`
+  0.785/0.816 overshot 45–50 % with a ~0.8 ms ring (PM ~35°); **0.5** overshoots ~7–25 %, rise still 0.1–0.2 ms.
+  Id up to 20 A at standstill: no rotor motion, no trip. Loaded (q-axis) tests at higher current still to do.
 - [ ] **Phase 2 firmware (deferred)**: aux ADC SOCs (A3 3V3 monitor, A4/B5 current-sense reference cross-check,
   B3 motor KTY, C3 module NTC) + temperature conversion + motor over-temperature stop; SW_MAIN as a FIRMWARE run
   permissive (today only the hardware removes the gate when it drops, while the FW still thinks it runs); CAN-A

@@ -16,9 +16,14 @@
 // 18 mOhm) and are left as commissioned on the 24 V bench. With the v1.7 HV
 // Ld = 110 uH the loop crosses at ~1.14 kHz (and Rs*wc*Ts = 0.0080 for KI);
 // retune on the bench rather than here.
-#define GAIN_KP_ID              0.785f
+// [2026-11-06, FE_UFPR 4.0, 31 V] Bench-retuned to 0.5 on both axes. d-axis
+// current steps at standstill (2->5->10 A): kp 0.785 overshot 45-50 % with a
+// ~0.8 ms ring (phase margin ~35 deg: ~1.3 samples of loop delay at a 1.1 kHz
+// crossover); kp 0.5 overshoots ~7-25 % with the same 0.1-0.2 ms rise. Ki is
+// series-form, so the PI zero (Ki/Ts = 113 rad/s) does not move with kp.
+#define GAIN_KP_ID              0.50f
 #define GAIN_KI_ID              0.0113f     // 0.018 * 6283 * 1e-4
-#define GAIN_KP_IQ              0.816f      // uses Lq = 130 uH
+#define GAIN_KP_IQ              0.50f       // Lq ~= Ld on this machine
 #define GAIN_KI_IQ              0.0113f
 
 #define VDQ_MAX_FRACTION        0.95f

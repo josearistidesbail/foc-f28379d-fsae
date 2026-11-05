@@ -56,15 +56,18 @@
 // since over-compensation is positive feedback around the zero crossing):
 // 0.015 dead time + 0.95 V / 31 V. Note it is entered against vbus_ovr, so it
 // only means real volts when the override matches the real bus.
-// [2026-11-06, closed-loop null, 31 V] Measured leftover q-voltage
-// Vq - Rs*Iq - w*lambda in torque mode at the vmax_frac 0.25 clamp (~1 A,
-// ~100 rpm) vs dtc_v at dtc_ith 0.5: 0.95 -> -0.27 V (over-compensated),
-// 0.85 -> -0.13, 0.75 -> -0.03, 0.65 -> +0.08. So 0.75 V (0.039 duty total).
-// Less than the 3 A phase-ID estimate above because the Vce/Vf share grows
-// with current: expect to raise dtc_v a little at higher current.
-// The old 0.95 only looked right at dtc_ith 2 A, where the ramp itself left
-// ~0.8 V uncompensated at 1 A.
-#define DTC_VDROP_V             0.75f
+// [2026-11-06, standstill null, 31 V] d-axis current held at standstill (no
+// back-EMF, so the leftover Vd - Rs*Id is the uncompensated dead zone itself),
+// dtc_ith 0.5:          2 A     5 A     10 A
+//   dtc_v 0.75        +0.45   +0.71   +0.91 V
+//   dtc_v 1.00        +0.12   +0.39   +0.59
+//   dtc_v 1.20        -0.16   +0.11   +0.33   (over-compensated at low current)
+// The rise with current is continuous (device drop curve + ~30 mOhm of bench
+// wiring) and the PI absorbs it; the compensation only has to cancel the JUMP
+// at zero current, so 1.0 V (0.047 duty total, ~ the phase-ID estimate above).
+// An earlier same-day "null at 0.75" from a spinning test was wrong: it took
+// the datasheet lambda, ~12 % above what the bench speeds fit (~0.034 Vs).
+#define DTC_VDROP_V             1.0f
 // Ramp width. 0.5 A became usable once dtc_apply removed the zero sequence
 // (the common ADC interference, ~0.8 A rms per phase); with it, the d/q
 // high-frequency noise stays at the 0.12-0.15 A floor for ramps down to 0.25 A.
