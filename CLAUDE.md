@@ -333,8 +333,7 @@ bench supply, UV trip off, `iq_max` 10 A), current-limited bench supply.**
   capture back on (`align_off_en 1`): **106.6° elec, three runs within 0.02°**. Dead zone ≈ 0.053 duty
   (~1.64 V at 31 V). Closed loop (`iloop_en 1`, `dtc_en 1`): **`vmax_frac` must clear the dead zone** — 0.05 gives
   zero current (DTC adds ~nothing at i ≈ 0), 0.15 tracks 0→2→5 A q-steps in 1–2 ms with Id ≈ 0, +iq → +speed,
-  speed clamp-limited (~57 elec rad/s). All of that is now the boot default. Calibrate with `iloop_en 0` (it also
-  picks the ALIGN drive; 1 A closed-loop can't drag this rotor), then `iloop_en 1` before RUN.
+  speed clamp-limited (~57 elec rad/s). All of that is now the boot default. (Calibrate-with-`iloop_en 0` procedure superseded by K: both run with `iloop_en` 1.)
   **Bus trap:** the supply was 31 V while `vbus_ovr` said 24 — every commanded volt was ×1.29. `BENCH_DC_LINK_V`
   is now 31; keep it equal to the supply. **Noise:** ~5 codes (~0.8 A) rms on EVERY ADC channel, including the
   passive Vbus divider and the buffered ISNS_VREF, level-independent → ground (board GND vs LaunchPad VSSA), not
@@ -379,6 +378,16 @@ bench supply, UV trip off, `iq_max` 10 A), current-limited bench supply.**
 - [x] **J — current loop retuned** (2026-11-06, standstill d-axis steps 2→5→10 A, `dtc_v` 1.0): `kp_d`/`kp_q`
   0.785/0.816 overshot 45–50 % with a ~0.8 ms ring (PM ~35°); **0.5** overshoots ~7–25 %, rise still 0.1–0.2 ms.
   Id up to 20 A at standstill: no rotor motion, no trip. Loaded (q-axis) tests at higher current still to do.
+- [x] **K — bus-agnostic calibration** (2026-11-06). Every ALIGN stage after phase-ID is now **closed-loop
+  regardless of `iloop_en`**, at the new live **`align_id_a`** (0x0076, NEEDS_IDLE, EMRAX default 8 A); dead-time
+  comp runs there too. The phase-ID dwells stay open-loop (the map is unknown) but their duty cap is no longer
+  `ol_mod` (a raw duty: 40 V on a 400 V pack) — it is 1.5 × the dead-zone model (`dtc_duty`, `dtc_v`) + 1 V at the
+  live bus (~3.9 V at 31 V, ~15 V at 400 V); a wrong model at a new bus makes phase-ID REJECT, not overdrive.
+  `iloop_en` now only selects the RUN-state open-loop resistive bench mode; **`FOC_ILOOP_DEFAULT` 1** on the EMRAX
+  (no more "calibrate with 0, then set 1"). `ol_mod` remains only for the `ol_run` bench tool (NOT bus-agnostic).
+  Bench (31 V): 8/5/3 A all pass, offset 106.80/106.87/107.25° (old open-loop 106.64°), load angle 5.9/9.6/16.0°,
+  **I·sin δ = 0.83 A constant = the friction** (speed mode measured 0.85 A). Coupled to a drivetrain the friction
+  grows: lift the wheels or raise `align_id_a`. Bus-agnostic only if `s_refs.vbus` is right (override or vbuscal).
 - [ ] **Phase 2 firmware (deferred)**: aux ADC SOCs (A3 3V3 monitor, A4/B5 current-sense reference cross-check,
   B3 motor KTY, C3 module NTC) + temperature conversion + motor over-temperature stop; SW_MAIN as a FIRMWARE run
   permissive (today only the hardware removes the gate when it drops, while the FW still thinks it runs); CAN-A

@@ -75,7 +75,7 @@ static void enter(FOC_State_t next)
         break;
     case FOC_ALIGN_ROTOR:
         inverter_enable_gate();
-        foc_get_refs()->id_ref = ALIGN_ID_INJECT_A;
+        foc_get_refs()->id_ref = g_align_id_a;   // "align_id_a" (foc_pipeline.c)
         foc_get_refs()->iq_ref = 0.0f;
         // theta is forced to 0 in foc_pipeline.c while state == ALIGN.
         break;

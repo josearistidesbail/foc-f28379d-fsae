@@ -170,14 +170,14 @@
 // The hw_*.h RES_SINCOS_BIAS/AMPL_CODE values are analog-design guesses; the
 // real front-end neither spans the full ADC range nor is guaranteed
 // channel-matched. Before the offset-capture sweep, the align controller drags
-// the rotor through CAL_MECH_REVS open-loop mech rev(s) (= full sin/cos cycles,
+// the rotor through CAL_MECH_REVS mech rev(s) (= full sin/cos cycles,
 // the sensor is 1-speed) while tracking raw min/max codes per channel, then
 // applies bias=(min+max)/2 and ampl=(max-min)/2 at runtime. Captured extremes
 // are readable via the cal_* serial params to bake into the hw header later.
 #define SENSOR_RES_CAL_DEFAULT_EN      1U      // 0 = keep hw_*.h constants
 // 3 revs (was 1). Only >=1 is needed mathematically -- one mech rev is one full
 // sin/cos cycle, so one pass already visits both extremes -- but under the
-// iloop_en=0 open-loop drag the rotor cogs and can stall or skip, so a single
+// (then open-loop) drag the rotor cogged and could stall or skip, so a single
 // rev may never actually reach part of the cycle and the captured min/max come
 // out short. Extra revs are cheap insurance: at 0.5 rev/s this costs 6 s instead
 // of 2 s, and min/max only ever widen. It does NOT need to be an integer (unlike

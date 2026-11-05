@@ -12,10 +12,8 @@
 
 // ---- Inner current loop -------------------------------------------------
 // L * omega_c (1 kHz BW) = 125 uH * 2*pi*1000 = 0.785
-// NOTE: these gains were derived from the pre-v1.7 parameter set (125/130 uH,
-// 18 mOhm) and are left as commissioned on the 24 V bench. With the v1.7 HV
-// Ld = 110 uH the loop crosses at ~1.14 kHz (and Rs*wc*Ts = 0.0080 for KI);
-// retune on the bench rather than here.
+// (Original design from the pre-v1.7 parameter set, 125/130 uH / 18 mOhm; the
+// kp values are now bench-tuned below, KI is unchanged.)
 // [2026-11-06, FE_UFPR 4.0, 31 V] Bench-retuned to 0.5 on both axes. d-axis
 // current steps at standstill (2->5->10 A): kp 0.785 overshot 45-50 % with a
 // ~0.8 ms ring (phase margin ~35 deg: ~1.3 samples of loop delay at a 1.1 kHz
@@ -56,23 +54,24 @@
 // Averaging over whole mech revs cancels cogging/stiction. The resolver is
 // absolute, so this is about ACCURACY (cancelling the per-start-position settling
 // error), not establishing a boot-relative zero.
-// NOTE: ALIGN_ID_INJECT_A must be large enough to DRAG the EMRAX rotor through
-// detent as the carrier sweeps. 1.0 A is a conservative starting point on this
-// low-inductance traction motor; raise on the bench if the rotor stalls or skips
-// (watch g_dbg_align_offset_elec settle to the same value across start positions).
-// Stays well under the OC trip.
-#define ALIGN_ID_INJECT_A           1.0f
+// ALIGN_ID_INJECT_A = boot value of the live "align_id_a" param: the closed-loop
+// current that DRAGS the rotor through friction + cogging during the settle and
+// both sweeps (every calibration stage after phase-ID is closed-loop, so this is
+// the same amps at any DC-link voltage). 1 A stalled on the bench (friction alone
+// is ~0.85 A of Iq at speed). Bench-tuned value: see bring-up K in CLAUDE.md.
+#define ALIGN_ID_INJECT_A           8.0f
 #define ALIGN_SETTLE_S              3.0f    // lock to phase-U before sweeping
 #define ALIGN_RAMP_MECH_REVS        5.0f    // integer revs -> cancels cogging
 #define ALIGN_RAMP_MECH_SPEED_RPS   0.5f    // carrier speed [mech rev/s]; 5 Hz
-                                            // elec -- keep below the ~6 Hz the
-                                            // open-loop drag (ol_mod=0.11) was
-                                            // bench-proven at
+                                            // elec (proven with the old open-loop
+                                            // drag; kept for the closed-loop one)
 
 
-// [2026-11-05, FE_UFPR 4.0, 31 V bench] 0.08 pole-slipped the ALIGN cal sweep
-// (rotor rocked back and forth); 0.10 drags it cleanly at ~17 A phase. This is
-// a DUTY, so the drive in volts scales with the bus: at 24 V use ~0.13.
+// Open-loop drive level of the ol_run BENCH TOOL only (FOC_OPENLOOP). Since
+// 2026-11-06 calibration no longer uses it (closed-loop at align_id_a). It is
+// a DUTY, so its volts scale with the bus: 0.10 = 3.1 V at the 31 V bench
+// (~17 A phase at standstill) but 40 V on a 400 V pack -- re-size before using
+// ol_run at a different bus.
 #define OL_MOD_DEFAULT              0.10f
 
 // Compile-time default for g_align_offset_en ("align_off_en" param). 0 = skip
@@ -102,12 +101,10 @@
 // directly as Vd=Rs*id_ref / Vq=Rs*iq_ref using the sensor angle. Keep 1 for
 // normal operation; flip live for bring-up. NOTE: this ignores back-EMF, so on
 // this traction motor only use open-loop mode at low/zero speed.
-// [2026-11-05] Stays 0 even though closed loop now works: iloop_en also picks
-// the ALIGN drive, and with 1 the settle + sweeps run the closed-loop d-PI at
-// ALIGN_ID_INJECT_A (1 A), far too little to drag this rotor (the open-loop
-// sweep needed ~17 A). So: Calibrate with iloop_en=0, then set iloop_en=1
-// before RUN.
-#define FOC_ILOOP_DEFAULT           0
+// [2026-11-06] DEFAULT NOW 1. iloop_en no longer selects the ALIGN drive:
+// calibration is always closed-loop after phase-ID, at "align_id_a" amps
+// (bus-agnostic), so the old "calibrate with 0, then set 1" dance is gone.
+#define FOC_ILOOP_DEFAULT           1
 
 // ---- Field weakening (Step 11) ------------------------------------------
 // Voltage-feedback FW regulator (foc_pipeline.c, RUN only, gated by g_dbg_fw_en):

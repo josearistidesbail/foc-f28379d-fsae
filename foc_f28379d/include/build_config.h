@@ -136,13 +136,29 @@
 // (sized to move the rotor -- far more current than a measurement needs, and
 // enough to current-limit a bench supply). Instead the duty is slewed up until
 // the largest |channel current| reaches PHASE_ID_TARGET_A, then FROZEN for all
-// three dwells (see foc_pipeline.c for why freezing matters). Duty capped at
-// g_ol_mod, so worst case equals the old fixed drive.
+// three dwells (see foc_pipeline.c for why freezing matters).
+// [2026-11-06] The duty CAP is bus-agnostic (it used to be g_ol_mod, a raw duty:
+// 3.1 V at the 31 V bench but 40 V on a 400 V pack). It is now the dead-zone
+// model scaled up plus a fixed headroom, converted at the live bus:
+//   cap_duty = PHASE_ID_DZ_MARGIN * (4/3) * (dtc_duty + dtc_v/vbus)
+//              + PHASE_ID_V_HEADROOM / vbus
+// (4/3: the d-axis amplitude of a dead zone with the field on a phase axis).
+// ~3.9 V at 31 V, ~15 V at 400 V. It only binds when the governor cannot see
+// current (open lead, dead sensor) -- then it bounds the blind current to
+// ~(margin-1)*Vdz + headroom over the winding path at ANY bus. If the dead-zone
+// model is badly wrong at a new bus, the governor rails at the cap, the dwells
+// come out weak and phase-ID REJECTS (fails safe); re-fit dtc_duty/dtc_v there.
 #ifndef PHASE_ID_TARGET_A
 #define PHASE_ID_TARGET_A       ALIGN_ID_INJECT_A  // governed dwell current [A]
 #endif
 #ifndef PHASE_ID_MOD_SLEW_PER_S
 #define PHASE_ID_MOD_SLEW_PER_S 0.4f // governor duty slew rate [duty/s]
+#endif
+#ifndef PHASE_ID_DZ_MARGIN
+#define PHASE_ID_DZ_MARGIN      1.5f // cap = this x the modelled dead zone ...
+#endif
+#ifndef PHASE_ID_V_HEADROOM
+#define PHASE_ID_V_HEADROOM     1.0f // ... plus this many volts
 #endif
 // Low-pass on each channel's SIGNED current before the governor takes max|I|.
 // The dwell field is static, so the true current is DC and the per-sample noise

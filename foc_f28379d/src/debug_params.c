@@ -31,6 +31,7 @@ extern volatile uint16_t  g_isense_reconstruct_phase;   // src/adc_iface.c
 // current target [A], and the governor's achieved duty (telemetry).
 extern volatile uint16_t  g_phase_id_en;                // src/foc_pipeline.c
 extern volatile float32_t g_phase_id_a;                 // src/foc_pipeline.c
+extern volatile float32_t g_align_id_a;                 // src/foc_pipeline.c
 extern volatile float32_t g_dbg_phaseid_mod;            // src/foc_pipeline.c
 
 // Runtime command-current clamp [A] (bench supply guard; see foc_pipeline.c).
@@ -220,6 +221,14 @@ static void get_phase_id_a(uint32_t *r){ *r = f32_to_raw(g_phase_id_a); }
 static void set_phase_id_a(uint32_t  r){ float32_t a = raw_to_f32(r);
                                          if(a < 0.0f) a = 0.0f;
                                          g_phase_id_a = a; }
+// Closed-loop ALIGN current [A]. NEEDS_IDLE (latched on ALIGN entry). Must
+// drag the rotor through friction + cogging; floored at 0, capped at the
+// machine limit (the phase OC trip still guards the actual current).
+static void get_align_id_a(uint32_t *r){ *r = f32_to_raw(g_align_id_a); }
+static void set_align_id_a(uint32_t  r){ float32_t a = raw_to_f32(r);
+                                         if(a < 0.0f) a = 0.0f;
+                                         if(a > IQ_REF_MAX_A) a = IQ_REF_MAX_A;
+                                         g_align_id_a = a; }
 
 // Command-current clamp [A]. LIVE (no NEEDS_IDLE) so it can be tightened while
 // running; floored at 0, capped at the machine limit so a host typo cannot
@@ -668,6 +677,7 @@ const param_entry_t g_param_table[] =
     { 0x004DU, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "isense_inv",   get_isense_inv, set_isense_inv },
     { 0x004EU, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "phase_id_en",  get_phase_id_en, set_phase_id_en },
     { 0x004FU, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "phase_id_a",   get_phase_id_a,  set_phase_id_a  },
+    { 0x0076U, PARAM_TYPE_F32, PARAM_FLAG_NEEDS_IDLE, "align_id_a",   get_align_id_a,  set_align_id_a  },
     { 0x0050U, PARAM_TYPE_F32, 0,                     "iq_max",       get_iq_max,      set_iq_max      },
     { 0x0051U, PARAM_TYPE_F32, 0,                     "vmax_frac",    get_vmax_frac,   set_vmax_frac   },
     { 0x0075U, PARAM_TYPE_F32, 0,                     "oc_trip_a",    get_oc_trip_a,   set_oc_trip_a   },

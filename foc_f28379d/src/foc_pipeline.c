@@ -128,10 +128,9 @@ volatile uint16_t  g_dbg_control_mode;
 // speed the small applied Vq vs a large back-EMF can drive strong braking/
 // generation. The applied voltage is clamped to the inverter budget and the phase
 // overcurrent trip stays armed in FOC_RUN, but treat this as a bring-up tool.
-// In FOC_ALIGN_ROTOR, 0 instead selects the OPEN-LOOP ALIGN DRIVE: a fixed
-// d-axis modulation g_ol_mod in the duty domain (unity SVGEN bus, exactly like
-// FOC_OPENLOOP), so align + the SIN/COS scale calibration work on a bench where
-// the VBUS sense is absent (the PI clamp vmax_dyn ~ vbus would pass 0 V).
+// [2026-11-06] iloop_en no longer affects FOC_ALIGN_ROTOR: calibration is
+// always closed-loop after the phase-ID dwells (bus-agnostic; see g_align_id_a).
+// It used to select an open-loop g_ol_mod drag drive there, a raw duty.
 volatile uint16_t  g_dbg_iloop_en;
 
 // Field weakening (Step 11). g_dbg_fw_en toggles it live (also the "fw_en" serial
@@ -185,11 +184,9 @@ volatile float32_t g_vdq_max_frac = VDQ_MAX_FRAC_DEFAULT;
 // milliseconds of open-loop winding just to cross it (kp=0.7 never reached a
 // 2 A step); above the ceiling the loop limit-cycles the moment it pops out the
 // far side (kp=1.5 burst to +/-10 A). Both symptoms are the same wall.
-// Applied in FOC_RUN ONLY, after SVGEN, in the duty domain -- deliberately NOT
-// in ALIGN/OPENLOOP: those run the open-loop g_ol_mod drag drive whose values
-// (and the phase-ID governor built on them) are bench-calibrated against the
-// UNcompensated bridge, and the dwell solver reads current ratios that this
-// would alter.
+// Applied after SVGEN, in the duty domain, in FOC_RUN and the closed-loop part
+// of ALIGN -- NOT during the phase-ID dwells (the sign ramp needs the current
+// map they are measuring) and NOT in FOC_OPENLOOP (raw-duty bench tool).
 volatile uint16_t  g_dtc_en      = DTC_DEFAULT_EN;      // "dtc_en"   param, LIVE
 volatile float32_t g_dtc_duty    = DTC_DEADTIME_DUTY;   // "dtc_duty" param, LIVE
 volatile float32_t g_dtc_v       = DTC_VDROP_V;         // "dtc_v"    param, LIVE
@@ -398,8 +395,8 @@ static bool        s_align_done;
 // there for why magnitude is not trustworthy across dwells. It validates and
 // stores the map + inversion mask ("isense_map"/"isense_inv"), so physically
 // re-clamping the LEMs needs no manual reconfiguration -- just re-align.
-// The stage FORCES the open-loop duty drive (g_ol_mod on the d-axis) even when
-// iloop_en=1: the channel->phase map is unknown by definition while it runs,
+// The stage FORCES an open-loop duty drive (the governed s_phaseid_mod on the
+// d-axis): the channel->phase map is unknown by definition while it runs,
 // so closed-loop current feedback cannot be trusted. A rejected detection
 // freezes the carrier and latches FAULT_CURRENT_SENSE (same pattern as a
 // rejected SIN/COS scale cal) -- continuing to RUN on unverifiable current
@@ -429,14 +426,23 @@ static float32_t   s_pid_sum[3][3];    // [channel][dwell] current sums
 // dwell) keeps one shared drive level for all three angles; a per-dwell
 // governor would actively normalize away the +I vs -I/2 structure being
 // measured (worst case: both clamps sit on -I/2 phases, that dwell reads I/2,
-// the governor doubles it). Duty is capped at g_ol_mod so the worst case
-// equals the old fixed drive.
+// the governor doubles it). The duty cap is bus-agnostic (dead-zone model
+// plus headroom, see PHASE_ID_DZ_MARGIN in build_config.h) -- NOT g_ol_mod,
+// whose raw duty would be tens of volts on an HV pack.
 // [2026-08-01] NOTE one shared duty equalizes VOLTS, not amps -- at the bench
 // bus the dead zone eats ~99% of the commanded volts, so the dwells can still
 // differ several-fold in current (measured 1 A / 5.5 A / 1 A). The solver no
 // longer depends on them matching (it reads the sign pattern), so this is now a
 // drive-sizing choice, not a correctness requirement.
 volatile float32_t g_phase_id_a = PHASE_ID_TARGET_A;   // target dwell current [A]
+// Closed-loop ALIGN current [A] ("align_id_a" param, NEEDS_IDLE). The state
+// machine latches it into id_ref on ALIGN entry; the d-PI then holds it along
+// the carrier for the settle and both sweeps. [2026-11-06] Every stage after
+// phase-ID is CLOSED-LOOP regardless of iloop_en, so calibration asks for the
+// same amps at any DC-link voltage (SVGEN normalizes by the bus). It must drag
+// the rotor through friction + cogging: the open-loop g_ol_mod drag it replaces
+// was a raw duty (~17 A at 31 V, tens of volts on an HV pack).
+volatile float32_t g_align_id_a = ALIGN_ID_INJECT_A;
 volatile float32_t g_dbg_phaseid_mod;  // governed duty ("phase_id_mod" RO param)
 static float32_t   s_phaseid_mod;      // governor state, frozen after dwell 0 settle
 static float32_t   s_pid_filt[3];      // governor's low-passed channel currents [A]
@@ -588,10 +594,19 @@ static float32_t align_step(void)
             if(m < 0.0f)    m = -m;
             if(m > imax)    imax = m;
 #endif
+            // Bus-agnostic cap: the modelled dead zone x margin + headroom,
+            // in duty at the live bus (last tick's s_refs.vbus). No bus (sense
+            // dead, no override) -> only the dead-time term remains: the
+            // governor cannot reach its target and phase-ID rejects.
+            float32_t vb  = s_refs.vbus;
+            float32_t ivb = (vb > 1.0f) ? (1.0f / vb) : 0.0f;
+            float32_t cap = PHASE_ID_DZ_MARGIN * (4.0f / 3.0f)
+                            * (g_dtc_duty + g_dtc_v * ivb)
+                          + PHASE_ID_V_HEADROOM * ivb;
             if(imax < g_phase_id_a) s_phaseid_mod += PHASE_ID_MOD_STEP;
             else                    s_phaseid_mod -= PHASE_ID_MOD_STEP;
-            if(s_phaseid_mod > g_ol_mod) s_phaseid_mod = g_ol_mod;
-            if(s_phaseid_mod < 0.0f)     s_phaseid_mod = 0.0f;
+            if(s_phaseid_mod > cap)  s_phaseid_mod = cap;
+            if(s_phaseid_mod < 0.0f) s_phaseid_mod = 0.0f;
             g_dbg_phaseid_mod = s_phaseid_mod;
         }
 
@@ -623,15 +638,15 @@ static float32_t align_step(void)
     }
     else if(s_align_ticks < pid_ticks + ALIGN_SETTLE_TICKS)
     {
-        // Settle: park the rotor at theta=0 before the sweeps. With iloop_en=1
-        // this runs the closed-loop d-PI -- safe here because phase-ID (above)
-        // has already verified and committed the channel map + polarity.
+        // Settle: park the rotor at theta=0 before the sweeps. Always the
+        // closed-loop d-PI at g_align_id_a -- safe here because phase-ID
+        // (above) has already verified and committed the channel map + polarity.
         s_align_carrier = 0.0f;                         // lock to phase-U axis
     }
 #if SENSOR_BACKEND_RM44AC
     else if(s_align_ticks < pid_ticks + ALIGN_SETTLE_TICKS + cal_ticks)
     {
-        // SIN/COS scale calibration: same open-loop drag as the offset sweep
+        // SIN/COS scale calibration: same closed-loop drag as the offset sweep
         // below, but here we only track the raw ADC extremes of each channel
         // (already latched by this ISR's adc_read_sin_cos()).
         s_align_carrier += ALIGN_CARRIER_DTHETA;
@@ -952,12 +967,14 @@ void foc_current_loop_isr(void)
     // a live toggle between the two reads would drive one tick with mismatched
     // domain/normalization (duty-scale Vdq through the real 1/vbus).
     uint16_t iloop = g_dbg_iloop_en;
-    // Phase-ID dwells force the open-loop align drive even with iloop_en=1:
-    // the channel->phase map is being measured, so current feedback is
-    // untrusted by definition. s_phaseid_active only changes inside
-    // align_step() (step 1, this same tick), so this latch is coherent with
-    // the SVGEN normalization below.
-    bool ol_align = (st == FOC_ALIGN_ROTOR) && (!iloop || s_phaseid_active);
+    // The phase-ID dwells are the ONLY open-loop part of ALIGN: the
+    // channel->phase map is being measured, so current feedback is untrusted
+    // by definition. Everything after them is closed-loop whatever iloop_en
+    // says ([2026-11-06]: calibration must be bus-agnostic; iloop_en now only
+    // selects the RUN-state open-loop resistive bench mode). s_phaseid_active
+    // only changes inside align_step() (step 1, this same tick), so this latch
+    // is coherent with the SVGEN normalization below.
+    bool ol_align = (st == FOC_ALIGN_ROTOR) && s_phaseid_active;
     float vmax_dyn = g_vdq_max_frac * s_refs.vbus * 0.5f;
     float ff_d = 0.0f, ff_q = 0.0f;
     if(st == FOC_RUN && g_dbg_decouple_en && iloop)
@@ -974,21 +991,12 @@ void foc_current_loop_isr(void)
     //    (Only run when state machine allows it; otherwise zero outputs.)
     if(ol_align)
     {
-        // Open-loop align drive (current PIs bypassed). With the VBUS sense
-        // absent/untrusted the PI clamp above (vmax_dyn ~ 0) passes no voltage
-        // and align cannot move the rotor -- so drive the align carrier the way
-        // FOC_OPENLOOP does: a fixed d-axis modulation g_ol_mod ("ol_mod"
-        // param) in the DUTY domain (SVGEN gets a unity bus in step 4). At the
-        // slow carrier the current settles on the commanded angle (I ~ V/Rs),
-        // which is all the align/calibration sweeps need. Integrators held at 0
-        // so closed-loop align re-engages cleanly when iloop_en returns to 1.
-        // During the phase-ID dwells the drive level is the GOVERNED duty
-        // (ramped to ~g_phase_id_a of channel current, then frozen), not the
-        // full ol_mod drag drive -- ol_mod is sized to move the rotor and on a
-        // milliohm winding it current-limits a bench supply. Everywhere else
-        // in ALIGN (settle for the cal/offset sweeps, the sweeps themselves)
-        // the rotor must actually move, so ol_mod still applies.
-        s_sig.Vdq.value[0] = s_phaseid_active ? s_phaseid_mod : g_ol_mod;
+        // Phase-ID dwell drive (current PIs bypassed): the GOVERNED duty
+        // (ramped until the largest channel current reaches g_phase_id_a, then
+        // frozen; bus-agnostic cap) on the d-axis, in the DUTY domain (SVGEN
+        // gets a unity bus in step 4). Integrators held at 0 so the closed-loop
+        // settle that follows starts clean.
+        s_sig.Vdq.value[0] = s_phaseid_mod;
         s_sig.Vdq.value[1] = 0.0f;
         PI_setUi(s_pi_id, 0.0f);
         PI_setUi(s_pi_iq, 0.0f);
@@ -1152,10 +1160,10 @@ void foc_current_loop_isr(void)
     // 1/vbus) and the OV/UV trips use a fixed nominal, not the live reading.
     // g_vbus_override_v = 0 switches control back to the measured bus.
     s_refs.vbus = (g_vbus_override_v > 0.0f) ? g_vbus_override_v : vbus_meas;
-    // Open-loop test and open-loop align (iloop_en=0) use a synthetic unity bus
-    // so g_ol_mod maps directly to duty (the bench has vbus~=0, which would blow
-    // up the real 1/vbus normalization). `iloop` is the step-3 latched copy so
-    // the Vdq domain and this normalization can never disagree within a tick.
+    // The ol_run bench tool (FOC_OPENLOOP) and the phase-ID dwells (ol_align)
+    // command a DUTY, so SVGEN gets a synthetic unity bus. Everything else is
+    // in volts through the real 1/vbus. `ol_align` is the step-3 latch, so the
+    // Vdq domain and this normalization can never disagree within a tick.
     // Guarded reciprocal: a 0 V bus (bench, sense disconnected, no override)
     // would make this infinite and blow up both SVGEN and the dead-zone term.
     float32_t inv_vbus = (s_refs.vbus > 1.0f) ? (1.0f / s_refs.vbus) : 0.0f;
@@ -1169,9 +1177,12 @@ void foc_current_loop_isr(void)
         IPARK_setup(s_ipark, s_sig.theta_elec);
         IPARK_run  (s_ipark, &s_sig.Vdq, &s_sig.Vab);
         SVGEN_run  (s_svgen, &s_sig.Vab, &s_sig.duty);
-        // Dead-zone feedforward: RUN only (ALIGN/OPENLOOP are calibrated
-        // against the uncompensated bridge -- see the g_dtc_* block above).
-        if(g_dtc_en && st == FOC_RUN) dtc_apply(&s_sig.duty, &s_sig.Iabc, inv_vbus);
+        // Dead-zone feedforward: RUN and the CLOSED-LOOP part of ALIGN (the
+        // current map is verified by then). Not the phase-ID dwells (they
+        // measure the map the sign ramp would need) and not FOC_OPENLOOP (a
+        // raw-duty bench tool).
+        if(g_dtc_en && (st == FOC_RUN || (st == FOC_ALIGN_ROTOR && !ol_align)))
+            dtc_apply(&s_sig.duty, &s_sig.Iabc, inv_vbus);
         pwm_set_duty(&s_sig.duty);
     }
     else
