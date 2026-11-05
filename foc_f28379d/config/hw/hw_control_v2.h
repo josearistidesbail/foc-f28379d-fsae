@@ -56,7 +56,19 @@
 // since over-compensation is positive feedback around the zero crossing):
 // 0.015 dead time + 0.95 V / 31 V. Note it is entered against vbus_ovr, so it
 // only means real volts when the override matches the real bus.
-#define DTC_VDROP_V             0.95f
+// [2026-11-06, closed-loop null, 31 V] Measured leftover q-voltage
+// Vq - Rs*Iq - w*lambda in torque mode at the vmax_frac 0.25 clamp (~1 A,
+// ~100 rpm) vs dtc_v at dtc_ith 0.5: 0.95 -> -0.27 V (over-compensated),
+// 0.85 -> -0.13, 0.75 -> -0.03, 0.65 -> +0.08. So 0.75 V (0.039 duty total).
+// Less than the 3 A phase-ID estimate above because the Vce/Vf share grows
+// with current: expect to raise dtc_v a little at higher current.
+// The old 0.95 only looked right at dtc_ith 2 A, where the ramp itself left
+// ~0.8 V uncompensated at 1 A.
+#define DTC_VDROP_V             0.75f
+// Ramp width. 0.5 A became usable once dtc_apply removed the zero sequence
+// (the common ADC interference, ~0.8 A rms per phase); with it, the d/q
+// high-frequency noise stays at the 0.12-0.15 A floor for ramps down to 0.25 A.
+#define DTC_ITH_A               0.5f
 #define DTC_DEFAULT_EN          1U          // closed loop never works without it on this stack
 
 // Phase-ID dwell current target [A]. At 1 A the dead zone clamps the two legs

@@ -205,12 +205,19 @@ static inline void dtc_apply(volatile FOC_Duty_t *d, volatile FOC_Iabc_t *i,
 {
     float32_t k = g_dtc_duty + g_dtc_v * inv_vbus;
     float32_t inv_ith = g_dtc_inv_ith;
+    // Zero-sequence removal [2026-11-06 bench]: the motor is star-connected with
+    // no neutral, so the true Iu+Iv+Iw is 0 and z below is pure measurement
+    // error -- on FE_UFPR 4.0 the ~0.8 A rms MHz interference common to every
+    // ADC input. Clarke cancels it for the control loop, but the sign ramp here
+    // saw it raw: near each zero crossing it flipped the compensation at random,
+    // doubling the d/q current noise at dtc_ith 0.5. Subtracting z costs nothing.
+    float32_t z = (i->value[0] + i->value[1] + i->value[2]) * (1.0f / 3.0f);
     uint16_t  p;
 
     g_dbg_dtc_k = k;
     for(p = 0U; p < 3U; p++)
     {
-        float32_t s = i->value[p] * inv_ith;
+        float32_t s = (i->value[p] - z) * inv_ith;
         float32_t v;
         if(s >  1.0f) s =  1.0f;
         if(s < -1.0f) s = -1.0f;

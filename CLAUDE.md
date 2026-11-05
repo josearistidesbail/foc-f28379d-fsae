@@ -340,6 +340,31 @@ bench supply, UV trip off, `iq_max` 10 A), current-limited bench supply.**
   passive Vbus divider and the buffered ISNS_VREF, level-independent → ground (board GND vs LaunchPad VSSA), not
   the LEM or encoder stages; it saturates the PI clamp with kp ≈ 0.8. Pending split: jumper LaunchPad J3-23
   (ADCIN14, NC on the board) to J3-22 and read it.
+- [x] **G — ADC noise: same-slot current sampling** (2026-11-06). The ~5 codes rms on every channel is ONE
+  interference common to all ADC inputs, present with the power stage NOT switching (IDLE, gate off).
+  Same-instant channels correlate 0.8–0.99, one SOC slot (290 ns = 16 + 42 SYSCLK) later −0.9; flat 10 kHz
+  spectrum, kurtosis ~1.9 (mostly periodic, jittery). Independent per-channel floor = (Iv−Iw)/√2 at one
+  instant = **0.55 codes (0.08 A)**. Unplugging the encoder didn't change the level, only made SIN/COS share it
+  too. Iu sat in ADC-A SOC1 while Iv/Iw sat in SOC0, so the 3-sensor Clarke couldn't cancel it: Iα 0.95 A
+  vs Iβ 0.07 A rms. **Fix (commit 5432839): ADC-A SOC0 = Iu (A5), SOC1 = SIN (A2)** → all currents share
+  SOC0, SIN/COS share SOC1. IDLE Iα 0.98 → 0.15 A; closed loop at zero ref (31 V, switching) Id 0.06 / Iq
+  0.16 A rms, Vd/Vq 0.05/0.13 V rms, never near the 2.3 V clamp (was saturating). **Keep currents in one
+  slot.** Lead suspect for the source (board session): the **LaunchPad U12 (LMR62421X) ~1.6 MHz boost** (NOT the board's U12, the phase-A OPA2376),
+  enabled by R14 whenever target 3V3 is up (JP6 only links its output), i.e. woken by the 3V3 rework wire;
+  single-tone fits gave 1.55–1.69 MHz among the aliases. Kill test still owed (board off, LaunchPad U12 (LMR62421X) pin 4 SD, or R14's non-3V3 pad, to
+  LaunchPad GND, re-capture). SIN/COS still carry it (atan2 doesn't cancel a common shift, ~2.6° elec); only
+  the source fix cures that. Also: the generic bench 24 V supply may contribute (LiPo in the car).
+  Tools: coherent captures via `step_go=2` (one-shot, gap-free 128 samples) in any state; the backchannel was
+  `/dev/ttyUSB1` this time. Every board power-up boots into FAULT 0x11 (`tz_trip` 1, the module flags settle
+  after the MCU): `clearfault` once, sometimes twice.
+- [x] **H — dead-time compensation retuned** (2026-11-06, 31 V). Test point: torque mode, `vmax_frac` 0.25,
+  iq_ref 2 A, voltage-clamped (~1 A, ~100 rpm); metric = leftover q-voltage Vq − Rs·Iq − ω·λ. `dtc_apply` now
+  subtracts the zero sequence z = (Iu+Iv+Iw)/3 before the sign ramp (star, no neutral → true z = 0; z is the
+  common ADC interference, ~0.8 A rms). Without that, narrowing `dtc_ith` doubled the d/q noise (0.13 → 0.24 A);
+  with it the noise stays at 0.12–0.15 A down to 0.25 A. Then `dtc_v` at `dtc_ith` 0.5: 0.95 → −0.27 V
+  (over), 0.85 → −0.13, **0.75 → −0.03**, 0.65 → +0.08. New defaults `DTC_ITH_A` 0.5, `DTC_VDROP_V` 0.75
+  (was 2.0 / 0.95, which left +0.8 V at 1 A). Speed at the same clamp: 54 rpm off, 75 old, 96 new.
+  The device drops grow with current: re-check the null at higher current.
 - [ ] **Phase 2 firmware (deferred)**: aux ADC SOCs (A3 3V3 monitor, A4/B5 current-sense reference cross-check,
   B3 motor KTY, C3 module NTC) + temperature conversion + motor over-temperature stop; SW_MAIN as a FIRMWARE run
   permissive (today only the hardware removes the gate when it drops, while the FW still thinks it runs); CAN-A
