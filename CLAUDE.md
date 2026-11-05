@@ -64,6 +64,77 @@ interface B = the SCI backchannel — the backchannel is **`/dev/ttyUSB1`** when
 `ttyUSB0` while CCS holds interface A (check with `ls /dev/ttyUSB*`). Host tools need pyserial (not installed
 system-wide; use a venv).
 
+## ▶ NEXT SESSION — START HERE (handoff written 2026-11-06)
+
+Self-contained: the next session runs on a different machine (laptop) with no Claude memory and no
+peer sessions, so everything needed is here and in `foc_f28379d/host/bench/README.md`.
+
+**Where things stand.** FE_UFPR 4.0 + EMRAX 208 + RM44AC resolver runs closed-loop on the 31 V bench:
+calibrate → RUN in torque or speed mode, all with `iloop_en` 1. Branch `sensorless-observer`; the
+day's work is bring-ups **G–K** in the FE_UFPR 4.0 log below (same-slot current sampling, dead-time
+comp, speed mode, current-PI retune, bus-agnostic calibration). The board was last flashed with
+`b655878`. **First `git pull` and read `git log`** — a parallel cleanup session
+(`foc-f28379d-fsae-d9`) works after `b655878`: `f8e06ef` (Vbus ADC sample window 512 → 15 cycles)
+is committed but was **NOT flashed** on 2026-11-06; still in progress then: removing `iloop_en`=0 /
+the RUN open-loop resistive mode, dead `ISENSE_NUM_CHANNELS == 2` branches, stale comments. Check
+what actually landed before trusting the param list below, and build + flash the tip before vbuscal.
+
+**Laptop setup checklist** (paths in this file are the Linux desktop's):
+1. CCS 21.0.1 + C2000Ware 26.01 + MotorControl SDK 6.00 (see Build Configurations; the project
+   hard-codes `~/ti/c2000/...` names, satisfied by symlinks on the desktop). Point
+   `.claude/ccs.settings.md` and `.mcp.json` at the laptop's CCS (both are tracked and hold desktop
+   paths — don't commit laptop paths back without thinking about it).
+2. Import the project into CCS **as a link** (not copied); active build config
+   `Production_CtrlV2_EMRAX_Resolver` (switch it in the CCS GUI; `buildProject` builds the active one).
+3. Flash with the ccs-debug MCP `debugProject` (halts at `main` → `continue` → `terminate` to free
+   the JTAG). `launchTargetConfiguration` (attach without load) hung > 20 min on 2026-11-06 — don't.
+4. Host: `cd foc_f28379d/host && python -m venv .venv`, activate, `pip install -r requirements.txt`.
+   Port: XDS100 interface B (`/dev/ttyUSB1`, or `ttyUSB0` while CCS holds interface A; Linux needs
+   the TI udev rule + `uucp` group, see Toolchain; Windows = a COMx). GUI: `python -m foc_debug`.
+   Scripts: `foc_f28379d/host/bench/` (`FOC_PORT=...`). GUI and scripts can't share the port.
+
+**Bench procedure (every session).**
+- Power the board BEFORE/WITH the LaunchPad. Every power-up boots into FAULT 0x11 (OVERCURRENT|
+  GATE_DRIVER, `tz_trip` 1, module flags settle after the MCU): `clearfault`, sometimes twice.
+- Calibration is RAM-only: after each power-up/reflash run calibrate (~33 s, **motor turns**,
+  `bench/calibrate.py` or the GUI). Healthy: `phase_id_status` 1 (map 0 / inv 0), `cal_status` 1,
+  `align_offset` ≈ 106.6–107.3° elec, `align_delta` ≈ 6° at 8 A.
+- Boot defaults now in firmware: `iloop_en` 1, `align_id_a` 8 A, `kp_d`/`kp_q` 0.5, `dtc_v` 1.0,
+  `dtc_ith` 0.5, `kp_w` 0.35, `ki_w` 0.02, `res_w_mode` 1 (PLL), `vmax_frac` 0.15, `vbus_ovr` 31
+  (= `BENCH_DC_LINK_V`), UV trip off, `iq_max` 10 A, `oc_trip_a` 40 A.
+- **`vbus_ovr` must equal the real DC link whenever the motor runs** (control uses it, not the
+  sensor): at a different supply voltage every commanded volt is scaled by V_real/`vbus_ovr`.
+- Don't hot-plug the encoder (drops the XDS100). Scripts must restore every param they touch.
+- Phase current ≫ supply current at low speed (20 A phase drew ~1 A at 31 V — buck converter).
+
+**Next tasks, in order.**
+1. **vbuscal with the lab supply** (wide voltage range). FE_UFPR 4.0 uses the DESIGN values
+   `VBUS_DIVIDER_RATIO` 327.273 / `VBUS_OFFSET_CODE` 0 (hw_control_v2.h); they are visibly off
+   (the link reads ~46–48 codes with 0 V and ~77 codes at 31 V → displays ~18 V). The older
+   298.35/−79.4 fit in the debug-globals section is CONTROL_V2 hardware — ignore it for 4.0.
+   (a) Flash the tip first: `f8e06ef` changes the Vbus sampling, which shifts the reading ~1–2 codes.
+   (b) Motor IDLE (no PWM) at every point, same conditions. (c) 5–7 voltages as wide as the supply
+   allows, interleaved, not monotonic (e.g. 40, 150, 20, 90, 65, 40-again), DC link METERED each
+   time. (d) `python -m foc_debug -p <port> vbuscal` (interactive: type the metered volts per point,
+   blank line ends; `--apply` writes `vbus_ratio`/`vbus_off` live; it prints a `--fit` string to
+   refit offline). (e) Bake `VBUS_DIVIDER_RATIO`/`VBUS_OFFSET_CODE` into hw_control_v2.h.
+   (f) Hand-back: `vbus_ovr` 0 → set `uv_trip_v` (~70–80 % of the running bus) → `uv_en` 1. Read the
+   "DC-bus AFFINE calibration" notes below (range beats point count; low codes are unreliable).
+2. **λ (flux linkage)**: `bench/lambda_fit.py` (written, not yet run; ~30 s of spinning). Bench
+   data hints 0.034 V·s vs datasheet 0.0387 (bring-up H). Update `MOTOR_FLUX_VS` if confirmed.
+3. **Loaded torque tests** (needs a strap/band brake on the rotor; 10 A Iq ≈ 6 N·m — not by hand):
+   q-axis steps and the dead-time null at higher current under load.
+4. Firmware: boot-time grace for the power-up FAULT 0x11; LaunchPad U12 (LMR62421X) kill test
+   (deferred by the user — the board has its own U12, name it this way); see also "Phase 2
+   firmware (deferred)" in the FE_UFPR 4.0 log.
+
+**Lessons from 2026-11-06 worth keeping.** Never null a compensation against a model term that
+hasn't been measured (the dtc_v "null" against an assumed λ was wrong by 0.45 V; the standstill
+d-axis test is λ-free). Same-instant sampling turns a common interference into something Clarke
+cancels. A script that leaves a param changed will break the next person's procedure.
+Board-side docs (schematic, S12 handoff/fab notes) live in the KiCad repo `FE_UFPR_4_0`
+(`/home/jose/Kicad/FE_UFPR_4_0` on the desktop) — clone it on the laptop if hardware questions come up.
+
 ## Source Layout
 
 ```
