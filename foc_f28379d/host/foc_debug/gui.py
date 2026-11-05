@@ -25,14 +25,16 @@ from __future__ import annotations
 import collections
 import json
 import logging
+import os
 import pathlib
 import queue
 import sys
 import threading
 from dataclasses import dataclass
 
-from . import autotune, param_docs, proto, steplog
+from . import autotune, i18n, param_docs, proto, steplog
 from .api import FocDebug, ParamInfo, fault_reason, pos_status_reason, warn_reason
+from .i18n import tr
 from .link import SerialLink, LinkError, NackError, autodetect_port, debug_ports
 from .log import setup_logging
 
@@ -193,7 +195,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 self.connected.emit(False, "")
                 return
             if self.dbg is None:
-                self.failed.emit(job, "not connected")
+                self.failed.emit(job, tr("not connected"))
                 return
             try:
                 result = job.fn(self.dbg)
@@ -201,7 +203,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             except NackError as e:
                 self.failed.emit(job, f"NACK: {e}")
             except (LinkError, KeyError, ValueError, RuntimeError, IndexError) as e:
-                self.failed.emit(job, f"error: {e}")
+                self.failed.emit(job, tr("error: {e}", e=e))
 
         def _do_scope(self):
             try:
@@ -270,10 +272,10 @@ def build(pg, QtCore, QtGui, QtWidgets):
         ("flux_vs",       "λpm (mV·s)",         1e3,   4, 0.0,    1e4,    0.1),
         ("i_peak_a",      "I_peak (A)",         1.0,   2, 0.0,    1000.0, 0.5),
         ("vbus",          "Vbus (V)",           1.0,   2, 0.0,    1000.0, 1.0),
-        ("isr_freq_hz",   "ISR freq (Hz)",      1.0,   0, 1.0,    1e6,    1000.0),
-        ("speed_loop_ts", "Speed-loop Ts (ms)", 1e3,   4, 1e-3,   1000.0, 0.1),
-        ("fw_vmax_frac",  "FW Vmax fraction",   1.0,   2, 0.05,   1.0,    0.05),
-        ("pole_pairs",    "Pole pairs",         1.0,   0, 1.0,    50.0,   1.0),
+        ("isr_freq_hz",   tr("ISR freq (Hz)"),  1.0,   0, 1.0,    1e6,    1000.0),
+        ("speed_loop_ts", tr("Speed-loop Ts (ms)"), 1e3,   4, 1e-3,   1000.0, 0.1),
+        ("fw_vmax_frac",  tr("FW Vmax fraction"), 1.0,   2, 0.05,   1.0,    0.05),
+        ("pole_pairs",    tr("Pole pairs"),   1.0,   0, 1.0,    50.0,   1.0),
     ]
 
     # ---- worker-thread experiment helpers (touch only dbg/time) ------------
@@ -285,9 +287,9 @@ def build(pg, QtCore, QtGui, QtWidgets):
             if st == target:
                 return
             if st == ST_FAULT and target != ST_FAULT:
-                raise RuntimeError("device entered FAULT during the experiment")
+                raise RuntimeError(tr("device entered FAULT during the experiment"))
             time.sleep(0.1)
-        raise RuntimeError(f"timed out waiting for state {target}")
+        raise RuntimeError(tr("timed out waiting for state {target}", target=target))
 
     def at_ensure_idle(dbg):
         """Bring the device to IDLE so NEEDS_IDLE params can be written.
@@ -301,10 +303,10 @@ def build(pg, QtCore, QtGui, QtWidgets):
             return ""
         if st == ST_FAULT:
             dbg.clear_fault()
-            note = "cleared fault; "
+            note = tr("cleared fault; ")
         else:
             dbg.request_stop()
-            note = "stopped run; "
+            note = tr("stopped run; ")
         # Poll for IDLE with a tolerant loop. Unlike at_wait_state we do NOT treat
         # a FAULT/RUN reading as fatal here: we just issued stop/clear, so a
         # lingering non-IDLE state is the pre-transition state settling (the 1 kHz
@@ -315,7 +317,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             if dbg.sm_state() == ST_IDLE:
                 return note
             time.sleep(0.05)
-        raise RuntimeError("device did not return to IDLE (fault still asserted?)")
+        raise RuntimeError(tr("device did not return to IDLE (fault still asserted?)"))
 
     def at_apply_gains(dbg, gains):
         """Ensure IDLE (stopping a run / clearing a fault as needed) then write
@@ -384,8 +386,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
                     break
                 time.sleep(min(0.05, max(0.005, window / 8.0)))
             else:
-                raise RuntimeError("capture trigger did not complete "
-                                   "(device left RUN, or no samples logged?)")
+                raise RuntimeError(tr("capture trigger did not complete "
+                                      "(device left RUN, or no samples logged?)"))
             cap = dbg.capture_scope(timeout=2.0, retries=1)
             i_step = int(dbg.read_param("trig_idx"))
             # Drive health, read BEFORE the finally block stops the motor so it
@@ -426,7 +428,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
     class MainWindow(QtWidgets.QMainWindow):
         def __init__(self, initial_port=None):
             super().__init__()
-            self.setWindowTitle("UFPR Formula - Inverter Manager")
+            self.setWindowTitle(tr("UFPR Formula - Inverter Manager"))
             self.resize(1100, 760)
 
             self.params: list[ParamInfo] = []
@@ -525,30 +527,31 @@ def build(pg, QtCore, QtGui, QtWidgets):
             outer = QtWidgets.QVBoxLayout(central)
 
             # Menu bar
-            _file_menu = self.menuBar().addMenu("File")
-            _save_act = _file_menu.addAction("Save Parameters…")
+            _file_menu = self.menuBar().addMenu(tr("File"))
+            _save_act = _file_menu.addAction(tr("Save Parameters…"))
             _save_act.triggered.connect(self._save_params_json)
-            _load_act = _file_menu.addAction("Load Parameters…")
+            _load_act = _file_menu.addAction(tr("Load Parameters…"))
             _load_act.triggered.connect(self._load_params_json)
+            self._build_language_menu()
 
             # Connection bar
             bar = QtWidgets.QHBoxLayout()
             self.port_combo = QtWidgets.QComboBox()
             self.port_combo.setMinimumWidth(260)
-            self.refresh_ports_btn = QtWidgets.QPushButton("↻ Ports")
+            self.refresh_ports_btn = QtWidgets.QPushButton(tr("↻ Ports"))
             self.refresh_ports_btn.clicked.connect(lambda: self._refresh_ports())
-            self.all_ports_chk = QtWidgets.QCheckBox("All")
-            self.all_ports_chk.setToolTip(
+            self.all_ports_chk = QtWidgets.QCheckBox(tr("All"))
+            self.all_ports_chk.setToolTip(tr(
                 "Show every serial port, including the probe's JTAG channel\n"
                 "and the motherboard ttyS*/COM ports."
-            )
+            ))
             self.all_ports_chk.toggled.connect(lambda _on: self._refresh_ports())
-            self.connect_btn = QtWidgets.QPushButton("Connect")
+            self.connect_btn = QtWidgets.QPushButton(tr("Connect"))
             self.connect_btn.clicked.connect(self._toggle_connect)
-            self.ping_btn = QtWidgets.QPushButton("Ping")
+            self.ping_btn = QtWidgets.QPushButton(tr("Ping"))
             self.ping_btn.clicked.connect(self._do_ping)
-            self.conn_label = QtWidgets.QLabel("disconnected")
-            bar.addWidget(QtWidgets.QLabel("Port:"))
+            self.conn_label = QtWidgets.QLabel(tr("disconnected"))
+            bar.addWidget(QtWidgets.QLabel(tr("Port:")))
             bar.addWidget(self.port_combo)
             bar.addWidget(self.refresh_ports_btn)
             bar.addWidget(self.all_ports_chk)
@@ -573,25 +576,25 @@ def build(pg, QtCore, QtGui, QtWidgets):
             left = QtWidgets.QWidget()
             lv = QtWidgets.QVBoxLayout(left)
 
-            sm_box = QtWidgets.QGroupBox("State machine")
+            sm_box = QtWidgets.QGroupBox(tr("State machine"))
             sm_v = QtWidgets.QVBoxLayout(sm_box)
             smh = QtWidgets.QHBoxLayout()
             self.state_label = QtWidgets.QLabel("—")
             f = self.state_label.font()
             f.setBold(True)
             self.state_label.setFont(f)
-            self.run_btn = QtWidgets.QPushButton("Run")
-            self.calibrate_btn = QtWidgets.QPushButton("Calibrate")
-            self.calibrate_btn.setToolTip(
+            self.run_btn = QtWidgets.QPushButton(tr("Run"))
+            self.calibrate_btn = QtWidgets.QPushButton(tr("Calibrate"))
+            self.calibrate_btn.setToolTip(tr(
                 "Re-run offset calibration + rotor alignment, then return to IDLE"
-            )
-            self.stop_btn = QtWidgets.QPushButton("Stop")
-            self.clear_btn = QtWidgets.QPushButton("Clear fault")
+            ))
+            self.stop_btn = QtWidgets.QPushButton(tr("Stop"))
+            self.clear_btn = QtWidgets.QPushButton(tr("Clear fault"))
             self.run_btn.clicked.connect(lambda: self._sm("run"))
             self.calibrate_btn.clicked.connect(lambda: self._sm("calibrate"))
             self.stop_btn.clicked.connect(lambda: self._sm("stop"))
             self.clear_btn.clicked.connect(lambda: self._sm("clear"))
-            smh.addWidget(QtWidgets.QLabel("State:"))
+            smh.addWidget(QtWidgets.QLabel(tr("State:")))
             smh.addWidget(self.state_label, 1)
             smh.addWidget(self.run_btn)
             smh.addWidget(self.calibrate_btn)
@@ -603,17 +606,17 @@ def build(pg, QtCore, QtGui, QtWidgets):
             # firmware speed loop works in electrical rad/s, so we convert with the
             # motor pole-pairs reported by the device (self._pole_pairs).
             modeh = QtWidgets.QHBoxLayout()
-            modeh.addWidget(QtWidgets.QLabel("Mode:"))
+            modeh.addWidget(QtWidgets.QLabel(tr("Mode:")))
             self.mode_combo = QtWidgets.QComboBox()
-            self.mode_combo.addItems(["Torque", "Speed"])
-            self.mode_combo.setToolTip(
+            self.mode_combo.addItems([tr("Torque"), tr("Speed")])
+            self.mode_combo.setToolTip(tr(
                 "Torque: iq_ref commanded directly.  Speed: speed PI drives iq_ref "
                 "from the RPM setpoint. Switchable live (bumpless)."
-            )
+            ))
             self.mode_combo.activated.connect(self._on_mode_changed)
             modeh.addWidget(self.mode_combo)
             modeh.addSpacing(12)
-            self.ref_label = QtWidgets.QLabel("Torque (Nm):")
+            self.ref_label = QtWidgets.QLabel(tr("Torque (Nm):"))
             modeh.addWidget(self.ref_label)
             self.speed_spin = QtWidgets.QDoubleSpinBox()
             self.speed_spin.setRange(-20000.0, 20000.0)
@@ -627,13 +630,13 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.torque_spin.setSingleStep(0.01)
             modeh.addWidget(self.torque_spin)
             self.pct_chk = QtWidgets.QCheckBox("%")
-            self.pct_chk.setToolTip(
+            self.pct_chk.setToolTip(tr(
                 "Percentage mode — Speed: % of rated RPM; "
                 "Torque: % of peak torque (i_peak × Kt)"
-            )
+            ))
             self.pct_chk.toggled.connect(self._on_pct_toggled)
             modeh.addWidget(self.pct_chk)
-            self.rated_rpm_lbl = QtWidgets.QLabel("Rated:")
+            self.rated_rpm_lbl = QtWidgets.QLabel(tr("Rated:"))
             modeh.addWidget(self.rated_rpm_lbl)
             self.rated_rpm_spin = QtWidgets.QDoubleSpinBox()
             self.rated_rpm_spin.setRange(1.0, 100000.0)
@@ -645,12 +648,12 @@ def build(pg, QtCore, QtGui, QtWidgets):
             # only visible in speed mode with % checked
             self.rated_rpm_lbl.hide()
             self.rated_rpm_spin.hide()
-            self.speed_apply_btn = QtWidgets.QPushButton("Apply")
-            self.speed_apply_btn.setToolTip("Torque mode: write iq_ref (Nm / Kt → A)")
+            self.speed_apply_btn = QtWidgets.QPushButton(tr("Apply"))
+            self.speed_apply_btn.setToolTip(tr("Torque mode: write iq_ref (Nm / Kt → A)"))
             self.speed_apply_btn.clicked.connect(self._apply_ref)
             modeh.addWidget(self.speed_apply_btn)
             modeh.addStretch(1)
-            modeh.addWidget(QtWidgets.QLabel("Measured:"))
+            modeh.addWidget(QtWidgets.QLabel(tr("Measured:")))
             self.speed_meas_label = QtWidgets.QLabel("— rpm")
             mf = self.speed_meas_label.font()
             mf.setBold(True)
@@ -663,17 +666,17 @@ def build(pg, QtCore, QtGui, QtWidgets):
             vf = self.vbus_label.font()
             vf.setBold(True)
             self.vbus_label.setFont(vf)
-            self.vbus_label.setToolTip(
+            self.vbus_label.setToolTip(tr(
                 "Live DC-bus voltage from the device (read-only 'vbus' param)"
-            )
+            ))
             modeh.addWidget(self.vbus_label)
             sm_v.addLayout(modeh)
             lv.addWidget(sm_box)
 
             ph = QtWidgets.QHBoxLayout()
             ph.addStretch(1)
-            self.autoread_chk = QtWidgets.QCheckBox("Auto-refresh values")
-            self.refresh_vals_btn = QtWidgets.QPushButton("Refresh values")
+            self.autoread_chk = QtWidgets.QCheckBox(tr("Auto-refresh values"))
+            self.refresh_vals_btn = QtWidgets.QPushButton(tr("Refresh values"))
             self.refresh_vals_btn.clicked.connect(self._refresh_values)
             ph.addWidget(self.autoread_chk)
             ph.addWidget(self.refresh_vals_btn)
@@ -683,11 +686,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
             # finding a setting by name is quick. Ctrl+F focuses this box (see the
             # QShortcut below). Matches name / id / type, case-insensitive.
             filt_h = QtWidgets.QHBoxLayout()
-            filt_h.addWidget(QtWidgets.QLabel("Filter:"))
+            filt_h.addWidget(QtWidgets.QLabel(tr("Filter:")))
             self.param_filter = QtWidgets.QLineEdit()
-            self.param_filter.setPlaceholderText(
+            self.param_filter.setPlaceholderText(tr(
                 "Type to filter parameters by name…  (Ctrl+F)"
-            )
+            ))
             self.param_filter.setClearButtonEnabled(True)
             self.param_filter.textChanged.connect(self._apply_param_filter)
             filt_h.addWidget(self.param_filter, 1)
@@ -697,15 +700,16 @@ def build(pg, QtCore, QtGui, QtWidgets):
             _find_sc = QtGui.QShortcut(QtGui.QKeySequence.Find, self)
             _find_sc.activated.connect(self._focus_param_filter)
 
-            # Tab definitions: (label, name_filter_set or None=all)
+            # Tab definitions: (key, label, name_filter_set or None=all). Code
+            # branches on the KEY; the label is display text (translated).
             _TAB_DEFS = [
-                ("References", {"id_ref", "iq_ref", "omega_ref", "iq_max"}),
-                ("Gains",      {"kp_d", "ki_d", "kp_q", "ki_q", "kp_w", "ki_w",
+                ("refs", tr("References"), {"id_ref", "iq_ref", "omega_ref", "iq_max"}),
+                ("gains", tr("Gains"),     {"kp_d", "ki_d", "kp_q", "ki_q", "kp_w", "ki_w",
                                 "vmax_frac"}),
-                ("Config",     {"isense_recon", "isense_map", "isense_inv",
+                ("config", tr("Config"),   {"isense_recon", "isense_map", "isense_inv",
                                 "phase_id_en", "phase_id_a", "phase_id_mod",
                                 "phase_id_status"}),
-                ("Sensorless", {"angle_src", "angle_act", "pos_status", "warn_code",
+                ("sensorless", tr("Sensorless"), {"angle_src", "angle_act", "pos_status", "warn_code",
                                 "obs_mode", "obs_vsrc", "obs_healthy",
                                 "theta_est", "omega_est", "theta_err", "obs_dtheta",
                                 "obs_flux_err", "obs_smo_err", "obs_resets",
@@ -715,34 +719,34 @@ def build(pg, QtCore, QtGui, QtWidgets):
                                 "obs_rs", "obs_ls", "obs_err_trip", "obs_iq_max",
                                 "pos_force_lost", "pos_inj_err", "pos_trig_en",
                                 "isr_cycles", "isr_cycles_max", "isr_cyc_rst"}),
-                ("Advanced",   None),
+                ("advanced", tr("Advanced"), None),
             ]
             self.tab_widget = QtWidgets.QTabWidget()
             self._all_tables = []
-            for tab_label, fset in _TAB_DEFS:
+            for tab_key, tab_label, fset in _TAB_DEFS:
                 page = QtWidgets.QWidget()
                 page_lv = QtWidgets.QVBoxLayout(page)
                 page_lv.setContentsMargins(4, 4, 4, 4)
 
-                if tab_label == "Gains":
-                    tune_box = QtWidgets.QGroupBox("Tune D & Q together (current loop — needs IDLE)")
+                if tab_key == "gains":
+                    tune_box = QtWidgets.QGroupBox(tr("Tune D & Q together (current loop — needs IDLE)"))
                     tune_grid = QtWidgets.QGridLayout(tune_box)
-                    tune_grid.addWidget(QtWidgets.QLabel("kp  (D = Q):"), 0, 0)
+                    tune_grid.addWidget(QtWidgets.QLabel(tr("kp  (D = Q):")), 0, 0)
                     self.kp_dq_spin = QtWidgets.QDoubleSpinBox()
                     self.kp_dq_spin.setRange(0.0, 1e6)
                     self.kp_dq_spin.setDecimals(6)
                     self.kp_dq_spin.setSingleStep(0.01)
                     tune_grid.addWidget(self.kp_dq_spin, 0, 1)
-                    _kp_btn = QtWidgets.QPushButton("Apply")
+                    _kp_btn = QtWidgets.QPushButton(tr("Apply"))
                     _kp_btn.clicked.connect(self._apply_kp_dq)
                     tune_grid.addWidget(_kp_btn, 0, 2)
-                    tune_grid.addWidget(QtWidgets.QLabel("ki   (D = Q):"), 1, 0)
+                    tune_grid.addWidget(QtWidgets.QLabel(tr("ki   (D = Q):")), 1, 0)
                     self.ki_dq_spin = QtWidgets.QDoubleSpinBox()
                     self.ki_dq_spin.setRange(0.0, 1e6)
                     self.ki_dq_spin.setDecimals(6)
                     self.ki_dq_spin.setSingleStep(0.01)
                     tune_grid.addWidget(self.ki_dq_spin, 1, 1)
-                    _ki_btn = QtWidgets.QPushButton("Apply")
+                    _ki_btn = QtWidgets.QPushButton(tr("Apply"))
                     _ki_btn.clicked.connect(self._apply_ki_dq)
                     tune_grid.addWidget(_ki_btn, 1, 2)
                     tune_grid.setColumnStretch(1, 1)
@@ -755,22 +759,23 @@ def build(pg, QtCore, QtGui, QtWidgets):
                     lambda item, t=treg: self._on_table_item_changed(t, item)
                 )
                 self._all_tables.append(treg)
-                if tab_label == "Advanced":
-                    self.table = table   # backward compat for save/load JSON
                 page_lv.addWidget(table, 1)
-                self.tab_widget.addTab(page, tab_label)
+                _idx = self.tab_widget.addTab(page, tab_label)
+                if tab_key == "advanced":
+                    self.table = table   # backward compat for save/load JSON
+                    self._adv_tab_index = _idx
 
-            self.tab_widget.addTab(self._build_motor_page(), "Motor")
+            self.tab_widget.addTab(self._build_motor_page(), tr("Motor"))
             self._at_tab_index = self.tab_widget.addTab(
-                self._build_autotune_page(), "Autotune")
+                self._build_autotune_page(), tr("Autotune"))
             self.tab_widget.currentChanged.connect(self._on_tab_changed)
 
             lv.addWidget(self.tab_widget, 1)
 
-            hint = QtWidgets.QLabel(
+            hint = QtWidgets.QLabel(tr(
                 "Double-click a writable value and press Enter to write. "
                 "needs_idle params only accepted in IDLE state."
-            )
+            ))
             hint.setWordWrap(True)
             hint.setStyleSheet("color: gray;")
             lv.addWidget(hint)
@@ -786,33 +791,33 @@ def build(pg, QtCore, QtGui, QtWidgets):
             right = QtWidgets.QWidget()
             rv = QtWidgets.QVBoxLayout(right)
             sc = QtWidgets.QHBoxLayout()
-            self.scope_btn = QtWidgets.QPushButton("Start scope")
+            self.scope_btn = QtWidgets.QPushButton(tr("Start scope"))
             self.scope_btn.setCheckable(True)
             self.scope_btn.clicked.connect(self._toggle_scope)
             sc.addWidget(self.scope_btn)
-            sc.addWidget(QtWidgets.QLabel("decim:"))
+            sc.addWidget(QtWidgets.QLabel(tr("decim:")))
             self.decim_spin = QtWidgets.QSpinBox()
             self.decim_spin.setRange(1, 1000)
             self.decim_spin.setValue(1)
             self.decim_spin.valueChanged.connect(self._apply_decim)
             sc.addWidget(self.decim_spin)
-            sc.addWidget(QtWidgets.QLabel("interval ms:"))
+            sc.addWidget(QtWidgets.QLabel(tr("interval ms:")))
             self.interval_spin = QtWidgets.QSpinBox()
             self.interval_spin.setRange(50, 5000)
             self.interval_spin.setValue(250)
             self.interval_spin.valueChanged.connect(self._apply_interval)
             sc.addWidget(self.interval_spin)
-            sc.addWidget(QtWidgets.QLabel("history:"))
+            sc.addWidget(QtWidgets.QLabel(tr("history:")))
             self.history_spin = QtWidgets.QSpinBox()
             self.history_spin.setRange(256, 200000)
             self.history_spin.setSingleStep(1000)
             self.history_spin.setValue(self._history)
             self.history_spin.valueChanged.connect(self._apply_history)
             sc.addWidget(self.history_spin)
-            self.clear_buf_btn = QtWidgets.QPushButton("Clear")
+            self.clear_buf_btn = QtWidgets.QPushButton(tr("Clear"))
             self.clear_buf_btn.clicked.connect(self._clear_scope)
             sc.addWidget(self.clear_buf_btn)
-            self.save_csv_btn = QtWidgets.QPushButton("Save last to CSV…")
+            self.save_csv_btn = QtWidgets.QPushButton(tr("Save last to CSV…"))
             self.save_csv_btn.clicked.connect(self._save_csv)
             sc.addWidget(self.save_csv_btn)
             sc.addStretch(1)
@@ -820,7 +825,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
             # Signal selector: one checkbox per catalog signal (V1 four default).
             sigrow = QtWidgets.QHBoxLayout()
-            sigrow.addWidget(QtWidgets.QLabel("Signals:"))
+            sigrow.addWidget(QtWidgets.QLabel(tr("Signals:")))
             self.sig_checks = {}
             default_on = set(proto.mask_to_names(self._scope_mask))
             for _bit, name in proto.SCOPE_CATALOG:
@@ -845,10 +850,10 @@ def build(pg, QtCore, QtGui, QtWidgets):
             split.setSizes([520, 580])
             self._on_tab_changed(self.tab_widget.currentIndex())
 
-            self.statusBar().showMessage("Ready. Pick a port and Connect.")
+            self.statusBar().showMessage(tr("Ready. Pick a port and Connect."))
             _jab = QtWidgets.QLabel(
                 '<a href="https://github.com/josearistidesbail" style="color:gray;">'
-                "Made by Jose Aristides Bail</a>"
+                + tr("Made by Jose Aristides Bail") + "</a>"
             )
             _jab.setOpenExternalLinks(True)
             _jab.setToolTip("Jose Aristides Bail")
@@ -863,10 +868,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             """
             page = self.tab_widget.currentWidget()
             if not any(t["table"].parentWidget() is page for t in self._all_tables):
-                for i in range(self.tab_widget.count()):
-                    if self.tab_widget.tabText(i) == "Advanced":
-                        self.tab_widget.setCurrentIndex(i)
-                        break
+                self.tab_widget.setCurrentIndex(self._adv_tab_index)
             self.param_filter.setFocus(QtCore.Qt.ShortcutFocusReason)
             self.param_filter.selectAll()
 
@@ -896,7 +898,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
         def _make_param_table(self):
             t = QtWidgets.QTableWidget(0, 6)
             t.setHorizontalHeaderLabels(
-                ["id", "name", "type", "flags", "value (edit + Enter)", "status"]
+                [tr("id"), tr("name"), tr("type"), tr("flags"),
+                 tr("value (edit + Enter)"), tr("status")]
             )
             t.horizontalHeader().setStretchLastSection(True)
             t.setIconSize(QtCore.QSize(14, 14))
@@ -937,12 +940,12 @@ def build(pg, QtCore, QtGui, QtWidgets):
                     self.port_combo.setCurrentIndex(devs.index(guess))
                     break
             if not ports:
-                self.port_combo.addItem("(no serial ports found)", None)
+                self.port_combo.addItem(tr("(no serial ports found)"), None)
 
         def _toggle_connect(self):
             if not self._connected:
                 port = self.port_combo.currentData()
-                self._report(f"connecting to {port}…")
+                self._report(tr("connecting to {port}…", port=port))
                 self.worker.connect_port(port)
             else:
                 self._disconnect()
@@ -951,27 +954,28 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._stop_scope()
             self.worker.disconnect_port()
             self._set_connected(False)
-            self._report("disconnected")
+            self._report(tr("disconnected"))
 
         def _on_connected(self, ok, msg):
             if ok:
                 self._conn_port = msg
                 self._set_connected(True)
-                self._report(f"connected to {msg}")
+                self._report(tr("connected to {port}", port=msg))
                 self._load_params()
             else:
                 was = self._connected
                 self._set_connected(False)
                 if msg:
-                    self._report(f"connect failed: {msg}", logging.ERROR)
+                    self._report(tr("connect failed: {msg}", msg=msg), logging.ERROR)
                 elif was:
-                    self._report("disconnected")
+                    self._report(tr("disconnected"))
 
         def _set_connected(self, on):
             self._connected = on
-            self.connect_btn.setText("Disconnect" if on else "Connect")
+            self.connect_btn.setText(tr("Disconnect") if on else tr("Connect"))
             self.conn_label.setText(
-                f"connected: {self._conn_port}" if on else "disconnected"
+                tr("connected: {port}", port=self._conn_port) if on
+                else tr("disconnected")
             )
             for w in (
                 self.ping_btn, self.run_btn, self.calibrate_btn,
@@ -1001,7 +1005,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.worker.submit(
                 "list", fn=lambda d: d.list_params(),
                 on_done=self._apply_params,
-                on_fail=lambda m: self._report(f"param list failed: {m}", logging.ERROR),
+                on_fail=lambda m: self._report(tr("param list failed: {msg}", msg=m), logging.ERROR),
             )
 
         def _apply_params(self, params):
@@ -1199,7 +1203,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
         def _write_done(self, info, text, res):
             status, val = res
             sstr = proto.PARAM_WR_STR.get(status, f"status{status}")
-            self._report(f"write {info.name} = {text} → {sstr}")
+            self._report(tr("write {name} = {value} → {status}", name=info.name, value=text, status=sstr))
             self._programmatic = True
             for treg in self._all_tables:
                 row = treg["row_of_id"].get(info.id)
@@ -1243,7 +1247,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             sstr = proto.PARAM_WR_STR.get(status, f"status{status}")
             labels = ENUM_PARAMS.get(info.name, [])
             label = labels[idx] if 0 <= idx < len(labels) else str(idx)
-            self._report(f"write {info.name} = {label} → {sstr}")
+            self._report(tr("write {name} = {value} → {status}", name=info.name, value=label, status=sstr))
             self._programmatic = True
             for treg in self._all_tables:
                 row = treg["row_of_id"].get(info.id)
@@ -1266,13 +1270,13 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
         def _apply_gain_pair(self, name_a, name_b, val):
             if not self._connected:
-                self._report("not connected")
+                self._report(tr("not connected"))
                 return
             val_str = f"{val:.6g}"
             for name in (name_a, name_b):
                 info = next((p for p in self.params if p.name == name), None)
                 if info is None:
-                    self._report(f"param '{name}' not found", logging.WARNING)
+                    self._report(tr("param '{name}' not found", name=name), logging.WARNING)
                     continue
 
                 def do_write(dbg, pid=info.id, v=val_str):
@@ -1310,14 +1314,16 @@ def build(pg, QtCore, QtGui, QtWidgets):
             # the 500 ms poll will re-decorate (with the reason) if still faulted.
             self.state_label.setStyleSheet("color: #d33;" if st == ST_FAULT else "")
             self.state_label.setText(name)
-            self._report(f"{op} → {name}")
+            op_label = {"run": tr("Run"), "calibrate": tr("Calibrate"),
+                        "stop": tr("Stop"), "clear": tr("Clear fault")}.get(op, op)
+            self._report(tr("{op} → {state}", op=op_label, state=name))
 
         def _do_ping(self):
             if not self._connected:
                 return
             self.worker.submit(
                 "ping", fn=lambda d: d.ping_latency(b"foc-ping"),
-                on_done=lambda dt: self._report(f"ping ok: {dt * 1e3:.2f} ms round-trip"),
+                on_done=lambda dt: self._report(tr("ping ok: {ms:.2f} ms round-trip", ms=dt * 1e3)),
                 on_fail=lambda m: self._report(m, logging.ERROR),
             )
 
@@ -1368,7 +1374,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._update_ref_ui(idx)
             info = next((p for p in self.params if p.name == "control_mode"), None)
             if info is None:
-                self._report("control_mode param not found", logging.WARNING)
+                self._report(tr("param '{name}' not found", name="control_mode"), logging.WARNING)
                 return
             val = 1 if idx == 1 else 0
 
@@ -1390,18 +1396,18 @@ def build(pg, QtCore, QtGui, QtWidgets):
         def _mode_write_done(self, res):
             status, rb = res
             sstr = proto.PARAM_WR_STR.get(status, f"status{status}")
-            label = "Speed" if (rb == 1) else "Torque"
-            self._report(f"control mode → {label} ({sstr})")
+            label = tr("Speed") if (rb == 1) else tr("Torque")
+            self._report(tr("control mode → {mode} ({status})", mode=label, status=sstr))
             if rb is not None:
                 self._set_mode_combo(int(rb))
 
         def _apply_speed_rpm(self):
             if not self._connected:
-                self._report("not connected")
+                self._report(tr("not connected"))
                 return
             info = next((p for p in self.params if p.name == "omega_ref"), None)
             if info is None:
-                self._report("omega_ref param not found", logging.WARNING)
+                self._report(tr("param '{name}' not found", name="omega_ref"), logging.WARNING)
                 return
             val = self.speed_spin.value()
             if self._pct_mode:
@@ -1438,11 +1444,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
         def _apply_torque_nm(self):
             if not self._connected:
-                self._report("not connected")
+                self._report(tr("not connected"))
                 return
             info = next((p for p in self.params if p.name == "iq_ref"), None)
             if info is None:
-                self._report("iq_ref param not found", logging.WARNING)
+                self._report(tr("param '{name}' not found", name="iq_ref"), logging.WARNING)
                 return
             val = self.torque_spin.value()
             kt = self._kt()
@@ -1499,10 +1505,10 @@ def build(pg, QtCore, QtGui, QtWidgets):
             is_speed = (idx == 1)
             pct = self._pct_mode
             if is_speed:
-                self.ref_label.setText("Speed (%):" if pct else "Speed (RPM):")
+                self.ref_label.setText(tr("Speed (%):") if pct else tr("Speed (RPM):"))
                 self._set_spin_abs_or_pct(self.speed_spin, pct, is_speed=True)
             else:
-                self.ref_label.setText("Torque (%):" if pct else "Torque (Nm):")
+                self.ref_label.setText(tr("Torque (%):") if pct else tr("Torque (Nm):"))
                 self._set_spin_abs_or_pct(self.torque_spin, pct, is_speed=False)
             self.speed_spin.setVisible(is_speed)
             self.torque_spin.setVisible(not is_speed)
@@ -1510,11 +1516,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.rated_rpm_lbl.setVisible(show_rated)
             self.rated_rpm_spin.setVisible(show_rated)
             if is_speed:
-                tip = ("Write omega_ref (% of rated RPM → electrical rad/s)"
-                       if pct else "Write omega_ref (RPM → electrical rad/s)")
+                tip = (tr("Write omega_ref (% of rated RPM → electrical rad/s)")
+                       if pct else tr("Write omega_ref (RPM → electrical rad/s)"))
             else:
-                tip = ("Write iq_ref (% of peak torque → A)"
-                       if pct else "Write iq_ref (Nm / Kt → A)")
+                tip = (tr("Write iq_ref (% of peak torque → A)")
+                       if pct else tr("Write iq_ref (Nm / Kt → A)"))
             self.speed_apply_btn.setToolTip(tip)
 
         def _on_pct_toggled(self, checked):
@@ -1557,7 +1563,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             outer = QtWidgets.QVBoxLayout(page)
             outer.setContentsMargins(4, 4, 4, 4)
 
-            box = QtWidgets.QGroupBox("Motor & loop constants (used by the autotuner)")
+            box = QtWidgets.QGroupBox(tr("Motor & loop constants (used by the autotuner)"))
             grid = QtWidgets.QGridLayout(box)
             for r, (name, label, scale, dec, lo, hi, step) in enumerate(MC_FIELDS):
                 grid.addWidget(QtWidgets.QLabel(label + ":"), r, 0)
@@ -1577,19 +1583,19 @@ def build(pg, QtCore, QtGui, QtWidgets):
             outer.addWidget(box)
 
             row = QtWidgets.QHBoxLayout()
-            self.mc_reset_btn = QtWidgets.QPushButton("Reset to device values")
-            self.mc_reset_btn.setToolTip(
-                "Drop local edits and reload the values reported by the device.")
+            self.mc_reset_btn = QtWidgets.QPushButton(tr("Reset to device values"))
+            self.mc_reset_btn.setToolTip(tr(
+                "Drop local edits and reload the values reported by the device."))
             self.mc_reset_btn.clicked.connect(self._mc_reset_to_device)
             row.addWidget(self.mc_reset_btn)
             row.addStretch(1)
             outer.addLayout(row)
 
-            note = QtWidgets.QLabel(
+            note = QtWidgets.QLabel(tr(
                 "These are read from the device on connect and feed the Autotune "
                 "tab. Edit any field to override it locally (the firmware is not "
                 "changed); vbus tracks the live bus until you edit it. Use Reset "
-                "to restore the device values.")
+                "to restore the device values."))
             note.setWordWrap(True)
             note.setStyleSheet("color: gray;")
             outer.addWidget(note)
@@ -1631,7 +1637,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._at_refresh_all_previews()
             if self._connected:
                 self._refresh_values()
-            self._report("motor constants reset to device values")
+            self._report(tr("motor constants reset to device values"))
 
         # ---- autotune ----------------------------------------------------
 
@@ -1691,22 +1697,22 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
         # (label, key) pairs for the detail grid, laid out in two columns.
         AT_METRIC_ROWS = [
-            ("Target (ref)",       "target"),
-            ("|Vdq| max",          "vmag"),
-            ("Final (measured)",   "final"),
-            ("|Vdq| / (vbus/2)",   "vfrac"),
-            ("Steady-state error", "sserr"),
-            ("DC bus",             "vbus"),
-            ("Peak",               "peak"),
-            ("min mean |Iphase|",  "iph"),
-            ("Overshoot",          "overshoot"),
-            ("Pre-step noise σ",   "noise"),
-            ("Rise 10–90%",        "rise"),
-            ("Sample period",      "dt"),
-            ("Settling (±2%)",     "settle"),
-            ("Window",             "window"),
-            ("Eff. bandwidth",     "bw"),
-            ("Trigger sample",     "trig"),
+            (tr("Target (ref)"),       "target"),
+            ("|Vdq| max",              "vmag"),
+            (tr("Final (measured)"),   "final"),
+            ("|Vdq| / (vbus/2)",       "vfrac"),
+            (tr("Steady-state error"), "sserr"),
+            (tr("DC bus"),             "vbus"),
+            (tr("Peak"),               "peak"),
+            (tr("min mean |Iphase|"),  "iph"),
+            (tr("Overshoot"),          "overshoot"),
+            (tr("Pre-step noise σ"),   "noise"),
+            (tr("Rise 10–90%"),        "rise"),
+            (tr("Sample period"),      "dt"),
+            (tr("Settling (±2%)"),     "settle"),
+            (tr("Window"),             "window"),
+            (tr("Eff. bandwidth"),     "bw"),
+            (tr("Trigger sample"),     "trig"),
         ]
 
         @staticmethod
@@ -1732,7 +1738,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             pv.setContentsMargins(4, 4, 4, 4)
 
             head = QtWidgets.QHBoxLayout()
-            self.at_title_lbl = QtWidgets.QLabel("Step response — run a verify")
+            self.at_title_lbl = QtWidgets.QLabel(tr("Step response — run a verify"))
             f = self.at_title_lbl.font()
             f.setBold(True)
             self.at_title_lbl.setFont(f)
@@ -1743,7 +1749,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             # rise is only 3 samples at decim=3, which quantizes rise time and
             # bandwidth badly -- but a loop that is still crawling after 30 ms needs
             # the span. Neither default suits both, hence the knob.
-            head.addWidget(QtWidgets.QLabel("iq step decim:"))
+            head.addWidget(QtWidgets.QLabel(tr("iq step decim:")))
             self.at_cur_decim = QtWidgets.QSpinBox()
             self.at_cur_decim.setRange(1, 50)
             self.at_cur_decim.setValue(3)
@@ -1752,13 +1758,13 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.at_decim_lbl = QtWidgets.QLabel("")
             self.at_decim_lbl.setStyleSheet("color: gray;")
             head.addWidget(self.at_decim_lbl)
-            _auto_btn = QtWidgets.QPushButton("Fit")
-            _auto_btn.setToolTip("Auto-range both axes to the visible signals")
+            _auto_btn = QtWidgets.QPushButton(tr("Fit"))
+            _auto_btn.setToolTip(tr("Auto-range both axes to the visible signals"))
             _auto_btn.clicked.connect(lambda: self.at_plot.getViewBox().autoRange())
             head.addWidget(_auto_btn)
-            self.at_save_csv_btn = QtWidgets.QPushButton("Save step to CSV…")
-            self.at_save_csv_btn.setToolTip(
-                "Write the last step capture (all channels) to CSV")
+            self.at_save_csv_btn = QtWidgets.QPushButton(tr("Save step to CSV…"))
+            self.at_save_csv_btn.setToolTip(tr(
+                "Write the last step capture (all channels) to CSV"))
             self.at_save_csv_btn.clicked.connect(self._at_save_csv)
             self.at_save_csv_btn.setEnabled(False)
             head.addWidget(self.at_save_csv_btn)
@@ -1768,14 +1774,14 @@ def build(pg, QtCore, QtGui, QtWidgets):
             # merely logged so the file is findable mid-bench, without digging
             # through the console.
             logrow = QtWidgets.QHBoxLayout()
-            self._step_log_lbl = QtWidgets.QLabel("log: (created on first step)")
+            self._step_log_lbl = QtWidgets.QLabel(tr("log: (created on first step)"))
             self._step_log_lbl.setStyleSheet("color: gray;")
-            self._step_log_lbl.setToolTip(
+            self._step_log_lbl.setToolTip(tr(
                 "Every step this session is appended to a CSV pair under "
                 "step_logs/ — one row per sample, plus a one-row-per-step "
-                "summary with metrics, rotor angle and the gains in force.")
+                "summary with metrics, rotor angle and the gains in force."))
             logrow.addWidget(self._step_log_lbl, 1)
-            _open_btn = QtWidgets.QPushButton("Open log folder")
+            _open_btn = QtWidgets.QPushButton(tr("Open log folder"))
             _open_btn.clicked.connect(self._at_open_log_dir)
             logrow.addWidget(_open_btn)
             pv.addLayout(logrow)
@@ -1784,7 +1790,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             # y-autorange (pyqtgraph skips invisible items), which is the only
             # practical way to read amps and volts off a single shared axis.
             sig = QtWidgets.QHBoxLayout()
-            sig.addWidget(QtWidgets.QLabel("Signals:"))
+            sig.addWidget(QtWidgets.QLabel(tr("Signals:")))
             self.at_sig_checks = {}
             for name in self.AT_CURVE_ORDER:
                 cb = QtWidgets.QCheckBox(name)
@@ -1830,7 +1836,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.at_plot.addItem(self.at_trig_line)
             pv.addWidget(self.at_plot, 1)
 
-            det = QtWidgets.QGroupBox("Step detail")
+            det = QtWidgets.QGroupBox(tr("Step detail"))
             grid = QtWidgets.QGridLayout(det)
             grid.setVerticalSpacing(2)
             self.at_status_lbl = QtWidgets.QLabel("—")
@@ -1859,8 +1865,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
             """Spell out what the decimation buys: total span and sample period."""
             isr = self._mc("isr_freq_hz") or 10000.0
             dt = self.at_cur_decim.value() / isr
-            self.at_decim_lbl.setText(
-                f"→ {128 * dt * 1e3:.1f} ms window @ {dt * 1e6:.0f} µs")
+            self.at_decim_lbl.setText(tr(
+                "→ {ms:.1f} ms window @ {us:.0f} µs", ms=128 * dt * 1e3, us=dt * 1e6))
 
         def _on_tab_changed(self, index):
             """Hand the right pane to the step panel while on the Autotune tab."""
@@ -1888,33 +1894,33 @@ def build(pg, QtCore, QtGui, QtWidgets):
             return sp
 
         def _build_at_manual_box(self):
-            box = QtWidgets.QGroupBox("Manual gains — type values, apply, and step")
+            box = QtWidgets.QGroupBox(tr("Manual gains — type values, apply, and step"))
             g = QtWidgets.QGridLayout(box)
             r = 0
 
             top = QtWidgets.QHBoxLayout()
-            self.at_man_load_btn = QtWidgets.QPushButton("Load from device")
-            self.at_man_load_btn.setToolTip(
+            self.at_man_load_btn = QtWidgets.QPushButton(tr("Load from device"))
+            self.at_man_load_btn.setToolTip(tr(
                 "Copy the gains currently in the firmware into these boxes and "
-                "resume tracking them on every value refresh.")
+                "resume tracking them on every value refresh."))
             self.at_man_load_btn.clicked.connect(self._at_manual_load_device)
             top.addWidget(self.at_man_load_btn)
-            self.at_man_copy_btn = QtWidgets.QPushButton("Copy computed ↓")
-            self.at_man_copy_btn.setToolTip(
+            self.at_man_copy_btn = QtWidgets.QPushButton(tr("Copy computed ↓"))
+            self.at_man_copy_btn.setToolTip(tr(
                 "Fill these boxes with the gains the autotuner computed in the "
-                "boxes below, as a starting point for hand tweaking.")
+                "boxes below, as a starting point for hand tweaking."))
             self.at_man_copy_btn.clicked.connect(self._at_manual_copy_computed)
             top.addWidget(self.at_man_copy_btn)
-            self.at_man_link_chk = QtWidgets.QCheckBox("mirror D → Q")
-            self.at_man_link_chk.setToolTip(
-                "Editing kp_d/ki_d also writes kp_q/ki_q (Ld ≈ Lq on this motor).")
+            self.at_man_link_chk = QtWidgets.QCheckBox(tr("mirror D → Q"))
+            self.at_man_link_chk.setToolTip(tr(
+                "Editing kp_d/ki_d also writes kp_q/ki_q (Ld ≈ Lq on this motor)."))
             self.at_man_link_chk.setChecked(True)
             top.addWidget(self.at_man_link_chk)
             top.addStretch(1)
             g.addLayout(top, r, 0, 1, 6)
             r += 1
 
-            g.addWidget(QtWidgets.QLabel("<b>Current loop</b>"), r, 0)
+            g.addWidget(QtWidgets.QLabel("<b>" + tr("Current loop") + "</b>"), r, 0)
             g.addWidget(QtWidgets.QLabel("kp_d:"), r, 1)
             g.addWidget(self._make_gain_spin("kp_d"), r, 2)
             g.addWidget(QtWidgets.QLabel("ki_d:"), r, 3)
@@ -1925,21 +1931,21 @@ def build(pg, QtCore, QtGui, QtWidgets):
             g.addWidget(QtWidgets.QLabel("ki_q:"), r, 3)
             g.addWidget(self._make_gain_spin("ki_q"), r, 4)
             r += 1
-            self.at_man_cur_apply_btn = QtWidgets.QPushButton("Apply current gains")
+            self.at_man_cur_apply_btn = QtWidgets.QPushButton(tr("Apply current gains"))
             self.at_man_cur_apply_btn.clicked.connect(self._at_manual_apply_current)
             g.addWidget(self.at_man_cur_apply_btn, r, 0, 1, 2)
-            g.addWidget(QtWidgets.QLabel("iq step (A):"), r, 2)
+            g.addWidget(QtWidgets.QLabel(tr("iq step (A):")), r, 2)
             self.at_man_cur_step = QtWidgets.QDoubleSpinBox()
             self.at_man_cur_step.setRange(0.05, 5.0)
             self.at_man_cur_step.setDecimals(2)
             self.at_man_cur_step.setSingleStep(0.1)
             self.at_man_cur_step.setValue(0.5)
             g.addWidget(self.at_man_cur_step, r, 3)
-            self.at_man_cur_verify_btn = QtWidgets.QPushButton("Apply + Verify (step iq)")
-            self.at_man_cur_verify_btn.setToolTip(
+            self.at_man_cur_verify_btn = QtWidgets.QPushButton(tr("Apply + Verify (step iq)"))
+            self.at_man_cur_verify_btn.setToolTip(tr(
                 "Writes these kp/ki (needs IDLE), runs in torque mode, steps iq, "
                 "and plots the response below — same experiment as the "
-                "model-based box. Energizes the motor — keep the shaft clear.")
+                "model-based box. Energizes the motor — keep the shaft clear."))
             self.at_man_cur_verify_btn.clicked.connect(self._at_manual_verify_current)
             g.addWidget(self.at_man_cur_verify_btn, r, 4, 1, 2)
             r += 1
@@ -1950,26 +1956,26 @@ def build(pg, QtCore, QtGui, QtWidgets):
             g.addWidget(line, r, 0, 1, 6)
             r += 1
 
-            g.addWidget(QtWidgets.QLabel("<b>Speed loop</b>"), r, 0)
+            g.addWidget(QtWidgets.QLabel("<b>" + tr("Speed loop") + "</b>"), r, 0)
             g.addWidget(QtWidgets.QLabel("kp_w:"), r, 1)
             g.addWidget(self._make_gain_spin("kp_w"), r, 2)
             g.addWidget(QtWidgets.QLabel("ki_w:"), r, 3)
             g.addWidget(self._make_gain_spin("ki_w"), r, 4)
             r += 1
-            self.at_man_spd_apply_btn = QtWidgets.QPushButton("Apply speed gains")
+            self.at_man_spd_apply_btn = QtWidgets.QPushButton(tr("Apply speed gains"))
             self.at_man_spd_apply_btn.clicked.connect(self._at_manual_apply_speed)
             g.addWidget(self.at_man_spd_apply_btn, r, 0, 1, 2)
-            g.addWidget(QtWidgets.QLabel("RPM step:"), r, 2)
+            g.addWidget(QtWidgets.QLabel(tr("RPM step:")), r, 2)
             self.at_man_spd_step = QtWidgets.QDoubleSpinBox()
             self.at_man_spd_step.setRange(-10000.0, 10000.0)
             self.at_man_spd_step.setDecimals(0)
             self.at_man_spd_step.setSingleStep(50.0)
             self.at_man_spd_step.setValue(500.0)
             g.addWidget(self.at_man_spd_step, r, 3)
-            self.at_man_spd_verify_btn = QtWidgets.QPushButton("Apply + Verify (step RPM)")
-            self.at_man_spd_verify_btn.setToolTip(
+            self.at_man_spd_verify_btn = QtWidgets.QPushButton(tr("Apply + Verify (step RPM)"))
+            self.at_man_spd_verify_btn.setToolTip(tr(
                 "Writes these kp_w/ki_w (needs IDLE), runs in speed mode, steps "
-                "the RPM setpoint, and captures omega. Spins the motor.")
+                "the RPM setpoint, and captures omega. Spins the motor."))
             self.at_man_spd_verify_btn.clicked.connect(self._at_manual_verify_speed)
             g.addWidget(self.at_man_spd_verify_btn, r, 4, 1, 2)
             r += 1
@@ -1980,21 +1986,21 @@ def build(pg, QtCore, QtGui, QtWidgets):
             g.addWidget(line2, r, 0, 1, 6)
             r += 1
 
-            g.addWidget(QtWidgets.QLabel("<b>Field weakening</b>"), r, 0)
+            g.addWidget(QtWidgets.QLabel("<b>" + tr("Field weakening") + "</b>"), r, 0)
             g.addWidget(QtWidgets.QLabel("kp_fw:"), r, 1)
             g.addWidget(self._make_gain_spin("kp_fw"), r, 2)
             g.addWidget(QtWidgets.QLabel("ki_fw:"), r, 3)
             g.addWidget(self._make_gain_spin("ki_fw"), r, 4)
             r += 1
-            self.at_man_fw_apply_btn = QtWidgets.QPushButton("Apply FW gains")
+            self.at_man_fw_apply_btn = QtWidgets.QPushButton(tr("Apply FW gains"))
             self.at_man_fw_apply_btn.clicked.connect(self._at_manual_apply_fw)
             g.addWidget(self.at_man_fw_apply_btn, r, 0, 1, 2)
             r += 1
 
-            hint = QtWidgets.QLabel(
+            hint = QtWidgets.QLabel(tr(
                 "Boxes track the device until you edit one; \"Load from device\" "
                 "resumes tracking. Applying needs IDLE — a run is stopped and a "
-                "latched fault cleared automatically.")
+                "latched fault cleared automatically."))
             hint.setWordWrap(True)
             hint.setStyleSheet("color: gray;")
             g.addWidget(hint, r, 0, 1, 6)
@@ -2037,10 +2043,10 @@ def build(pg, QtCore, QtGui, QtWidgets):
             """Explicit re-sync: drop all local edits and re-read the device."""
             self._at_gain_dirty.clear()
             if not self._connected:
-                self._report("not connected")
+                self._report(tr("not connected"))
                 return
             self._refresh_values()
-            self._report("manual gains: reloading from device")
+            self._report(tr("manual gains: reloading from device"))
 
         def _at_manual_copy_computed(self):
             self._at_refresh_all_previews()
@@ -2051,7 +2057,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
                         self._at_set_gain_spin(name, val)
                         self._at_gain_dirty.add(name)
                         n += 1
-            self._report(f"manual gains: copied {n} computed value(s)")
+            self._report(tr("manual gains: copied {n} computed value(s)", n=n))
 
         def _at_manual_gains(self, which):
             names = {"current": ("kp_d", "ki_d", "kp_q", "ki_q"),
@@ -2078,10 +2084,10 @@ def build(pg, QtCore, QtGui, QtWidgets):
                                 self.at_man_spd_step.value(), "manual speed")
 
         def _build_at_current_box(self):
-            box = QtWidgets.QGroupBox("Current loop (Id/Iq) — model-based, exact")
+            box = QtWidgets.QGroupBox(tr("Current loop (Id/Iq) — model-based, exact"))
             g = QtWidgets.QGridLayout(box)
             r = 0
-            g.addWidget(QtWidgets.QLabel("Target bandwidth (Hz):"), r, 0)
+            g.addWidget(QtWidgets.QLabel(tr("Target bandwidth (Hz):")), r, 0)
             self.at_cur_bw = QtWidgets.QDoubleSpinBox()
             self.at_cur_bw.setRange(10.0, 5000.0)
             self.at_cur_bw.setDecimals(0)
@@ -2099,10 +2105,10 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.at_cur_preview_lbl = QtWidgets.QLabel("—")
             g.addWidget(self.at_cur_preview_lbl, r, 0, 1, 3)
             r += 1
-            self.at_cur_apply_btn = QtWidgets.QPushButton("Apply current gains")
+            self.at_cur_apply_btn = QtWidgets.QPushButton(tr("Apply current gains"))
             self.at_cur_apply_btn.clicked.connect(self._at_apply_current)
             g.addWidget(self.at_cur_apply_btn, r, 0)
-            g.addWidget(QtWidgets.QLabel("iq step (A):"), r, 1)
+            g.addWidget(QtWidgets.QLabel(tr("iq step (A):")), r, 1)
             self.at_cur_step = QtWidgets.QDoubleSpinBox()
             self.at_cur_step.setRange(0.05, 5.0)
             self.at_cur_step.setDecimals(2)
@@ -2110,21 +2116,21 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.at_cur_step.setValue(0.5)
             g.addWidget(self.at_cur_step, r, 2)
             r += 1
-            self.at_cur_verify_btn = QtWidgets.QPushButton("Apply + Verify (step iq)")
-            self.at_cur_verify_btn.setToolTip(
+            self.at_cur_verify_btn = QtWidgets.QPushButton(tr("Apply + Verify (step iq)"))
+            self.at_cur_verify_btn.setToolTip(tr(
                 "Applies the gains (needs IDLE), runs in torque mode, steps iq, "
                 "and captures the response. The first Run after boot auto-aligns "
-                "(~3 s spin). Energizes the motor — keep the shaft clear.")
+                "(~3 s spin). Energizes the motor — keep the shaft clear."))
             self.at_cur_verify_btn.clicked.connect(self._at_verify_current)
             g.addWidget(self.at_cur_verify_btn, r, 0, 1, 3)
             g.setColumnStretch(0, 1)
             return box
 
         def _build_at_speed_box(self):
-            box = QtWidgets.QGroupBox("Speed loop — symmetric optimum")
+            box = QtWidgets.QGroupBox(tr("Speed loop — symmetric optimum"))
             g = QtWidgets.QGridLayout(box)
             r = 0
-            g.addWidget(QtWidgets.QLabel("SO factor a (2–4):"), r, 0)
+            g.addWidget(QtWidgets.QLabel(tr("SO factor a (2–4):")), r, 0)
             self.at_spd_a = QtWidgets.QDoubleSpinBox()
             self.at_spd_a.setRange(1.5, 6.0)
             self.at_spd_a.setDecimals(2)
@@ -2133,7 +2139,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.at_spd_a.valueChanged.connect(lambda _v: self._at_speed_preview())
             g.addWidget(self.at_spd_a, r, 1)
             r += 1
-            g.addWidget(QtWidgets.QLabel("Inertia J (kg·m²):"), r, 0)
+            g.addWidget(QtWidgets.QLabel(tr("Inertia J (kg·m²):")), r, 0)
             self.at_spd_j = QtWidgets.QDoubleSpinBox()
             self.at_spd_j.setRange(1e-7, 1.0)
             self.at_spd_j.setDecimals(8)
@@ -2141,31 +2147,31 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.at_spd_j.setValue(1e-5)
             self.at_spd_j.valueChanged.connect(self._on_at_j_changed)
             g.addWidget(self.at_spd_j, r, 1)
-            self.at_spd_measure_btn = QtWidgets.QPushButton("Measure Km…")
-            self.at_spd_measure_btn.setToolTip(
+            self.at_spd_measure_btn = QtWidgets.QPushButton(tr("Measure Km…"))
+            self.at_spd_measure_btn.setToolTip(tr(
                 "Briefly spins the motor (torque step) to estimate the speed "
-                "plant gain Km and back out J. Keep the shaft free; start small.")
+                "plant gain Km and back out J. Keep the shaft free; start small."))
             self.at_spd_measure_btn.clicked.connect(self._at_measure_km)
             g.addWidget(self.at_spd_measure_btn, r, 2)
             r += 1
-            g.addWidget(QtWidgets.QLabel("Km probe iq (A):"), r, 0)
+            g.addWidget(QtWidgets.QLabel(tr("Km probe iq (A):")), r, 0)
             self.at_spd_km_iq = QtWidgets.QDoubleSpinBox()
             self.at_spd_km_iq.setRange(0.05, 3.0)
             self.at_spd_km_iq.setDecimals(2)
             self.at_spd_km_iq.setSingleStep(0.1)
             self.at_spd_km_iq.setValue(0.3)
             g.addWidget(self.at_spd_km_iq, r, 1)
-            self.at_spd_km_lbl = QtWidgets.QLabel("Km: (from J)")
+            self.at_spd_km_lbl = QtWidgets.QLabel(tr("Km: (from J)"))
             self.at_spd_km_lbl.setStyleSheet("color: gray;")
             g.addWidget(self.at_spd_km_lbl, r, 2)
             r += 1
             self.at_spd_preview_lbl = QtWidgets.QLabel("—")
             g.addWidget(self.at_spd_preview_lbl, r, 0, 1, 3)
             r += 1
-            self.at_spd_apply_btn = QtWidgets.QPushButton("Apply speed gains")
+            self.at_spd_apply_btn = QtWidgets.QPushButton(tr("Apply speed gains"))
             self.at_spd_apply_btn.clicked.connect(self._at_apply_speed)
             g.addWidget(self.at_spd_apply_btn, r, 0)
-            g.addWidget(QtWidgets.QLabel("RPM step:"), r, 1)
+            g.addWidget(QtWidgets.QLabel(tr("RPM step:")), r, 1)
             self.at_spd_step = QtWidgets.QDoubleSpinBox()
             self.at_spd_step.setRange(-10000.0, 10000.0)
             self.at_spd_step.setDecimals(0)
@@ -2173,20 +2179,20 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.at_spd_step.setValue(500.0)
             g.addWidget(self.at_spd_step, r, 2)
             r += 1
-            self.at_spd_verify_btn = QtWidgets.QPushButton("Apply + Verify (step RPM)")
-            self.at_spd_verify_btn.setToolTip(
+            self.at_spd_verify_btn = QtWidgets.QPushButton(tr("Apply + Verify (step RPM)"))
+            self.at_spd_verify_btn.setToolTip(tr(
                 "Applies the gains (needs IDLE), runs in speed mode, steps the "
-                "RPM setpoint, and captures omega. Spins the motor — shaft clear.")
+                "RPM setpoint, and captures omega. Spins the motor — shaft clear."))
             self.at_spd_verify_btn.clicked.connect(self._at_verify_speed)
             g.addWidget(self.at_spd_verify_btn, r, 0, 1, 3)
             g.setColumnStretch(0, 1)
             return box
 
         def _build_at_fw_box(self):
-            box = QtWidgets.QGroupBox("Field weakening — estimate only")
+            box = QtWidgets.QGroupBox(tr("Field weakening — estimate only"))
             g = QtWidgets.QGridLayout(box)
             r = 0
-            g.addWidget(QtWidgets.QLabel("Target FW bandwidth (Hz):"), r, 0)
+            g.addWidget(QtWidgets.QLabel(tr("Target FW bandwidth (Hz):")), r, 0)
             self.at_fw_bw = QtWidgets.QDoubleSpinBox()
             self.at_fw_bw.setRange(1.0, 200.0)
             self.at_fw_bw.setDecimals(1)
@@ -2195,7 +2201,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.at_fw_bw.valueChanged.connect(lambda _v: self._at_fw_preview())
             g.addWidget(self.at_fw_bw, r, 1)
             r += 1
-            g.addWidget(QtWidgets.QLabel("Vmax fraction:"), r, 0)
+            g.addWidget(QtWidgets.QLabel(tr("Vmax fraction:")), r, 0)
             self.at_fw_frac = QtWidgets.QDoubleSpinBox()
             self.at_fw_frac.setRange(0.10, 1.0)
             self.at_fw_frac.setDecimals(2)
@@ -2211,13 +2217,13 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.at_fw_preview_lbl = QtWidgets.QLabel("—")
             g.addWidget(self.at_fw_preview_lbl, r, 0, 1, 3)
             r += 1
-            self.at_fw_apply_btn = QtWidgets.QPushButton("Apply FW gains")
+            self.at_fw_apply_btn = QtWidgets.QPushButton(tr("Apply FW gains"))
             self.at_fw_apply_btn.clicked.connect(self._at_apply_fw)
             g.addWidget(self.at_fw_apply_btn, r, 0)
             r += 1
-            cav = QtWidgets.QLabel(
+            cav = QtWidgets.QLabel(tr(
                 "FW gains are a starting estimate: the loop engages only above "
-                "base speed and its gain scales with speed — verify on hardware.")
+                "base speed and its gain scales with speed — verify on hardware."))
             cav.setWordWrap(True)
             cav.setStyleSheet("color: #a06000;")
             g.addWidget(cav, r, 0, 1, 3)
@@ -2247,11 +2253,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
             try:
                 gains = autotune.current_loop_gains_dq(R, Ld, Lq, Ts, f_bw)
             except ValueError as e:
-                self.at_cur_preview_lbl.setText(f"invalid: {e}")
+                self.at_cur_preview_lbl.setText(tr("invalid: {msg}", msg=tr(str(e))))
                 self._at_cur_gains = None
                 return
             self._at_cur_gains = gains
-            warn = "   ⚠ above ISR/10" if f_bw > ceil else ""
+            warn = tr("   ⚠ above ISR/10") if f_bw > ceil else ""
             self.at_cur_preview_lbl.setText(
                 f"kp_d={gains['kp_d']:.4g}  ki_d={gains['ki_d']:.4g}    "
                 f"kp_q={gains['kp_q']:.4g}  ki_q={gains['ki_q']:.4g}{warn}")
@@ -2275,11 +2281,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
             try:
                 kp, ki = autotune.speed_loop_gains(Km, T_eq, Ts_spd, a)
             except ValueError as e:
-                self.at_spd_preview_lbl.setText(f"invalid: {e}")
+                self.at_spd_preview_lbl.setText(tr("invalid: {msg}", msg=tr(str(e))))
                 self._at_spd_gains = None
                 return
             self._at_spd_gains = {"kp_w": kp, "ki_w": ki}
-            src = "measured" if self._at_measured_km else "from J"
+            src = tr("measured") if self._at_measured_km else tr("from J")
             self.at_spd_preview_lbl.setText(
                 f"Km={Km:.4g} ({src})  T_eq={T_eq * 1e3:.3f} ms  →  "
                 f"kp_w={kp:.4g}  ki_w={ki:.4g}")
@@ -2287,7 +2293,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
         def _on_at_j_changed(self, _val=None):
             # Editing J means "use J", not a previously measured Km.
             self._at_measured_km = None
-            self.at_spd_km_lbl.setText("Km: (from J)")
+            self.at_spd_km_lbl.setText(tr("Km: (from J)"))
             self._at_speed_preview()
 
         def _at_fw_preview(self):
@@ -2301,7 +2307,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 we_ref = autotune.fw_base_speed_elec(vmax_fw, flux)
                 kp, ki = autotune.fw_loop_gains(vmax_fw, we_ref, Ld, Ts, f_fw)
             except ValueError as e:
-                self.at_fw_preview_lbl.setText(f"invalid: {e}")
+                self.at_fw_preview_lbl.setText(tr("invalid: {msg}", msg=tr(str(e))))
                 self._at_fw_gains = None
                 return
             self._at_fw_gains = {"kp_fw": kp, "ki_fw": ki}
@@ -2309,21 +2315,34 @@ def build(pg, QtCore, QtGui, QtWidgets):
             base_rpm = we_ref * 60.0 / (2.0 * np.pi) / pp
             self.at_fw_plant_lbl.setText(
                 f"vbus={vbus:.1f} V   vmax_fw={vmax_fw:.2f} V   "
-                f"base≈{we_ref:.0f} elec rad/s (~{base_rpm:.0f} rpm)")
+                + tr("base≈{we:.0f} elec rad/s (~{rpm:.0f} rpm)", we=we_ref, rpm=base_rpm))
             self.at_fw_preview_lbl.setText(f"kp_fw={kp:.4g}   ki_fw={ki:.4g}")
 
         # ---- apply handlers ---------------------------------------------
+        def _at_which_label(self, which):
+            """Display text for an experiment key. The key itself stays English:
+            it is written to the step-log CSV ("which" column)."""
+            return {
+                "current": tr("current"),
+                "speed": tr("speed"),
+                "field-weakening": tr("field-weakening"),
+                "manual current": tr("manual current"),
+                "manual speed": tr("manual speed"),
+                "manual field-weakening": tr("manual field-weakening"),
+            }.get(which, which)
+
         def _at_apply(self, which, gains):
             if not self._connected:
-                self._report("not connected")
+                self._report(tr("not connected"))
                 return
             if not gains:
-                self._report(f"no valid {which} gains computed", logging.WARNING)
+                self._report(tr("no valid {which} gains computed",
+                                which=self._at_which_label(which)), logging.WARNING)
                 return
             self.worker.submit(
                 "at_apply", fn=lambda d, g=dict(gains): at_apply_gains(d, g),
                 on_done=lambda res, w=which: self._at_apply_done(w, res),
-                on_fail=lambda m: self._report(f"apply failed: {m}", logging.ERROR))
+                on_fail=lambda m: self._report(tr("apply failed: {msg}", msg=m), logging.ERROR))
 
         def _at_apply_current(self):
             self._at_current_preview()
@@ -2340,7 +2359,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
         def _at_apply_done(self, which, res):
             note, statuses = res
             parts = [f"{k}={proto.PARAM_WR_STR.get(v, v)}" for k, v in statuses.items()]
-            self._report(f"{which} gains applied: " + note + ", ".join(parts))
+            self._report(tr("{which} gains applied: ", which=self._at_which_label(which))
+                         + note + ", ".join(parts))
             self._refresh_values()
 
         # ---- verify / measure experiments -------------------------------
@@ -2365,10 +2385,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
             produce exactly the same experiment, plot and metrics.
             """
             if not self._connected:
-                self._report("not connected")
+                self._report(tr("not connected"))
                 return
             if not gains:
-                self._report(f"no valid {which} gains", logging.WARNING)
+                self._report(tr("no valid {which} gains", which=self._at_which_label(which)),
+                             logging.WARNING)
                 return
             isr = self._mc("isr_freq_hz")
             # Capture the diagnostics alongside the step. Extra channels are free
@@ -2386,7 +2407,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
             mask = proto.names_to_mask(
                 ["Id", "Iq", "Vd", "Vq", "Iu", "Iv", "Iw", "vbus", "theta_elec",
                  "res_sin", "res_cos"])
-            self._report(f"{which} verify: applying gains + stepping iq…")
+            self._report(tr("{which} verify: applying gains + stepping iq…",
+                            which=self._at_which_label(which)))
             self._at_gains_in_force = dict(gains)   # recorded in the step log
             self._at_set_busy(True)
             self.worker.submit(
@@ -2406,10 +2428,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
         def _at_step_speed(self, gains, rpm, which):
             """Apply `gains`, run in speed mode, step the RPM setpoint, plot omega."""
             if not self._connected:
-                self._report("not connected")
+                self._report(tr("not connected"))
                 return
             if not gains:
-                self._report(f"no valid {which} gains", logging.WARNING)
+                self._report(tr("no valid {which} gains", which=self._at_which_label(which)),
+                             logging.WARNING)
                 return
             we = self._rpm_to_elec(rpm)
             isr = self._mc("isr_freq_hz")
@@ -2419,7 +2442,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
             total_t = ramp_t * 1.6 + 0.1
             decim = int(max(20, min(200, round(total_t * isr / 128.0))))
             mask = proto.names_to_mask(["omega_elec"])
-            self._report(f"{which} verify: applying gains + stepping RPM…")
+            self._report(tr("{which} verify: applying gains + stepping RPM…",
+                            which=self._at_which_label(which)))
             self._at_gains_in_force = dict(gains)   # recorded in the step log
             self._at_set_busy(True)
             self.worker.submit(
@@ -2433,12 +2457,12 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
         def _at_measure_km(self):
             if not self._connected:
-                self._report("not connected")
+                self._report(tr("not connected"))
                 return
             iq = self.at_spd_km_iq.value()
             isr = self._mc("isr_freq_hz")
             mask = proto.names_to_mask(["omega_elec"])
-            self._report("measuring Km: torque ramp…")
+            self._report(tr("measuring Km: torque ramp…"))
             self._at_set_busy(True)
             self.worker.submit(
                 "at_km",
@@ -2450,7 +2474,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
         def _at_verify_failed(self, msg):
             self._at_set_busy(False)
-            self._report(f"experiment failed: {msg}", logging.ERROR)
+            self._report(tr("experiment failed: {msg}", msg=msg), logging.ERROR)
 
         def _at_apply_curve_visibility(self, *_):
             """Show the ticked curves that this capture actually carries.
@@ -2503,7 +2527,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             for name, curve in self.at_curves.items():
                 self.at_legend.removeItem(curve)
             for name in self._at_present:
-                label = f"{name} (measured)" if name == chan else name
+                label = tr("{name} (measured)", name=name) if name == chan else name
                 self.at_legend.addItem(self.at_curves[name], label)
             self._at_apply_curve_visibility()
             self.at_trig_line.setPos(0.0)
@@ -2532,7 +2556,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             u = f" {unit}" if unit else ""
             set_ = lambda k, v: self.at_metric_vals[k].setText(v)
             set_("dt", f"{dt * 1e6:.0f} µs  ({1.0 / dt / 1e3:.1f} kHz)")
-            set_("window", f"{n} samples, {n * dt * 1e3:.2f} ms")
+            set_("window", tr("{n} samples, {ms:.2f} ms", n=n, ms=n * dt * 1e3))
             set_("trig", f"#{int(i_step)}  (t = 0)")
             if ref1 is not None:
                 set_("target", f"{ref1:.4g}{u}")
@@ -2546,9 +2570,10 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 set_("peak", f"{m.y_peak:.4g}{u}")
                 set_("overshoot", f"{m.overshoot_pct:.1f}%")
                 set_("rise", (f"{m.t_rise * 1e3:.3f} ms" if m.t_rise > 0.0
-                              else "< 1 sample"))
+                              else tr("< 1 sample")))
                 set_("settle", (f"{m.t_settle * 1e3:.3f} ms" if m.settled
-                                else f"not within {n * dt * 1e3:.1f} ms window"))
+                                else tr("not within {ms:.1f} ms window",
+                                        ms=n * dt * 1e3)))
                 set_("bw", f"{m.bw_hz:.0f} Hz" if m.bw_hz > 0.0 else "—")
             if "vmag" in diag:
                 set_("vmag", f"{diag['vmag']:.3f} V")
@@ -2611,16 +2636,19 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 n = self._step_log.append(cap.names, cap.data, dt, i_step, summary)
             except OSError as e:
                 # Never let a full disk / read-only checkout kill a bench run.
-                self._step_log_lbl.setText("step log: write failed")
-                self._report(f"step log: {e}", logging.ERROR)
+                self._step_log_lbl.setText(tr("step log: write failed"))
+                self._report(tr("step log: {msg}", msg=e), logging.ERROR)
                 return
             self._step_log_lbl.setText(
-                f"log: {self._step_log.samples_path.name}  ({n} step"
-                f"{'' if n == 1 else 's'})")
-            self._step_log_lbl.setToolTip(
-                f"Every step this session is appended to:\n"
-                f"{self._step_log.samples_path}   (samples)\n"
-                f"{self._step_log.summary_path}   (one row per step)")
+                tr("log: {file}  (1 step)", file=self._step_log.samples_path.name)
+                if n == 1 else
+                tr("log: {file}  ({n} steps)", file=self._step_log.samples_path.name, n=n))
+            self._step_log_lbl.setToolTip(tr(
+                "Every step this session is appended to:\n"
+                "{samples}   (samples)\n"
+                "{summary}   (one row per step)",
+                samples=self._step_log.samples_path,
+                summary=self._step_log.summary_path))
 
         @staticmethod
         def _at_channel(cap, name):
@@ -2637,10 +2665,10 @@ def build(pg, QtCore, QtGui, QtWidgets):
         def _at_save_csv(self):
             cap = self._at_last_cap
             if not cap:
-                self._report("no step capture yet")
+                self._report(tr("no step capture yet"))
                 return
             path, _ = QtWidgets.QFileDialog.getSaveFileName(
-                self, "Save step capture", "step.csv", "CSV (*.csv)")
+                self, tr("Save step capture"), "step.csv", "CSV (*.csv)")
             if not path:
                 return
             dt = getattr(self, "_at_last_dt", 0.0) or 0.0
@@ -2653,7 +2681,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
                         [str(i), f"{t:.6g}"]
                         + [f"{cap.data[c][i]:.6g}" for c in range(cap.n_channels)])
                         + "\n")
-            self._report(f"saved {path}")
+            self._report(tr("saved {path}", path=path))
 
         def _at_verify_done(self, chan, res, ref0, ref1, which):
             self._at_set_busy(False)
@@ -2662,7 +2690,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._at_last_istep = i_step
             self.at_save_csv_btn.setEnabled(True)
             if chan not in cap.names:
-                self._report(f"verify: channel {chan} not in capture", logging.ERROR)
+                self._report(tr("verify: channel {chan} not in capture", chan=chan), logging.ERROR)
                 return
             y = cap.data[cap.names.index(chan)]
             m = autotune.step_metrics(y, dt, ref0=ref0, ref1=ref1, i_step=i_step)
@@ -2670,9 +2698,10 @@ def build(pg, QtCore, QtGui, QtWidgets):
             # sits at negative time and the response starts exactly at the origin.
             xs = (np.arange(len(y)) - i_step) * dt * 1e3
             self._at_plot_capture(cap, xs, chan, ref1)
-            self.at_title_lbl.setText(
-                f"{which} verify — step {chan} to {ref1:.4g} "
-                f"{self._at_unit_for(chan)}")
+            self.at_title_lbl.setText(tr(
+                "{which} verify — step {chan} to {ref:.4g} {unit}",
+                which=self._at_which_label(which), chan=chan, ref=ref1,
+                unit=self._at_unit_for(chan)))
             # Volts-vs-dead-zone verdict from the same capture (autotune.py, tested).
             diag = autotune.step_diagnostics_data(cap.names, cap.data, i_step)
             self._at_fill_metrics(m, dt, len(y), i_step, ref1, diag,
@@ -2684,27 +2713,32 @@ def build(pg, QtCore, QtGui, QtWidgets):
             if health.get("tz_trip_before") is not None and \
                     health.get("tz_trip", 0) > health["tz_trip_before"]:
                 self.at_status_lbl.setStyleSheet("color: rgb(230,80,80);")
-                self.at_status_lbl.setText(
+                self.at_status_lbl.setText(tr(
                     "HW TRIP ZONE FIRED during this step "
-                    f"(tz_trip {health['tz_trip_before']} → {health['tz_trip']}, "
-                    f"module_fault=0x{health.get('module_fault', 0):04X}). The "
+                    "(tz_trip {before} → {after}, module_fault=0x{mf:04X}). The "
                     "bridge was latched in active-short — the current loop had no "
                     "authority, so the metrics below describe the trip, not the "
-                    "tuning.")
+                    "tuning.",
+                    before=health["tz_trip_before"], after=health["tz_trip"],
+                    mf=health.get("module_fault", 0)))
             if m.ok:
                 self.at_status_lbl.setStyleSheet("")
                 self.at_status_lbl.setText(
-                    "step analyzed" + ("" if m.settled else
-                                       " — did not settle inside the window"))
-                self._report(
-                    f"{which} verify: overshoot {m.overshoot_pct:.1f}%, "
-                    f"rise {m.t_rise * 1e3:.2f} ms")
+                    tr("step analyzed") if m.settled else
+                    tr("step analyzed — did not settle inside the window"))
+                self._report(tr(
+                    "{which} verify: overshoot {os:.1f}%, rise {rise:.2f} ms",
+                    which=self._at_which_label(which), os=m.overshoot_pct,
+                    rise=m.t_rise * 1e3))
             else:
                 self.at_status_lbl.setStyleSheet("color: rgb(230,160,60);")
-                self.at_status_lbl.setText(
-                    f"could not analyze step ({m.reason}) — try a larger step "
-                    "or different decimation. Levels below are still valid.")
-                self._report(f"{which} verify: {m.reason}", logging.WARNING)
+                self.at_status_lbl.setText(tr(
+                    "could not analyze step ({reason}) — try a larger step "
+                    "or different decimation. Levels below are still valid.",
+                    reason=tr(m.reason)))
+                self._report(tr("{which} verify: {reason}",
+                                which=self._at_which_label(which),
+                                reason=tr(m.reason)), logging.WARNING)
             self._refresh_values()
 
         def _at_km_done(self, res, iq):
@@ -2714,7 +2748,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._at_last_istep = _i_step
             self.at_save_csv_btn.setEnabled(True)
             if "omega_elec" not in cap.names:
-                self._report("Km: omega channel missing from capture", logging.ERROR)
+                self._report(tr("Km: omega channel missing from capture"), logging.ERROR)
                 return
             y = cap.data[cap.names.index("omega_elec")]
             n = len(y)
@@ -2724,8 +2758,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
             i0 = min(n - 2, max(int(_i_step) + 4, 1))
             slope = autotune.fit_slope(y, dt, i0=i0, i1=n)
             if iq <= 0 or slope <= 0:
-                self._report(
-                    "Km measure: no usable ramp (is the shaft free? try larger iq)",
+                self._report(tr(
+                    "Km measure: no usable ramp (is the shaft free? try larger iq)"),
                     logging.WARNING)
                 return
             Km = slope / iq
@@ -2735,7 +2769,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
                                        self._mc("flux_vs"))
             except ValueError:
                 J = 0.0
-            self.at_spd_km_lbl.setText(f"Km={Km:.4g} (measured)")
+            self.at_spd_km_lbl.setText(tr("Km={km:.4g} (measured)", km=Km))
             self.at_spd_j.blockSignals(True)   # reflect implied J, keep measured Km
             if J > 0:
                 self.at_spd_j.setValue(J)
@@ -2743,21 +2777,22 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._at_speed_preview()
             xs = (np.arange(n) - _i_step) * dt * 1e3
             self._at_plot_capture(cap, xs, "omega_elec", None)
-            self.at_title_lbl.setText(
-                f"Km measure — omega ramp at iq = {iq:.4g} A")
+            self.at_title_lbl.setText(tr(
+                "Km measure — omega ramp at iq = {iq:.4g} A", iq=iq))
             # A ramp is not a step, so the step metrics do not apply; report the
             # fit instead and blank the rest rather than showing stale numbers.
             self._at_clear_metrics()
             self.at_status_lbl.setStyleSheet("")
-            self.at_status_lbl.setText(
-                f"Km = {Km:.4g} rad/s²/A  (slope {slope:.4g} rad/s² over "
-                f"samples {i0}..{n}), implied J ≈ {J:.3g} kg·m²")
+            self.at_status_lbl.setText(tr(
+                "Km = {km:.4g} rad/s²/A  (slope {slope:.4g} rad/s² over "
+                "samples {i0}..{n}), implied J ≈ {j:.3g} kg·m²",
+                km=Km, slope=slope, i0=i0, n=n, j=J))
             self.at_metric_vals["dt"].setText(
                 f"{dt * 1e6:.0f} µs  ({1.0 / dt / 1e3:.1f} kHz)")
             self.at_metric_vals["window"].setText(
-                f"{n} samples, {n * dt * 1e3:.2f} ms")
+                tr("{n} samples, {ms:.2f} ms", n=n, ms=n * dt * 1e3))
             self.at_metric_vals["trig"].setText(f"#{int(_i_step)}  (t = 0)")
-            self._report(f"Km measured: {Km:.4g} (rad/s²/A), implied J≈{J:.3g} kg·m²")
+            self._report(tr("Km measured: {km:.4g} (rad/s²/A), implied J≈{j:.3g} kg·m²", km=Km, j=J))
 
         # ---- scope -------------------------------------------------------
         def _selected_names(self):
@@ -2806,7 +2841,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._rebuild_plots(names)
             if self._connected:
                 self.worker.set_scope_config(self._scope_mask, self.decim_spin.value())
-            self._report("scope signals: " + ", ".join(names))
+            self._report(tr("scope signals: {names}", names=", ".join(names)))
 
         def _apply_decim(self, val):
             if self._connected:
@@ -2850,13 +2885,13 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self.worker.set_scope_config(self._scope_mask, self.decim_spin.value())
             self.worker.set_interval(self.interval_spin.value() / 1000.0)
             self.worker.set_scope(True)
-            self._report("scope started")
-            self.scope_btn.setText("Stop scope")
+            self._report(tr("scope started"))
+            self.scope_btn.setText(tr("Stop scope"))
             self.scope_btn.setChecked(True)
 
         def _stop_scope(self):
             self.worker.set_scope(False)
-            self.scope_btn.setText("Start scope")
+            self.scope_btn.setText(tr("Start scope"))
             self.scope_btn.setChecked(False)
 
         def _scope_failed(self, msg):
@@ -2864,7 +2899,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             # (until it changes or a capture succeeds) so the console stays usable.
             if msg != self._last_scope_err:
                 self._last_scope_err = msg
-                self._report(f"scope error: {msg}", logging.ERROR)
+                self._report(tr("scope error: {msg}", msg=msg), logging.ERROR)
 
         def _on_capture(self, cap):
             # Drop frames captured under a different mask (in flight across a
@@ -2875,7 +2910,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
             # timer, not here — so a burst of captures coalesces into one redraw
             # and a stalled link leaves the existing history on screen.
             if self._last_scope_err is not None:
-                self._report("scope recovered", logging.INFO)
+                self._report(tr("scope recovered"), logging.INFO)
                 self._last_scope_err = None
             self._last_cap = cap
             for c in range(min(len(self._ring), cap.n_channels)):
@@ -2915,9 +2950,9 @@ def build(pg, QtCore, QtGui, QtWidgets):
 
         def _save_csv(self):
             if not self._last_cap:
-                self._report("no capture yet")
+                self._report(tr("no capture yet"))
                 return
-            path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save capture", "cap.csv", "CSV (*.csv)")
+            path, _ = QtWidgets.QFileDialog.getSaveFileName(self, tr("Save capture"), "cap.csv", "CSV (*.csv)")
             if not path:
                 return
             cap = self._last_cap
@@ -2925,15 +2960,15 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 fh.write("sample," + ",".join(cap.names) + "\n")
                 for i in range(cap.n_samples):
                     fh.write(",".join([str(i)] + [f"{cap.data[c][i]:.6g}" for c in range(cap.n_channels)]) + "\n")
-            self._report(f"saved {path}")
+            self._report(tr("saved {path}", path=path))
 
         # ---- save / load parameters (JSON) --------------------------------
         def _save_params_json(self):
             if not self.params:
-                self._report("no parameters loaded — connect and refresh first")
+                self._report(tr("no parameters loaded — connect and refresh first"))
                 return
             path, _ = QtWidgets.QFileDialog.getSaveFileName(
-                self, "Save parameters", "params.json", "JSON (*.json)"
+                self, tr("Save parameters"), "params.json", "JSON (*.json)"
             )
             if not path:
                 return
@@ -2957,11 +2992,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 })
             with open(path, "w") as fh:
                 json.dump({"params": rows}, fh, indent=2)
-            self._report(f"parameters saved → {path}")
+            self._report(tr("parameters saved → {path}", path=path))
 
         def _load_params_json(self):
             path, _ = QtWidgets.QFileDialog.getOpenFileName(
-                self, "Load parameters", "", "JSON (*.json)"
+                self, tr("Load parameters"), "", "JSON (*.json)"
             )
             if not path:
                 return
@@ -2969,12 +3004,12 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 with open(path) as fh:
                     data = json.load(fh)
             except Exception as e:  # noqa: BLE001
-                self._report(f"load failed: {e}", logging.ERROR)
+                self._report(tr("load failed: {msg}", msg=e), logging.ERROR)
                 return
             entries = data.get("params", [])
             if not self.params:
                 self._report(
-                    "no parameters known — connect and refresh before loading",
+                    tr("no parameters known — connect and refresh before loading"),
                     logging.ERROR,
                 )
                 return
@@ -3031,11 +3066,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
                             on_fail=lambda m: self._report(m, logging.ERROR),
                         )
                 written += 1
-            msg = f"loaded {written} param(s) from {path}"
+            msg = tr("loaded {n} param(s) from {path}", n=written, path=path)
             if skipped:
-                msg += f", {skipped} skipped"
+                msg += tr(", {n} skipped", n=skipped)
             if not self._connected and written:
-                msg += " (table pre-filled; connect to write to device)"
+                msg += tr(" (table pre-filled; connect to write to device)")
             self._report(msg)
 
         # ---- periodic refresh -------------------------------------------
@@ -3092,7 +3127,8 @@ def build(pg, QtCore, QtGui, QtWidgets):
             elif pos_status & POS_OBS_ACTIVE:
                 # Running on the observer: amber, with why (fail-over reason or
                 # FORCED) and the warning word if the supervisor raised one.
-                text += "  —  SENSORLESS (" + pos_status_reason(pos_status) + ")"
+                text += "  —  " + tr("SENSORLESS ({status})",
+                                     status=pos_status_reason(pos_status))
                 if warn:
                     text += "  [" + warn_reason(warn) + "]"
                 self.state_label.setStyleSheet("color: #c80;")
@@ -3105,6 +3141,66 @@ def build(pg, QtCore, QtGui, QtWidgets):
         def _state_failed(self, msg):
             self._state_pending = False
             log.debug("state poll failed: %s", msg)
+
+        # ---- language --------------------------------------------------
+        def _build_language_menu(self):
+            # Fixed bilingual title: findable whatever language is active.
+            menu = self.menuBar().addMenu("Language / Idioma")
+            group = QtGui.QActionGroup(self)
+            group.setExclusive(True)
+            for code, label in i18n.LANGUAGES.items():
+                act = menu.addAction(label)
+                act.setCheckable(True)
+                act.setChecked(code == i18n.language())
+                group.addAction(act)
+                act.triggered.connect(
+                    lambda _on=False, c=code: self._on_language_chosen(c))
+
+        def _on_language_chosen(self, code):
+            """Save the choice; it applies on the next start (offer a restart)."""
+            if code == i18n.language():
+                return
+            settings = QtCore.QSettings(SETTINGS_ORG, SETTINGS_APP)
+            settings.setValue(SETTINGS_LANG_KEY, code)
+            settings.sync()
+            log.info("language set to %s (applies on restart)", code)
+            # Ask in the language just picked; the rest of the window keeps the
+            # one it was built with until the restart.
+            prev = i18n.language()
+            i18n.set_language(code)
+            try:
+                box = QtWidgets.QMessageBox(self)
+                box.setIcon(QtWidgets.QMessageBox.Information)
+                box.setWindowTitle(tr("Language"))
+                box.setText(tr("The new language applies the next time the "
+                               "program starts."))
+                restart_btn = box.addButton(tr("Restart now"),
+                                            QtWidgets.QMessageBox.AcceptRole)
+                box.addButton(tr("Later"), QtWidgets.QMessageBox.RejectRole)
+                if self._connected:
+                    # Never leave a running drive without its GUI: restarting
+                    # drops the serial link.
+                    restart_btn.setEnabled(False)
+                    box.setInformativeText(tr("Disconnect first to restart now."))
+                box.exec()
+                restart = box.clickedButton() is restart_btn
+            finally:
+                i18n.set_language(prev)
+            if restart and not self._connected:
+                self._restart_app()
+
+        def _restart_app(self):
+            """Relaunch the GUI with the same command line, minus any --lang."""
+            orig = getattr(sys, "orig_argv", None) or [sys.executable] + sys.argv
+            args = relaunch_args(orig)
+            res = QtCore.QProcess.startDetached(sys.executable, args, os.getcwd())
+            ok = res[0] if isinstance(res, tuple) else bool(res)
+            if not ok:
+                self._report(tr("restart failed — start the program again by hand"),
+                             logging.ERROR)
+                return
+            self.close()
+            QtWidgets.QApplication.quit()
 
         def closeEvent(self, ev):
             self.state_timer.stop()
@@ -3120,11 +3216,49 @@ def build(pg, QtCore, QtGui, QtWidgets):
     return MainWindow
 
 
+# Persisted GUI settings (QSettings: ~/.config/UFPR Formula/foc_debug.conf on
+# Linux, the registry on Windows).
+SETTINGS_ORG, SETTINGS_APP = "UFPR Formula", "foc_debug"
+SETTINGS_LANG_KEY = "language"
+
+
+def resolve_language(cli_lang, saved, system_locale) -> str:
+    """Pick the GUI language: --lang (this run only) > saved choice > system
+    locale (pt_* -> Portuguese) > English."""
+    for cand in (cli_lang, saved):
+        cand = (cand or "").strip().lower()
+        if cand in i18n.LANGUAGES:
+            return cand
+    if (system_locale or "").lower().startswith("pt"):
+        return "pt"
+    return i18n.DEFAULT_LANGUAGE
+
+
+def relaunch_args(orig_argv) -> list:
+    """Interpreter arguments to relaunch with: ``orig_argv`` minus the
+    interpreter itself and any ``--lang X`` / ``--lang=X``, so a restart
+    after changing the language in the GUI picks up the saved choice."""
+    out, skip = [], False
+    for a in list(orig_argv)[1:]:
+        if skip:
+            skip = False
+            continue
+        if a == "--lang":
+            skip = True
+            continue
+        if a.startswith("--lang="):
+            continue
+        out.append(a)
+    return out
+
+
 def main(argv: list | None = None) -> int:
     initial_port = None
     verbose = False
+    cli_lang = None
     if argv:
-        # Accept "-p PORT" / "--port PORT" / "-v" passed through from the launcher.
+        # Accept "-p PORT" / "--port PORT" / "-v" / "--lang LANG" passed through
+        # from the launcher.
         for i, a in enumerate(argv):
             if a in ("-p", "--port") and i + 1 < len(argv):
                 initial_port = argv[i + 1]
@@ -3132,10 +3266,20 @@ def main(argv: list | None = None) -> int:
                 initial_port = a.split("=", 1)[1]
             elif a in ("-v", "--verbose"):
                 verbose = True
+            elif a == "--lang" and i + 1 < len(argv):
+                cli_lang = argv[i + 1]
+            elif a.startswith("--lang="):
+                cli_lang = a.split("=", 1)[1]
 
     setup_logging(verbose)
     log.info("starting GUI (port=%s)", initial_port or "auto")
     pg, QtCore, QtGui, QtWidgets = _require_qt()
+    # The language must be set before build(): class-level tables are
+    # translated when the classes are created.
+    saved = QtCore.QSettings(SETTINGS_ORG, SETTINGS_APP).value(SETTINGS_LANG_KEY, "")
+    lang = resolve_language(cli_lang, str(saved or ""), QtCore.QLocale.system().name())
+    i18n.set_language(lang)
+    log.info("GUI language: %s", lang)
     MainWindow = build(pg, QtCore, QtGui, QtWidgets)
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
     win = MainWindow(initial_port=initial_port)

@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "foc_f28379d",
+            "type": "ccs-debug",
+            "request": "launch",
+            "projectInfo": {
+                "name": "foc_f28379d",
+                "resourceId": "/foc_f28379d"
+            },
+            "launchSettings": {
+                "coresToLoadForProjectLaunch": [
+                    "C28xx_CPU1"
+                ]
+            }
+        },
+        {
+            "name": "TMS320F28379D.ccxml",
+            "type": "ccs-debug",
+            "request": "launch",
+            "targetConfig": "/home/jose/ti/CCSTargetConfigurations/TMS320F28379D.ccxml"
+        }
+    ]
+}

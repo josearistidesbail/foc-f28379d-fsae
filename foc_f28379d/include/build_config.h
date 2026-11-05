@@ -217,6 +217,16 @@
 #ifndef DTC_ITH_A
 #define DTC_ITH_A               2.0f
 #endif
+// Which current the ramp is fed ("dtc_src", live). MEASURED multiplies the
+// current-sensor noise by k*vbus/ith inside the ramp -- at zero torque, where
+// every phase sits in it, that is broadband audible hiss (bench 2026-11-05).
+// REFERENCE uses the id/iq refs the PIs track, back to phases at this tick's
+// angle: noise-free, zero at zero torque. See dtc_phase_currents().
+#define DTC_SRC_MEAS            0U
+#define DTC_SRC_REF             1U
+#ifndef DTC_SRC_DEFAULT
+#define DTC_SRC_DEFAULT         DTC_SRC_MEAS   // fallback; FE_UFPR 4.0 boots with REF
+#endif                                         // (hw_control_v2.h, bench 2026-11-05)
 
 //----- Control mode (outer-loop source of iq_ref) -------------------------
 #define FOC_MODE_TORQUE         0U   // iq_ref commanded directly (bring-up)

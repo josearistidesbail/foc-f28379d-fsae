@@ -19,6 +19,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+from .i18n import N_
+
 # Keep the closed-loop current bandwidth below this fraction of the ISR rate so
 # the continuous design stays valid against discretization/PWM delay.
 BW_ISR_FRACTION_MAX = 0.1
@@ -42,7 +44,7 @@ def current_loop_gains(R: float, L: float, Ts: float, f_bw: float):
     Returns ``(kp, ki_series)``.
     """
     if L <= 0.0 or Ts <= 0.0:
-        raise ValueError("L and Ts must be positive")
+        raise ValueError(N_("L and Ts must be positive"))
     wc = 2.0 * math.pi * f_bw
     kp = wc * L
     ki = (R / L) * Ts
@@ -64,14 +66,14 @@ def km_from_j(J: float, pole_pairs: int, flux_vs: float) -> float:
     dw_elec/dt = (1.5*pp^2*flux/J) * iq.
     """
     if J <= 0.0:
-        raise ValueError("J must be positive")
+        raise ValueError(N_("J must be positive"))
     return 1.5 * (pole_pairs ** 2) * flux_vs / J
 
 
 def j_from_km(Km: float, pole_pairs: int, flux_vs: float) -> float:
     """Inverse of km_from_j: recover rotor inertia from a measured Km."""
     if Km <= 0.0:
-        raise ValueError("Km must be positive")
+        raise ValueError(N_("Km must be positive"))
     return 1.5 * (pole_pairs ** 2) * flux_vs / Km
 
 
@@ -87,9 +89,9 @@ def speed_loop_gains(Km: float, T_eq: float, Ts_speed: float, a: float = 2.5):
         ki_w      = wz * Ts_speed
     """
     if Km <= 0.0 or T_eq <= 0.0 or Ts_speed <= 0.0:
-        raise ValueError("Km, T_eq, Ts_speed must be positive")
+        raise ValueError(N_("Km, T_eq, Ts_speed must be positive"))
     if a <= 0.0:
-        raise ValueError("a must be positive")
+        raise ValueError(N_("a must be positive"))
     kp = 1.0 / (a * Km * T_eq)
     wz = 1.0 / (a * a * T_eq)
     ki = wz * Ts_speed
@@ -116,7 +118,7 @@ def fw_loop_gains(vmax_fw: float, we_ref: float, Ld: float, Ts: float,
     """
     g = 2.0 * vmax_fw * we_ref * Ld
     if g <= 0.0:
-        raise ValueError("FW plant gain non-positive (check vbus/we_ref/Ld)")
+        raise ValueError(N_("FW plant gain non-positive (check vbus/we_ref/Ld)"))
     kp = zero_ratio / g
     ki = (2.0 * math.pi * f_fw / zero_ratio) * Ts
     return kp, ki
@@ -125,7 +127,7 @@ def fw_loop_gains(vmax_fw: float, we_ref: float, Ld: float, Ts: float,
 def fw_base_speed_elec(vmax_fw: float, flux_vs: float) -> float:
     """Electrical speed [rad/s] where back-EMF reaches vmax_fw (FW onset)."""
     if flux_vs <= 0.0:
-        raise ValueError("flux_vs must be positive")
+        raise ValueError(N_("flux_vs must be positive"))
     return vmax_fw / flux_vs
 
 
@@ -180,7 +182,7 @@ def step_metrics(y, dt: float, ref0=None, ref1=None,
     y = [float(v) for v in y]
     n = len(y)
     if n < 8 or dt <= 0.0:
-        return StepMetrics(ok=False, reason="too few samples")
+        return StepMetrics(ok=False, reason=N_("too few samples"))
 
     tail = max(1, n // 10)
     # A device-reported trigger index makes every pre-step sample a baseline
@@ -203,7 +205,7 @@ def step_metrics(y, dt: float, ref0=None, ref1=None,
     # noise -- i.e. there is no real step, just a noisy flat trace.
     noise = max(_std(pre), _std(y[-tail:]))
     if abs(delta) < max(1e-9, 5.0 * noise):
-        return StepMetrics(ok=False, reason="no detectable step", ref0=ref0,
+        return StepMetrics(ok=False, reason=N_("no detectable step"), ref0=ref0,
                            ref1=ref1, i_step=i_step if known_edge else -1,
                            y_final=y_final, noise=noise)
 
@@ -214,7 +216,7 @@ def step_metrics(y, dt: float, ref0=None, ref1=None,
         # Edge = first 50% crossing.
         i_step = next((i for i, f in enumerate(frac) if f >= 0.5), -1)
         if i_step < 0:
-            return StepMetrics(ok=False, reason="step edge not in window",
+            return StepMetrics(ok=False, reason=N_("step edge not in window"),
                                ref0=ref0, ref1=ref1, y_final=y_final,
                                noise=noise)
 

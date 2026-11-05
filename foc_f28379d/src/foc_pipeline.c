@@ -178,28 +178,73 @@ volatile float32_t g_dtc_v       = DTC_VDROP_V;         // "dtc_v"    param, LIV
 volatile float32_t g_dtc_ith     = DTC_ITH_A;           // "dtc_ith"  param, LIVE
 volatile float32_t g_dtc_inv_ith = 1.0f / DTC_ITH_A;    // derived, setter-maintained
 volatile float32_t g_dbg_dtc_k;   // total duty offset applied this tick ("dtc_k" RO)
+volatile uint16_t  g_dtc_src     = DTC_SRC_DEFAULT;     // "dtc_src"  param, LIVE
+
+// Per-phase current the sign ramp looks at.
+//   DTC_SRC_MEAS  the measured phase currents, zero sequence removed.
+//   DTC_SRC_REF   the current REFERENCE the PIs track (the same id/iq refs,
+//                 after the iq clamps), taken back to phases at this tick's
+//                 angle: inverse Park, then inverse of the 3-sensor Clarke.
+// WHY REF [2026-11-05 bench, FE_UFPR 4.0, 31 V]: inside +/-dtc_ith the ramp is
+// a linear gain on whatever current it is fed, k*vbus/ith ~= 0.047*31/0.5 =
+// 2.9 V/A per phase -- six times the current PI's kp, applied after SVGEN so
+// vmax_frac does not bound it. Fed the MEASURED current it multiplies the
+// sensor noise (~0.07 A rms per phase) into ~0.2 V rms of broadband phase
+// voltage, and above the current loop's ~700 Hz crossover nothing pushes back:
+// audible hiss. Zero torque is the worst case, all three phases sit in the ramp
+// permanently. Bench: raising dtc_ith or dtc_en=0 made it much quieter,
+// res_filt_en=0 (resolver angle noise x4) and kp 0.5 -> 0.25 changed nothing.
+// The reference carries no sensor noise, so at zero torque the compensation is
+// zero, and under load it gives the same sign as the measurement wherever the
+// loop tracks. Where the current does NOT follow the reference (voltage
+// saturation, the first ticks of a step) its zero crossings sit off the real
+// ones and the compensation is wrong there -- A/B with dtc_src at speed.
+// Neither source is advanced for the PWM update delay (the duty written now
+// acts over the NEXT period, as for the IPARK angle): 1.5*w*Ts of phase, 0.5 deg
+// at 60 elec rad/s, ~50 deg at 6000 rpm on the EMRAX. Revisit at speed.
+static inline void dtc_phase_currents(float32_t ip[3], volatile FOC_Iabc_t *i,
+                                      float32_t id_ref, float32_t iq_ref,
+                                      float32_t theta)
+{
+    if(g_dtc_src == DTC_SRC_REF)
+    {
+        float32_t sn = FOC_SIN(theta);
+        float32_t cs = FOC_COS(theta);
+        float32_t ia = id_ref * cs - iq_ref * sn;
+        float32_t ib = id_ref * sn + iq_ref * cs;
+        ip[0] = ia;
+        ip[1] = -0.5f * ia + 0.8660254f * ib;
+        ip[2] = -0.5f * ia - 0.8660254f * ib;
+    }
+    else
+    {
+        // Zero-sequence removal [2026-11-06 bench]: the motor is star-connected
+        // with no neutral, so the true Iu+Iv+Iw is 0 and z below is pure
+        // measurement error -- on FE_UFPR 4.0 the ~0.8 A rms MHz interference
+        // common to every ADC input. Clarke cancels it for the control loop, but
+        // the sign ramp saw it raw: near each zero crossing it flipped the
+        // compensation at random, doubling the d/q current noise at dtc_ith 0.5.
+        float32_t z = (i->value[0] + i->value[1] + i->value[2]) * (1.0f / 3.0f);
+        ip[0] = i->value[0] - z;
+        ip[1] = i->value[1] - z;
+        ip[2] = i->value[2] - z;
+    }
+}
 
 // One phase: duty += k * sat(i / ith). The ramp (rather than a hard sign) is
 // what keeps this from becoming a noise-driven +/-Vdt square wave at low
 // current -- on an 18 mOhm winding that would be tens of amps of command.
-static inline void dtc_apply(volatile FOC_Duty_t *d, volatile FOC_Iabc_t *i,
+static inline void dtc_apply(volatile FOC_Duty_t *d, const float32_t ip[3],
                              float32_t inv_vbus)
 {
     float32_t k = g_dtc_duty + g_dtc_v * inv_vbus;
     float32_t inv_ith = g_dtc_inv_ith;
-    // Zero-sequence removal [2026-11-06 bench]: the motor is star-connected with
-    // no neutral, so the true Iu+Iv+Iw is 0 and z below is pure measurement
-    // error -- on FE_UFPR 4.0 the ~0.8 A rms MHz interference common to every
-    // ADC input. Clarke cancels it for the control loop, but the sign ramp here
-    // saw it raw: near each zero crossing it flipped the compensation at random,
-    // doubling the d/q current noise at dtc_ith 0.5. Subtracting z costs nothing.
-    float32_t z = (i->value[0] + i->value[1] + i->value[2]) * (1.0f / 3.0f);
     uint16_t  p;
 
     g_dbg_dtc_k = k;
     for(p = 0U; p < 3U; p++)
     {
-        float32_t s = (i->value[p] - z) * inv_ith;
+        float32_t s = ip[p] * inv_ith;
         float32_t v;
         if(s >  1.0f) s =  1.0f;
         if(s < -1.0f) s = -1.0f;
@@ -232,7 +277,10 @@ static inline void dtc_apply(volatile FOC_Duty_t *d, volatile FOC_Iabc_t *i,
 //   OBS_VSRC_DUTY_DZ  duty*vbus minus the dead-zone model: with dtc_en=1 the
 //                     duty already carries +Vdt*sat(i), so this recovers the
 //                     commanded volts; with dtc_en=0 it recovers what the bridge
-//                     really delivered (command - dead zone). Default.
+//                     really delivered (command - dead zone). Default. The model
+//                     always uses the MEASURED current (the real loss follows
+//                     the real current), so with dtc_src=REF it estimates the
+//                     delivered volts, not the command.
 //   OBS_VSRC_DUTY     raw duty*vbus (what the modulator was asked for).
 //   OBS_VSRC_CMD      last tick's pre-SVGEN Vab (volts only in closed-loop RUN).
 // Works in OPENLOOP / ol_align too: there the duty IS the command (unity SVGEN
@@ -951,6 +999,10 @@ void foc_current_loop_isr(void)
     // bus normalization in step 4; s_phaseid_active only changes inside
     // align_step() (step 1, this same tick), so the two always agree.
     bool ol_align = (st == FOC_ALIGN_ROTOR) && s_phaseid_active;
+    // References the PIs track THIS tick (dtc_src = REF uses them; 0 when the
+    // PIs are bypassed, where the dead-time comp does not run anyway).
+    float32_t dtc_id_ref = 0.0f;
+    float32_t dtc_iq_ref = 0.0f;
     float vmax_dyn = g_vdq_max_frac * s_refs.vbus * 0.5f;
     float ff_d = 0.0f, ff_q = 0.0f;
     if(st == FOC_RUN && g_dbg_decouple_en)
@@ -980,6 +1032,7 @@ void foc_current_loop_isr(void)
     else if(st == FOC_RUN || st == FOC_ALIGN_ROTOR)
     {
         PI_run(s_pi_id, s_refs.id_ref, s_sig.Idq.value[0], &s_sig.Vdq.value[0]);
+        dtc_id_ref = s_refs.id_ref;   // step 3b rewrites it for the NEXT tick
 
         // Flux-priority current-circle limit (FW only): id (set by the FW
         // regulator) gets the current budget first; clamp the q reference to
@@ -1010,6 +1063,7 @@ void foc_current_loop_isr(void)
         }
 
         PI_run(s_pi_iq, iq_cmd, s_sig.Idq.value[1], &s_sig.Vdq.value[1]);
+        dtc_iq_ref = iq_cmd;          // after the iq_max / sensorless / FW clamps
         s_sig.Vdq.value[0] += ff_d;
         s_sig.Vdq.value[1] += ff_q;
 
@@ -1128,7 +1182,12 @@ void foc_current_loop_isr(void)
         // measure the map the sign ramp would need) and not FOC_OPENLOOP (a
         // raw-duty bench tool).
         if(g_dtc_en && (st == FOC_RUN || (st == FOC_ALIGN_ROTOR && !ol_align)))
-            dtc_apply(&s_sig.duty, &s_sig.Iabc, inv_vbus);
+        {
+            float32_t ip[3];
+            dtc_phase_currents(ip, &s_sig.Iabc, dtc_id_ref, dtc_iq_ref,
+                               s_sig.theta_elec);
+            dtc_apply(&s_sig.duty, ip, inv_vbus);
+        }
         pwm_set_duty(&s_sig.duty);
     }
     else

@@ -9,7 +9,8 @@ import re
 import unittest
 from types import SimpleNamespace
 
-from foc_debug import param_docs
+from foc_debug import i18n, param_docs
+from foc_debug.param_docs_pt import PARAM_DOCS_PT
 
 FW_PARAMS = pathlib.Path(__file__).resolve().parents[2] / "src" / "debug_params.c"
 _ROW_RE = re.compile(
@@ -92,6 +93,52 @@ class TestTooltip(unittest.TestCase):
         self.assertIn("brand_new_param", tip)
         self.assertIn("0x0200", tip)
         self.assertIn("No description", tip)
+
+
+class TestPortuguese(unittest.TestCase):
+    """param_docs_pt.PARAM_DOCS_PT is the Portuguese twin of PARAM_DOCS."""
+
+    def tearDown(self):
+        i18n.set_language("en")
+
+    def test_same_params_same_order(self):
+        self.assertEqual(list(PARAM_DOCS_PT), list(param_docs.PARAM_DOCS),
+                         "keep foc_debug/param_docs_pt.py in step with param_docs.py")
+
+    def test_entries_are_well_formed(self):
+        for name, entry in PARAM_DOCS_PT.items():
+            with self.subTest(name=name):
+                self.assertEqual(len(entry), 2)
+                unit, text = entry
+                self.assertIsInstance(unit, str)
+                self.assertTrue(text.strip())
+                self.assertNotIn("NEEDS_IDLE", text)
+                self.assertNotIn("somente leitura", text.lower())
+
+    def test_identifiers_survive_translation(self):
+        # Param/macro names (anything with an underscore) must not be translated.
+        ident = re.compile(r"[A-Za-z][A-Za-z0-9]*_[A-Za-z0-9_]+")
+        for name, (_u, en) in param_docs.PARAM_DOCS.items():
+            with self.subTest(name=name):
+                self.assertEqual(set(ident.findall(en)),
+                                 set(ident.findall(PARAM_DOCS_PT[name][1])))
+
+    def test_tooltip_uses_portuguese(self):
+        i18n.set_language("pt")
+        tip = param_docs.tooltip_html(_info("vbus", read_only=True))
+        self.assertIn("<b>vbus</b>", tip)
+        self.assertIn("somente leitura", tip)
+        self.assertIn(PARAM_DOCS_PT["vbus"][1].split()[0], tip)
+        self.assertIn("IDLE", param_docs.tooltip_html(_info("kp_d", needs_idle=True)))
+        self.assertIn("AO VIVO", param_docs.tooltip_html(_info("iq_max")))
+        self.assertIn("Sem descrição",
+                      param_docs.tooltip_html(_info("brand_new_param", pid=0x0200)))
+
+    def test_english_tooltip_unchanged_by_default(self):
+        i18n.set_language("en")
+        tip = param_docs.tooltip_html(_info("vbus", read_only=True))
+        self.assertIn(param_docs.PARAM_DOCS["vbus"][1].split()[0], tip)
+        self.assertIn("read-only", tip)
 
 
 if __name__ == "__main__":

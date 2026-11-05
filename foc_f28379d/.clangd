@@ -1,7 +1,7 @@
 # This is an auto-generated file - do not add it to source-control
 
 CompileFlags:
-   CompilationDatabase: Debug_BOOSTXL_Teknic_QEP/.clangd
+   CompilationDatabase: Production_CtrlV2_EMRAX_Resolver/.clangd
 
 Diagnostics:
    Suppress: '*'
