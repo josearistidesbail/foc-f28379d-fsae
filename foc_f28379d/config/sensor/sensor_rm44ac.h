@@ -24,7 +24,12 @@
 // switch on a running bench. Anything other than _PLL selects the legacy path.
 #define SENSOR_RES_W_MODE_LPF       0U   // differentiate once per Ts, then LPF
 #define SENSOR_RES_W_MODE_PLL       1U   // type-II angle tracking observer
-#define SENSOR_RES_W_MODE_DEFAULT   SENSOR_RES_W_MODE_LPF   // -> _PLL once bench-proven
+// DEFAULT NOW _PLL [2026-11-06, FE_UFPR 4.0 + EMRAX, speed mode at kp_w 0.35]:
+// vs the LPF path the observer cut speed ripple 0.7-4.1 -> 0.9-1.3 elec rad/s
+// rms, overshoot 2-9 -> 2-3 rad/s and Iq peak 2.3-4.9 -> 1.7-2.3 A on 30/60
+// rad/s ramp steps. Its extra lag (~-35 deg at the 12.5 Hz speed crossover) is
+// affordable at that gain; it is NOT at the old kp_w 1.5 (see gains_emrax.h).
+#define SENSOR_RES_W_MODE_DEFAULT   SENSOR_RES_W_MODE_PLL
 
 // ---- Estimator A: differentiate-then-LPF (legacy) -----------------------
 // 1st-order low-pass on the differentiated angle.
@@ -122,9 +127,11 @@
 #define SENSOR_RES_LOSS_TICKS       5       // consecutive out-of-window ISRs (0.5 ms)
 
 // ---- Sin/Cos input filtering (software noise reduction) ----------------
-// The analog SIN/COS lines pick up board noise that can't be filtered in HW
-// right now. A MATCHED 1st-order IIR low-pass on each channel (run every ISR,
-// before atan2) knocks it down. Because SIN and COS share the same coefficient,
+// The analog SIN/COS lines carry noise that the analog front end does not
+// remove (on FE_UFPR 4.0 mostly the ADC interference common to every input,
+// ~2.6 deg elec rms before this filter; the Control_V2 front end was ~26). A
+// MATCHED 1st-order IIR low-pass on each channel (run every ISR, before atan2)
+// knocks it down. Because SIN and COS share the same coefficient,
 // a steady angle is preserved; the speed-dependent lag it adds is characterized
 // and compensated in the next block, so fc no longer has to stay far above the
 // running electrical frequency. Tune/defeat live via the "res_filt_en" /
@@ -162,17 +169,18 @@
                                      ? (1.0f / (2.0f * 3.14159265f * (hz))) : 0.0f)
 
 // ---- SIN/COS scale calibration (runs during FOC_ALIGN_ROTOR) ------------
-// The hw_*.h RES_SINCOS_BIAS/AMPL_CODE values are analog-design guesses; the
-// real front-end neither spans the full ADC range nor is guaranteed
-// channel-matched. Before the offset-capture sweep, the align controller drags
-// the rotor through CAL_MECH_REVS open-loop mech rev(s) (= full sin/cos cycles,
-// the sensor is 1-speed) while tracking raw min/max codes per channel, then
+// The hw_*.h RES_SINCOS_BIAS/AMPL_CODE values are only the boot scale: the
+// sensor's output amplitude varies part to part (2.0-2.4 Vpp) and the two
+// channels are not guaranteed matched. Before the offset-capture sweep, the
+// align controller drags the rotor through CAL_MECH_REVS mech rev(s) (= full
+// sin/cos cycles, the sensor is 1-speed) while tracking raw min/max codes per
+// channel, then
 // applies bias=(min+max)/2 and ampl=(max-min)/2 at runtime. Captured extremes
 // are readable via the cal_* serial params to bake into the hw header later.
 #define SENSOR_RES_CAL_DEFAULT_EN      1U      // 0 = keep hw_*.h constants
 // 3 revs (was 1). Only >=1 is needed mathematically -- one mech rev is one full
 // sin/cos cycle, so one pass already visits both extremes -- but under the
-// iloop_en=0 open-loop drag the rotor cogs and can stall or skip, so a single
+// (then open-loop) drag the rotor cogged and could stall or skip, so a single
 // rev may never actually reach part of the cycle and the captured min/max come
 // out short. Extra revs are cheap insurance: at 0.5 rev/s this costs 6 s instead
 // of 2 s, and min/max only ever widen. It does NOT need to be an integer (unlike

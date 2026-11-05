@@ -16,6 +16,8 @@
 #include "foc_pipeline.h"
 #include "foc_state_machine.h"
 #include "sensor_iface.h"
+#include "observer.h"
+#include "pos_src.h"
 #include "inverter_iface.h"
 #include "adc_iface.h"
 #include "pwm_iface.h"
@@ -50,6 +52,8 @@ int main(void)
     sensor_init();
     inverter_init();        // SPI register set; gate driver stays disabled
     foc_init();
+    obs_init();             // sensorless observers (shadow until angle_src says otherwise)
+    pos_src_init();         // position-source supervisor
     sm_init();              // starts in FOC_IDLE
     debug_iface_init();
 

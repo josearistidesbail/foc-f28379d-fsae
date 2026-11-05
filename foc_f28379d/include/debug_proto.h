@@ -28,7 +28,7 @@
 #define FRAME_CRC_LEN        2U
 // Protocol cap for responses (requests are tiny). Must stay >= the largest
 // response: a full SCOPE_CAPTURE with every catalog signal selected =
-// 5 + DATALOG_LEN_SAMPLES(128)*SCOPE_MAX_CHANNELS(13)*4 = 6661 bytes. Not enforced
+// 5 + DATALOG_LEN_SAMPLES(128)*SCOPE_MAX_CHANNELS(15)*4 = 7685 bytes. Not enforced
 // on the TX path here (the response is streamed); the host (proto.py) enforces it
 // on RX, so this is the value that must match there.
 #define FRAME_MAX_PAYLOAD    8192U
@@ -96,6 +96,11 @@
 //  10    0x400   res_cos      11   (raw resolver COS ADC code; RM44AC only)
 //  11    0x800   res_w_lpf    12   (legacy diff+LPF elec speed; RM44AC only) -- see below
 //  12    0x1000  vbus         13   (measured DC-bus voltage [V]; all backends)
+//  13    0x2000  theta_est    6    (sensorless observer PLL angle [rad])
+//  14    0x4000  theta_err    14   (wrap(theta_est - theta_sensor) [rad])
+// NOTE the cap is 15 signals, not 16: at 16, (1U << SCOPE_MAX_CHANNELS) is
+// undefined on the 16-bit int (debug_iface.c mask clamp) and the full-mask
+// payload (8197 B) exceeds FRAME_MAX_PAYLOAD.
 #define SCOPE_BIT_ID         0x0001U
 #define SCOPE_BIT_IQ         0x0002U
 #define SCOPE_BIT_THETA      0x0004U
@@ -114,8 +119,13 @@
 // Measured DC-bus voltage [V] (all backends). Watch it sag under load to size
 // MOTOR_UV_TRIP_V; mirrors the static "vbus" RO param 0x0115.
 #define SCOPE_BIT_VBUS       0x1000U
+// Sensorless observer (Step 12): the observer's PLL angle, and its error against
+// the physical sensor -- computed in firmware so it stays meaningful whichever
+// source is commutating (shadow comparison in SENSOR mode, health in OBSERVER).
+#define SCOPE_BIT_THETA_EST  0x2000U
+#define SCOPE_BIT_THETA_ERR  0x4000U
 
-#define SCOPE_MAX_CHANNELS   13U       // number of catalog signals (popcount cap)
+#define SCOPE_MAX_CHANNELS   15U       // number of catalog signals (popcount cap)
 
 // Default channel set (v1): Id, Iq, theta_elec, omega_elec. Used when the host
 // has not selected a mask (or selects an empty one).

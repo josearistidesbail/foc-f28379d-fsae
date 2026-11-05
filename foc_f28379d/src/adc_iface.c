@@ -17,25 +17,25 @@ static volatile uint16_t s_ch_offset[3] = {
     ISENSE_ZERO_CODE, ISENSE_ZERO_CODE, ISENSE_ZERO_CODE
 };
 
-// Runtime KCL phase-current reconstruction selector: 0=none, 1=U, 2=V, 3=W.
-// Boot default comes from the hw header (hw_control_v2.h does not define it, so
-// guard with a 0 fallback). Host-writable via the "isense_recon" debug param
-// (IDLE-only); see debug_params.c. On 2-channel hardware this variable is
-// IGNORED: the un-sensed phase is fully determined by g_isense_map (the phase
-// the unused slot C maps to) and is always KCL-reconstructed.
+// Runtime KCL phase-current reconstruction selector: 0=none, 1=U, 2=V, 3=W --
+// a workaround for one dead sense channel. Boot default comes from the hw
+// header (hw_control_v2.h does not define it, so guard with a 0 fallback).
+// Host-writable via the "isense_recon" debug param (IDLE-only); see
+// debug_params.c.
 #ifndef ISENSE_RECONSTRUCT_PHASE
 #define ISENSE_RECONSTRUCT_PHASE 0
 #endif
 volatile uint16_t g_isense_reconstruct_phase = ISENSE_RECONSTRUCT_PHASE;
 
 // ---- Runtime channel -> phase mapping ------------------------------------
-// The ADC inputs are FIXED (board routing); what changes on the bench is which
-// motor phase each external LEM clamp is hooked to. g_isense_map selects one of
-// the 6 permutations of (phase of channel A, B, C); g_isense_inv is a bitmask
-// (bit0=A, bit1=B, bit2=C) flipping a channel whose clamp faces the wrong way.
-// Both are host-writable ("isense_map"/"isense_inv", IDLE-only) and are also
-// AUTO-DETECTED by the ALIGN phase-ID stage (foc_pipeline.c) via
-// adc_isense_phase_id_commit() below.
+// The ADC inputs are FIXED by board routing, and on both current boards each
+// sensor is fixed to its phase too. The map/inversion pair still exists so the
+// ALIGN phase-ID stage can check the wiring and detect each channel's sign,
+// which no datasheet pins down. g_isense_map selects one of the 6 permutations
+// of (phase of channel A, B, C); g_isense_inv is a bitmask (bit0=A, bit1=B,
+// bit2=C) flipping a channel that reads backwards. Both are host-writable
+// ("isense_map"/"isense_inv", IDLE-only) and are also AUTO-DETECTED by the
+// ALIGN phase-ID stage (foc_pipeline.c) via adc_isense_phase_id_commit() below.
 volatile uint16_t g_isense_map = ISENSE_MAP_DEFAULT;   // permutation index 0..5
 volatile uint16_t g_isense_inv;                        // seeded in adc_init()
 // Latest per-channel currents [A] (offset + sign applied, BEFORE the phase
@@ -43,8 +43,8 @@ volatile uint16_t g_isense_inv;                        // seeded in adc_init()
 // so they identify the wiring independent of the (possibly wrong) current map.
 volatile float g_isense_ch_amps[3];
 // Phase-ID result status: low nibble 0=never ran, 1=applied, 2=rejected;
-// 0x0010<<c = channel c signal too weak, 0x0100<<c = channel c ambiguous
-// (dominance gate), 0x0800 = two channels claimed the same phase.
+// 0x0010<<c = channel c signal too weak, 0x0100<<c = channel c has no usable
+// sign pattern, 0x0800 = two channels claimed the same phase.
 volatile uint16_t g_isense_id_status;
 
 // Permutation table: PHASE_OF_CH[map][c] = motor phase (0=U,1=V,2=W) driven by
@@ -170,14 +170,6 @@ void adc_read_phase_currents(FOC_Iabc_t *out)
     uint16_t map = g_isense_map;
     const uint16_t *ph = PHASE_OF_CH[(map <= 5U) ? map : 0U];
 
-#if ISENSE_NUM_CHANNELS == 2
-    // Two physical sensors: the phase the unused slot C maps to has no sensor
-    // and is ALWAYS reconstructed via KCL (Iu + Iv + Iw = 0). There is no
-    // choice to make, so g_isense_reconstruct_phase is ignored here.
-    out->value[ph[0]] = g_isense_ch_amps[0];
-    out->value[ph[1]] = g_isense_ch_amps[1];
-    out->value[ph[2]] = -g_isense_ch_amps[0] - g_isense_ch_amps[1];
-#else
     out->value[ph[0]] = g_isense_ch_amps[0];
     out->value[ph[1]] = g_isense_ch_amps[1];
     out->value[ph[2]] = g_isense_ch_amps[2];
@@ -195,20 +187,6 @@ void adc_read_phase_currents(FOC_Iabc_t *out)
     case 3U: out->value[2] = -out->value[0] - out->value[1]; break; // W dead
     default: break;                                                  // 0 = none
     }
-#endif
-}
-
-// Effective reconstruction selector for the host readback: on 2-channel
-// hardware it is derived from the map (the phase slot C lands on), elsewhere it
-// is the live g_isense_reconstruct_phase.
-uint16_t adc_isense_recon_phase(void)
-{
-#if ISENSE_NUM_CHANNELS == 2
-    uint16_t map = g_isense_map;
-    return PHASE_OF_CH[(map <= 5U) ? map : 0U][2] + 1U;
-#else
-    return g_isense_reconstruct_phase;
-#endif
 }
 
 // Solve channel->phase mapping + polarity from the ALIGN phase-ID dwell
@@ -250,7 +228,7 @@ uint16_t adc_isense_phase_id_commit(float avg[3][3])
     uint16_t inv_new = g_isense_inv;
     uint16_t c, k;
 
-    for(c = 0U; c < ISENSE_NUM_CHANNELS; c++)
+    for(c = 0U; c < 3U; c++)
     {
         uint16_t npos     = 0U;    // dwells with a positive average
         uint16_t odd_k    = 0U;    // the driven dwell = the odd sign out
@@ -289,14 +267,9 @@ uint16_t adc_isense_phase_id_commit(float avg[3][3])
         if(avg[c][odd_k] < 0.0f) inv_new ^= (uint16_t)(1U << c);
     }
 
-#if ISENSE_NUM_CHANNELS == 2
-    if(phase_of[0] == phase_of[1]) status |= 0x0800U;
-    else phase_of[2] = 3U - phase_of[0] - phase_of[1];   // leftover -> KCL phase
-#else
     if(phase_of[0] == phase_of[1] || phase_of[0] == phase_of[2] ||
        phase_of[1] == phase_of[2])
         status |= 0x0800U;
-#endif
 
     if(status != 0U)
     {
@@ -388,8 +361,8 @@ bool adc_set_sincos_scale(uint16_t sin_min, uint16_t sin_max,
 }
 #endif
 
-// Synchronously sample N times with PWM in safe state (low-side shorted),
-// average the codes, write back as the new zero offsets.
+// Synchronously sample N times with the PWM held off (all six switches LOW,
+// pwm_force_off), average the codes, write back as the new zero offsets.
 void adc_calibrate_offsets(uint16_t n)
 {
     uint32_t su = 0, sv = 0, sw = 0;

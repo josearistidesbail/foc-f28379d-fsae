@@ -20,6 +20,17 @@ extern volatile float32_t g_qep_theta_offset_elec; // electrical zero offset [ra
 extern volatile float32_t g_qep_omega_healthy;     // last speed while trusted
 extern volatile uint16_t  g_qep_lost;              // 1 once feedback is lost
 
+// Fast frozen-counter detector state (owned by sensor_qep.c; see sensor_qep.h).
+extern volatile uint16_t  g_qep_fast_en;           // "qep_fast_en" param, LIVE
+extern volatile uint16_t  g_qep_fast_run;          // armed by the slow loop: RUN && fast_en
+extern volatile uint16_t  g_qep_fast_trips;        // "qep_fast_trips" RO: times it latched loss
+extern int32_t            g_qep_fast_prev_cnt;
+extern uint16_t           g_qep_fast_ring[SENSOR_QEP_FAST_REF_TICKS];
+extern uint16_t           g_qep_fast_idx;
+extern uint16_t           g_qep_fast_sum;          // sum of the ring = |counts| over the last 8 ticks
+extern uint16_t           g_qep_fast_ref;          // ring sum at the last MOVING tick
+extern uint16_t           g_qep_fast_still;        // consecutive "still" ticks
+
 // Set the electrical zero offset (radians). Called by the align controller at
 // the end of FOC_ALIGN_ROTOR; see sensor_qep.c.
 extern void sensor_set_elec_offset(float32_t rad);
@@ -57,6 +68,40 @@ static inline void sensor_update_isr(void)
     if(th < 0.0f)              th += 2.0f * MATH_PI;
     if(th >= 2.0f * MATH_PI)   th -= 2.0f * MATH_PI;
     g_qep_theta_elec = th;
+
+    // ---- Fast frozen-counter loss check (see SENSOR_QEP_FAST_* in sensor_qep.h).
+    // Runs every tick so the ring stays primed; only TRIPS while armed in RUN.
+    {
+        int32_t  d = cnt - g_qep_fast_prev_cnt;
+        uint16_t ad;
+        g_qep_fast_prev_cnt = cnt;
+        if(d >  SENSOR_QEP_CPR_X4 / 2) d -= SENSOR_QEP_CPR_X4;
+        if(d < -SENSOR_QEP_CPR_X4 / 2) d += SENSOR_QEP_CPR_X4;
+        if(d < 0) d = -d;
+        ad = (d > 1000) ? 1000U : (uint16_t)d;   // keeps the 8-tick sum inside uint16
+
+        g_qep_fast_sum = g_qep_fast_sum - g_qep_fast_ring[g_qep_fast_idx] + ad;
+        g_qep_fast_ring[g_qep_fast_idx] = ad;
+        g_qep_fast_idx = (g_qep_fast_idx + 1U) & (SENSOR_QEP_FAST_REF_TICKS - 1U);
+
+        if(ad > SENSOR_QEP_FAST_STILL_MAX)
+        {
+            g_qep_fast_still = 0U;
+            g_qep_fast_ref   = g_qep_fast_sum;     // speed reference = last 8 moving ticks
+        }
+        else if(g_qep_fast_still < 0xFFFFU)
+        {
+            g_qep_fast_still++;
+        }
+
+        if(g_qep_fast_run && !g_qep_lost
+           && (g_qep_fast_still >= SENSOR_QEP_FAST_STILL_TICKS)
+           && (g_qep_fast_ref >= SENSOR_QEP_FAST_REF_TICKS * SENSOR_QEP_FAST_MIN_CNT_PER_TICK))
+        {
+            g_qep_lost = 1U;
+            g_qep_fast_trips++;
+        }
+    }
 
     // Speed update is computed in sensor_qep.c at SPEED_LOOP rate using QPOSLAT;
     // here we just expose the latest value.

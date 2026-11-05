@@ -1,185 +1,115 @@
-# Production bring-up — Control_V2 + EMRAX 208 + RM44AC
+# Production bring-up — FE_UFPR 4.0 + EMRAX 208 + RM44AC
 
-Companion to the Debug "Bring-Up Status" in `CLAUDE.md`. This is the ordered
-sequence for the **Production** build config `Production_CtrlV2_EMRAX_Resolver`
-(`HW_CONTROL_BOARD_V2` / `MOTOR_EMRAX_208` / `SENSOR_RM44AC`).
+Build config `Production_CtrlV2_EMRAX_Resolver` (`HW_CONTROL_BOARD_V2` / `MOTOR_EMRAX_208` /
+`SENSOR_RM44AC`). The names predate the FE_UFPR 4.0 board, which kept them so the CCS project did not
+change. The day-by-day log (bring-ups A–K) is the "FE_UFPR 4.0 board bring-up" section of the root
+`CLAUDE.md`; the board-side spec is `docs/FE_UFPR_4_0_handoff.md` and the board repo's
+`S12_FIRMWARE_HANDOFF.md`. This file keeps what is done, what is left, and the bench-calibration table.
+(The Control_V2 version of this file is in git history; that board's pin form is in `docs/archive/`.)
 
-> ⚠️ **High voltage.** Unlike the 24 V bench BOOSTXL, this stage runs the EMRAX
-> off a 400 V-class pack. Every step below is gated behind a **low-voltage /
-> current-limited supply first** (e.g. 24–48 V bench PSU into the DC link) until
-> the full chain is proven. Do not connect the HV pack until Steps 1–8 pass at
-> low voltage.
+> ⚠️ **High voltage.** The EMRAX runs off a 400 V-class pack. Everything below is proven on a
+> **low-voltage, current-limited bench supply first** (31 V so far). Do not connect the HV pack until
+> the open items in steps 9–10 pass at low voltage and the bus sense is calibrated.
 
-## Prerequisites (this prep pass)
+## Build prerequisites (done)
 
-- [x] Resolver angle uses trig-free `foc_atan2()` (`sensor_rm44ac_inline.h`) —
-      validated <0.0002 rad error host-side.
-- [ ] `docs/control_v2_pinmap.md` filled from the schematic.
-- [ ] `board_control_v2.syscfg` configured from that map (via SysConfig).
-- [ ] `config/hw/hw_control_v2.h` scaling/threshold constants set.
-- [ ] Production config built clean — requires, one-time in the CCS UI:
-  - Add `_LAUNCHXL_F28379D` to the **Production** Predefined Symbols (Project
-    Properties → Build → C2000 Compiler → Predefined Symbols). The controller is
-    a LaunchPad (10 MHz crystal); without this define `device.h` configures the
-    PLL for a 20 MHz crystal and the CPU runs at half speed.
-  - Exclude `syscfg/board_boostxl_drv8305.syscfg` from the **Production** build
-    (right-click → Resource Configurations → Exclude from Build → Production),
-    else two `.syscfg` files generate a colliding `board.c`/`board.h`.
-  - Set the active build configuration to **Production**.
+- `_LAUNCHXL_F28379D` is in the Production predefined symbols (LaunchPad = 10 MHz crystal; without it
+  the CPU runs at half speed).
+- `syscfg/board_boostxl_drv8305.syscfg` is excluded from the Production build (one `board.c`).
+- The active build configuration can only be switched in the CCS GUI; `buildProject` builds the active one.
 
-## Control_V2 hardware caveats (resolve before HV / closed loop)
+## Hardware status
 
-These came out of the pinmap and must be tracked — each can silently corrupt
-control or hide a fault:
+1. **Resolver front end** rescaled on 4.0: bias ~2050 / amplitude ~1585 codes, no clipping, ~2.6° elec
+   rms angle noise before the software filter (bring-up F). Baked as `RES_SINCOS_*`.
+2. **Vbus sense:** design ratio 327.273 (full scale ~982 V, so the old 415 V clipping is gone). The
+   offset is not fitted yet and the reading is visibly off at the bench — run `vbuscal` (table below).
+3. **Current sense:** LEM LA 100-P path (`ISENSE_SOURCE_LEM 1`, board JP3–JP5 at 2-3), ±150 A range,
+   software OC trip capped at 130 A. The internal module sensors don't idle at the 2.5 V the ×0.6 stage
+   assumes, so that path is unusable until the stage is re-biased (bring-up E).
+4. **All three phases instrumented.** `isense_recon` can still rebuild one dead channel via KCL.
+5. **Gate enables:** two active-high enables (GPIO66 master, GPIO131 aux), ANDed on the board with the
+   SW_MAIN interlock (JP1 1-2); no fault-reset line. Module fault flags are active-high, so their pads
+   are `PULLUP_INVERT`.
 
-1. **Resolver sin/cos span 0–3.3 V > 3.0 V ADC** → the peaks clip; angle is
-   distorted near them and `sin²+cos²` won't hold ~1. Conditioning-circuit
-   resistor change planned to rescale into 0–3.0 V. Angle is *provisional* until
-   then. (`hw_control_v2.h` RES_SINCOS_* + `adc_iface.c`.)
-2. **Vbus reads clip above ~415 V** (ratio 138.46 × 3.0 V ADC) → the SW OV trip
-   (460 V) and field-weakening headroom go blind above that. Add attenuation or
-   cap the bus < 415 V until fixed. (`VBUS_DIVIDER_RATIO`.)
-3. **Current-sense bias assumed 2.5 V** leaves only ~62 A of positive headroom on
-   a 3.0 V ADC — inconsistent with a bipolar ±300 A sensor. Confirm the real bias
-   (likely mid-scale ~1.5 V) and sensitivity (~8 mV/A) on the bench; runtime
-   calibration captures the zero but not the span/sign.
-4. **Phase W not instrumented** → reconstructed by KCL (`ISENSE_RECONSTRUCT_PHASE
-   = 3`). Iu/Iv sign and scale must be correct or the synthesized Iw is wrong.
-5. **Two gate enables, no fault-reset** → aux EN (GPIO131) on at init, master EN
-   (GPIO66) gated by RUN; both assumed active-high (`inverter_custom_v2.c`).
+## Bench aids
 
-## Control-board-only bench (no inverter / motor / resolver)
+- **`module_faults_en` / `BENCH_NO_POWER_STAGE`** (0 now): with the DB37 unplugged the module flags
+  read "fault" (fail-safe) and trip both the HW trip-zone and the software gate-driver check in any
+  state. `BENCH_NO_POWER_STAGE 1` (or `module_faults_en 0` live, in IDLE) drops the OSHT trip sources and
+  ignores the flags, and unlocks the `gate_en_dbg` enable override. **Must be 0 whenever the power
+  stage is connected.**
+- **`BENCH_LOW_VOLTAGE_DC_LINK`** (1 now): `vbus_ovr` boots at `BENCH_DC_LINK_V` (31 V — must equal the
+  supply), UV trip bypassed, `iq_max` 10 A, `oc_trip_a` 40 A, `vmax_frac` 0.15. Set 0 for the HV bus
+  once `vbuscal` agrees with a meter.
+- **Open-loop PWM (`FOC_OPENLOOP`)**: a rotating voltage vector (Vd = 0, Vq = `ol_mod`) at `ol_freq`
+  through IPARK/SVGEN with a synthetic unity bus — no current loop, no sensor. Runs with protection ON
+  (since 2026-11-03); its main use is the resolver-direction check (+`ol_freq` must give a positive
+  `omega_meas`).
 
-Before the power module, EMRAX, and RM44AC arrive you can still exercise Steps
-1–3 plus the enable logic and the gate-drive PWM chain with just the Control_V2
-PCB. Two firmware mechanisms make this safe and useful. **Both are bench aids
-that must be reverted before the power stage is connected.**
+  | Param | Meaning |
+  |---|---|
+  | `ol_run` | 1 = enter FOC_OPENLOOP (gate enables), 0 = stop → IDLE. Reads back the live state. |
+  | `ol_freq` | electrical frequency [Hz], default 5 |
+  | `ol_mod` | q-axis drive ≈ peak duty deviation, 0–0.5, EMRAX default 0.10 (a duty: the volts scale with the bus) |
 
-### Reading faults from the GUI
+## Calibrate-on-bench
 
-`fault_code` (RO param) mirrors the latched mask; the host GUI decodes it next to
-the **State** line (red), e.g. `FAULT — OVERCURRENT | GATE_DRIVER`. `tz_trip` and
-`module_fault` (RO params) expose the HW trip-zone event count and the live
-`MODULE_FLT_*` bitfield so you can see *which* protection line is asserting.
+Values marked RAM-only are re-measured at every calibrate (each power-up/reflash).
 
-### Module-fault bypass (`BENCH_NO_POWER_STAGE` / `module_faults_en`)
-
-With no power stage, the module's discrete OC/OT/DC-OV lines (and the on-board
-gate drivers feeding them) are unpowered and sit asserted. That trips **two**
-independent paths in *any* state, including IDLE:
-
-- the **HW trip-zone** ISR `epwm_tz_isr` → `FAULT_OVERCURRENT` (this, not the
-  software phase-OC check, is why a bare board faults OVERCURRENT while idle —
-  the SW check is RUN/ALIGN-only), and
-- the SW gate-driver check `inverter_is_faulted()` → `FAULT_GATE_DRIVER`.
-
-`BENCH_NO_POWER_STAGE` (in `hw_control_v2.h`, currently **1**) seeds the runtime
-flag `g_module_faults_en` (0 = bypass). When bypassed, `pwm_init()` drops the
-OSHT trip-zone sources (`pwm_apply_module_tz()`), `inverter_is_faulted()` returns
-false, and `epwm_tz_isr` counts but doesn't latch — so the board stays in IDLE.
-Toggle live from the GUI via the `module_faults_en` param (NEEDS_IDLE).
-
-### Open-loop PWM test mode (`FOC_OPENLOOP`)
-
-Scopes the gate waveforms with nothing connected. A dedicated state drives a
-rotating voltage vector (Vd=0, Vq=`ol_mod`) at `ol_freq` Hz straight through
-IPARK/SVGEN/PWM using a **synthetic unity DC-bus** (the bench vbus≈0 would blow
-up the real 1/vbus normalization). No current loop, no sensor; every dangerous
-check is RUN/ALIGN-gated so it cannot fault on the missing bus/resolver/currents.
-
-| Param | Meaning |
-|---|---|
-| `ol_run` | write 1 = enter FOC_OPENLOOP (gate enables), 0 = stop → IDLE. Reads back the live state. |
-| `ol_freq` | electrical frequency [Hz], default 5 |
-| `ol_mod` | q-axis drive ≈ peak duty deviation, 0–0.5, default 0.20 |
-
-Scope EPWM4/5/6 A/B at the gate connector: verify complementary A/B, the 1500 ns
-deadband, and 120° U/V/W phasing + sync. **Safety interlock:** entry is only
-honored in bench mode (`g_module_faults_en == 0`) — open-loop has no current
-limit, so the request is silently ignored on real hardware.
-
-### ⚠️ Revert before connecting the power stage
-
-Set `BENCH_NO_POWER_STAGE` back to **0** in `hw_control_v2.h` (or set
-`module_faults_en = 1` live) before wiring the inverter. That re-arms the
-trip-zone + gate-driver protection **and** disables the open-loop test mode in
-one move.
-
-## How this differs from the Debug (BOOSTXL) bring-up
-
-| Aspect | Debug (BOOSTXL) | Production (Control_V2) |
+| Quantity | Where | Status on FE_UFPR 4.0 |
 |---|---|---|
-| Gate driver | DRV8305 over SPI (register config, SPI fault readback) | discrete EN + fault GPIO(s); no SPI — `inverter_custom_v2.c` |
-| Fault path | single DRV8305 nFAULT | per-flag module outputs (OC_A/B/C, OT, DCOV) |
-| Angle sensor | eQEP (incremental, index) | RM44AC sin/cos (absolute, `atan2`) |
-| Alignment | ramp-and-average (spin a couple mech revs) | ramp-and-average (same scheme; absolute sensor) |
-| Current sense | DRV8305 SOx shunt amps | LEM / external shunt+amp (`hw_control_v2.h`) |
-| HV safe-state | low-side ASC vs coast (speed-gated) | same logic; thresholds per EMRAX |
+| ADC zero-current offsets | `adc_calibrate_offsets()` at CALIBRATE (RAM-only) | ✓ LEMs idle ~1996–2005 codes |
+| `ISENSE_V_PER_A` | `hw_control_v2.h` | design value (23.5 Ω burden × 0.4158); gain against a metered DC current not yet checked |
+| Channel map + signs | ALIGN phase-ID (RAM-only) | ✓ map 0 / inv 0 at `phase_id_a` 3 A |
+| `VBUS_DIVIDER_RATIO` / `VBUS_OFFSET_CODE` | `hw_control_v2.h`, live `vbus_ratio` / `vbus_off` | **open** — `python -m foc_debug vbuscal`, ≥ 5 interleaved metered points, motor IDLE, on the 15-cycle Vbus sampling (`f8e06ef`); then bake and hand back `vbus_ovr` 0 → `uv_trip_v` → `uv_en` 1 |
+| Resolver SIN/COS scale | ALIGN cal sweep (RAM-only), boot `RES_SINCOS_*` | ✓ 2050 / 1585 baked |
+| Resolver direction | `res_dir_inv` | ✓ 0 (`ol_run` +5 Hz → `omega_meas` +31.1) |
+| Loss window `SENSOR_RES_MAG_LOW/HIGH` | `sensor_rm44ac.h` | defaults (0.25 / 2.25), not re-tuned on 4.0 |
+| Electrical offset | ALIGN bidirectional sweep (RAM-only) | ✓ 106.6–107.3° elec at `align_id_a` 8 A |
+| Dead-time compensation | `dtc_v` / `dtc_ith` | ✓ 1.0 V / 0.5 A at 31 V; re-check at HV |
+| Current-loop gains | `gains_emrax.h` | ✓ kp 0.5 from standstill d-axis steps; loaded q-axis steps owed |
+| Speed-loop gains | `gains_emrax.h`, live `kp_w`/`ki_w` | ✓ 0.35 / 0.02 unloaded; raise with drivetrain inertia |
+| Flux linkage `MOTOR_FLUX_VS` | `motor_emrax_208.h` | bench hints ~0.034 V·s vs 0.0387 datasheet; `host/bench/lambda_fit.py` pending |
+| FW gains | `gains_emrax.h` | open (HV) |
+| `FAULT_ASC_OMEGA_ELEC` | `motor_emrax_208.h` | open: speed where back-EMF ≈ ½·Vbus, the ASC-vs-coast boundary |
 
-## Calibrate-on-bench (set after first power, before closed loop)
-
-Each value has a home in code; capture the real number on the bench and commit it.
-
-| Quantity | Where | How to get it |
-|---|---|---|
-| ADC zero-current bias | `adc_calibrate_offsets()` (runtime) | auto-sampled at CALIBRATE; confirm raw codes sit near mid-scale at 0 A |
-| `ISENSE_AMPS_PER_CODE` | `hw_control_v2.h` (`LEM_V_PER_A` / shunt+gain) | inject a known DC current, scale codes→amps |
-| `ISENSE_SIGN_U/V/W` | `hw_control_v2.h` | known +current into a phase → sign of measured Id/Iq |
-| `VBUS_DIVIDER_RATIO` | `hw_control_v2.h` | measure DC link with a meter vs `g_dbg_vbus_raw` |
-| Resolver sin/cos scale | auto: ALIGN cal sweep → `adc_set_sincos_scale()`; defaults `RES_SINCOS_BIAS/AMPL_CODE` (`hw_control_v2.h`) | run ALIGN with `res_cal_en=1` (default): a 1-mech-rev open-loop sweep captures per-channel raw min/max, applies `bias=(min+max)/2`, `ampl=(max−min)/2` at runtime. Read `cal_sin_min/max`, `cal_cos_min/max`, `cal_status` (1=applied, 2=rejected, 0x00F0=clip flags) and bake the numbers into `hw_control_v2.h`. `sin²+cos²≈1` afterwards |
-| `SENSOR_RES_MAG_LOW/HIGH` | `sensor_rm44ac.h` | set the loss window around the measured `g_dbg_resolver_mag` |
-| Electrical offset | `align` (auto, ramp-and-average → `sensor_set_elec_offset()`) | run ALIGN (spins ~2 mech revs); verify `g_dbg_align_offset_elec` repeats across rotor start positions. Raise `ALIGN_ID_INJECT_A` if the rotor stalls/skips during the sweep |
-| Current-loop gains | `gains_emrax.h` (`GAIN_K*_ID/IQ`) | re-derive from measured Rs/Ld/Lq (param-ID) |
-| Speed-loop gains | `gains_emrax.h` (`GAIN_K*_SPEED`) | tune live over serial (`kp_w`/`ki_w`) |
-| FW gains | `gains_emrax.h` (`GAIN_K*_FW`) | bench-tune against real bus; default OFF |
-| `FAULT_ASC_OMEGA_ELEC` | `motor_emrax_208.h` | speed where back-EMF ≈ ½·Vbus; pick ASC-vs-coast boundary |
-
-> Note `Isc = λpm/Ld ≈ 306 A > MOTOR_OC_TRIP_A (260 A)` — a high-speed active
-> short may re-trip the module's own OC. Revisit once FW is exercised.
+> `Isc = λpm/Ld ≈ 306 A > MOTOR_OC_TRIP_A (260 A)`: a high-speed active short may re-trip the module's
+> own OC. Revisit once FW is exercised.
 
 ## Ordered sequence (low voltage first)
 
-1. **LED heartbeat** — confirm `Board_init()` + clock (crystal freq correct, see
-   pinmap §10). 500 ms blink on the status GPIO.
-2. **ISR @ 10 kHz** — `g_isr_count` increments; ePWM SOCA→ADCA EOC→`adcA1_isr`.
-3. **ADC bias** — gate disabled, read `g_dbg_iu/iv/iw_raw` near mid-scale;
-   `g_dbg_vbus_raw` tracks the bench PSU. Set scaling + signs.
-4. **Resolver angle** — spin the rotor by hand; `g_resolver_theta_mech` sweeps
-   0→2π smoothly and monotonically. Check `g_dbg_resolver_mag ≈ 1`; set the loss
-   window. Confirm `foc_atan2` direction matches rotation.
-5. **Gate enable / fault** — EN asserts; module fault GPIO(s) read "OK"; no
-   spurious trip. Verify `inverter_is_faulted()` reflects a deliberately forced flag.
-   *(First revert the bench bypass — `BENCH_NO_POWER_STAGE = 0` — so the trip-zone
-   + gate-driver protection is armed; see "Control-board-only bench" above.)*
-6. **Rotor alignment** — `g_dbg_sm_cmd=1`; ALIGN settles Id at θ=0, then (with
-   `res_cal_en=1`, default) drags the rotor 1 open-loop mech rev capturing the
-   raw SIN/COS min/max and committing the per-channel scale
-   (`SENSOR_RES_CAL_*` in `sensor_rm44ac.h`), then slowly spins the commanded
-   field ~2 more mech revs while circular-averaging the offset
-   (`ALIGN_SETTLE_S` / `ALIGN_RAMP_MECH_REVS` / `ALIGN_RAMP_MECH_SPEED_RPS` in
-   `gains_emrax.h`) — ~4 s, 3 mech revs total. Loss detection is inhibited
-   until the scale commits (the pre-cal normalization is untrusted). Read
-   `cal_status`/`cal_*_min/max`, then `g_dbg_align_offset_elec` (degrees);
-   verify the offset repeats within a few degrees across start positions. If
-   the rotor stalls/skips during the sweep, raise `ALIGN_ID_INJECT_A` (a
-   stalled cal sweep is auto-rejected: `cal_status=2`, previous scale kept).
-   **VBUS sense not connected?** The current PIs are clamped to
-   `±VDQ_MAX_FRACTION·vbus/2 ≈ 0 V` and align cannot move the rotor (no spin →
-   cal rejected → SENSOR_LOSS when loss detection re-arms). Set `iloop_en=0`
-   before Calibrate: ALIGN then drives the carrier open-loop in the duty
-   domain with `ol_mod` (same mechanism as `ol_run`; 0.11 is bench-proven).
-   Restore `iloop_en=1` once the bus sense works.
-7. **Closed-loop current** — small `iq_ref` in TORQUE mode; Id≈0, Iq tracks;
-   `|Vdq|` (`g_dbg_vmag`) well under the bus budget.
-8. **Speed loop** — SPEED mode; `omega_meas` tracks the ramped setpoint.
-9. **HW trip-zone** — at low `iq`, force a module fault flag → scope shows
-   EPWMxA low / EPWMxB high within a cycle (ASC), `g_dbg_tz_trip` increments,
-   state → FAULT; `clearfault` from IDLE recovers (releases the OST latch).
-10. **Sensor-loss + safe-state** — disconnect a resolver channel while driving
-    → `g_resolver_lost`, latches `FAULT_SENSOR_LOSS`; `g_dbg_fault_asc` picks
-    ASC (high speed) vs coast (low speed) off the last-healthy speed.
-11. **Field weakening** (optional, HV) — `fw_en=1`, ramp speed; `g_dbg_vmag`
-    plateaus, `g_dbg_fw_id<0` past base speed, `g_dbg_iq_lim` shrinks.
+1. ✓ **LED heartbeat, 10 kHz ISR, ADC** — bring-ups A–E.
+2. ✓ **Gate enable chain** — bring-up B (GPIO66 · GPIO131 · JP1 interlock; `sw_in`, `gate_en`). Not yet
+   tested: the start input (`sw_in` bit 1).
+3. ✓ **Gate signals** — bring-up C (`ol_run`, 1500 ns dead band, 120° phasing).
+4. **Trip path** — bring-up D proved OC_A and OC_B at standstill (OST latch on all three phases, one
+   re-trip with the fault still present, clean release). Open: OC_C, the per-pin OT/DC-OV readings, the
+   protection-on boot-latch check, and a trip **while running** at low `iq` (scope EPWMxA low / EPWMxB
+   high within a cycle, `tz_trip` increments, state → FAULT, `clearfault` from IDLE recovers).
+5. ✓ **Resolver angle + direction** — bring-up F.
+6. ✓ **Rotor alignment** — Calibrate (`g_dbg_sm_cmd=1`, or the GUI): phase-ID dwells (open-loop) →
+   settle → SIN/COS scale sweep → bidirectional offset sweep, all closed-loop at `align_id_a` after
+   phase-ID; ~33 s, the motor turns ~13 revs (bring-ups F, K). Healthy: `phase_id_status` 1,
+   `cal_status` 1, `align_offset` 106.6–107.3°. A rejected phase-ID or scale cal latches a fault
+   (CURRENT_SENSE / SENSOR_LOSS) instead of running on an unverified measurement.
+7. ✓ **Closed-loop current** — torque mode, Id ≈ 0, Iq tracks (bring-ups F, J). Owed: loaded steps
+   (needs a brake on the rotor).
+8. ✓ **Speed loop** — speed mode on the resolver PLL estimate (bring-up I), unloaded.
+9. **Sensor loss + safe state** — pull a resolver channel while driving → `FAULT_SENSOR_LOSS`;
+   `g_dbg_fault_asc` picks ASC (high speed) vs coast (low speed) from the last healthy speed.
+10. **Bus sense** — `vbuscal` (table above), then hand control and the UV trip back to the measured bus.
+11. **Field weakening** (HV) — `fw_en=1`, ramp speed; `vmag` plateaus, `fw_id` < 0 past base speed,
+    `iq_lim` shrinks.
+12. **Sensorless shadow + fail-over** (see `docs/sensorless.md`) — needs the measured bus (`vbus_ovr=0`),
+    `dtc_en=1`, `obs_vsrc=0`. The low-voltage bench caps the speed near the 400 elec rad/s HV
+    `obs_min_speed`: set `obs_min_speed=150` live and expect only the flux observer (`obs_mode=0`) to be
+    meaningful there. With `angle_src=0` (shadow) spin in torque mode and watch `theta_err`
+    (wrap(θ_est − θ_resolver)): mean within ±0.1 rad, RMS ≲ 0.15. Then `angle_src=1` live (bumpless
+    hand-over, `pos_trig_en=1` captures it), then `angle_src=2` + `pos_force_lost=1` → `angle_act=1`,
+    `pos_status=0x63`, `warn_code=1`, RUN continues; pull one resolver channel under torque for the real
+    thing. Sensorless keeps |iq| ≤ `obs_iq_max` and forces FW off. HV: re-verify the floor and the SMO's
+    `obs_smo_e0`.
 
-Only after 1–10 pass at low voltage, raise the DC link toward the HV pack in
-steps, re-checking OC/OV trips and the ASC boundary at each level.
+Only after the low-voltage items pass, raise the DC link toward the HV pack in steps, re-checking the
+OC/OV trips, the bus calibration and the ASC boundary at each level.

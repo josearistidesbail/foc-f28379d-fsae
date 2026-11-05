@@ -1,3 +1,3 @@
 # CCS Installation directory
 
-CCS installed at `/home/jose/ti/ccs2051`.
+CCS installed at `/home/jose/ti/ccs2101`.

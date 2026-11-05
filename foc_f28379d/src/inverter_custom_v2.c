@@ -1,9 +1,9 @@
 //=============================================================================
-// inverter_custom_v2.c - Custom Control_Board_v2 gate-driver glue.
+// inverter_custom_v2.c - FE_UFPR 4.0 (ex Control_Board_v2) gate-driver glue.
 //
-// Replace the bring-up sequence with whatever your gate-driver IC needs.
-// If you're using simple optocoupler half-bridge drivers with EN/nFAULT
-// only, this file is already close enough.
+// FE_UFPR 4.0 (successor of Control_V2, same variant): discrete UCC27524 gate
+// drivers behind two active-high enables, PrimeSTACK fault flags on GPIOs,
+// vehicle switch inputs. Pin facts live in config/hw/hw_control_v2.h.
 //
 // Only present when HW_CONTROL_BOARD_V2 is the active variant.
 //=============================================================================
@@ -20,31 +20,81 @@
 // were asserted at the moment FOC_FAULT was entered (MODULE_FLT_* bits).
 volatile uint16_t g_dbg_module_fault;
 
+// The ePWM trip-zone inputs are active-LOW and the Input X-BAR cannot invert,
+// so the level the X-BAR (and GPIO_readPin) sees on a fault must be LOW:
+// (fault level at the pin) XOR (pad inversion) must give LOW. Refuse to build a
+// combination that would arm the HW trip backwards -- a backwards trip is
+// either a permanent short-circuit latch or, worse, a trip that never fires.
+#if !defined(MODULE_FAULT_PAD_INVERT)
+#define MODULE_FAULT_PAD_INVERT 0U
+#endif
+#define MODULE_FAULT_READS_LOW  ((MODULE_FAULT_ACTIVE_LOW != 0U) != (MODULE_FAULT_PAD_INVERT != 0U))
+#if !MODULE_FAULT_READS_LOW
+#error "Module fault lines would reach the active-low trip zone inverted: fix MODULE_FAULT_ACTIVE_LOW / MODULE_FAULT_PAD_INVERT (and the SysConfig padConfig)"
+#endif
+
 void inverter_init(void)
 {
-    // Control_V2 has two enables: the auxiliary enable comes up once and stays
-    // on for the session; the master enable stays de-asserted until the state
-    // machine drives RUN. (Both assumed active-high -- see hw_control_v2.h.)
-    GPIO_writePin(GATE_DRV_EN2_GPIO, 1);    // aux enable: always on
+    // Two board-local enables (both active-HIGH, ANDed by board U8 with the
+    // main-switch interlock): the auxiliary enable comes up here; the master
+    // enable stays de-asserted until the state machine drives RUN.
+    GPIO_writePin(GATE_DRV_EN2_GPIO, 1);    // aux enable
     GPIO_writePin(GATE_DRV_EN_GPIO, 0);     // master enable: off until RUN
     DEVICE_DELAY_US(5000);
     // No SPI/I2C gate-driver config on this board (discrete EN + fault GPIOs).
 }
 
-// Only the master enable is gated by the state machine; the aux enable set in
-// inverter_init() is left on.
-void inverter_enable_gate(void)  { GPIO_writePin(GATE_DRV_EN_GPIO, 1); }
+// The state machine gates the master enable. Enabling also re-asserts the aux
+// enable, so a bench test that dropped it (gate_en_dbg) cannot leave the board
+// unable to arm on the next RUN / ol_run.
+void inverter_enable_gate(void)
+{
+    GPIO_writePin(GATE_DRV_EN2_GPIO, 1);
+    GPIO_writePin(GATE_DRV_EN_GPIO, 1);
+}
 void inverter_disable_gate(void) { GPIO_writePin(GATE_DRV_EN_GPIO, 0); }
 
-// True when a module fault GPIO reads its asserted level (polarity from header).
+// Readback of the two enable pins (GPxDAT reflects the pin level for outputs):
+// bit0 = master GPIO66, bit1 = aux GPIO131. Board TP16 is their AND with the
+// main-switch interlock (board JP1).
+uint16_t inverter_gate_en_readback(void)
+{
+    uint16_t r = 0U;
+    if(GPIO_readPin(GATE_DRV_EN_GPIO)  != 0U) r |= 1U;
+    if(GPIO_readPin(GATE_DRV_EN2_GPIO) != 0U) r |= 2U;
+    return r;
+}
+
+// BENCH ONLY (bring-up B): drive the two enables independently. Caller
+// (debug_params.c) restricts this to IDLE with module-fault protection off.
+// In IDLE the PWM is held in the all-LOW OFF pattern (pwm_force_off), so with
+// TP16 high all six gate test points read 0 V. (Before 2026-11-03 the idle
+// pattern put the low sides on, ~13.5 V on TP11/13/15 -- that was changed so
+// the PrimeSTACK sees all inputs LOW at every enable.) The next state
+// transition overrides this.
+void inverter_dbg_set_gates(uint16_t mask)
+{
+    GPIO_writePin(GATE_DRV_EN_GPIO,  (mask & 1U) ? 1U : 0U);
+    GPIO_writePin(GATE_DRV_EN2_GPIO, (mask & 2U) ? 1U : 0U);
+}
+
+// Vehicle switch inputs: bit0 = main (GPIO29), bit1 = start (GPIO59).
+// 1 = switch ON (12 V present at the cockpit input).
+uint16_t board_switch_inputs(void)
+{
+    uint16_t r = 0U;
+    if(GPIO_readPin(SW_MAIN_GPIO)  != 0U) r |= 1U;
+    if(GPIO_readPin(SW_START_GPIO) != 0U) r |= 2U;
+    return r;
+}
+
+// True when a module fault GPIO reads its asserted level. With the pad
+// inverted (MODULE_FAULT_PAD_INVERT) GPIO_readPin() returns the INVERTED pin,
+// so the level to test is the one the trip zone sees: LOW = fault.
 static inline uint16_t module_flag(uint32_t gpio)
 {
     uint16_t pin = (uint16_t)GPIO_readPin(gpio);
-#if MODULE_FAULT_ACTIVE_LOW
-    return (pin == 0U) ? 1U : 0U;
-#else
-    return (pin != 0U) ? 1U : 0U;
-#endif
+    return (pin == 0U) ? 1U : 0U;          // MODULE_FAULT_READS_LOW (checked above)
 }
 
 // Pack the five discrete fault flags into a MODULE_FLT_* bitfield.
@@ -69,7 +119,7 @@ bool inverter_is_faulted(void)
 
 void inverter_clear_faults(void)
 {
-    // Nothing to do: Control_V2 has no fault-reset line, and the module's fault
+    // Nothing to do: this board has no fault-reset line, and the module's fault
     // outputs are level signals (they self-clear when the condition goes away).
     // The latched ePWM trip-zone is released by pwm_clear_trip() when the state
     // machine returns to IDLE.

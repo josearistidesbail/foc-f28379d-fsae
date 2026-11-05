@@ -17,6 +17,7 @@ One-shot commands (auto-connect, run once, exit):
     python -m foc_debug vbuscal --fit 6.1:31,50.2:148 # offline fit, no hardware
     python -m foc_debug vbuscal --cal-csv 40:v40.csv,65:v65.csv --csv-ratio 276.92
                                                       # fit saved 'vbus' captures
+    python -m foc_debug obssim --motor emrax --vbus 24  # offline SMO-vs-flux table
 
 REPL commands (type at the foc> prompt — no flags):
     ports [all], connect [port], disconnect, ping [text], list,
@@ -262,6 +263,10 @@ def run_command(sess: Session, argv: list) -> int:
     # Offline fit of already-recorded VOLTS:CODE pairs needs no hardware.
     if cmd in ("vbuscal", "vcal") and any(a.startswith(("--fit", "--cal-csv")) for a in args):
         return _do_vbuscal(None, args)
+    # Offline SMO-vs-flux observer comparison: pure simulation, no hardware.
+    if cmd in ("obssim", "observer_sim"):
+        from . import observer_sim
+        return observer_sim.main(args)
 
     # Everything below needs a connection.
     if not sess.connected:

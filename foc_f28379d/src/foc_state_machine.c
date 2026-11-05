@@ -5,7 +5,7 @@
 #include "foc_state_machine.h"
 #include "foc_pipeline.h"
 #include "inverter_iface.h"
-#include "sensor_iface.h"
+#include "pos_src.h"
 #include "pwm_iface.h"
 #include "adc_iface.h"
 #include "safety.h"
@@ -16,6 +16,13 @@ static volatile FOC_State_t s_state = FOC_IDLE;
 static volatile FOC_State_t s_requested = FOC_IDLE;
 static volatile bool        s_align_only = false;
 static volatile bool        s_fault_pending = false;
+// FAULT is left ONLY through an explicit operator clear (sm_clear_fault). It
+// must not key on s_requested == FOC_IDLE: IDLE is also the resting request, so
+// a fault raised from IDLE (or a stop pressed while faulted) bounced
+// FAULT -> IDLE -> FAULT every 2 ms, and each IDLE entry released the HW
+// trip-zone latch (pwm_clear_trip) -- at speed that alternates active short and
+// coast at 500 Hz. Found in FE_UFPR 4.0 bring-up D, 2026-11-03.
+static volatile bool        s_clear_req = false;
 static volatile bool        s_aligned = false;      // rotor electrical offset captured?
 static uint32_t             s_state_ticks;
 
@@ -49,18 +56,26 @@ static void enter(FOC_State_t next)
     {
     case FOC_IDLE:
         inverter_disable_gate();
-        pwm_force_safe();
+        pwm_force_off();    // all six LOW: the pattern the next enable starts from
         pwm_clear_trip();   // release any latched HW trip-zone so RUN can resume
+        safety_clear_warnings();   // a sensorless fail-over warning ends with the run
         break;
     case FOC_CALIBRATE_OFFSETS:
+        // Offsets are sampled at zero current with the bridge OFF (all six
+        // LOW). Whether the gate driver must be ENABLED for that is per board:
+        // the DRV8305's current-sense amps only bias up while it is awake, but
+        // the FE_UFPR 4.0 / PrimeSTACK sensors are module-powered and need no
+        // gate enable -- so that board keeps GATE_EN LOW for the whole ~0.2 s.
+#if INVERTER_GATE_ON_FOR_CALIBRATE
         inverter_enable_gate();
+#endif
         inverter_clear_faults();        // clear any fault latched since last inverter_init()
-        pwm_force_safe();               // SO bias must be present before sampling offsets
+        pwm_force_off();
         adc_calibrate_offsets(CAL_SAMPLES);
         break;
     case FOC_ALIGN_ROTOR:
         inverter_enable_gate();
-        foc_get_refs()->id_ref = ALIGN_ID_INJECT_A;
+        foc_get_refs()->id_ref = g_align_id_a;   // "align_id_a" (foc_pipeline.c)
         foc_get_refs()->iq_ref = 0.0f;
         // theta is forced to 0 in foc_pipeline.c while state == ALIGN.
         break;
@@ -72,34 +87,39 @@ static void enter(FOC_State_t next)
         foc_get_refs()->id_ref = ID_REF_NOMINAL_A;
         break;
     case FOC_OPENLOOP:
-        // Bench-only open-loop PWM (no power stage): enable the gate and clear any
-        // stale gate-driver latch. The rotating voltage vector is generated in the
-        // current-loop ISR; no current loop, sensor, or RUN-only fault check runs
-        // in this state, so it cannot fault on the missing bus/resolver/currents.
+        // Bench open-loop PWM: enable the gate and clear any stale gate-driver
+        // latch. The rotating voltage vector is generated in the current-loop
+        // ISR; no current loop, sensor, or RUN-only check (phase OC, UV, sensor
+        // loss) runs in this state, so it cannot fault on a missing bus/resolver/
+        // currents. With module-fault protection ON the HW trip-zone, the module
+        // fault latch and the OV trip still apply -- that is the point of
+        // allowing it with protection on.
         inverter_enable_gate();
         inverter_clear_faults();
         break;
     case FOC_FAULT:
+        s_clear_req = false;            // a stale clear must never pre-clear a fresh fault
         inverter_snapshot_fault_regs(); // read while EN_GATE still high — tells us what fired
         {
             // Speed-dependent safe-state. Above FAULT_ASC_OMEGA_ELEC hold a
-            // 3-phase ACTIVE SHORT: keep the gate driver ENABLED so the ISR's
-            // pwm_force_safe() (EPWMxA forced low -> dead-band makes EPWMxB high
+            // 3-phase ACTIVE SHORT: keep the gate driver ENABLED so
+            // pwm_force_asc() (EPWMxA forced low -> dead-band makes EPWMxB high
             // -> low-side FETs on) clamps the terminals. This stops back-EMF
             // from rectifying into the DC link (uncontrolled generation ->
             // overvoltage) during field-weakening. Below the threshold COAST:
             // disable the gate driver so every FET tristates and the motor
-            // freewheels. Uses the LAST-HEALTHY speed because on sensor loss the
-            // live estimate is already garbage. This also keeps software in
-            // agreement with the HW trip-zone, which latches the same ASC.
-            float32_t w = sensor_get_healthy_speed();
+            // freewheels. Uses the LAST-HEALTHY speed of the ACTIVE position
+            // source (pos_src.c): on sensor loss the live estimate is already
+            // garbage, and after a sensorless fail-over the sensor's own latched
+            // speed is stale. This also keeps software in agreement with the
+            // HW trip-zone, which latches the same ASC.
+            float32_t w = pos_src_get_healthy_speed();
             if(w < 0.0f) w = -w;
             bool asc = (w > FAULT_ASC_OMEGA_ELEC);
             g_dbg_fault_asc = (uint16_t)asc;
-            if(asc) inverter_enable_gate();     // keep gate on -> low-side short
-            else    inverter_disable_gate();    // tristate -> coast
+            if(asc) { inverter_enable_gate();  pwm_force_asc(); }  // low-side short
+            else    { inverter_disable_gate(); pwm_force_off(); }  // tristate -> coast
         }
-        pwm_force_safe();
         break;
     }
 
@@ -125,7 +145,8 @@ void sm_request_stop(void)   { s_requested = FOC_IDLE; }
 // safety_check_isr() runs at FOC_ISR_FREQ_HZ, so the order here matters:
 //
 //   1. safety_clear()      -- drop safety.c's latched mask.
-//   2. sensor_clear_loss() -- drop the backend's one-way lost latch. Without
+//   2. pos_src_clear_loss() -- drop the backend's one-way lost latch (and the
+//      supervisor's observer-loss latch). Without
 //      this the mask clears but sensor_is_lost() stays true forever, and the
 //      first ISR tick back in RUN/ALIGN re-latches FAULT_SENSOR_LOSS. Since
 //      Run skips ALIGN once s_aligned is set (the only path that used to
@@ -138,14 +159,19 @@ void sm_request_stop(void)   { s_requested = FOC_IDLE; }
 //      fresh IDLE back into FOC_FAULT with an empty fault code. Clearing the
 //      sources first means any raise landing in between is a GENUINE live fault
 //      (OV / gate-driver are not state-gated) and correctly re-faults.
+//   4. s_clear_req = true -- LAST: it is the only thing that lets sm_tick_1khz()
+//      leave FOC_FAULT. A fault that is still live re-latches on the first ISR
+//      in IDLE and re-enters FAULT once (one IDLE tick, one trip-zone release);
+//      FAULT then holds until the next clear, it no longer bounces.
 void sm_clear_fault(void)
 {
     if(s_state == FOC_FAULT)
     {
         safety_clear();
-        sensor_clear_loss();
+        pos_src_clear_loss();      // backend re-arm + the supervisor's own latch
         s_fault_pending = false;
         s_requested     = FOC_IDLE;
+        s_clear_req     = true;
     }
 }
 void sm_raise_fault(uint16_t code) { safety_latch(code); s_fault_pending = true; }
@@ -189,10 +215,13 @@ void sm_tick_1khz(void)
         // "Stop then Run faults immediately").
         if(s_requested == FOC_ALIGN_ROTOR || s_requested == FOC_RUN)
             enter(FOC_CALIBRATE_OFFSETS);
-        else if(s_requested == FOC_OPENLOOP && !g_module_faults_en)
-            enter(FOC_OPENLOOP);            // bench-only diagnostic, no CALIBRATE
         else if(s_requested == FOC_OPENLOOP)
-            s_requested = FOC_IDLE;         // protection active -> openloop blocked
+            enter(FOC_OPENLOOP);            // bench diagnostic, no CALIBRATE
+        // ol_run used to be refused with module-fault protection ON (it was
+        // a power-stage-less bench tool). With the real module + motor it is
+        // how the resolver direction gets checked, and running it with the HW
+        // trip-zone + module fault latch armed is strictly safer than the old
+        // practice of disarming protection to use it (2026-11-03).
         break;
 
     case FOC_CALIBRATE_OFFSETS:
@@ -235,8 +264,14 @@ void sm_tick_1khz(void)
         break;
 
     case FOC_FAULT:
-        if(s_requested == FOC_IDLE)
+        // Only an explicit clear leaves FAULT (see s_clear_req). A stop request
+        // while faulted is ignored here; RUN/align requests are overwritten by
+        // the clear (s_requested = IDLE), so a clear never resumes a run.
+        if(s_clear_req)
+        {
+            s_clear_req = false;
             enter(FOC_IDLE);
+        }
         break;
     }
 }

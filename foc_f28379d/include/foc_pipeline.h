@@ -13,6 +13,8 @@ extern void foc_init(void);
 
 // Read/write the live reference inputs from the slow loop / app.
 extern FOC_Refs_t * foc_get_refs(void);
+// Closed-loop ALIGN current [A] ("align_id_a" param), latched into id_ref on ALIGN entry.
+extern volatile float32_t g_align_id_a;
 
 // Runtime access to the inner/outer PI gains (backed by the static PI objects
 // owned by foc_pipeline.c). Used by the debug param registry so gains can be

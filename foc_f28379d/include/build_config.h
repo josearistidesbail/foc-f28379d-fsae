@@ -93,17 +93,14 @@
 #define UV_TRIP_DEBOUNCE_TICKS  20U
 #endif
 
-//----- Phase-current sense: channel count / mapping / phase-ID -------------
-// The current-sense ADC inputs are FIXED per board; which motor phase each one
-// measures can change (movable LEM clamps on Control_V2). adc_iface.c scatters
-// the channels onto phases through the runtime g_isense_map ("isense_map"
-// param) with per-channel polarity g_isense_inv ("isense_inv"). Both are
-// auto-detected by the ALIGN phase-ID stage when PHASE_ID enabled: the field is
-// parked open-loop at 0/120/240 deg electrical and each channel's dwell
-// averages identify its phase (peak dwell) and clamp direction (peak sign).
-#ifndef ISENSE_NUM_CHANNELS
-#define ISENSE_NUM_CHANNELS     3    // physical sense channels (2 on Control_V2)
-#endif
+//----- Phase-current sense: mapping / phase-ID ----------------------------
+// Three current-sense channels, ADC inputs FIXED per board. adc_iface.c
+// scatters the channels onto phases through the runtime g_isense_map
+// ("isense_map" param) with per-channel polarity g_isense_inv ("isense_inv").
+// Both are auto-detected by the ALIGN phase-ID stage when PHASE_ID is enabled:
+// the field is parked open-loop at 0/120/240 deg electrical and each channel's
+// dwell-average SIGN pattern gives its phase (the odd sign out) and polarity
+// (that dwell's sign). See adc_isense_phase_id_commit().
 #ifndef ISENSE_MAP_DEFAULT
 #define ISENSE_MAP_DEFAULT      0U   // boot map: 0 = identity (A=U, B=V, C=W)
 #endif
@@ -136,13 +133,37 @@
 // (sized to move the rotor -- far more current than a measurement needs, and
 // enough to current-limit a bench supply). Instead the duty is slewed up until
 // the largest |channel current| reaches PHASE_ID_TARGET_A, then FROZEN for all
-// three dwells (see foc_pipeline.c for why freezing matters). Duty capped at
-// g_ol_mod, so worst case equals the old fixed drive.
+// three dwells (see foc_pipeline.c for why freezing matters).
+// [2026-11-06] The duty CAP is bus-agnostic (it used to be g_ol_mod, a raw duty:
+// 3.1 V at the 31 V bench but 40 V on a 400 V pack). It is now the dead-zone
+// model scaled up plus a fixed headroom, converted at the live bus:
+//   cap_duty = PHASE_ID_DZ_MARGIN * (4/3) * (dtc_duty + dtc_v/vbus)
+//              + PHASE_ID_V_HEADROOM / vbus
+// (4/3: the d-axis amplitude of a dead zone with the field on a phase axis).
+// ~3.9 V at 31 V, ~15 V at 400 V. It only binds when the governor cannot see
+// current (open lead, dead sensor) -- then it bounds the blind current to
+// ~(margin-1)*Vdz + headroom over the winding path at ANY bus. If the dead-zone
+// model is badly wrong at a new bus, the governor rails at the cap, the dwells
+// come out weak and phase-ID REJECTS (fails safe); re-fit dtc_duty/dtc_v there.
 #ifndef PHASE_ID_TARGET_A
 #define PHASE_ID_TARGET_A       ALIGN_ID_INJECT_A  // governed dwell current [A]
 #endif
 #ifndef PHASE_ID_MOD_SLEW_PER_S
 #define PHASE_ID_MOD_SLEW_PER_S 0.4f // governor duty slew rate [duty/s]
+#endif
+#ifndef PHASE_ID_DZ_MARGIN
+#define PHASE_ID_DZ_MARGIN      1.5f // cap = this x the modelled dead zone ...
+#endif
+#ifndef PHASE_ID_V_HEADROOM
+#define PHASE_ID_V_HEADROOM     1.0f // ... plus this many volts
+#endif
+// Low-pass on each channel's SIGNED current before the governor takes max|I|.
+// The dwell field is static, so the true current is DC and the per-sample noise
+// is broadband. 100 Hz cuts ~0.8 A rms to ~0.14 A while adding only ~1.6 ms of
+// lag -- short enough that the bang-bang governor's limit cycle stays well under
+// an amp on the steep dead-zone knee.
+#ifndef PHASE_ID_IFILT_HZ
+#define PHASE_ID_IFILT_HZ       100.0f
 #endif
 
 //----- Dead-time / dead-zone compensation feedforward ---------------------
@@ -202,13 +223,21 @@
 #define FOC_MODE_SPEED          1U   // iq_ref from the speed PI (omega_ref)
 
 //----- Bench bypass default ----------------------------------------------
-// Only the Control_V2 header defines this (set to 1 during power-stage-less
+// Only hw_control_v2.h defines this (set to 1 during power-stage-less
 // bring-up). Everything else defaults to 0 = module-fault protection ACTIVE.
 #ifndef BENCH_NO_POWER_STAGE
 #define BENCH_NO_POWER_STAGE    0U
 #endif
 
-// Bench DC-bus override + UV-bypass defaults. Only the Control_V2 header sets the
+// Does FOC_CALIBRATE_OFFSETS need the gate driver ENABLED to sample the
+// current-sense zero? 1 (default) for gate drivers that power their own
+// current-sense amps (DRV8305). Boards whose sensors are independent of the
+// gate enable set 0, so the bridge stays fully disabled while calibrating.
+#ifndef INVERTER_GATE_ON_FOR_CALIBRATE
+#define INVERTER_GATE_ON_FOR_CALIBRATE  1U
+#endif
+
+// Bench DC-bus override + UV-bypass defaults. Only hw_control_v2.h sets the
 // bench values; everything else defaults to "off" (control uses the measured bus,
 // UV trip armed).
 #ifndef VBUS_OVERRIDE_DEFAULT_V
@@ -220,9 +249,8 @@
 
 // Boot value of the runtime COMMAND-current clamp ("iq_max" param). Applied in
 // the current-loop ISR at the single point every q-axis command funnels through
-// (torque cmd, speed-PI output, step injector; in open-loop resistive mode it
-// caps id_ref/iq_ref and hence the applied Rs*i volts), so no command source
-// can demand more current than the bench supply survives. Note phase amps are
+// (torque cmd, speed-PI output, step injector), so no command source can
+// demand more current than the bench supply survives. Note phase amps are
 // cheap on the DC side at low speed (supply draw ~= duty * phase current), so
 // 10 A of phase current costs well under 1 A of supply -- the bench default is
 // protective without being useless. Production default = the full machine limit.
@@ -233,5 +261,106 @@
 #define IQ_CMD_MAX_DEFAULT_A    IQ_REF_MAX_A
 #endif
 #endif
+
+// Software phase over-current trip (safety.c, RUN/ALIGN), live as "oc_trip_a".
+// A trip set above what the current SENSOR can read never fires -- the reading
+// saturates first -- so the ceiling is the smaller of the motor/module limit and
+// the sensing path's range (ISENSE_OC_TRIP_MAX_A, per hw_*.h; defaults to the
+// motor limit). The live param can be set anywhere up to that ceiling, never
+// above it. OC_TRIP_DEFAULT_A is the boot value (hw_*.h may lower it for the bench).
+// Boot value of the live PI voltage-clamp fraction "vmax_frac" (the setter
+// still caps it at VDQ_MAX_FRACTION). hw_*.h may lower it for a bench bus.
+#ifndef VDQ_MAX_FRAC_DEFAULT
+#define VDQ_MAX_FRAC_DEFAULT    VDQ_MAX_FRACTION
+#endif
+
+#ifndef ISENSE_OC_TRIP_MAX_A
+#define ISENSE_OC_TRIP_MAX_A    MOTOR_OC_TRIP_A
+#endif
+#define OC_TRIP_CEIL_A          ((ISENSE_OC_TRIP_MAX_A < MOTOR_OC_TRIP_A) ? \
+                                 ISENSE_OC_TRIP_MAX_A : MOTOR_OC_TRIP_A)
+#ifndef OC_TRIP_DEFAULT_A
+#define OC_TRIP_DEFAULT_A       OC_TRIP_CEIL_A
+#endif
+
+//----- Sensorless observers + position-source supervisor (Step 12) --------
+// observer.c runs an Ortega flux observer AND a TI-eSMO-style sliding-mode
+// observer every ISR (g_obs_mode selects which feeds the common PLL); pos_src.c
+// decides whether the sensor or the observer commutates and fails over
+// automatically (angle_src = AUTO). Per-motor starting values live in
+// gains_*.h (OBS_*_DEFAULT); these #ifndef fallbacks keep every variant
+// compiling, and the fixed timing/clamp constants below are shared.
+#ifndef OBS_MODE_DEFAULT
+#define OBS_MODE_DEFAULT        0U      // 0 = flux observer, 1 = SMO
+#endif
+#ifndef OBS_VSRC_DEFAULT
+#define OBS_VSRC_DEFAULT        0U      // 0 = duty*vbus - dead-zone model
+#endif
+#ifndef OBS_GAMMA_DEFAULT
+#define OBS_GAMMA_DEFAULT       1000.0f // flux radial correction rate [1/s]
+#endif
+#ifndef OBS_SMO_KSLIDE_DEFAULT
+#define OBS_SMO_KSLIDE_DEFAULT  1.0f    // [V/A]; setter caps at 0.9*(1+F)/G
+#endif
+#ifndef OBS_SMO_E0_DEFAULT
+#define OBS_SMO_E0_DEFAULT      10.0f   // [A]; >= e_max/|Kslide+Rs+j*w*Ls| keeps it linear
+#endif
+#ifndef OBS_SMO_LPF_HZ_DEFAULT
+#define OBS_SMO_LPF_HZ_DEFAULT  20.0f   // back-EMF LPF cutoff floor [Hz]
+#endif
+#ifndef OBS_SMO_LPF_K_DEFAULT
+#define OBS_SMO_LPF_K_DEFAULT   1.0f    // LPF cutoff = k * |omega_e|
+#endif
+#ifndef OBS_PLL_BW_HZ_DEFAULT
+#define OBS_PLL_BW_HZ_DEFAULT   40.0f
+#endif
+
+// ---- ALIGN offset sweep direction (foc_pipeline.c align_step) ------------
+// A forward-only open-loop sweep bakes the friction load angle into the
+// captured offset: the rotor trails the carrier by delta, so the sensor ends up
+// reading AHEAD of the true rotor by delta. Bench 2026-10-09 (Teknic, 1 A):
+// both observers sat at -11.2 +/- 0.5 deg vs the QEP in BOTH rotation
+// directions (direction-independent => reference error, not observer error).
+// BIDIR sweeps ALIGN_RAMP_MECH_REVS forward, holds, then the same backward;
+// the two direction means are +/-delta about the true offset and are averaged
+// with equal weight. Their half-difference is published as "align_delta".
+#ifndef ALIGN_RAMP_BIDIR
+#define ALIGN_RAMP_BIDIR        1U
+#endif
+#ifndef ALIGN_REVERSE_DWELL_S
+#define ALIGN_REVERSE_DWELL_S   0.3f    // hold between the passes so BOTH start from rest
+#endif
+
+#ifndef OBS_MIN_SPEED_DEFAULT
+#define OBS_MIN_SPEED_DEFAULT   300.0f  // observer trusted above this |omega_e| [rad/s]
+#endif
+#ifndef OBS_FLUX_TOL_DEFAULT
+#define OBS_FLUX_TOL_DEFAULT    0.30f   // |eta|^2 error tolerance [pu of lambda^2]
+#endif
+#ifndef OBS_SMO_TOL_DEFAULT
+#define OBS_SMO_TOL_DEFAULT     0.5f    // |e_hat|^2/predicted^2 - 1 tolerance [pu]
+#endif
+#ifndef OBS_ERR_TRIP_DEFAULT
+#define OBS_ERR_TRIP_DEFAULT    0.5f    // sensor-vs-observer disagreement trip [rad]
+#endif
+#ifndef OBS_IQ_MAX_A
+#define OBS_IQ_MAX_A            (0.5f * IQ_REF_MAX_A)      // |iq| clamp while sensorless
+#endif
+#ifndef OBS_LS_DEFAULT
+#define OBS_LS_DEFAULT          (0.5f * (MOTOR_LD_H + MOTOR_LQ_H))
+#endif
+#ifndef ANGLE_SRC_DEFAULT
+#define ANGLE_SRC_DEFAULT       0U      // boot on the SENSOR; observers in shadow
+#endif
+// Fixed constants (ISR ticks unless noted).
+#define OBS_GAMMA_MIN           10.0f
+#define OBS_GAMMA_MAX           5000.0f // discrete radial pole 1 - gamma*Ts >= 0.5
+#define OBS_PLL_BW_MIN_HZ       1.0f
+#define OBS_PLL_BW_MAX_HZ       200.0f
+#define OBS_PLL_ERR_CLAMP       0.5f    // PLL acquisition clamp [rad]
+#define OBS_CONVERGED_TICKS     200U    // 20 ms of tracking before "healthy"
+#define OBS_UNHEALTHY_TICKS     50U     // 5 ms of not-tracking drops it
+#define OBS_ERR_DEBOUNCE_TICKS  50U     // 5 ms of sustained disagreement
+#define OBS_BLEND_TICKS         500U    // 50 ms bumpless hand-over blend
 
 #endif // BUILD_CONFIG_H

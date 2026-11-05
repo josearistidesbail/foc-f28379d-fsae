@@ -44,4 +44,26 @@
 #define SENSOR_QEP_LOSS_MIN_MOVE    4       // min total |count| movement per window
                                             //   when alive (4 cnt/100 ms ~= <1 rpm)
 
+// ---- FAST frozen-counter detection (ISR rate) ------------------------------
+// The window above takes ~100 ms; the sensorless fail-over needs the loss in a
+// fraction of a millisecond, because until it is declared the drive commutates
+// on a frozen angle. Bench 2026-10-09 (unplug at 1036 rad/s elec): the 5 ms
+// disagreement debounce won the race, the mis-commutation reached |I| = 7.4-7.7 A
+// and knocked BOTH observers out of lock -> FAULT_SENSOR_LOSS, no ride-through.
+// Physics: at w_e the counter advances w_e/pp/(2pi)*CPR_X4*Ts counts per ISR
+// tick (15.9 at 1000 rad/s elec). Trip when the counter has moved <= STILL_MAX
+// counts per tick for STILL_TICKS consecutive ticks right after averaging
+// >= MIN_CNT_PER_TICK over the preceding 8 ticks (FAST_REF_TICKS). Going from
+// >= 4 to <= 1 count/tick inside ~1 ms needs > 1.9e5 rad/s^2 elec, ~3x what
+// this motor can produce at I_PEAK, so a real rotor cannot fake it. Armed only
+// in FOC_RUN (slow loop) and while qep_fast_en = 1. Latches g_qep_lost, so
+// AUTO takes the LOSS hand-over (jump, no blend) -- the A6-proven path.
+#define SENSOR_QEP_FAST_REF_TICKS        8U      // power of 2 (ring index mask)
+#define SENSOR_QEP_FAST_MIN_CNT_PER_TICK 4U      // ~251 rad/s elec on 1000-line/4pp
+#define SENSOR_QEP_FAST_STILL_MAX        1U      // a single noise edge still counts as "still"
+#define SENSOR_QEP_FAST_STILL_TICKS      3U      // 0.3 ms
+#ifndef SENSOR_QEP_FAST_DEFAULT_EN
+#define SENSOR_QEP_FAST_DEFAULT_EN       1U
+#endif
+
 #endif // SENSOR_QEP_H

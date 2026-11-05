@@ -10,14 +10,16 @@
 #include "foc_types.h"
 #include "debug_proto.h"
 
-// Ring columns: 0=theta, 1=Id, 2=Iq, 3=Vd, 4=Vq, 5=omega, 6=state,
+// Ring columns: 0=theta, 1=Id, 2=Iq, 3=Vd, 4=Vq, 5=omega,
+//               6=theta_est (observer PLL angle; was the never-streamed state),
 //               7=Iu, 8=Iv, 9=Iw  (cols 7/8/9 are the phase currents Iabc),
 //               10=res_sin, 11=res_cos (raw resolver SIN/COS ADC codes),
 //               12=res_w_lpf (legacy diff+LPF elec speed; 0 on non-RM44AC),
-//               13=vbus (measured DC-bus voltage [V]).
-#define DATALOG_CHANNELS    14
+//               13=vbus (measured DC-bus voltage [V]),
+//               14=theta_err (wrap(theta_est - theta_sensor), any angle source).
+#define DATALOG_CHANNELS    15
 // Ring depth. 128 (not 256) so each per-array .ebss object (g_datalog =
-// 128*14 floats = 0xe00 words, s_scope_buf = 128*13 floats = 0xd00 words) fits
+// 128*15 floats = 0xf00 words, s_scope_buf = 128*15 floats = 0xf00 words) fits
 // inside a single 0x1000-word F28379D RAM block: the linker's >> split places
 // whole arrays per block and cannot split one array across blocks. Must stay a
 // power of 2.

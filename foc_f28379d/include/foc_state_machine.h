@@ -16,7 +16,7 @@ typedef enum {
     FOC_ALIGN_ROTOR,            // inject Id, set encoder zero (QEP) or capture offset (resolver)
     FOC_RUN,                    // closed-loop FOC active
     FOC_FAULT,                  // latched; clear with sm_clear_fault()
-    FOC_OPENLOOP                // bench-only: open-loop rotating PWM (no power stage)
+    FOC_OPENLOOP                // bench: open-loop rotating PWM ("ol_run")
 } FOC_State_t;
 
 extern void         sm_init(void);
@@ -29,7 +29,7 @@ extern void         sm_tick_1khz(void);
 extern void         sm_request_run(void);
 extern void         sm_request_stop(void);
 extern void         sm_request_align(void);     // CALIBRATE -> ALIGN -> IDLE
-extern void         sm_request_openloop(void);  // bench-only open-loop PWM (needs g_module_faults_en==0)
+extern void         sm_request_openloop(void);  // bench open-loop PWM ("ol_run")
 extern void         sm_clear_fault(void);
 
 // Raise a fault from anywhere (incl. ISR). Goes to FAULT next tick.

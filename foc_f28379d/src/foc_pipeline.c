@@ -13,6 +13,9 @@
 #include "pwm_iface.h"
 #include "safety.h"
 #include "debug_hooks.h"
+#include "foc_math_inline.h"
+#include "observer.h"
+#include "pos_src.h"
 
 #include "clarke.h"
 #include "park.h"
@@ -87,8 +90,9 @@ volatile float32_t g_dbg_vbus_v;
 // (vmax_dyn clamp + 1/vbus SVGEN normalization) and the OV/UV trips use this fixed
 // nominal instead of the live sensor reading, which isn't trusted yet at low bench
 // voltage (and nuisance-trips UV). Monitoring (g_dbg_vbus_v, scope, "vbus" param)
-// still shows the measured bus. Default VBUS_OVERRIDE_DEFAULT_V (24 V at the
-// bench); set g_vbus_override_v = 0 ("vbus_ovr" param) to use the measured bus.
+// still shows the measured bus. Default VBUS_OVERRIDE_DEFAULT_V (= BENCH_DC_LINK_V
+// on the bench, which must match the supply); set g_vbus_override_v = 0
+// ("vbus_ovr" param) to use the measured bus.
 volatile float32_t g_vbus_override_v = VBUS_OVERRIDE_DEFAULT_V;
 
 // Alignment result (Step 6). g_dbg_align_offset_elec is the captured electrical
@@ -96,6 +100,10 @@ volatile float32_t g_vbus_override_v = VBUS_OVERRIDE_DEFAULT_V;
 // single-shot capture varied ~50 deg). g_dbg_align_qep_cnt is the raw QPOSCNT at
 // finalize (varies with start position, that's expected).
 volatile float32_t g_dbg_align_offset_elec;
+// Bidirectional sweep (ALIGN_RAMP_BIDIR): half the difference between the
+// backward and forward pass means [DEGREES] = the friction load angle the
+// rotor trailed the carrier by. Positive = the expected sign. 0 if one-way.
+volatile float32_t g_dbg_align_delta_deg;
 volatile int32_t   g_dbg_align_qep_cnt;
 
 // Cross-coupling / back-EMF feedforward. g_dbg_decouple_en toggles it live (also
@@ -109,23 +117,6 @@ volatile float32_t g_dbg_ff_q;
 //   FOC_MODE_SPEED  -> iq_ref produced by the speed PI from s_refs.speed_ref
 // Switchable live; foc_speed_loop_tick() makes the transfer bumpless.
 volatile uint16_t  g_dbg_control_mode;
-
-// Inner current-loop enable (also the "iloop_en" serial param); default
-// FOC_ILOOP_DEFAULT=1. 1 = the d/q current PIs are enforced (normal closed-loop
-// FOC). 0 = open-loop resistive voltage mode (RUN only): the PIs are bypassed and
-// the operator's id_ref/iq_ref (still in AMPS) are applied as the DC voltage that
-// would drive that current through the winding resistance,
-//   Vd = MOTOR_RS_OHM * id_ref,  Vq = MOTOR_RS_OHM * iq_ref,
-// using the live position-sensor angle. No PI, no integrator, and NO back-EMF
-// feedforward. WARNING: ignoring back-EMF is only valid at low/zero speed -- at
-// speed the small applied Vq vs a large back-EMF can drive strong braking/
-// generation. The applied voltage is clamped to the inverter budget and the phase
-// overcurrent trip stays armed in FOC_RUN, but treat this as a bring-up tool.
-// In FOC_ALIGN_ROTOR, 0 instead selects the OPEN-LOOP ALIGN DRIVE: a fixed
-// d-axis modulation g_ol_mod in the duty domain (unity SVGEN bus, exactly like
-// FOC_OPENLOOP), so align + the SIN/COS scale calibration work on a bench where
-// the VBUS sense is absent (the PI clamp vmax_dyn ~ vbus would pass 0 V).
-volatile uint16_t  g_dbg_iloop_en;
 
 // Field weakening (Step 11). g_dbg_fw_en toggles it live (also the "fw_en" serial
 // param); default FW_DEFAULT. The regulator runs in the current-loop ISR (RUN
@@ -144,14 +135,13 @@ static float32_t   s_fw_id;
 
 // Runtime command-current clamp [A] ("iq_max" param, LIVE so it can be tightened
 // mid-run). Applied in the ISR at the single choke point every q-axis command
-// flows through -- torque command, speed-PI output, step injector -- and, in
-// open-loop resistive mode, to both id_ref and iq_ref (capping the applied
-// Rs*i volts). Exists because on a current-limited bench supply a large
+// flows through -- torque command, speed-PI output, step injector. Exists
+// because on a current-limited bench supply a large
 // commanded current must never be *attempted*, whatever the source; production
 // boots at the machine limit (IQ_CMD_MAX_DEFAULT_A = IQ_REF_MAX_A) so the
-// clamp is transparent there. NOTE: the speed PI's own output limits stay at
-// +/-IQ_REF_MAX_A, so in SPEED mode it can wind up against this clamp --
-// acceptable for a bench guard, revisit if speed mode is used with a low clamp.
+// clamp is transparent there. The speed PI's output limits follow this clamp
+// every 1 kHz tick (foc_speed_loop_tick), so its integrator cannot wind up past
+// what the ISR will actually apply.
 volatile float32_t g_iq_cmd_max = IQ_CMD_MAX_DEFAULT_A;
 
 // Runtime scale on the per-axis PI voltage clamp ("vmax_frac" param, LIVE):
@@ -161,12 +151,13 @@ volatile float32_t g_iq_cmd_max = IQ_CMD_MAX_DEFAULT_A;
 // REFERENCE, but a sign-flipped or oscillating current PI rails its OUTPUT to
 // the voltage clamp regardless of the reference -- on a milliohm machine that
 // is hundreds of amps and folds a bench supply before anything is observable.
-// Closed-loop bring-up recipe: vmax_frac=0.05 (0.6 V at 24 V -> worst-case
-// rail current ~30 A phase, ~1 A DC-side), engage RUN, watch id/iq/vd/vq on
-// the scope, then walk it back up once the loop is proven. NOTE: the FW
+// Bring-up: start it low, but ABOVE the inverter dead zone (~0.05 duty on the
+// FE_UFPR 4.0 bench) -- below it no current flows at all and the integrators
+// just wind to the rail. 0.15 is the bench boot value (VDQ_MAX_FRAC_DEFAULT in
+// hw_control_v2.h); raise it live for speed once the loop is proven. NOTE: the FW
 // regulator's vmax_fw target intentionally stays on FW_VMAX_FRACTION (FW is a
 // high-speed feature; do not exercise it with vmax_frac lowered).
-volatile float32_t g_vdq_max_frac = VDQ_MAX_FRACTION;
+volatile float32_t g_vdq_max_frac = VDQ_MAX_FRAC_DEFAULT;
 
 // ---- Dead-zone (dead-time + device drop) compensation feedforward --------
 // Cancels the inverter's own voltage error so the current PIs face a roughly
@@ -178,11 +169,9 @@ volatile float32_t g_vdq_max_frac = VDQ_MAX_FRACTION;
 // milliseconds of open-loop winding just to cross it (kp=0.7 never reached a
 // 2 A step); above the ceiling the loop limit-cycles the moment it pops out the
 // far side (kp=1.5 burst to +/-10 A). Both symptoms are the same wall.
-// Applied in FOC_RUN ONLY, after SVGEN, in the duty domain -- deliberately NOT
-// in ALIGN/OPENLOOP: those run the open-loop g_ol_mod drag drive whose values
-// (and the phase-ID governor built on them) are bench-calibrated against the
-// UNcompensated bridge, and the dwell solver reads current ratios that this
-// would alter.
+// Applied after SVGEN, in the duty domain, in FOC_RUN and the closed-loop part
+// of ALIGN -- NOT during the phase-ID dwells (the sign ramp needs the current
+// map they are measuring) and NOT in FOC_OPENLOOP (raw-duty bench tool).
 volatile uint16_t  g_dtc_en      = DTC_DEFAULT_EN;      // "dtc_en"   param, LIVE
 volatile float32_t g_dtc_duty    = DTC_DEADTIME_DUTY;   // "dtc_duty" param, LIVE
 volatile float32_t g_dtc_v       = DTC_VDROP_V;         // "dtc_v"    param, LIVE
@@ -198,12 +187,19 @@ static inline void dtc_apply(volatile FOC_Duty_t *d, volatile FOC_Iabc_t *i,
 {
     float32_t k = g_dtc_duty + g_dtc_v * inv_vbus;
     float32_t inv_ith = g_dtc_inv_ith;
+    // Zero-sequence removal [2026-11-06 bench]: the motor is star-connected with
+    // no neutral, so the true Iu+Iv+Iw is 0 and z below is pure measurement
+    // error -- on FE_UFPR 4.0 the ~0.8 A rms MHz interference common to every
+    // ADC input. Clarke cancels it for the control loop, but the sign ramp here
+    // saw it raw: near each zero crossing it flipped the compensation at random,
+    // doubling the d/q current noise at dtc_ith 0.5. Subtracting z costs nothing.
+    float32_t z = (i->value[0] + i->value[1] + i->value[2]) * (1.0f / 3.0f);
     uint16_t  p;
 
     g_dbg_dtc_k = k;
     for(p = 0U; p < 3U; p++)
     {
-        float32_t s = i->value[p] * inv_ith;
+        float32_t s = (i->value[p] - z) * inv_ith;
         float32_t v;
         if(s >  1.0f) s =  1.0f;
         if(s < -1.0f) s = -1.0f;
@@ -215,6 +211,66 @@ static inline void dtc_apply(volatile FOC_Duty_t *d, volatile FOC_Iabc_t *i,
         if(v >  0.5f) v =  0.5f;
         if(v < -0.5f) v = -0.5f;
         d->value[p] = v;
+    }
+}
+
+// ---- Observer voltage input (Step 12) --------------------------------------
+// Reconstruct the alpha/beta terminal voltage from the LAST tick's final duty
+// (post-SVGEN, post-dtc_apply, in [-0.5, +0.5] about the bus midpoint) times
+// the bus SVGEN normalized with. Must be called BEFORE this tick overwrites
+// s_sig.duty / s_refs.vbus.
+// TIMING: the ADC samples at counter zero of PWM_U (EPWM4 SOCA at TBCTR_ZERO)
+// and CMPA is shadow-loaded at counter zero (SysConfig default, not
+// overridden). The duty written in ISR k-1 therefore becomes active at the
+// counter zero where tick k's current is sampled: this function returns the
+// voltage the bridge applies over (k, k+1], NOT the one that produced i[k].
+// The ISR holds the result for one tick (s_obs_vhold) so the observers pair
+// i[k] with the voltage over (k-1, k]. Without the hold the observers see the
+// voltage one tick early: an angle lead of ~w*Ts, 36 deg at 6000 rpm.
+// The dead-zone sign uses i[k], the current at the start of the interval the
+// duty is applied over.
+//   OBS_VSRC_DUTY_DZ  duty*vbus minus the dead-zone model: with dtc_en=1 the
+//                     duty already carries +Vdt*sat(i), so this recovers the
+//                     commanded volts; with dtc_en=0 it recovers what the bridge
+//                     really delivered (command - dead zone). Default.
+//   OBS_VSRC_DUTY     raw duty*vbus (what the modulator was asked for).
+//   OBS_VSRC_CMD      last tick's pre-SVGEN Vab (volts only in closed-loop RUN).
+// Works in OPENLOOP / ol_align too: there the duty IS the command (unity SVGEN
+// bus), and duty*vbus is still the real terminal voltage. The Clarke transform
+// drops the common mode, so the modulator's zero-sequence offset is free.
+static float32_t s_obs_vhold[2];   // voltage over (k-1, k], one-tick hold
+
+static inline void obs_voltage_ab(float32_t *va, float32_t *vb)
+{
+    uint16_t src = g_obs_vsrc;
+    if(src == OBS_VSRC_CMD)
+    {
+        *va = s_sig.Vab.value[0];
+        *vb = s_sig.Vab.value[1];
+        return;
+    }
+    {
+        float32_t vbus    = s_refs.vbus;
+        float32_t k       = (src == OBS_VSRC_DUTY_DZ) ? (g_dtc_duty * vbus + g_dtc_v) : 0.0f;
+        float32_t inv_ith = g_dtc_inv_ith;
+        MATH_Vec3 vabc;
+        MATH_Vec2 vab;
+        uint16_t  p;
+        for(p = 0U; p < 3U; p++)
+        {
+            float32_t v = s_sig.duty.value[p] * vbus;
+            if(k != 0.0f)
+            {
+                float32_t s = s_sig.Iabc.value[p] * inv_ith;
+                if(s >  1.0f) s =  1.0f;
+                if(s < -1.0f) s = -1.0f;
+                v -= k * s;
+            }
+            vabc.value[p] = v;
+        }
+        CLARKE_run(s_clarke, &vabc, &vab);
+        *va = vab.value[0];
+        *vb = vab.value[1];
     }
 }
 
@@ -261,29 +317,14 @@ static float32_t   s_speed_cmd;
 // straight through IPARK/SVGEN/PWM -- no current loop, no sensor, no vbus
 // dependence (oneOverDcBus forced to 1 so g_ol_mod is ~peak duty deviation).
 // Used to scope the gate waveforms / deadband / sync with nothing connected;
-// entered only in bench mode (g_module_faults_en == 0) via the FOC_OPENLOOP state.
+// entered via the FOC_OPENLOOP state ("ol_run"); with the real module + motor it
+// drags the rotor (resolver direction check) with module-fault protection armed.
 volatile float32_t g_ol_freq_hz = 5.0f;    // electrical frequency [Hz]
 volatile float32_t g_ol_mod     = OL_MOD_DEFAULT;  // q-axis drive (~peak duty dev, 0..0.5)
 static   float32_t s_ol_theta;             // synthetic electrical angle [rad]
 
-//-----------------------------------------------------------------------------
-// Trig/RTS-free square root for the flux-priority current-circle limit. The SDK
-// <math.h> resolves to the motor-control math header (no C99 sqrtf), and pulling
-// the RTS trig/sqrt routines risks flash overflow (see CLAUDE.md pitfalls), so
-// use a self-contained fast inverse-sqrt seed + two Newton refinements. ~1e-4
-// relative accuracy -- ample for bounding a current reference.
-//-----------------------------------------------------------------------------
-static inline float32_t foc_fast_sqrt(float32_t x)
-{
-    if(x <= 0.0f) return 0.0f;
-    union { float32_t f; uint32_t u; } c;
-    c.f = x;
-    c.u = 0x5f3759dfU - (c.u >> 1);              // initial 1/sqrt(x) estimate
-    float32_t y = c.f;
-    y = y * (1.5f - 0.5f * x * y * y);           // Newton iter 1 (refine 1/sqrt)
-    y = y * (1.5f - 0.5f * x * y * y);           // Newton iter 2
-    return x * y;                                 // sqrt(x) = x * (1/sqrt(x))
-}
+// foc_fast_sqrt() (trig/RTS-free, used by the current-circle limit) now lives
+// in foc_math_inline.h, shared with the sensorless observers.
 
 // Reset the FW regulator: zero the commanded weakening current and the PI
 // integrator. Called on entry to FOC_RUN and whenever not running.
@@ -311,6 +352,14 @@ static void fw_reset(void)
 // Per-ISR carrier advance [elec rad]: mech_rev/s * 2pi * pole_pairs * Ts.
 #define ALIGN_CARRIER_DTHETA \
     (ALIGN_RAMP_MECH_SPEED_RPS * 2.0f * MATH_PI * (float32_t)MOTOR_POLE_PAIRS * FOC_ISR_TS)
+// Bidirectional sweep layout (ALIGN_RAMP_BIDIR, see build_config.h):
+//   [0, R) forward + accumulate | [R, R+D) hold, no samples | [R+D, 2R+D) backward + accumulate
+#define ALIGN_REVERSE_DWELL_TICKS ((uint32_t)(ALIGN_REVERSE_DWELL_S * FOC_ISR_FREQ_HZ))
+#if ALIGN_RAMP_BIDIR
+#define ALIGN_SWEEP_TICKS   (2U * ALIGN_RAMP_TICKS + ALIGN_REVERSE_DWELL_TICKS)
+#else
+#define ALIGN_SWEEP_TICKS   ALIGN_RAMP_TICKS
+#endif
 
 static FOC_State_t s_prev_state    = FOC_IDLE;
 static uint32_t    s_align_ticks;
@@ -320,8 +369,8 @@ static bool        s_align_done;
 // Runs FIRST in the ALIGN ladder, before the settle: park the commanded field
 // open-loop at 0 / 120 / 240 deg electrical for one dwell each and average the
 // CHANNEL-domain currents (g_isense_ch_amps, pre-mapping). It must precede
-// every stage that consumes current feedback -- with iloop_en=1 the settle is
-// CLOSED-LOOP, and closed loop on an unverified map/sign is positive feedback
+// every stage that consumes current feedback -- the settle is CLOSED-LOOP, and
+// closed loop on an unverified map/sign is positive feedback
 // (d-PI rails to vmax_dyn, folds a current-limited bench supply the instant
 // ALIGN begins -- bench 2026-07-27).
 // A channel's driven dwell is the one whose current sign is opposite to the
@@ -331,8 +380,8 @@ static bool        s_align_done;
 // there for why magnitude is not trustworthy across dwells. It validates and
 // stores the map + inversion mask ("isense_map"/"isense_inv"), so physically
 // re-clamping the LEMs needs no manual reconfiguration -- just re-align.
-// The stage FORCES the open-loop duty drive (g_ol_mod on the d-axis) even when
-// iloop_en=1: the channel->phase map is unknown by definition while it runs,
+// The stage FORCES an open-loop duty drive (the governed s_phaseid_mod on the
+// d-axis): the channel->phase map is unknown by definition while it runs,
 // so closed-loop current feedback cannot be trusted. A rejected detection
 // freezes the carrier and latches FAULT_CURRENT_SENSE (same pattern as a
 // rejected SIN/COS scale cal) -- continuing to RUN on unverifiable current
@@ -342,6 +391,7 @@ volatile uint16_t g_phase_id_en = PHASE_ID_DEFAULT_EN;   // "phase_id_en" param
 #define PHASE_ID_AVG_TICKS   ((uint32_t)(PHASE_ID_AVG_S   * FOC_ISR_FREQ_HZ))
 #define PHASE_ID_TOTAL_TICKS (3U * PHASE_ID_DWELL_TICKS)
 #define PHASE_ID_MOD_STEP    (PHASE_ID_MOD_SLEW_PER_S * FOC_ISR_TS)
+#define PHASE_ID_IFILT_ALPHA (2.0f * MATH_PI * PHASE_ID_IFILT_HZ * FOC_ISR_TS)
 static uint32_t    s_phaseid_ticks;    // latched budget at align entry (0 = off)
 static bool        s_phaseid_active;   // dwells running -> force open-loop drive
 static bool        s_phaseid_failed;   // rejected -> carrier frozen, fault latched
@@ -361,16 +411,26 @@ static float32_t   s_pid_sum[3][3];    // [channel][dwell] current sums
 // dwell) keeps one shared drive level for all three angles; a per-dwell
 // governor would actively normalize away the +I vs -I/2 structure being
 // measured (worst case: both clamps sit on -I/2 phases, that dwell reads I/2,
-// the governor doubles it). Duty is capped at g_ol_mod so the worst case
-// equals the old fixed drive.
+// the governor doubles it). The duty cap is bus-agnostic (dead-zone model
+// plus headroom, see PHASE_ID_DZ_MARGIN in build_config.h) -- NOT g_ol_mod,
+// whose raw duty would be tens of volts on an HV pack.
 // [2026-08-01] NOTE one shared duty equalizes VOLTS, not amps -- at the bench
 // bus the dead zone eats ~99% of the commanded volts, so the dwells can still
 // differ several-fold in current (measured 1 A / 5.5 A / 1 A). The solver no
 // longer depends on them matching (it reads the sign pattern), so this is now a
 // drive-sizing choice, not a correctness requirement.
 volatile float32_t g_phase_id_a = PHASE_ID_TARGET_A;   // target dwell current [A]
+// Closed-loop ALIGN current [A] ("align_id_a" param, NEEDS_IDLE). The state
+// machine latches it into id_ref on ALIGN entry; the d-PI then holds it along
+// the carrier for the settle and both sweeps. [2026-11-06] Every stage after
+// phase-ID is CLOSED-LOOP, so calibration asks for the
+// same amps at any DC-link voltage (SVGEN normalizes by the bus). It must drag
+// the rotor through friction + cogging: the open-loop g_ol_mod drag it replaces
+// was a raw duty (~17 A at 31 V, tens of volts on an HV pack).
+volatile float32_t g_align_id_a = ALIGN_ID_INJECT_A;
 volatile float32_t g_dbg_phaseid_mod;  // governed duty ("phase_id_mod" RO param)
 static float32_t   s_phaseid_mod;      // governor state, frozen after dwell 0 settle
+static float32_t   s_pid_filt[3];      // governor's low-passed channel currents [A]
 
 #if SENSOR_BACKEND_RM44AC
 // SIN/COS scale-calibration phase, inserted between settle and the offset
@@ -404,8 +464,10 @@ static float32_t   s_align_carrier;     // commanded electrical angle during ALI
 // anchor on the first sample and average the wrapped deviation from it -- no
 // sinf/cosf needed (which would pull large RTS tables into flash).
 static float32_t   s_align_ref;         // first (raw - carrier) sample
-static float32_t   s_align_sum;         // sum of wrapped deviations from ref
+static float32_t   s_align_sum;         // sum of wrapped deviations from ref (forward pass)
 static uint32_t    s_align_n;
+static float32_t   s_align_sum_b;       // same, backward pass (ALIGN_RAMP_BIDIR)
+static uint32_t    s_align_n_b;
 
 static void align_reset(void)
 {
@@ -416,18 +478,23 @@ static void align_reset(void)
     s_align_ref     = 0.0f;
     s_align_sum     = 0.0f;
     s_align_n       = 0;
+    s_align_sum_b   = 0.0f;
+    s_align_n_b     = 0;
     // Phase-ID: latch the enable (same mid-align-write immunity as the others).
     s_phaseid_ticks  = g_phase_id_en ? PHASE_ID_TOTAL_TICKS : 0U;
     s_phaseid_active = false;
     s_phaseid_failed = false;
     s_phaseid_mod    = 0.0f;           // governor ramps from zero each align
     g_dbg_phaseid_mod = 0.0f;
+    s_pid_filt[0] = 0.0f;
+    s_pid_filt[1] = 0.0f;
+    s_pid_filt[2] = 0.0f;
     for(c = 0U; c < 3U; c++)
         for(k = 0U; k < 3U; k++)
             s_pid_sum[c][k] = 0.0f;
     // Latch the enable so a mid-align host write cannot change the tick budget
     // out from under the phase comparisons (same reason as s_align_cal_ticks).
-    s_align_ramp_ticks = g_align_offset_en ? ALIGN_RAMP_TICKS : 0U;
+    s_align_ramp_ticks = g_align_offset_en ? ALIGN_SWEEP_TICKS : 0U;
 #if SENSOR_BACKEND_RM44AC
     s_align_cal_ticks = g_res_cal_en ? ALIGN_CAL_TICKS : 0U;  // latch: immune to mid-align writes
     g_res_cal_sin_min = 0xFFFFU;
@@ -489,18 +556,40 @@ static float32_t align_step(void)
         // ADC read runs after align_step) -- irrelevant at this slew rate.
         if(k == 0U && ti < PHASE_ID_DWELL_TICKS - PHASE_ID_AVG_TICKS)
         {
-            float32_t imax = 0.0f;
-            uint16_t c;
-            for(c = 0U; c < ISENSE_NUM_CHANNELS; c++)
-            {
-                float32_t m = g_isense_ch_amps[c];
-                if(m < 0.0f) m = -m;
-                if(m > imax) imax = m;
-            }
+            // max |I| over the sense channels, written straight-line ON PURPOSE:
+            // with 3 channels CGT 25.11.1 turns the loop into an RPTB whose body
+            // is only 8 words and the assembler rejects it ("[E0200] Block size
+            // 8 out of range 9..127"). No loop -> no repeat block.
+            // [2026-11-05] Filter each channel's SIGNED current first. The
+            // governor used to compare single samples, and on the FE_UFPR 4.0
+            // LEMs (~0.8 A rms per sample) the max of three |noise| alone
+            // averages ~1 A -- the 1 A target was "met" at ~0.2 A of real
+            // current, so phase-ID rejected every time. Rectifying before
+            // filtering would keep that noise as a bias, hence signed.
+            s_pid_filt[0] += PHASE_ID_IFILT_ALPHA * (g_isense_ch_amps[0] - s_pid_filt[0]);
+            s_pid_filt[1] += PHASE_ID_IFILT_ALPHA * (g_isense_ch_amps[1] - s_pid_filt[1]);
+            float32_t imax = s_pid_filt[0];
+            float32_t m    = s_pid_filt[1];
+            if(imax < 0.0f) imax = -imax;
+            if(m < 0.0f)    m = -m;
+            if(m > imax)    imax = m;
+            s_pid_filt[2] += PHASE_ID_IFILT_ALPHA * (g_isense_ch_amps[2] - s_pid_filt[2]);
+            m = s_pid_filt[2];
+            if(m < 0.0f)    m = -m;
+            if(m > imax)    imax = m;
+            // Bus-agnostic cap: the modelled dead zone x margin + headroom,
+            // in duty at the live bus (last tick's s_refs.vbus). No bus (sense
+            // dead, no override) -> only the dead-time term remains: the
+            // governor cannot reach its target and phase-ID rejects.
+            float32_t vb  = s_refs.vbus;
+            float32_t ivb = (vb > 1.0f) ? (1.0f / vb) : 0.0f;
+            float32_t cap = PHASE_ID_DZ_MARGIN * (4.0f / 3.0f)
+                            * (g_dtc_duty + g_dtc_v * ivb)
+                          + PHASE_ID_V_HEADROOM * ivb;
             if(imax < g_phase_id_a) s_phaseid_mod += PHASE_ID_MOD_STEP;
             else                    s_phaseid_mod -= PHASE_ID_MOD_STEP;
-            if(s_phaseid_mod > g_ol_mod) s_phaseid_mod = g_ol_mod;
-            if(s_phaseid_mod < 0.0f)     s_phaseid_mod = 0.0f;
+            if(s_phaseid_mod > cap)  s_phaseid_mod = cap;
+            if(s_phaseid_mod < 0.0f) s_phaseid_mod = 0.0f;
             g_dbg_phaseid_mod = s_phaseid_mod;
         }
 
@@ -532,15 +621,15 @@ static float32_t align_step(void)
     }
     else if(s_align_ticks < pid_ticks + ALIGN_SETTLE_TICKS)
     {
-        // Settle: park the rotor at theta=0 before the sweeps. With iloop_en=1
-        // this runs the closed-loop d-PI -- safe here because phase-ID (above)
-        // has already verified and committed the channel map + polarity.
+        // Settle: park the rotor at theta=0 before the sweeps. Always the
+        // closed-loop d-PI at g_align_id_a -- safe here because phase-ID
+        // (above) has already verified and committed the channel map + polarity.
         s_align_carrier = 0.0f;                         // lock to phase-U axis
     }
 #if SENSOR_BACKEND_RM44AC
     else if(s_align_ticks < pid_ticks + ALIGN_SETTLE_TICKS + cal_ticks)
     {
-        // SIN/COS scale calibration: same open-loop drag as the offset sweep
+        // SIN/COS scale calibration: same closed-loop drag as the offset sweep
         // below, but here we only track the raw ADC extremes of each channel
         // (already latched by this ISR's adc_read_sin_cos()).
         s_align_carrier += ALIGN_CARRIER_DTHETA;
@@ -585,16 +674,31 @@ static float32_t align_step(void)
     else if(s_align_ticks < pid_ticks + ALIGN_SETTLE_TICKS + cal_ticks
                             + s_align_ramp_ticks)
     {
-        s_align_carrier += ALIGN_CARRIER_DTHETA;        // slow open-loop sweep
-        if(s_align_carrier >= 2.0f * MATH_PI) s_align_carrier -= 2.0f * MATH_PI;
-
-        float32_t e = sensor_get_elec_angle_raw() - s_align_carrier;
-        if(s_align_n == 0) s_align_ref = e;             // anchor on first sample
-        float32_t d = e - s_align_ref;                  // wrap deviation to [-pi, pi)
-        while(d <  -MATH_PI)        d += 2.0f * MATH_PI;
-        while(d >=  MATH_PI)        d -= 2.0f * MATH_PI;
-        s_align_sum += d;
-        s_align_n++;
+        // Slow open-loop sweep. Forward pass first; with ALIGN_RAMP_BIDIR a hold
+        // and an equal backward pass follow (layout at ALIGN_SWEEP_TICKS).
+        const uint32_t tr = s_align_ticks - (pid_ticks + ALIGN_SETTLE_TICKS + cal_ticks);
+        const bool fwd  = (tr < ALIGN_RAMP_TICKS);
+        const bool hold = !fwd && (tr < ALIGN_RAMP_TICKS + ALIGN_REVERSE_DWELL_TICKS);
+        if(fwd)
+        {
+            s_align_carrier += ALIGN_CARRIER_DTHETA;
+            if(s_align_carrier >= 2.0f * MATH_PI) s_align_carrier -= 2.0f * MATH_PI;
+        }
+        else if(!hold)
+        {
+            s_align_carrier -= ALIGN_CARRIER_DTHETA;
+            if(s_align_carrier < 0.0f) s_align_carrier += 2.0f * MATH_PI;
+        }
+        if(!hold)
+        {
+            float32_t e = sensor_get_elec_angle_raw() - s_align_carrier;
+            if(s_align_n == 0 && s_align_n_b == 0) s_align_ref = e;   // anchor on first sample
+            float32_t d = e - s_align_ref;              // wrap deviation to [-pi, pi)
+            while(d <  -MATH_PI)        d += 2.0f * MATH_PI;
+            while(d >=  MATH_PI)        d -= 2.0f * MATH_PI;
+            if(fwd) { s_align_sum   += d; s_align_n++;   }
+            else    { s_align_sum_b += d; s_align_n_b++; }
+        }
     }
     else if(!s_align_done)
     {
@@ -602,10 +706,15 @@ static float32_t align_step(void)
         // explicitly rather than just skipping the sweep -- a previous align's
         // offset must not survive into this one.
         float32_t off = 0.0f;
+        g_dbg_align_delta_deg = 0.0f;
         if(s_align_ramp_ticks)
         {
-            off = s_align_ref +
-                  (s_align_n ? s_align_sum / (float32_t)s_align_n : 0.0f);
+            float32_t mf = s_align_n   ? s_align_sum   / (float32_t)s_align_n   : 0.0f;
+            float32_t mb = s_align_n_b ? s_align_sum_b / (float32_t)s_align_n_b : mf;
+            // Equal weight per direction: the +delta / -delta load-angle biases
+            // cancel even if the two passes collected different sample counts.
+            off = s_align_ref + 0.5f * (mf + mb);
+            g_dbg_align_delta_deg = 0.5f * (mb - mf) * (180.0f / MATH_PI);
             while(off <  0.0f)         off += 2.0f * MATH_PI;
             while(off >= 2.0f*MATH_PI) off -= 2.0f * MATH_PI;
         }
@@ -674,7 +783,6 @@ void foc_init(void)
     g_dbg_run_iq_meas = 0.0f;
     g_dbg_decouple_en = FOC_DECOUPLE_DEFAULT;
     g_dbg_control_mode = FOC_MODE_TORQUE;
-    g_dbg_iloop_en   = FOC_ILOOP_DEFAULT;
     g_dbg_fw_en      = FW_DEFAULT;
     g_dbg_fw_id      = 0.0f;
     g_dbg_vmag       = 0.0f;
@@ -730,19 +838,16 @@ void foc_set_gain(foc_gain_id_t which, float32_t value)
 }
 
 //-----------------------------------------------------------------------------
-// Current loop, called from ADCA1 EOC ISR at FOC_ISR_FREQ_HZ.
-// Placed in .TI.ramfunc by the linker pragma in isr.c (where it is called).
+// Current loop, called from ADCA1 EOC ISR at FOC_ISR_FREQ_HZ. Runs from flash
+// (FLASHC via app_ebss.cmd; only the adcA1_isr wrapper is in .TI.ramfunc).
 //-----------------------------------------------------------------------------
 void foc_current_loop_isr(void)
 {
     debug_isr_scope_high();
 
-    // 1. Sensor + angle. During ALIGN the angle is the controller's commanded
-    //    carrier (settle at 0, then a slow open-loop sweep); the encoder is
-    //    still read so align_step() can average the offset. Otherwise use the
-    //    corrected encoder angle.
+    // 1. State + entry edges. The sensor itself is read inside
+    //    pos_src_update_isr() (step 1c) after the observers have run.
     FOC_State_t st = sm_get_state();
-    sensor_update_isr();
 
     if(st == FOC_ALIGN_ROTOR && s_prev_state != FOC_ALIGN_ROTOR) align_reset();
     if(st == FOC_RUN         && s_prev_state != FOC_RUN)  { fw_reset(); s_step_id = 0.0f; }
@@ -785,14 +890,47 @@ void foc_current_loop_isr(void)
         }
     }
 
-    if(st == FOC_ALIGN_ROTOR)   s_sig.theta_elec = align_step();
-    else if(st == FOC_OPENLOOP) s_sig.theta_elec = openloop_step();
-    else                        s_sig.theta_elec = sensor_get_elec_angle();
-    s_sig.omega_elec = sensor_get_elec_speed();
-
-    // 2. Phase currents -> Clarke -> Park
+    // 1a. Phase currents -> Clarke. Angle-independent, so it runs first: the
+    //     observers below need THIS tick's i_ab against the voltage applied
+    //     over the PWM period that just ended, (k-1, k].
     adc_read_phase_currents(&s_sig.Iabc);
     CLARKE_run(s_clarke, &s_sig.Iabc, &s_sig.Iab);
+
+    // 1b. Sensorless observers (Step 12). Both estimators run whenever the
+    //     bridge is being driven (RUN for real, ALIGN/OPENLOOP in shadow so the
+    //     scope can compare them against the sensor / the carrier). Anywhere
+    //     else PWM is force-safe and the stale duty means nothing: hold reset.
+    //     The voltage passes through a one-tick hold: see obs_voltage_ab().
+    if(st == FOC_RUN || st == FOC_ALIGN_ROTOR || st == FOC_OPENLOOP)
+    {
+        float32_t va, vb;
+        obs_voltage_ab(&va, &vb);               // applied over (k, k+1]
+        obs_update_isr(s_obs_vhold[0], s_obs_vhold[1],   // applied over (k-1, k]
+                       s_sig.Iab.value[0], s_sig.Iab.value[1]);
+        s_obs_vhold[0] = va;
+        s_obs_vhold[1] = vb;
+    }
+    else
+    {
+        obs_reset();
+        s_obs_vhold[0] = 0.0f;
+        s_obs_vhold[1] = 0.0f;
+    }
+
+    // 1c. Position-source supervisor: reads the sensor, decides sensor vs
+    //     observer (angle_src / fail-over), blends the hand-over, publishes the
+    //     angle/speed/loss the rest of the pipeline consumes.
+    pos_src_update_isr(st, s_sig.Iab.value[0], s_sig.Iab.value[1]);
+
+    // 1d. Commutation angle. During ALIGN the angle is the controller's
+    //     commanded carrier (settle at 0, then a slow open-loop sweep);
+    //     OPENLOOP uses the synthetic ramp; otherwise the supervisor's output.
+    if(st == FOC_ALIGN_ROTOR)   s_sig.theta_elec = align_step();
+    else if(st == FOC_OPENLOOP) s_sig.theta_elec = openloop_step();
+    else                        s_sig.theta_elec = pos_src_get_theta();
+    s_sig.omega_elec = pos_src_get_omega();
+
+    // 2. Park
     PARK_setup(s_park, s_sig.theta_elec);
     PARK_run  (s_park, &s_sig.Iab, &s_sig.Idq);
 
@@ -806,20 +944,16 @@ void foc_current_loop_isr(void)
     //    uses the REFERENCE currents (omega is a coarse 1 kHz estimate; off the
     //    measured currents it would inject noise). Assumes theta_elec and
     //    omega_elec share a sign convention -- true at SENSOR_QEP_DIR_SIGN = +1.
-    // Latch the current-loop-bypass flag ONCE per ISR: it selects both the Vdq
-    // domain (volts vs duty) here and the SVGEN bus normalization in step 4 --
-    // a live toggle between the two reads would drive one tick with mismatched
-    // domain/normalization (duty-scale Vdq through the real 1/vbus).
-    uint16_t iloop = g_dbg_iloop_en;
-    // Phase-ID dwells force the open-loop align drive even with iloop_en=1:
-    // the channel->phase map is being measured, so current feedback is
-    // untrusted by definition. s_phaseid_active only changes inside
-    // align_step() (step 1, this same tick), so this latch is coherent with
-    // the SVGEN normalization below.
-    bool ol_align = (st == FOC_ALIGN_ROTOR) && (!iloop || s_phaseid_active);
+    // The phase-ID dwells are the ONLY open-loop part of ALIGN: the
+    // channel->phase map is being measured, so current feedback is untrusted
+    // by definition. Everything after them, and all of RUN, is closed-loop.
+    // This flag selects both the Vdq domain (duty vs volts) here and the SVGEN
+    // bus normalization in step 4; s_phaseid_active only changes inside
+    // align_step() (step 1, this same tick), so the two always agree.
+    bool ol_align = (st == FOC_ALIGN_ROTOR) && s_phaseid_active;
     float vmax_dyn = g_vdq_max_frac * s_refs.vbus * 0.5f;
     float ff_d = 0.0f, ff_q = 0.0f;
-    if(st == FOC_RUN && g_dbg_decouple_en && iloop)
+    if(st == FOC_RUN && g_dbg_decouple_en)
     {
         float we = s_sig.omega_elec;
         ff_d = -we * MOTOR_LQ_H * s_refs.iq_ref;
@@ -833,45 +967,13 @@ void foc_current_loop_isr(void)
     //    (Only run when state machine allows it; otherwise zero outputs.)
     if(ol_align)
     {
-        // Open-loop align drive (current PIs bypassed). With the VBUS sense
-        // absent/untrusted the PI clamp above (vmax_dyn ~ 0) passes no voltage
-        // and align cannot move the rotor -- so drive the align carrier the way
-        // FOC_OPENLOOP does: a fixed d-axis modulation g_ol_mod ("ol_mod"
-        // param) in the DUTY domain (SVGEN gets a unity bus in step 4). At the
-        // slow carrier the current settles on the commanded angle (I ~ V/Rs),
-        // which is all the align/calibration sweeps need. Integrators held at 0
-        // so closed-loop align re-engages cleanly when iloop_en returns to 1.
-        // During the phase-ID dwells the drive level is the GOVERNED duty
-        // (ramped to ~g_phase_id_a of channel current, then frozen), not the
-        // full ol_mod drag drive -- ol_mod is sized to move the rotor and on a
-        // milliohm winding it current-limits a bench supply. Everywhere else
-        // in ALIGN (settle for the cal/offset sweeps, the sweeps themselves)
-        // the rotor must actually move, so ol_mod still applies.
-        s_sig.Vdq.value[0] = s_phaseid_active ? s_phaseid_mod : g_ol_mod;
+        // Phase-ID dwell drive (current PIs bypassed): the GOVERNED duty
+        // (ramped until the largest channel current reaches g_phase_id_a, then
+        // frozen; bus-agnostic cap) on the d-axis, in the DUTY domain (SVGEN
+        // gets a unity bus in step 4). Integrators held at 0 so the closed-loop
+        // settle that follows starts clean.
+        s_sig.Vdq.value[0] = s_phaseid_mod;
         s_sig.Vdq.value[1] = 0.0f;
-        PI_setUi(s_pi_id, 0.0f);
-        PI_setUi(s_pi_iq, 0.0f);
-    }
-    else if(st == FOC_RUN && !iloop)
-    {
-        // Open-loop resistive voltage mode (current PIs bypassed). Apply the DC
-        // voltage that would drive the commanded current through the winding
-        // resistance: Vd=Rs*id_ref, Vq=Rs*iq_ref. id_ref/iq_ref stay in AMPS; the
-        // angle still comes from the position sensor (Park/IPark below). No
-        // back-EMF feedforward -- valid only at low/zero speed (see g_dbg_iloop_en).
-        // Clamp to the inverter budget and hold the integrators at 0 so a switch
-        // back to closed loop re-engages cleanly. id_ref is NOT overwritten by the
-        // FW/id-ownership block (step 3b) while open-loop, so the operator owns it.
-        // Commands first pass the bench current clamp: in this mode the real
-        // current genuinely approaches the commanded amps (I ~= V/R), so the
-        // clamp directly bounds what the supply is asked for.
-        float iq_max = g_iq_cmd_max;
-        float id_c = MATH_max(-iq_max, MATH_min(iq_max, s_refs.id_ref));
-        float iq_c = MATH_max(-iq_max, MATH_min(iq_max, s_refs.iq_ref));
-        float vd = MOTOR_RS_OHM * id_c;
-        float vq = MOTOR_RS_OHM * iq_c;
-        s_sig.Vdq.value[0] = MATH_max(-vmax_dyn, MATH_min(vmax_dyn, vd));
-        s_sig.Vdq.value[1] = MATH_max(-vmax_dyn, MATH_min(vmax_dyn, vq));
         PI_setUi(s_pi_id, 0.0f);
         PI_setUi(s_pi_iq, 0.0f);
     }
@@ -889,9 +991,16 @@ void foc_current_loop_isr(void)
         float iq_cmd = s_refs.iq_ref;
         {
             float iq_max = g_iq_cmd_max;
+            // Sensorless-active clamp (Step 12): while commutating on the
+            // observer, bound the consequence of a wrong-angle current vector
+            // (the torque loss is cos(err); the risk is the sin(err) part).
+            if(pos_src_observer_active() && (g_obs_iq_max < iq_max)) iq_max = g_obs_iq_max;
             iq_cmd = MATH_max(-iq_max, MATH_min(iq_max, iq_cmd));
         }
-        if(st == FOC_RUN && g_dbg_fw_en)
+        // Field weakening stays OFF while sensorless: id = -150 A with a 10 deg
+        // angle error leaks 26 A into q, and the (Ld+Lq)/2 observer model error
+        // grows with |id|. fw_en itself is left alone (fw_id reads 0).
+        if(st == FOC_RUN && g_dbg_fw_en && !pos_src_observer_active())
         {
             float id_now    = s_refs.id_ref;
             float iq_lim_sq = (MOTOR_I_PEAK_A * MOTOR_I_PEAK_A) - id_now * id_now;
@@ -962,13 +1071,7 @@ void foc_current_loop_isr(void)
                       + s_sig.Vdq.value[1] * s_sig.Vdq.value[1];
         g_dbg_vmag = foc_fast_sqrt(vmag_sq);
 
-        if(!g_dbg_iloop_en)            // open-loop resistive: operator owns id_ref
-        {
-            // Leave s_refs.id_ref untouched (it is applied as Vd=Rs*id_ref in
-            // step 3). The FW regulator is meaningless without the current loop.
-            fw_reset();
-        }
-        else if(g_dbg_fw_en)
+        if(g_dbg_fw_en && !pos_src_observer_active())
         {
             float vmax_fw = FW_VMAX_FRACTION * s_refs.vbus * 0.5f;
             PI_run(s_pi_fw, vmax_fw * vmax_fw, vmag_sq, &s_fw_id);   // s_fw_id <= 0
@@ -990,7 +1093,7 @@ void foc_current_loop_isr(void)
     //    Keep vbus fresh every ISR (safety_check_isr() needs it for OV/UV),
     //    but only DRIVE the bridge when the state machine is actually
     //    commanding current. In IDLE/CALIBRATE/FAULT we must re-assert the
-    //    pwm_force_safe() state every tick: SVGEN's zero-voltage vector maps to
+    //    pwm_hold_safe() state every tick: SVGEN's zero-voltage vector maps to
     //    50% duty on all three legs, and pwm_set_duty() releases the AQCSFRC
     //    safe-force, so calling it here would switch all three half-bridges and
     //    trip DRV8305 high-side VDS over-current (nFAULT) while "idle".
@@ -1003,10 +1106,10 @@ void foc_current_loop_isr(void)
     // 1/vbus) and the OV/UV trips use a fixed nominal, not the live reading.
     // g_vbus_override_v = 0 switches control back to the measured bus.
     s_refs.vbus = (g_vbus_override_v > 0.0f) ? g_vbus_override_v : vbus_meas;
-    // Open-loop test and open-loop align (iloop_en=0) use a synthetic unity bus
-    // so g_ol_mod maps directly to duty (the bench has vbus~=0, which would blow
-    // up the real 1/vbus normalization). `iloop` is the step-3 latched copy so
-    // the Vdq domain and this normalization can never disagree within a tick.
+    // The ol_run bench tool (FOC_OPENLOOP) and the phase-ID dwells (ol_align)
+    // command a DUTY, so SVGEN gets a synthetic unity bus. Everything else is
+    // in volts through the real 1/vbus. `ol_align` is the step-3 latch, so the
+    // Vdq domain and this normalization can never disagree within a tick.
     // Guarded reciprocal: a 0 V bus (bench, sense disconnected, no override)
     // would make this infinite and blow up both SVGEN and the dead-zone term.
     float32_t inv_vbus = (s_refs.vbus > 1.0f) ? (1.0f / s_refs.vbus) : 0.0f;
@@ -1020,14 +1123,17 @@ void foc_current_loop_isr(void)
         IPARK_setup(s_ipark, s_sig.theta_elec);
         IPARK_run  (s_ipark, &s_sig.Vdq, &s_sig.Vab);
         SVGEN_run  (s_svgen, &s_sig.Vab, &s_sig.duty);
-        // Dead-zone feedforward: RUN only (ALIGN/OPENLOOP are calibrated
-        // against the uncompensated bridge -- see the g_dtc_* block above).
-        if(g_dtc_en && st == FOC_RUN) dtc_apply(&s_sig.duty, &s_sig.Iabc, inv_vbus);
+        // Dead-zone feedforward: RUN and the CLOSED-LOOP part of ALIGN (the
+        // current map is verified by then). Not the phase-ID dwells (they
+        // measure the map the sign ramp would need) and not FOC_OPENLOOP (a
+        // raw-duty bench tool).
+        if(g_dtc_en && (st == FOC_RUN || (st == FOC_ALIGN_ROTOR && !ol_align)))
+            dtc_apply(&s_sig.duty, &s_sig.Iabc, inv_vbus);
         pwm_set_duty(&s_sig.duty);
     }
     else
     {
-        pwm_force_safe();
+        pwm_hold_safe();    // OFF (all six LOW), or ASC in a high-speed FAULT
     }
 
     // 5. Decimated outer loop
@@ -1057,8 +1163,8 @@ void foc_speed_loop_tick(void)
     // visible on the scope and usable by the back-EMF feedforward. Must run
     // unconditionally: the QEP estimator differences the count over a fixed
     // slow-loop period and would mis-scale if calls were skipped.
-    sensor_update_speed_slow();
-    float32_t we = sensor_get_elec_speed();     // electrical rad/s
+    pos_src_update_slow();                      // backend slow-loop work (QEP speed/loss)
+    float32_t we = pos_src_get_omega();         // electrical rad/s, ACTIVE source
 
     if(sm_get_state() == FOC_RUN)
     {
@@ -1075,7 +1181,12 @@ void foc_speed_loop_tick(void)
             else if(tgt < s_speed_cmd - dmax) s_speed_cmd -= dmax;
             else                              s_speed_cmd  = tgt;
 
-            // PI output is clamped to [IQ_REF_MIN_A, IQ_REF_MAX_A] (foc_init).
+            // Output limit = the live iq_max clamp (<= IQ_REF_MAX_A by its
+            // setter). The ISR clamps iq_ref to it anyway; limiting the PI too is
+            // what stops the integrator winding up behind that clamp (anti-windup
+            // in PI_run acts on the PI's own min/max).
+            float32_t lim = g_iq_cmd_max;
+            PI_setMinMax(s_pi_spd, -lim, lim);
             PI_run(s_pi_spd, s_speed_cmd, we, &s_refs.iq_ref);
             g_dbg_iq_ref = s_refs.iq_ref;       // mirror applied torque + bumpless
                                                 // back-transfer to TORQUE
