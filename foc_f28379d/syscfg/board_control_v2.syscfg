@@ -46,12 +46,12 @@ const sci1             = sci.addInstance();
 adc1.$name             = "myADCA";
 adc1.adcClockPrescaler = "ADC_CLK_DIV_4_0";
 adc1.soc0Trigger       = "ADC_TRIGGER_EPWM4_SOCA";
-adc1.soc0Channel       = "ADC_CH_ADCIN2";
 adc1.soc0SampleWindow  = 15;
 adc1.enabledSOCs       = ["ADC_SOC_NUMBER0","ADC_SOC_NUMBER1"];
-adc1.soc1Channel       = "ADC_CH_ADCIN5";
 adc1.soc1Trigger       = "ADC_TRIGGER_EPWM4_SOCA";
 adc1.soc1SampleWindow  = 15;
+adc1.soc0Channel       = "ADC_CH_ADCIN5";
+adc1.soc1Channel       = "ADC_CH_ADCIN2";
 
 adc2.$name             = "myADCB";
 adc2.adcBase           = "ADCB_BASE";

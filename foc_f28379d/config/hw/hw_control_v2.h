@@ -81,7 +81,14 @@
 // SOC allocation chosen so each ADC's last SOC finishes together; the EOC
 // interrupt is taken on ADC-C SOC1 (Vbus, 512-cycle window -- the longest
 // conversion, so it is always the last one to finish).
-//   ADC-A: SOC0=SIN, SOC1=Iu     ADC-B: SOC0=Iw, SOC1=COS    ADC-C: SOC0=Iv, SOC1=Vbus
+//   ADC-A: SOC0=Iu, SOC1=SIN     ADC-B: SOC0=Iw, SOC1=COS    ADC-C: SOC0=Iv, SOC1=Vbus
+// ALL THREE CURRENTS SIT IN SOC0 = the same sampling instant on three ADCs
+// [2026-11-06 bench]. The board carries ~5 codes rms of MHz interference that
+// is COMMON to every ADC input (same-instant channels correlate 0.8-0.99, one
+// slot = 290 ns later -0.9); the per-channel independent noise is only ~0.55
+// codes. A common error cancels in Clarke only if Iu/Iv/Iw are sampled at the
+// same instant: with Iu one slot late, I_alpha was 0.95 A rms vs I_beta 0.07 A.
+// Do not move a current to SOC1. SIN/COS share SOC1 for the same reason.
 #define ADC_BASE_IU             ADCA_BASE
 #define ADC_CH_IU               ADC_CH_ADCIN5
 #define ADC_BASE_IV             ADCC_BASE
@@ -97,7 +104,7 @@
 
 // Result register + SOC index per signal (consumed by adc_iface.c).
 #define ADC_RESULT_BASE_IU      ADCARESULT_BASE
-#define ADC_SOC_IU              1U
+#define ADC_SOC_IU              0U
 #define ADC_RESULT_BASE_IV      ADCCRESULT_BASE
 #define ADC_SOC_IV              0U
 #define ADC_RESULT_BASE_IW      ADCBRESULT_BASE
@@ -105,7 +112,7 @@
 #define ADC_RESULT_BASE_VBUS    ADCCRESULT_BASE
 #define ADC_SOC_VBUS            1U
 #define ADC_RESULT_BASE_SIN     ADCARESULT_BASE
-#define ADC_SOC_SIN             0U
+#define ADC_SOC_SIN             1U
 #define ADC_RESULT_BASE_COS     ADCBRESULT_BASE
 #define ADC_SOC_COS             1U
 // EOC interrupt that fires the 10 kHz ISR: ADC-C SOC1 (Vbus) = the last conversion.
