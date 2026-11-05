@@ -118,22 +118,6 @@ volatile float32_t g_dbg_ff_q;
 // Switchable live; foc_speed_loop_tick() makes the transfer bumpless.
 volatile uint16_t  g_dbg_control_mode;
 
-// Inner current-loop enable (also the "iloop_en" serial param); default
-// FOC_ILOOP_DEFAULT=1. 1 = the d/q current PIs are enforced (normal closed-loop
-// FOC). 0 = open-loop resistive voltage mode (RUN only): the PIs are bypassed and
-// the operator's id_ref/iq_ref (still in AMPS) are applied as the DC voltage that
-// would drive that current through the winding resistance,
-//   Vd = MOTOR_RS_OHM * id_ref,  Vq = MOTOR_RS_OHM * iq_ref,
-// using the live position-sensor angle. No PI, no integrator, and NO back-EMF
-// feedforward. WARNING: ignoring back-EMF is only valid at low/zero speed -- at
-// speed the small applied Vq vs a large back-EMF can drive strong braking/
-// generation. The applied voltage is clamped to the inverter budget and the phase
-// overcurrent trip stays armed in FOC_RUN, but treat this as a bring-up tool.
-// [2026-11-06] iloop_en no longer affects FOC_ALIGN_ROTOR: calibration is
-// always closed-loop after the phase-ID dwells (bus-agnostic; see g_align_id_a).
-// It used to select an open-loop g_ol_mod drag drive there, a raw duty.
-volatile uint16_t  g_dbg_iloop_en;
-
 // Field weakening (Step 11). g_dbg_fw_en toggles it live (also the "fw_en" serial
 // param); default FW_DEFAULT. The regulator runs in the current-loop ISR (RUN
 // only) and winds id negative when the requested |Vdq| saturates the inverter.
@@ -151,9 +135,8 @@ static float32_t   s_fw_id;
 
 // Runtime command-current clamp [A] ("iq_max" param, LIVE so it can be tightened
 // mid-run). Applied in the ISR at the single choke point every q-axis command
-// flows through -- torque command, speed-PI output, step injector -- and, in
-// open-loop resistive mode, to both id_ref and iq_ref (capping the applied
-// Rs*i volts). Exists because on a current-limited bench supply a large
+// flows through -- torque command, speed-PI output, step injector. Exists
+// because on a current-limited bench supply a large
 // commanded current must never be *attempted*, whatever the source; production
 // boots at the machine limit (IQ_CMD_MAX_DEFAULT_A = IQ_REF_MAX_A) so the
 // clamp is transparent there. The speed PI's output limits follow this clamp
@@ -386,8 +369,8 @@ static bool        s_align_done;
 // Runs FIRST in the ALIGN ladder, before the settle: park the commanded field
 // open-loop at 0 / 120 / 240 deg electrical for one dwell each and average the
 // CHANNEL-domain currents (g_isense_ch_amps, pre-mapping). It must precede
-// every stage that consumes current feedback -- with iloop_en=1 the settle is
-// CLOSED-LOOP, and closed loop on an unverified map/sign is positive feedback
+// every stage that consumes current feedback -- the settle is CLOSED-LOOP, and
+// closed loop on an unverified map/sign is positive feedback
 // (d-PI rails to vmax_dyn, folds a current-limited bench supply the instant
 // ALIGN begins -- bench 2026-07-27).
 // A channel's driven dwell is the one whose current sign is opposite to the
@@ -440,7 +423,7 @@ volatile float32_t g_phase_id_a = PHASE_ID_TARGET_A;   // target dwell current [
 // Closed-loop ALIGN current [A] ("align_id_a" param, NEEDS_IDLE). The state
 // machine latches it into id_ref on ALIGN entry; the d-PI then holds it along
 // the carrier for the settle and both sweeps. [2026-11-06] Every stage after
-// phase-ID is CLOSED-LOOP regardless of iloop_en, so calibration asks for the
+// phase-ID is CLOSED-LOOP, so calibration asks for the
 // same amps at any DC-link voltage (SVGEN normalizes by the bus). It must drag
 // the rotor through friction + cogging: the open-loop g_ol_mod drag it replaces
 // was a raw duty (~17 A at 31 V, tens of volts on an HV pack).
@@ -800,7 +783,6 @@ void foc_init(void)
     g_dbg_run_iq_meas = 0.0f;
     g_dbg_decouple_en = FOC_DECOUPLE_DEFAULT;
     g_dbg_control_mode = FOC_MODE_TORQUE;
-    g_dbg_iloop_en   = FOC_ILOOP_DEFAULT;
     g_dbg_fw_en      = FW_DEFAULT;
     g_dbg_fw_id      = 0.0f;
     g_dbg_vmag       = 0.0f;
@@ -962,22 +944,16 @@ void foc_current_loop_isr(void)
     //    uses the REFERENCE currents (omega is a coarse 1 kHz estimate; off the
     //    measured currents it would inject noise). Assumes theta_elec and
     //    omega_elec share a sign convention -- true at SENSOR_QEP_DIR_SIGN = +1.
-    // Latch the current-loop-bypass flag ONCE per ISR: it selects both the Vdq
-    // domain (volts vs duty) here and the SVGEN bus normalization in step 4 --
-    // a live toggle between the two reads would drive one tick with mismatched
-    // domain/normalization (duty-scale Vdq through the real 1/vbus).
-    uint16_t iloop = g_dbg_iloop_en;
     // The phase-ID dwells are the ONLY open-loop part of ALIGN: the
     // channel->phase map is being measured, so current feedback is untrusted
-    // by definition. Everything after them is closed-loop whatever iloop_en
-    // says ([2026-11-06]: calibration must be bus-agnostic; iloop_en now only
-    // selects the RUN-state open-loop resistive bench mode). s_phaseid_active
-    // only changes inside align_step() (step 1, this same tick), so this latch
-    // is coherent with the SVGEN normalization below.
+    // by definition. Everything after them, and all of RUN, is closed-loop.
+    // This flag selects both the Vdq domain (duty vs volts) here and the SVGEN
+    // bus normalization in step 4; s_phaseid_active only changes inside
+    // align_step() (step 1, this same tick), so the two always agree.
     bool ol_align = (st == FOC_ALIGN_ROTOR) && s_phaseid_active;
     float vmax_dyn = g_vdq_max_frac * s_refs.vbus * 0.5f;
     float ff_d = 0.0f, ff_q = 0.0f;
-    if(st == FOC_RUN && g_dbg_decouple_en && iloop)
+    if(st == FOC_RUN && g_dbg_decouple_en)
     {
         float we = s_sig.omega_elec;
         ff_d = -we * MOTOR_LQ_H * s_refs.iq_ref;
@@ -998,30 +974,6 @@ void foc_current_loop_isr(void)
         // settle that follows starts clean.
         s_sig.Vdq.value[0] = s_phaseid_mod;
         s_sig.Vdq.value[1] = 0.0f;
-        PI_setUi(s_pi_id, 0.0f);
-        PI_setUi(s_pi_iq, 0.0f);
-    }
-    else if(st == FOC_RUN && !iloop)
-    {
-        // Open-loop resistive voltage mode (current PIs bypassed). Apply the DC
-        // voltage that would drive the commanded current through the winding
-        // resistance: Vd=Rs*id_ref, Vq=Rs*iq_ref. id_ref/iq_ref stay in AMPS; the
-        // angle still comes from the position sensor (Park/IPark below). No
-        // back-EMF feedforward -- valid only at low/zero speed (see g_dbg_iloop_en).
-        // Clamp to the inverter budget and hold the integrators at 0 so a switch
-        // back to closed loop re-engages cleanly. id_ref is NOT overwritten by the
-        // FW/id-ownership block (step 3b) while open-loop, so the operator owns it.
-        // Commands first pass the bench current clamp: in this mode the real
-        // current genuinely approaches the commanded amps (I ~= V/R), so the
-        // clamp directly bounds what the supply is asked for.
-        float iq_max = g_iq_cmd_max;
-        if(pos_src_observer_active() && (g_obs_iq_max < iq_max)) iq_max = g_obs_iq_max;
-        float id_c = MATH_max(-iq_max, MATH_min(iq_max, s_refs.id_ref));
-        float iq_c = MATH_max(-iq_max, MATH_min(iq_max, s_refs.iq_ref));
-        float vd = MOTOR_RS_OHM * id_c;
-        float vq = MOTOR_RS_OHM * iq_c;
-        s_sig.Vdq.value[0] = MATH_max(-vmax_dyn, MATH_min(vmax_dyn, vd));
-        s_sig.Vdq.value[1] = MATH_max(-vmax_dyn, MATH_min(vmax_dyn, vq));
         PI_setUi(s_pi_id, 0.0f);
         PI_setUi(s_pi_iq, 0.0f);
     }
@@ -1119,13 +1071,7 @@ void foc_current_loop_isr(void)
                       + s_sig.Vdq.value[1] * s_sig.Vdq.value[1];
         g_dbg_vmag = foc_fast_sqrt(vmag_sq);
 
-        if(!g_dbg_iloop_en)            // open-loop resistive: operator owns id_ref
-        {
-            // Leave s_refs.id_ref untouched (it is applied as Vd=Rs*id_ref in
-            // step 3). The FW regulator is meaningless without the current loop.
-            fw_reset();
-        }
-        else if(g_dbg_fw_en && !pos_src_observer_active())
+        if(g_dbg_fw_en && !pos_src_observer_active())
         {
             float vmax_fw = FW_VMAX_FRACTION * s_refs.vbus * 0.5f;
             PI_run(s_pi_fw, vmax_fw * vmax_fw, vmag_sq, &s_fw_id);   // s_fw_id <= 0

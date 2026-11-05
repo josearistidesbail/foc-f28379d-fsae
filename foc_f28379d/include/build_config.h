@@ -249,9 +249,8 @@
 
 // Boot value of the runtime COMMAND-current clamp ("iq_max" param). Applied in
 // the current-loop ISR at the single point every q-axis command funnels through
-// (torque cmd, speed-PI output, step injector; in open-loop resistive mode it
-// caps id_ref/iq_ref and hence the applied Rs*i volts), so no command source
-// can demand more current than the bench supply survives. Note phase amps are
+// (torque cmd, speed-PI output, step injector), so no command source can
+// demand more current than the bench supply survives. Note phase amps are
 // cheap on the DC side at low speed (supply draw ~= duty * phase current), so
 // 10 A of phase current costs well under 1 A of supply -- the bench default is
 // protective without being useless. Production default = the full machine limit.

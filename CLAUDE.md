@@ -70,7 +70,7 @@ Self-contained: the next session runs on a different machine (laptop) with no Cl
 peer sessions, so everything needed is here and in `foc_f28379d/host/bench/README.md`.
 
 **Where things stand.** FE_UFPR 4.0 + EMRAX 208 + RM44AC resolver runs closed-loop on the 31 V bench:
-calibrate → RUN in torque or speed mode, all with `iloop_en` 1. Branch `sensorless-observer`; the
+calibrate → RUN in torque or speed mode, all closed-loop. Branch `sensorless-observer`; the
 day's work is bring-ups **G–K** in the FE_UFPR 4.0 log below (same-slot current sampling, dead-time
 comp, speed mode, current-PI retune, bus-agnostic calibration). The board was last flashed with
 `b655878`. **First `git pull` and read `git log`** — a parallel cleanup session
@@ -99,7 +99,7 @@ what actually landed before trusting the param list below, and build + flash the
 - Calibration is RAM-only: after each power-up/reflash run calibrate (~33 s, **motor turns**,
   `bench/calibrate.py` or the GUI). Healthy: `phase_id_status` 1 (map 0 / inv 0), `cal_status` 1,
   `align_offset` ≈ 106.6–107.3° elec, `align_delta` ≈ 6° at 8 A.
-- Boot defaults now in firmware: `iloop_en` 1, `align_id_a` 8 A, `kp_d`/`kp_q` 0.5, `dtc_v` 1.0,
+- Boot defaults now in firmware: `align_id_a` 8 A, `kp_d`/`kp_q` 0.5, `dtc_v` 1.0,
   `dtc_ith` 0.5, `kp_w` 0.35, `ki_w` 0.02, `res_w_mode` 1 (PLL), `vmax_frac` 0.15, `vbus_ovr` 31
   (= `BENCH_DC_LINK_V`), UV trip off, `iq_max` 10 A, `oc_trip_a` 40 A.
 - **`vbus_ovr` must equal the real DC link whenever the motor runs** (control uses it, not the
@@ -402,9 +402,10 @@ bench supply, UV trip off, `iq_max` 10 A), current-limited bench supply.**
   zone clamps the −I/2 legs, 0x0102; the governor now low-passes signed currents at 100 Hz, it used to park on
   single-sample noise); `ol_mod` **0.10** (0.08 pole-slips the sweep — the rotor rocks back and forth); offset
   capture back on (`align_off_en 1`): **106.6° elec, three runs within 0.02°**. Dead zone ≈ 0.053 duty
-  (~1.64 V at 31 V). Closed loop (`iloop_en 1`, `dtc_en 1`): **`vmax_frac` must clear the dead zone** — 0.05 gives
+  (~1.64 V at 31 V). Closed loop (`dtc_en 1`): **`vmax_frac` must clear the dead zone** — 0.05 gives
   zero current (DTC adds ~nothing at i ≈ 0), 0.15 tracks 0→2→5 A q-steps in 1–2 ms with Id ≈ 0, +iq → +speed,
-  speed clamp-limited (~57 elec rad/s). All of that is now the boot default. (Calibrate-with-`iloop_en 0` procedure superseded by K: both run with `iloop_en` 1.)
+  speed clamp-limited (~57 elec rad/s). All of that is now the boot default. (The old "calibrate open-loop, then switch the current loop on" procedure is gone:
+  K made calibration closed-loop, and the `iloop_en` switch was removed afterwards.)
   **Bus trap:** the supply was 31 V while `vbus_ovr` said 24 — every commanded volt was ×1.29. `BENCH_DC_LINK_V`
   is now 31; keep it equal to the supply. **Noise:** ~5 codes (~0.8 A) rms on EVERY ADC channel, including the
   passive Vbus divider and the buffered ISNS_VREF, level-independent → ground (board GND vs LaunchPad VSSA), not
@@ -449,13 +450,13 @@ bench supply, UV trip off, `iq_max` 10 A), current-limited bench supply.**
 - [x] **J — current loop retuned** (2026-11-06, standstill d-axis steps 2→5→10 A, `dtc_v` 1.0): `kp_d`/`kp_q`
   0.785/0.816 overshot 45–50 % with a ~0.8 ms ring (PM ~35°); **0.5** overshoots ~7–25 %, rise still 0.1–0.2 ms.
   Id up to 20 A at standstill: no rotor motion, no trip. Loaded (q-axis) tests at higher current still to do.
-- [x] **K — bus-agnostic calibration** (2026-11-06). Every ALIGN stage after phase-ID is now **closed-loop
-  regardless of `iloop_en`**, at the new live **`align_id_a`** (0x0076, NEEDS_IDLE, EMRAX default 8 A); dead-time
+- [x] **K — bus-agnostic calibration** (2026-11-06). Every ALIGN stage after phase-ID is now **closed-loop**,
+  at the new live **`align_id_a`** (0x0076, NEEDS_IDLE, EMRAX default 8 A); dead-time
   comp runs there too. The phase-ID dwells stay open-loop (the map is unknown) but their duty cap is no longer
   `ol_mod` (a raw duty: 40 V on a 400 V pack) — it is 1.5 × the dead-zone model (`dtc_duty`, `dtc_v`) + 1 V at the
   live bus (~3.9 V at 31 V, ~15 V at 400 V); a wrong model at a new bus makes phase-ID REJECT, not overdrive.
-  `iloop_en` now only selects the RUN-state open-loop resistive bench mode; **`FOC_ILOOP_DEFAULT` 1** on the EMRAX
-  (no more "calibrate with 0, then set 1"). `ol_mod` remains only for the `ol_run` bench tool (NOT bus-agnostic).
+  The `iloop_en` switch (left selecting only the RUN open-loop resistive mode, which ignores back-EMF) was then
+  removed outright in the cleanup after K. `ol_mod` remains only for the `ol_run` bench tool (NOT bus-agnostic).
   Bench (31 V): 8/5/3 A all pass, offset 106.80/106.87/107.25° (old open-loop 106.64°), load angle 5.9/9.6/16.0°,
   **I·sin δ = 0.83 A constant = the friction** (speed mode measured 0.85 A). Coupled to a drivetrain the friction
   grows: lift the wheels or raise `align_id_a`. Bus-agnostic only if `s_refs.vbus` is right (override or vbuscal).
@@ -833,21 +834,10 @@ volatile uint16_t  g_dbg_control_mode;      // 0=torque (direct iq_ref), 1=speed
 //   RO serial params added for the GUI's RPM conversion: pole_pairs (u16), omega_meas (f32 = signals.omega_elec, elec rad/s)
 //   s_speed_cmd (static) = accel-ramped electrical setpoint; FOC_MODE_TORQUE/SPEED live in build_config.h
 
-// src/foc_pipeline.c        (current-loop bypass / open-loop resistive voltage mode)
-volatile uint16_t  g_dbg_iloop_en;          // 1=current PIs enforced (default FOC_ILOOP_DEFAULT=1), 0=open-loop resistive; "iloop_en" param; live toggle
-//   When 0 (RUN only): the d/q PIs are bypassed and the operator's id_ref/iq_ref (still AMPS) are applied as
-//   Vd=MOTOR_RS_OHM*id_ref, Vq=MOTOR_RS_OHM*iq_ref using the live sensor angle — no PI, no integrator, NO back-EMF FF.
-//   Use control_mode=torque so iq_ref flows directly. id_ref is NOT overwritten by the FW/id-ownership block while open-loop.
-//   Vd/Vq clamped to the inverter budget; phase OC trip stays armed. WARNING: ignores back-EMF — low/zero speed ONLY.
-//   When 0 in ALIGN_ROTOR: OPEN-LOOP ALIGN DRIVE — fixed d-axis modulation g_ol_mod ("ol_mod" param) in the DUTY
-//   domain (unity SVGEN bus, same mechanism as FOC_OPENLOOP), so align + the SIN/COS cal sweep work with the VBUS
-//   sense disconnected (otherwise the PI clamp vmax_dyn = frac·vbus/2 ≈ 0 passes 0 V and the rotor never moves —
-//   bench symptom 2026-07-14: align "runs" but no spin, cal rejects, SENSOR_LOSS on re-arm). The flag is latched
-//   once per ISR (`iloop` local) so the Vdq domain and SVGEN normalization always agree within a tick.
-//   EMRAX align carrier slowed to 0.5 mech rev/s (5 Hz elec, gains_emrax.h) to stay inside the bench-proven
-//   open-loop drag envelope (ol_mod=0.11 @ 6 Hz elec); align-only sequence is ~9 s / 3 mech revs (cal sweep only).
-//   **g_ol_mod default is now PER-MOTOR** (`OL_MOD_DEFAULT` in gains_*.h): **0.11 on EMRAX** (the bench-proven drag
-//   value, was a shared 0.20), 0.20 on Teknic (unchanged — never characterized there, so left alone deliberately).
+// [REMOVED 2026-11-06] g_dbg_iloop_en / "iloop_en" (0x0038) / FOC_ILOOP_DEFAULT -- the open-loop resistive RUN
+//   mode (PIs bypassed, Vd=Rs*id_ref, Vq=Rs*iq_ref, NO back-EMF). A Control_V2 bring-up crutch from before the
+//   closed loop worked; at speed it was a trap. Its ALIGN role (an open-loop g_ol_mod drag) ended with bring-up K.
+//   g_ol_mod ("ol_mod", per-motor OL_MOD_DEFAULT: EMRAX 0.10, Teknic 0.20) now only drives the ol_run bench tool.
 
 // src/sensor_rm44ac.c       (resolver direction; SENSOR_RM44AC only)
 volatile uint16_t  g_resolver_dir_inv;  // 1 = mirror mech angle th→2π−th ("res_dir_inv" param 0x003A, NEEDS_IDLE;
@@ -977,7 +967,7 @@ volatile uint16_t  g_resolver_loss_inhibit; // loss check held reset from ALIGN 
                                         //   normalization would false-trip); force-cleared on ANY ALIGN exit (fault/stop too)
 //   Align ladder (production, 2026-07-15): settle 3 s → CAL sweep **3 mech revs** (SENSOR_RES_CAL_MECH_REVS, was 1)
 //   at 0.5 rev/s = 6 s → finalize. **~9 s total; the offset sweep no longer runs** (align_off_en=0, see below).
-//   Only ≥1 rev is needed mathematically (1 mech rev = 1 full sin/cos cycle), but under the iloop_en=0 open-loop
+//   Only ≥1 rev is needed mathematically (1 mech rev = 1 full sin/cos cycle), but under the (then open-loop)
 //   drag the rotor cogs and can stall/skip, so one rev may never reach part of the cycle → short min/max. Extra revs
 //   only ever widen them. Need NOT be an integer (unlike the offset sweep, where integer revs cancel cogging).
 //   Captured amplitude runs ~18% WIDE because min/max latch noise peaks (~±3.9σ) not the true crest — this barely

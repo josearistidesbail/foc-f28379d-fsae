@@ -5,7 +5,8 @@ Output: FOC_BENCH_OUT env var, default ./out next to this file (gitignored).
 
 Every script that changes a device parameter restores it on exit via `restore()`:
 a script that silently leaves e.g. kp_d or vmax_frac changed has already cost a
-bench session once (2026-11-06: a leftover iloop_en broke a GUI calibrate).
+bench session once (2026-11-06: a leftover iloop_en -- since removed -- broke a
+GUI calibrate).
 The debug GUI and these scripts cannot share the serial port -- close one.
 """
 import contextlib

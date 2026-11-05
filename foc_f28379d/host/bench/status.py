@@ -3,7 +3,7 @@ Every FE_UFPR 4.0 power-up boots into FAULT 0x11 (tz_trip 1): clear once, someti
 import sys, time
 from _common import connect, fault_reason
 
-DEFAULT = ["state", "fault_code", "tz_trip", "module_fault", "gate_en", "iloop_en", "align_id_a",
+DEFAULT = ["state", "fault_code", "tz_trip", "module_fault", "gate_en", "align_id_a",
            "vbus", "vbus_raw", "vbus_ovr", "vmax_frac", "iq_max", "oc_trip_a", "kp_d", "kp_q",
            "dtc_en", "dtc_v", "dtc_ith", "kp_w", "ki_w", "res_w_mode", "phase_id_status",
            "cal_status", "align_offset", "align_delta", "res_mag", "omega_meas"]

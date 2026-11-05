@@ -55,9 +55,6 @@ extern volatile uint16_t  g_align_offset_en;            // src/foc_pipeline.c
 // Outer-loop control mode (0=torque, 1=speed). See FOC_MODE_* in build_config.h.
 extern volatile uint16_t  g_dbg_control_mode;           // src/foc_pipeline.c
 
-// Inner current-loop enable (1=current PIs enforced, 0=open-loop resistive Vd/Vq).
-extern volatile uint16_t  g_dbg_iloop_en;               // src/foc_pipeline.c
-
 // Step injector: applies a reference step and fires the datalog one-shot trigger
 // in the same ISR tick, so the captured window's trig_idx is exactly the first
 // stepped sample. See the block comment in foc_pipeline.c.
@@ -300,10 +297,6 @@ static void set_mode(uint32_t  r){ g_dbg_control_mode = (r == FOC_MODE_SPEED)
 static void get_fw_en(uint32_t *r){ *r = (uint32_t)g_dbg_fw_en; }
 static void set_fw_en(uint32_t  r){ g_dbg_fw_en = (uint16_t)(r ? 1U : 0U); }
 
-// Inner current-loop enable. Live (no NEEDS_IDLE) so it can be A/B'd in RUN. 0 =
-// open-loop resistive mode (Vd=Rs*id_ref, Vq=Rs*iq_ref), valid only at low speed.
-static void get_iloop(uint32_t *r){ *r = (uint32_t)g_dbg_iloop_en; }
-static void set_iloop(uint32_t  r){ g_dbg_iloop_en = (uint16_t)(r ? 1U : 0U); }
 
 // ---- Step injector / one-shot scope trigger ------------------------------
 // step_go is the only one with side effects: 0 releases a frozen one-shot
@@ -681,7 +674,6 @@ const param_entry_t g_param_table[] =
     { 0x0032U, PARAM_TYPE_U16, 0,                     "control_mode", get_mode,     set_mode     },
     { 0x0033U, PARAM_TYPE_U16, 0,                     "fw_en",        get_fw_en,    set_fw_en    },
     { 0x0034U, PARAM_TYPE_U16, PARAM_FLAG_NEEDS_IDLE, "module_faults_en", get_mfen, set_mfen     },
-    { 0x0038U, PARAM_TYPE_U16, 0,                     "iloop_en",     get_iloop,    set_iloop    },
     { 0x0040U, PARAM_TYPE_U16, 0,                     "ol_run",     get_ol_run,   set_ol_run    },
     { 0x0041U, PARAM_TYPE_F32, 0,                     "ol_freq",    get_ol_freq,  set_ol_freq   },
     { 0x0042U, PARAM_TYPE_F32, 0,                     "ol_mod",     get_ol_mod,   set_ol_mod    },
