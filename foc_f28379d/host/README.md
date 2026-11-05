@@ -30,6 +30,9 @@ This opens the control panel. Everything is point-and-click:
 - **Parameters** table: every param with its value. Double-click a writable value,
   type, press **Enter** to write — the status (`ok` / `needs_idle` / …) shows in the
   row. Read-only rows aren't editable. **Auto-refresh values** polls them live.
+  Hover a row (ⓘ on the name) for what the param does, its units, limits and
+  boot value. The texts live in `foc_debug/param_docs.py`;
+  `test_param_docs.py` fails when a firmware param has no entry there.
 - **Scope** panel: **Start scope** streams the four channels into live plots; set
   **decim** and **interval**, and **Save last to CSV…**.
 - **Ping** button shows round-trip latency.

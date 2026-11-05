@@ -31,7 +31,7 @@ import sys
 import threading
 from dataclasses import dataclass
 
-from . import autotune, proto, steplog
+from . import autotune, param_docs, proto, steplog
 from .api import FocDebug, ParamInfo, fault_reason, pos_status_reason, warn_reason
 from .link import SerialLink, LinkError, NackError, autodetect_port, debug_ports
 from .log import setup_logging
@@ -443,6 +443,11 @@ def build(pg, QtCore, QtGui, QtWidgets):
             self._last_cap = None
             self._state_pending = False
             self._refresh_pending = False
+            # Info icon on every param-table name cell; the row's tooltip holds
+            # the help text (foc_debug/param_docs.py).
+            self._info_icon = self.style().standardIcon(
+                QtWidgets.QStyle.SP_MessageBoxInformation
+            )
             # Motor pole-pairs for RPM <-> electrical-rad/s conversion; replaced by
             # the device's read-only "pole_pairs" param once values are refreshed.
             self._pole_pairs = 4
@@ -894,6 +899,7 @@ def build(pg, QtCore, QtGui, QtWidgets):
                 ["id", "name", "type", "flags", "value (edit + Enter)", "status"]
             )
             t.horizontalHeader().setStretchLastSection(True)
+            t.setIconSize(QtCore.QSize(14, 14))
             t.setEditTriggers(
                 QtWidgets.QAbstractItemView.DoubleClicked
                 | QtWidgets.QAbstractItemView.EditKeyPressed
@@ -1021,31 +1027,44 @@ def build(pg, QtCore, QtGui, QtWidgets):
             for row, info in enumerate(visible):
                 treg["row_of_id"][info.id] = row
                 treg["id_of_row"][row] = info.id
-                self._fill_cell(table, row, COL_ID, f"0x{info.id:04X}", editable=False)
-                self._fill_cell(table, row, COL_NAME, info.name, editable=False)
-                self._fill_cell(table, row, COL_TYPE, info.type_str, editable=False)
-                self._fill_cell(table, row, COL_FLAGS, info.flags_str, editable=False)
+                # Same help tooltip on every cell, so hovering anywhere on the row
+                # shows it; the name cell also carries the info icon.
+                tip = param_docs.tooltip_html(info)
+                self._fill_cell(table, row, COL_ID, f"0x{info.id:04X}",
+                                editable=False, tooltip=tip)
+                self._fill_cell(table, row, COL_NAME, info.name,
+                                editable=False, tooltip=tip)
+                table.item(row, COL_NAME).setIcon(self._info_icon)
+                self._fill_cell(table, row, COL_TYPE, info.type_str,
+                                editable=False, tooltip=tip)
+                self._fill_cell(table, row, COL_FLAGS, info.flags_str,
+                                editable=False, tooltip=tip)
                 labels = ENUM_PARAMS.get(info.name)
                 if labels is not None and not info.read_only:
                     combo = QtWidgets.QComboBox()
                     combo.addItems(labels)
+                    # The cell widget covers the item, so it needs its own tooltip.
+                    combo.setToolTip(tip)
                     combo.activated.connect(
                         lambda idx, i=info, r=row, t=treg: self._on_enum_changed(i, r, idx, t)
                     )
                     table.setCellWidget(row, COL_VALUE, combo)
                     treg["enum_combos"][info.name] = (combo, row)
                 else:
-                    self._fill_cell(table, row, COL_VALUE, "", editable=not info.read_only)
-                self._fill_cell(table, row, COL_STATUS, "", editable=False)
+                    self._fill_cell(table, row, COL_VALUE, "",
+                                    editable=not info.read_only, tooltip=tip)
+                self._fill_cell(table, row, COL_STATUS, "", editable=False, tooltip=tip)
             # Keep canonical shortcuts pointing at the Advanced table's widgets
             if table is self.table:
                 self.row_of_id = treg["row_of_id"]
                 self.enum_combos = treg["enum_combos"]
 
-        def _fill_cell(self, table, row, col, text, editable):
+        def _fill_cell(self, table, row, col, text, editable, tooltip=None):
             item = QtWidgets.QTableWidgetItem(text)
             if not editable:
                 item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEditable)
+            if tooltip:
+                item.setToolTip(tooltip)
             table.setItem(row, col, item)
 
         def _fmt(self, info: ParamInfo, val):

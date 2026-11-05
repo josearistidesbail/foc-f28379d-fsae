@@ -2,7 +2,9 @@
 // debug_params.c - Parameter registry definition (see debug_params.h).
 //
 // Each entry binds an id to a get/set pair that reaches into the live FOC
-// state. Adding a param is mechanical: write a get_/set_ pair and append a row.
+// state. Adding a param is mechanical: write a get_/set_ pair and append a row,
+// then add its GUI tooltip to host/foc_debug/param_docs.py (the host test
+// test_param_docs.py fails until you do).
 //=============================================================================
 #include "build_config.h"
 #include "debug_params.h"
