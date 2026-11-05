@@ -1,7 +1,7 @@
-# FE_UFPR 4.0 → firmware handoff (answers `control_v2_pinmap.md` line by line)
+# FE_UFPR 4.0 → firmware handoff (answers `archive/control_v2_pinmap.md` line by line)
 
 Board: **FE_UFPR_4_0**, schematic freeze `v4.0-schematic-freeze`, release tag `v4.0-release` (S12, 2026-09-23).
-Target files on the firmware side: `docs/control_v2_pinmap.md` (this file answers it), `config/hw/hw_control_v2.h`
+Target files on the firmware side: `docs/archive/control_v2_pinmap.md` (this file answers it), `config/hw/hw_control_v2.h`
 (§13 lists every define that changes), `board_control_v2.syscfg` (pinmux — the GPIO numbers below are unchanged
 from Control_V2 except where marked **NEW**).
 

@@ -1,3 +1,7 @@
+> **ARCHIVED 2026-11-06.** This is the Control_V2 board's pin / parameter question form. The
+> current board is FE_UFPR 4.0: `docs/FE_UFPR_4_0_handoff.md` answers this form line by line, and
+> `config/hw/hw_control_v2.h` holds the live values. Kept for reference only.
+
 # Control_V2 pin / parameter map — FILL ME
 
 Fill every **`____`** below from the Control_V2 KiCad schematic + the relevant

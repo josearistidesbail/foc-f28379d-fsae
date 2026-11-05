@@ -74,10 +74,12 @@ calibrate → RUN in torque or speed mode, all closed-loop. Branch `sensorless-o
 day's work is bring-ups **G–K** in the FE_UFPR 4.0 log below (same-slot current sampling, dead-time
 comp, speed mode, current-PI retune, bus-agnostic calibration). The board was last flashed with
 `b655878`. **First `git pull` and read `git log`** — a parallel cleanup session
-(`foc-f28379d-fsae-d9`) works after `b655878`: `f8e06ef` (Vbus ADC sample window 512 → 15 cycles)
-is committed but was **NOT flashed** on 2026-11-06; still in progress then: removing `iloop_en`=0 /
-the RUN open-loop resistive mode, dead `ISENSE_NUM_CHANNELS == 2` branches, stale comments. Check
-what actually landed before trusting the param list below, and build + flash the tip before vbuscal.
+(`foc-f28379d-fsae-d9`) committed on top of `b655878`, none of it flashed on 2026-11-06:
+`f8e06ef` (Vbus ADC sample window 512 → 15 cycles), `86f33a3` (dead Control_V2 2-channel
+current-sense code removed, stale comments), `3ee6151` (`iloop_en` and the RUN open-loop resistive
+mode removed — the param no longer exists), then a docs commit (Control_V2 pin form moved to
+`docs/archive/`, `production_bringup.md` rewritten for 4.0, Control_V2 history in this file
+condensed). **Build + flash the tip before vbuscal.**
 
 **Laptop setup checklist** (paths in this file are the Linux desktop's):
 1. CCS 21.0.1 + C2000Ware 26.01 + MotorControl SDK 6.00 (see Build Configurations; the project
@@ -111,7 +113,7 @@ what actually landed before trusting the param list below, and build + flash the
 1. **vbuscal with the lab supply** (wide voltage range). FE_UFPR 4.0 uses the DESIGN values
    `VBUS_DIVIDER_RATIO` 327.273 / `VBUS_OFFSET_CODE` 0 (hw_control_v2.h); they are visibly off
    (the link reads ~46–48 codes with 0 V and ~77 codes at 31 V → displays ~18 V). The older
-   298.35/−79.4 fit in the debug-globals section is CONTROL_V2 hardware — ignore it for 4.0.
+   298.35/−79.4 fit quoted in the debug-globals lessons is CONTROL_V2 hardware — ignore it for 4.0.
    (a) Flash the tip first: `f8e06ef` changes the Vbus sampling, which shifts the reading ~1–2 codes.
    (b) Motor IDLE (no PWM) at every point, same conditions. (c) 5–7 voltages as wide as the supply
    allows, interleaved, not monotonic (e.g. 40, 150, 20, 90, 65, 40-again), DC link METERED each
@@ -226,11 +228,12 @@ Device_init() → Device_initGPIO() → Interrupt_initModule/VectorTable() → B
 
 ## Bring-Up Status
 
-> The steps below are the **Debug** (BOOSTXL/Teknic/QEP) bring-up. For the
-> **Production** (Control_V2/EMRAX/RM44AC) variant see `foc_f28379d/docs/production_bringup.md`
-> (ordered sequence + bench-calibration) and `foc_f28379d/docs/control_v2_pinmap.md`
-> (schematic pin/parameter map to fill). The **FE_UFPR 4.0 board** bring-up (the current
-> production hardware) has its own log below Step 12.
+> The steps below are the **Debug** (BOOSTXL/Teknic/QEP) bring-up. The **Production** variant
+> now runs on the **FE_UFPR 4.0 board**; its bring-up log is below Step 12, and
+> `foc_f28379d/docs/production_bringup.md` holds what is left of the ordered sequence (trips at
+> speed, sensor loss, HV ramp, FW, sensorless) plus the bench-calibration table. The Control_V2 pin
+> form is archived in `foc_f28379d/docs/archive/`; `foc_f28379d/docs/FE_UFPR_4_0_handoff.md`
+> answers it for 4.0.
 
 - [x] Step 1 — LED heartbeat blink — confirmed on hardware
 - [x] Step 2 — ePWM + ADC pipeline — ISR confirmed firing at 10 kHz
@@ -258,22 +261,16 @@ Device_init() → Device_initGPIO() → Interrupt_initModule/VectorTable() → B
 - [x] Step 8 — **Speed loop** (verified on HW 2026-06-05). Root cause of `omega_elec` stuck at 0: the QEP estimator `sensor_qep_update_speed_slow()` was fully written but **never called**. Renamed to the backend-contract `sensor_update_speed_slow()` (`sensor_iface.h`) and wired into `foc_speed_loop_tick()` **every 1 kHz tick in all states** — so speed is visible in torque mode/idle and the back-EMF FF finally sees real ωe. Added a **torque/speed mode selector** (`g_dbg_control_mode`, `control_mode` serial param, GUI combo): TORQUE = direct `iq_ref`; SPEED = accel-limited (`SPEED_RAMP_RAD_S2`) electrical setpoint through the existing `s_pi_spd` PI → `iq_ref`, output clamped to ±`IQ_REF_MAX_A`. Switch is **bumpless both directions** (inactive path primes `PI_setUi`=present iq and tracks present speed). Loop runs internally in **electrical rad/s**; the GUI enters/shows **shaft RPM**, converting via new RO params `pole_pairs` + `omega_meas`. The scope's red `omega_ref` overlay on the `omega_elec` trace is now unit-correct (both electrical). `speed_ref`/`omega_ref` semantics changed mechanical→**electrical rad/s**. Build clean, no flash overflow. Tune `kp_w`/`ki_w` live from the Gains tab.
 - [~] Step 9 — **HW trip-zone (CPU-independent fault shutdown)**. Production path **bench-verified 2026-11-03** (FE_UFPR 4.0 bring-up D, below); the Debug/DRV8305 path is still untested on HW. Debug: SysConfig routes DRV8305 **nFAULT (GPIO19) → Input X-BAR INPUT1 → ePWM1/2/3 one-shot TZ1**, action **TZA=LOW / TZB=HIGH** = low-side **active short (ASC)**, so the bridge clamps the instant nFAULT asserts, with the CPU halted. TZ one-shot interrupt registered on PWM_U → `epwm_tz_isr` (`src/isr.c`), PIE group 2: it only records `g_dbg_tz_trip` + `sm_raise_fault(FAULT_OVERCURRENT)` (the HW already latched ASC) and **leaves BOTH the OST latch and the TZ interrupt flag set** — OST holds the bridge, a set INT blocks further TZ interrupts (clearing INT while OST is set re-fires the interrupt at once: the 2026-11-03 ISR storm, see Pitfalls). `pwm_clear_trip()` (`src/pwm_iface.c`) clears both together on the next `enter(FOC_IDLE)` after the operator's `clearfault`, which re-arms the interrupt. **TZ action design: A=LOW + B=HIGH gives ASC because TZ acts post-deadband; AQCSFRC `pwm_force_asc()` gives the *same* ASC via the AQ→DB chain (force A low → DB makes B high) when the gate is enabled — two independent paths, one clamp.** (Since 2026-11-03 that AQ path is used ONLY for the high-speed FAULT; every other non-switching state is the all-LOW `pwm_force_off()`.) Production (FE_UFPR 4.0): the 6PS04512E43W39693 OC_A/B/C flags (GPIO25/27/26) → Input X-BAR INPUT1/2/3 → OSHT1/2/3 on EPWM4/5/6; OT (GPIO64) and DC-OV (GPIO52) are software-only. **The flags are active-HIGH** (open collector, released = fault, buffered non-inverting) → the pads are `PULLUP_INVERT` (see Pitfalls). The module asserts ALL THREE OC lines on any leg's overcurrent — they don't identify the phase. Test on bench: RUN at low iq, force nFAULT low → scope shows EPWMxA low / EPWMxB high within a cycle, `g_dbg_tz_trip` increments, state→FAULT; `clearfault` from IDLE recovers.
 - [~] Step 10 — **Position-sensor-loss detection + FW-safe shutdown** (new; built, HW test pending). Detection is backend-specific via `sensor_is_lost()` (sensor_iface contract): **resolver** = `sin²+cos²` magnitude window per ISR (`sensor_rm44ac_inline.h`, thresholds `SENSOR_RES_MAG_LOW/HIGH`, debounce `SENSOR_RES_LOSS_TICKS`); **QEP** = drive-vs-response + `QEPSTS` POS_CNT_ERROR in the 1 kHz slow loop (`sensor_qep.c`: in RUN with **|iq_ref|>`SENSOR_QEP_LOSS_MIN_IQ`**, if total count movement over a `SENSOR_QEP_LOSS_TICKS` window is < `SENSOR_QEP_LOSS_MIN_MOVE` → lost; also catches locked rotor). **Gate on COMMANDED current, NOT Vq** — when the angle freezes the rotor locks into DC injection and Vq collapses to ~Rs·iq, so a Vq gate goes blind exactly when you disconnect at low current (the first cut used |Vq| and failed to trip in torque mode — fixed 2026-06-05). Windowed motion accumulator (not consecutive-stall) rides out noise edges on floating lines. `safety_check_isr()` latches `FAULT_SENSOR_LOSS` in RUN/ALIGN. **Shutdown is speed-dependent** (`enter(FOC_FAULT)`): above `FAULT_ASC_OMEGA_ELEC` (per-motor) keep the gate ON → low-side **ASC** to clamp back-EMF (prevents uncontrolled generation → DC-link overvoltage in field-weakening); below it **coast** (gate off, tristate). Uses **last-healthy** speed (`sensor_get_healthy_speed()`) since the live estimate is garbage after loss. `g_dbg_fault_asc` shows which path. **This made ALL faults' safe-state speed-dependent** (previously every fault disabled the gate = coast, which would fight the HW TZ's ASC at speed). EMRAX threshold 2600 elec rad/s; Teknic 6000 (bench always coasts). FW controller itself deferred — `id_ref` pinned to nominal with `TODO[FW]` hooks (clamp + OC check already tolerate negative Id). **Caveat carried in motor header: EMRAX Isc=λpm/Ld≈306 A > 260 A OC trip, so a high-speed ASC may re-trip the module OC.** **[noise]** The resolver SIN/COS analog lines also carry a software matched-IIR low-pass (`sensor_rm44ac_inline.h`, before atan2) for HW noise that can't be filtered analog-side — **now default ON at 200 Hz with lag compensation**, live-tunable via `res_filt_en`/`res_filt_hz`/`res_filt_comp`; loss-of-signal stays on the RAW magnitude. See the `g_resolver_filt_*` debug-globals block below.
-  **[2026-07-15 — THE RESOLVER NOW COMMUTATES; the motor spins.]** Three compounding faults, all fixed:
-  1. **`RES_SINCOS_BIAS/AMPL_CODE` were guesses and catastrophically wrong** (2253/2253 assumed; bench-measured
-     **3072 / 990** — scope on the SIN pin: DC 2.25 V, 1.45 Vpp, spans 1.53–2.98 V). With the old numbers the
-     normalized sin/cos traced a circle of radius **0.44 centred at (0.36, 0.36)** — distance from origin **0.51 >
-     0.44**, so **the circle never enclosed the origin and atan2 could not wrap 2π**: the angle swept ~−14°..+104°
-     and reversed. `sin²+cos²` ranged 0.006–0.91, never ≈1 → permanent SENSOR_LOSS. Now baked into hw_control_v2.h.
-  2. **~26° ELECTRICAL RMS angle noise.** Angle error ≈ σ_noise/amplitude = 33.5 mV / 725 mV ≈ 2.65° on the SENSOR,
-     ×10 pole pairs = ~26° electrical (peaks ~±100°). Fixed by `res_filt_en=1 @ 200 Hz` (~4× reduction → ~6.5°).
-  3. **The align offset was garbage** because it averaged the above → `align_off_en=0` on production.
-  **HW TODO (the real fix for #2):** the front-end sits ~0.75 V too high and swings ~2× too small, using only 48% of
-  the ADC range with its positive peak **25 mV** under VREFHI, so noise peaks CLIP. Rescale the conditioning to a
-  **1.5 V bias / ~1.4 V amplitude**: that halves the angle noise at the source and removes the clipping, and would
-  let fc back off to 500–1000. Also consider an **analog RC at each ADC pin** — the ADC samples at 10 kHz, so noise
-  above 5 kHz aliases into baseband *at the conversion instant* and NO software filter can undo it; `res_filt_en`
-  only smooths what already survived aliasing. (The old header note claiming a "0..3.3 V span that clips" was never
-  measured and is wrong in both bias and amplitude.)
+  **[2026-07-15, Control_V2 — first commutation. That front end is gone; the lessons still apply.]**
+  1. Wrong `RES_SINCOS_BIAS/AMPL_CODE` can stop atan2 from wrapping 2π at all: the normalized sin/cos circle
+     no longer encloses the origin, the angle sweeps a partial arc and reverses, and `sin²+cos²` never sits ≈ 1 →
+     permanent SENSOR_LOSS. That is why the ALIGN cal sweep measures the scale at runtime.
+  2. Sensor-angle noise is multiplied by the pole pairs (×10 on the EMRAX): 2.65° on the sensor was ~26° electrical
+     there. `res_filt_en` at 200 Hz cut it ~4×.
+  3. The ADC samples at 10 kHz, so noise above 5 kHz aliases into baseband at the conversion instant and NO
+     software filter can undo it — only an analog RC at the pin can.
+  The hardware fix it called for (rescale to ~1.5 V bias with a larger swing, RC at each pin) is in FE_UFPR 4.0
+  (bring-up F: ~2.6° elec rms before the filter, bias ~2050 / amplitude ~1585 codes, no clipping).
 - [~] Step 11 — **Field weakening** (built, Teknic Debug links clean; HW test pending). Fills the Step-10 `TODO[FW]` hooks. **Voltage-feedback regulator** `s_pi_fw` runs in the current-loop ISR (`foc_pipeline.c` step 3b, RUN only, gated by `g_dbg_fw_en`/`fw_en` param, default `FW_DEFAULT=0`): a TI `PI_run` on the **squared** voltage-margin error (`ref = vmax_fw²`, `fbk = |Vdq|²`) winds `s_fw_id` negative (clamped `[FW_ID_MIN_A, 0]`) when the inverter saturates, relaxing to 0 with headroom. **Squared error keeps the path sqrt-free** (no C99 `sqrtf` in this build); the squared-error loop gain (~`2·vmax`) is folded into the tuned `GAIN_KI_FW·GAIN_KP_FW` (TI PI is *series* form — **both Kp and Ki must be nonzero** or the integrator is dead). `vmax_fw = FW_VMAX_FRACTION·vbus·0.5` reuses the per-axis PI-clamp budget; **`FW_VMAX_FRACTION` must be < `VDQ_MAX_FRACTION`** so FW reacts just before the q-axis clamp bites (`|Vdq| ≥ |Vq|`). **`id_ref` ownership moved to the ISR**: `id_ref = ID_REF_NOMINAL_A + s_fw_id` each RUN tick (removed the old `id_ref = NOMINAL` line from `foc_speed_loop_tick`); reset on RUN entry via the `s_prev_state` transition. **Flux-priority current-circle limit**: before the q-PI, clamp `iq` to `±√(I_PEAK² − id²)` via a self-contained `foc_fast_sqrt()` (inverse-sqrt bit-trick + 2 Newton steps — **no RTS trig/sqrt tables**, same flash-pressure reason as the trig-free align averager) so `id²+iq² ≤ I_PEAK²` stays under `MOTOR_OC_TRIP_A`. **Drive-by fix**: `gains_emrax.h` was missing `FOC_DECOUPLE_DEFAULT` (referenced unconditionally in `foc_init` → the Production/EMRAX config didn't compile); added. **Flash**: relocated `foc_init`/`foc_speed_loop_tick`/`sm_tick_1khz` to FLASHA in `app_ebss.cmd` (FLASHB was 100% full; #10099). Test on bench: `fw_en=1`, ramp speed (SPEED mode), watch `g_dbg_vmag` plateau at `≈FW_VMAX_FRACTION·vbus·0.5`, `g_dbg_fw_id`<0 past base speed, `g_dbg_iq_lim` shrink as `|id|` grows. **TODO[FW] remaining**: per-motor gain tuning on real hardware (current values are conservative placeholders), MTPA (still `ID_REF_NOMINAL_A=0`), and revisit `FAULT_ASC_OMEGA_ELEC` against the real bus once FW is exercised (EMRAX `Isc≈306 A > OC 260 A`). Production/EMRAX config not built through the harness (buildProject can't switch the active config) — verified statically that every shared-code macro is defined in the EMRAX include chain.
 
 - [~] Step 12 — **Sensorless mode + automatic sensor-loss fail-over** (built 2026-09-22; compile-checked in
@@ -479,13 +476,13 @@ volatile uint16_t g_dbg_iu_raw;     // raw ADC code, sense CHANNEL A (the "u/v/w
 volatile uint16_t g_dbg_iv_raw;     //   SLOT names = fixed ADC inputs, NOT motor phases -- see isense_map below)
 volatile uint16_t g_dbg_iw_raw;
 volatile uint16_t g_dbg_vbus_raw;
-volatile uint16_t g_dbg_sin_raw;    // raw resolver SIN ADC code (last adc_read_sin_cos); DC=bias ~2253, jitter*0.732=mV
+volatile uint16_t g_dbg_sin_raw;    // raw resolver SIN ADC code (last adc_read_sin_cos); DC=bias ~2050, jitter*0.732=mV
 volatile uint16_t g_dbg_cos_raw;    // raw resolver COS ADC code; 0 on non-RM44AC builds
 //   Host: scope channels res_sin/res_cos (SCOPE_BIT_RES_SIN/COS 0x200/0x400, datalog cols 10/11) plot these raw
 //   codes over time; RO params sin_raw/cos_raw (0x0119/0x011A) + res_mag (0x011B = g_dbg_resolver_mag, ~1.0 healthy)
 //   give the static readout. Added to diagnose resolver angle noise (theta jitter vs analog-scope mV).
 
-// src/adc_iface.c + src/foc_pipeline.c   (LEM channel->phase map + ALIGN phase-ID auto-detect, 2026-07-27)
+// src/adc_iface.c + src/foc_pipeline.c   (current-sense channel->phase map + ALIGN phase-ID auto-detect)
 volatile uint16_t g_isense_map;        // "isense_map" 0x004C, NEEDS_IDLE: channel->phase permutation index 0..5
 volatile uint16_t g_isense_inv;        // "isense_inv" 0x004D, NEEDS_IDLE: polarity bitmask bit0=chA bit1=chB bit2=chC
 volatile float    g_isense_ch_amps[3]; // channel-domain currents [A] (offset+sign applied, PRE phase-scatter)
@@ -497,132 +494,77 @@ volatile uint16_t g_isense_id_status;  // "phase_id_status" 0x0124 RO: low nibbl
 volatile uint16_t g_phase_id_en;       // "phase_id_en" 0x004E, NEEDS_IDLE; default PHASE_ID_DEFAULT_EN
                                        //   (hw_control_v2.h = 1; BOOSTXL/others = 0)
 volatile float32_t g_phase_id_a;       // "phase_id_a" 0x004F, NEEDS_IDLE: governed dwell current target [A],
-                                       //   default PHASE_ID_TARGET_A = ALIGN_ID_INJECT_A (1.0 A both motors)
+                                       //   default PHASE_ID_TARGET_A (hw_control_v2.h = 3 A, else ALIGN_ID_INJECT_A)
 volatile float32_t g_dbg_phaseid_mod;  // "phase_id_mod" 0x0125 RO: duty the dwell governor settled at
+//   MAP: the ADC inputs are fixed; adc_read_phase_currents() computes per-CHANNEL amps into g_isense_ch_amps[] and
+//   scatters them onto phases through g_isense_map (0:UVW 1:UWV 2:VUW 3:VWU 4:WUV 5:WVU -- one atomic param, no
+//   invalid intermediate state). Per-channel zero offsets stay with the CHANNEL (calibrate is map-independent).
+//   Built for Control_V2, whose two LEM clamps moved between phases; on FE_UFPR 4.0 the three sensors are fixed per
+//   phase (boot map 0 = identity, signs +1, confirmed by phase-ID 2026-11-05), so it now serves as a wiring CHECK
+//   plus per-channel sign detection. "isense_recon" (0x0030) can rebuild one dead channel via KCL.
+//   PHASE-ID: with phase_id_en=1, ALIGN's FIRST stage parks the field open-loop at 0/120/240 deg ELECTRICAL for one
+//   dwell each (PHASE_ID_DWELL_S 1.2 s, the last PHASE_ID_AVG_S 0.6 s averaged). **Order is safety-critical**: the
+//   settle that follows runs the CLOSED-LOOP d-PI, and closed loop on an unverified map/sign is positive feedback
+//   (the PI rails to vmax_dyn and folds a current-limited supply the instant ALIGN begins -- bench 2026-07-27). So
+//   phase-ID verifies and commits the wiring before ANY stage that consumes current feedback; dwell 0 at theta=0
+//   pre-parks the rotor for free. The dwells FORCE an open-loop duty drive (unity SVGEN bus, no dead-time comp),
+//   because current feedback is untrusted while the map is being measured.
+//   SOLVER reads the SIGN PATTERN: d-axis injection at dwell k gives avg[c][k] = s*I_k*(k==p ? 1 : -0.5) for a
+//   channel on phase p with sign s, and I_k > 0, so p = the odd sign out and s = its sign, however unequal the
+//   three dwell amplitudes are (avg carries the CURRENT inv mask, so a negative sign XOR-flips the bit). Gates:
+//   driven dwell >= PHASE_ID_MIN_A 0.3 A; EVERY dwell >= PHASE_ID_SIGN_MIN_A (else that sign is noise and the
+//   pattern is fabricated); exactly one sign differs; distinct phases. REJECT => keep the old map, freeze the align
+//   carrier, latch FAULT_CURRENT_SENSE (1<<7, "CURRENT_SENSE" in the GUI).
+//   WHY NOT MAGNITUDE (the argmax + dominance solver, removed 2026-08-01): one shared duty equalizes VOLTS, not amps.
+//   At a low bench bus the dead zone eats ~99 % of the commanded volts, so a dwell current is the difference of two
+//   nearly equal large numbers -- the Control_V2 bench saw 1 A / 5.5 A / 1 A across the dwells, both channels peaked
+//   at the same dwell and phase-ID rejected (0x0802) although the sign patterns were clean. A higher bus does not
+//   help (the tax is fixed volts plus a dead-time term that GROWS with Vbus).
+//   GOVERNOR: during dwell 0 the duty slews (PHASE_ID_MOD_SLEW_PER_S) until the largest channel current (signed,
+//   low-passed at PHASE_ID_IFILT_HZ before taking |.|) reaches phase_id_a, then FREEZES for all three dwells --
+//   re-regulating per dwell would normalize away the +I / -I/2 structure. The duty cap is bus-agnostic (dead-zone
+//   model x PHASE_ID_DZ_MARGIN + PHASE_ID_V_HEADROOM, bring-up K). On FE_UFPR 4.0, 1 A rejects (0x0102: the dead
+//   zone clamps the -I/2 legs to ~0) and 3 A passes. phase_id_mod pinned at the cap with weak flags = the target
+//   was unreachable (supply limit, open lead, dead sensor).
+//   phase-ID identifies channel WIRING, not commutation direction -- the U/V/W order vs the angle convention is
+//   res_dir_inv / SENSOR_QEP_DIR_SIGN territory; verify the torque sign after the first align. Manual entry: GUI
+//   Config tab dropdown, or isense_map/isense_inv in IDLE.
 
-// src/foc_pipeline.c        (bench command-current clamp, 2026-07-27)
-volatile float32_t g_iq_cmd_max;       // "iq_max" 0x0050, LIVE; boot IQ_CMD_MAX_DEFAULT_A (bench 10 A via
-                                       //   BENCH_NO_POWER_STAGE, production = IQ_REF_MAX_A; setter caps at IQ_REF_MAX_A)
-volatile float32_t g_vdq_max_frac;     // "vmax_frac" 0x0051, LIVE; boot VDQ_MAX_FRACTION, setter clamps
-                                       //   [0, VDQ_MAX_FRACTION]. Scales the PI voltage clamp: vmax_dyn =
-                                       //   vmax_frac*vbus*0.5 (also bounds the open-loop resistive Vd/Vq clamp).
-//   WHY vmax_frac exists [2026-07-27 bench #3]: closed-loop RUN "current explodes even at id=iq=0, iq_max useless".
-//   iq_max caps the REFERENCE; a sign-inconsistent or unstable current PI rails its OUTPUT to vmax_dyn
-//   (0.95*24/2 = +/-11.4 V on 18 mOhm = ~600 A demanded) regardless of the reference -> PSU folds before anything
-//   is observable. vbus_ovr can NOT be used as a limiter (SVGEN divides by it -- lying about the bus scales duty
-//   back up by vbus_real/vbus_ovr). vmax_frac bounds the APPLIED volts with the SVGEN normalization intact:
-//   vmax_frac=0.05 at 24 V -> +/-0.6 V -> worst-case rail ~30 A phase / ~1 A DC-side -- survivable + observable.
-//   Closed-loop bring-up: vmax_frac=0.05, iloop_en=1, refs 0, RUN; scope id/iq/vd/vq. DC-railed vd -> feedback
-//   sign inconsistent (check phase_id_status/isense_map/inv); kHz oscillation -> loop gain too hot (halve kp_d/kp_q
-//   or suspect LEM_V_PER_A); quiet ~0 -> raise vmax_frac stepwise, then step-test (step_go) before full clamp.
-//   NOTE closed-loop current control had NEVER run successfully on the EMRAX board before this (all prior EMRAX
-//   running was iloop_en=0 resistive or ol_mod drag) -- treat this as first engagement, not a regression.
-//   [2026-07-28 bench #4 -- INVERTER DEAD ZONE, the actual root cause]: with vmax_frac=0.05 the scope showed the
-//   FOURTH signature (not in the original tree): Vd railed DC at +0.6, Vq wound to -0.6, measured id/iq ~= 0 --
-//   max volts applied, ZERO current response, no oscillation. phase_id_status=1 (map A=V B=W C=U, chA inverted)
-//   so sign is proven good. Root cause: the PrimeSTACK dead zone. Dead-band is 150 TBCLK = 1.5 us (SysConfig
-//   board_control_v2), costing ~ Tdt*fsw*Vbus = 1.5u*10k*24 ~= 0.36 V at the 24 V bench, PLUS 900V-class
-//   IGBT Vce + diode Vf (~0.5 V+ at ~1 A) -> total ~0.9 V of commanded volts produce NO current. PROOF from
-//   phase-ID's own governor: phase_id_mod=0.0754 -> ~0.9 V duty-domain for a measured 1 A, vs Ohm's law
-//   18 mV on the 18 mOhm EMRAX -- the missing ~0.88 V IS the dead zone. A 0.6 V clamp sits entirely inside it
-//   -> loop has zero authority -> integrator winds to rail on the reference (Vd) and on measurement bias (Vq).
-//   THIS also explains the refs=0 explosion at full clamp: inside the dead zone NO corrective current flows, so
-//   any small id/iq measurement bias integrates unopposed; the output winds far past the dead zone; current then
-//   arrives suddenly and large (11.4 V rail -> 100s of A) -> PSU folds. The dead zone turns integral action into
-//   a bang-bang latch at low bus voltage. Fixes: bench vmax_frac must EXCEED the dead zone -- use 0.12-0.15
-//   (+/-1.4-1.8 V, ~0.5-0.9 V of real authority, worst case ~1-10 A phase / <1 A DC). Real fix for production:
-//   dead-time compensation feedforward (sign(i_phase)*Vdt), and note the whole problem shrinks ~linearly as the
-//   bus rises toward the real HV level (fixed-volts tax). 24 V bench on a 900 V IGBT stack maximizes it.
-//   FW interaction: vmax_fw stays on FW_VMAX_FRACTION -- don't exercise fw_en with vmax_frac lowered.
-//   **[2026-08-01] The dead zone is now COMPENSATED -- see the g_dtc_* block below. vmax_frac stays as the
-//   bring-up bound, but "raise vmax_frac past the dead zone" is no longer the fix; dtc_en=1 is.**
-//   Clamps the COMMANDED d/q current at the ISR choke point every q command funnels through (torque cmd via the
-//   1 kHz tick, speed-PI output, step injector), and in open-loop resistive mode clamps id_ref/iq_ref before
-//   Vd=Rs*i -- so no command source can ask the bench supply for more than this, whatever the GUI says.
-//   CONTEXT (the "per-unit" question, 2026-07-27): the pipeline does NOT need a per-unit refactor -- SVGEN already
-//   normalizes by s_refs.vbus (a commanded volt is a delivered volt at any bus) and vmax_dyn tracks vbus. The
-//   "need 60% of nominal torque to respond at 24 V" symptom was OPEN-LOOP RESISTIVE mode (iloop_en=0): there
-//   iq_ref is a VOLTAGE knob (Vq = Rs*iq_ref ~ 12 mV/A on the EMRAX), so budging the rotor (~1.3 V, same level as
-//   ol_mod*24V) needs a ~100 A "command", and the real current genuinely approaches it (I ~ V/R_total) -> PSU
-//   folds. Closed loop (iloop_en=1, safe after phase-ID verifies the wiring) makes iq_ref REAL amps and is
-//   bus-independent; at low speed phase amps are cheap on the DC side (I_dc ~ duty*I_phase: 20 A phase @ ~1 V is
-//   <1 A supply). Caveat: the speed PI's own output limits stay +/-IQ_REF_MAX_A, so SPEED mode can wind against a
-//   low iq_max -- bench guard only, revisit before speed mode with a tight clamp. Residual true bus-tracking gap:
-//   control runs on the FIXED vbus_ovr=24 while the real bus moves; set vbus_ovr=0 once the sensor is trusted.
-//   WHY: the current-sense ADC inputs are FIXED (Control_V2: chA=ADCINB4, chB=ADCINC4) but the two external LEM
-//   clamps MOVE between motor phases on the bench -- the old code hard-wired slot->phase (chA=Iu, chB=Iv) and only
-//   let you pick the KCL-reconstructed phase. adc_read_phase_currents() now computes per-CHANNEL amps into
-//   g_isense_ch_amps[] then scatters them onto phases through g_isense_map (perm of chA/B/C over U/V/W, encoding
-//   0:UVW 1:UWV 2:VUW 3:VWU 4:WUV 5:WVU -- atomic single param, no invalid intermediate state). On 2-channel hw
-//   (ISENSE_NUM_CHANNELS=2, Control_V2) the phase that slot C maps to is ALWAYS KCL-reconstructed and the
-//   "isense_recon" param becomes a derived read-only echo (writes ignored); the 3-channel BOOSTXL keeps the old
-//   recon selector for dead-amp workarounds. Per-channel zero offsets stay attached to the CHANNEL (calibrate is
-//   map-independent). Boot defaults: ISENSE_MAP_DEFAULT (hw_control_v2.h = 1 -> chA=U, chB=W, V reconstructed =
-//   bench clamp arrangement 2026-07-27) and g_isense_inv seeded from the ISENSE_SIGN_* macros (per-slot).
-//   PHASE-ID (automatic detection of BOTH map and sign): with phase_id_en=1, ALIGN runs 3 dwells (0.6 s each,
-//   settle 0.4 + average 0.2; PHASE_ID_* in build_config.h) as the FIRST ladder stage -- dwells, THEN settle, then
-//   cal/offset sweeps -- parking the commanded field open-loop at 0/120/240 deg ELECTRICAL. **Order is safety-
-//   critical [2026-07-27 bench #2]: with iloop_en=1 the settle runs the CLOSED-LOOP d-PI, and closed loop on a
-//   yet-unverified map/sign is positive feedback (PI rails to vmax_dyn, folds a current-limited supply the instant
-//   ALIGN begins). Phase-ID therefore verifies+commits the wiring before ANY stage that consumes current feedback;
-//   dwell 0 sits at theta=0 so the rotor pre-parks for free. iloop_en does NOT need to be 1 for phase-ID -- the
-//   dwells always use their own governed open-loop drive regardless.** d-axis injection at dwell k puts +I_k on
-//   phase k and -I_k/2 on the other two, so for a channel on phase p with sign s: avg[c][k] = s*I_k*(k==p ? 1 : -0.5).
-//   **[2026-08-01] The solver reads the SIGN PATTERN, not peak magnitude.** I_k > 0 always, so the sign at k==p is
-//   opposite to the other two REGARDLESS of how unequal the three dwell amplitudes are: p = the odd sign out, s = its
-//   sign (avg carries the CURRENT inv mask, so a negative peak XOR-flips the bit). adc_isense_phase_id_commit()
-//   validates (driven dwell >= PHASE_ID_MIN_A 0.3 A; EVERY dwell >= PHASE_ID_SIGN_MIN_A = MIN_A/2, else that dwell's
-//   sign is noise and the pattern is fabricated; exactly one sign differs; channels must claim distinct phases) and
-//   commits map+inv. **PHASE_ID_DOMINANCE and the argmax are GONE** -- see the 2026-08-01 bench entry below for why
-//   magnitude is not comparable across dwells on this inverter.
-//   REJECT => keep old map, freeze the align carrier, latch NEW fault bit FAULT_CURRENT_SENSE
-//   (1<<7, "CURRENT_SENSE" in the GUI) -- running closed-loop on unverified current wiring is positive feedback.
-//   The dwells FORCE an open-loop duty drive (unity SVGEN bus) even when iloop_en=1, because current feedback is
-//   untrusted while the map is being measured -- so detection works with any prior map/sign.
-//   **[2026-07-27 bench] DWELL CURRENT IS NOW GOVERNED, not the fixed ol_mod.** First HW try used the raw ol_mod
-//   drag drive (sized to MOVE the rotor): on the milliohm EMRAX that demanded more current than the bench supply
-//   could source, the bus collapsed mid-detection, the dwell amplitudes came out unequal (argmax/dominance broke)
-//   and phase-ID correctly REJECTED -> CURRENT_SENSE fault. Fix: during dwell 0's settle portion a governor slews
-//   the duty (PHASE_ID_MOD_SLEW_PER_S 0.4/s) until max|channel| current = g_phase_id_a ("phase_id_a", default
-//   ALIGN_ID_INJECT_A = 1 A; size it to the SUPPLY, it only needs to clear PHASE_ID_MIN_A 0.3 A), then FREEZES the
-//   duty for all three dwells. Channel |amplitude| is a legit feedback while the map is unknown (magnitude is map-
-//   and polarity-independent). Freezing (rather than re-regulating per dwell) keeps one shared drive level; a
-//   per-dwell governor would actively normalize away the +I / -I/2 structure (worst case: both clamps on -I/2
-//   phases -> that dwell doubles). Duty capped at g_ol_mod (worst case = old behavior). "phase_id_mod" RO shows
-//   what the governor settled at -- if it rails at the ol_mod cap AND phase_id_status shows weak flags, the
-//   target current was unreachable (supply limit / clamp not closed / lead open).
-//   **[2026-08-01 bench] ONE SHARED DUTY EQUALIZES VOLTS, NOT AMPS -- the argmax solver died on this and was
-//   replaced by the sign-pattern solver.** Symptom: CURRENT_SENSE on every calibrate, phase_id_status = 0x0802
-//   (duplicate phase; NO weak, NO ambiguous bits), phase_id_mod = 0.058 (governor reached its 1 A target and did
-//   NOT rail, so the drive was working). The Iu/Iv/Iw scope showed the three dwells drawing ~1 A / ~5.5 A / ~1 A.
-//   Both channels' magnitude therefore peaked at dwell 1, both claimed phase V, duplicate -> reject.
-//   ROOT CAUSE is the dead zone again (see the vmax_frac block above): at 1 A the 18 mOhm EMRAX needs ~36 mV of
-//   NET loop drive out of ~2.7 V commanded -- ~99% is dead-time + IGBT Vce + diode Vf. The dwell current is a
-//   difference of two nearly equal large numbers, so a few-percent change in that tax between angles swings the
-//   current by hundreds of percent. Corollary tell: dwells 0 and 2 showed a TWO-PHASE (+I, 0, -I) pattern instead
-//   of (+I, -I/2, -I/2) -- classic dead-time zero-current clamping of the leg with the small commanded volts.
-//   The FIX is free because the SIGN pattern is amplitude-invariant (avg = s*I_k*(k==p ? 1 : -0.5), I_k > 0): the
-//   very same rejected capture reads chA [+,-,-] -> U and chB [-,-,+] -> W, distinct and unambiguous = map 1,
-//   inv 0. Verified by replaying the bench numbers through the new solver before flashing.
-//   NOT worth doing instead: raising phase_id_a helps only weakly (the knee is a hard 0->large step, so even 10 A
-//   sits a few mV past it), and RAISING THE BUS DOES NOT HELP AT ALL -- the tax is fixed volts and its dead-time
-//   term actually GROWS with Vbus. The real cure is dead-time compensation feedforward (still TODO).
-//   Workflow after re-clamping the LEMs: just run align (g_dbg_sm_cmd=1); map+inv self-configure (~1.8 s extra).
-//   Manual entry: GUI Config tab dropdown ("A=U B=W (C=V)" etc.) or write isense_map/isense_inv in IDLE.
-//   NOTE: phase-ID identifies channel WIRING, not commutation direction -- U/V/W phase ORDER vs the electrical
-//   angle convention is still res_dir_inv / SENSOR_QEP_DIR_SIGN territory. Verify torque sign after first align.
+// src/foc_pipeline.c        (bench command-current clamp + PI voltage-clamp scale, 2026-07-27)
+volatile float32_t g_iq_cmd_max;       // "iq_max" 0x0050, LIVE; boot IQ_CMD_MAX_DEFAULT_A (10 A on the FE_UFPR 4.0
+                                       //   bench, else IQ_REF_MAX_A); setter caps at IQ_REF_MAX_A
+volatile float32_t g_vdq_max_frac;     // "vmax_frac" 0x0051, LIVE; boot VDQ_MAX_FRAC_DEFAULT (0.15 on the bench, else
+                                       //   VDQ_MAX_FRACTION); setter clamps [0, VDQ_MAX_FRACTION]. Scales the PI
+                                       //   voltage clamp: vmax_dyn = vmax_frac*vbus*0.5.
+//   iq_max clamps the COMMANDED current at the ISR choke point every q command funnels through (torque command,
+//   speed-PI output -- whose limits follow iq_max every 1 kHz tick -- and the step injector).
+//   WHY vmax_frac exists: iq_max caps the REFERENCE, but a sign-inconsistent or unstable current PI rails its OUTPUT
+//   to vmax_dyn regardless (0.95*24/2 = +/-11.4 V on 18 mOhm = ~600 A demanded) and folds a bench supply before
+//   anything is observable. vmax_frac bounds the APPLIED volts with the SVGEN normalization intact. (vbus_ovr can
+//   NOT be used as a limiter: SVGEN divides by it, so lying about the bus scales the duty back up.)
+//   It must EXCEED the inverter dead zone (~0.05 duty on both PrimeSTACK boards). Inside it no current flows, the
+//   loop has zero authority, the integrators wind to the rail on the reference and on measurement bias, and the
+//   current then arrives suddenly and large -- a bang-bang latch (Control_V2 2026-07-28: Vd railed at +0.6 V with
+//   zero current; FE_UFPR 4.0 2026-11-05: 0.05 gave zero current, 0.15 tracks). Dead-time compensation (g_dtc_*,
+//   below) is the real cure; vmax_frac stays a bring-up bound. Don't exercise fw_en with vmax_frac lowered (vmax_fw
+//   stays on FW_VMAX_FRACTION). First-engagement triage: DC-railed vd -> feedback sign inconsistent (check
+//   phase_id_status / isense_map / isense_inv); kHz oscillation -> gain too hot or wrong ISENSE_V_PER_A; quiet ~0 ->
+//   raise vmax_frac stepwise, then step-test (step_go).
+//   No per-unit refactor needed: SVGEN normalizes by s_refs.vbus (a commanded volt is a delivered volt at any bus)
+//   and closed-loop iq_ref is real amps. Phase amps are cheap on the DC side at low speed (I_dc ~ duty*I_phase).
 
 // src/foc_pipeline.c        (dead-zone / dead-time compensation feedforward, 2026-08-01)
-volatile uint16_t  g_dtc_en;      // "dtc_en"   0x0055, LIVE; default DTC_DEFAULT_EN = 0 (off at boot)
+volatile uint16_t  g_dtc_en;      // "dtc_en"   0x0055, LIVE; default DTC_DEFAULT_EN (hw_control_v2.h = 1, else 0)
 volatile float32_t g_dtc_duty;    // "dtc_duty" 0x0056, LIVE: bus-INDEPENDENT term (pure dead time) [duty]
                                   //   default DTC_DEADTIME_DUTY = PWM_DEADBAND_NS*1e-9*PWM_FREQ_HZ = 0.015
-volatile float32_t g_dtc_v;       // "dtc_v"    0x0057, LIVE: fixed device drop Vce+Vf [V]; hw_control_v2.h = 0.68
-volatile float32_t g_dtc_ith;     // "dtc_ith"  0x0058, LIVE: zero-crossing ramp width [A], default DTC_ITH_A = 2
+volatile float32_t g_dtc_v;       // "dtc_v"    0x0057, LIVE: fixed device drop Vce+Vf [V]; hw_control_v2.h = 1.0
+volatile float32_t g_dtc_ith;     // "dtc_ith"  0x0058, LIVE: zero-crossing ramp width [A]; hw_control_v2.h = 0.5
 volatile float32_t g_dtc_inv_ith; // derived 1/ith (setter-maintained; ISR stays division-free)
 volatile float32_t g_dbg_dtc_k;   // "dtc_k" 0x0127 RO: total duty offset applied = dtc_duty + dtc_v/vbus
-//   Applied in dtc_apply() after SVGEN, FOC_RUN ONLY: duty[p] += k * sat(i_phase[p]/ith). ALIGN/OPENLOOP are
-//   deliberately EXCLUDED -- their g_ol_mod drag drive and the phase-ID dwell governor are bench-calibrated
-//   against the UNcompensated bridge, and the dwell solver reads current ratios this would alter.
+//   Applied in dtc_apply() after SVGEN: duty[p] += k * sat((i_phase[p] - z)/ith), where z = (Iu+Iv+Iw)/3 is removed
+//   first (star, no neutral, so the true z is 0 and the measured one is the common ADC interference). Active in
+//   FOC_RUN and the CLOSED-LOOP part of ALIGN (bring-up K); NOT in the phase-ID dwells (the sign ramp needs the map
+//   they measure) and NOT in FOC_OPENLOOP (raw-duty bench tool).
 //   WHY (bench 2026-08-01, PI tuning): the bridge does not deliver commanded volts. Dead time clamps the phase to
 //   whichever diode the current picks, and every conducting device drops Vce/Vf; both OPPOSE the current, giving a
 //   dead zone Vdt = (Tdt*fsw)*Vbus + Vdrop. **On the 18 mOhm EMRAX that is worth 25-50 A -- larger than any bench
@@ -634,7 +576,8 @@ volatile float32_t g_dbg_dtc_k;   // "dtc_k" 0x0127 RO: total duty offset applie
 //   bench fit extrapolates to the HV bus. **CALIBRATE with phase_id_mod**: the ALIGN dwell governor reports the
 //   peak-phase duty m for phase_id_a amps, the resistive share is negligible (1 A * 1.5*Rs = 27 mV = 0.001 duty),
 //   and the dwell drives one phase against two through two devices' worth of tax, so **Vdt ~= 0.75*phase_id_mod*Vbus**.
-//   Bench: phase_id_mod 0.058 at 24 V -> Vdt ~= 1.04 V (0.0435 duty) = 0.015 dead-time + 0.68 V drops.
+//   Control_V2 (24 V): phase_id_mod 0.058 -> Vdt ~= 1.04 V. FE_UFPR 4.0 (31 V): 0.0706 at 3 A -> ~1.64 V total;
+//   the standstill d-axis null (bring-up H) settled dtc_v at 1.0 V (0.047 duty total).
 //   CAVEAT on that split: whether a symmetric carrier loses one or two dead-time intervals per period is a
 //   factor-of-2 the textbooks disagree on; only the SUM is pinned by the measurement. If the residual dead zone
 //   grows with Vbus, shift budget from dtc_v into dtc_duty.
@@ -644,35 +587,24 @@ volatile float32_t g_dbg_dtc_k;   // "dtc_k" 0x0127 RO: total duty offset applie
 //   at low current. Setter floors it at 0.1 A so it can never degenerate to sign().
 //   OVER-compensation is positive feedback around the zero crossing -- if raising dtc_v past the fitted value
 //   makes the loop worse rather than better, you have passed the true Vdt; back off, don't push through.
-//   Bench order: dtc_en=0 baseline step -> dtc_en=1 same step (dtc_k should read ~0.0435 at 24 V) -> only then
+//   Bench order: dtc_en=0 baseline step -> dtc_en=1 same step (dtc_k reads ~0.047 at 31 V) -> only then
 //   re-tune kp/ki. Tuning gains against an uncompensated bridge measures the dead zone, not the loop.
 
 // src/foc_pipeline.c        (DC-bus voltage scope channel)
-volatile float32_t g_dbg_vbus_v;    // measured DC-bus [V], = s_refs.vbus every ISR (real adc_read_vbus,
-//   even in open-loop modes that feed SVGEN a synthetic unity bus). Host: scope channel "vbus"
-//   (SCOPE_BIT_VBUS 0x1000, datalog col 13, all backends); static RO param "vbus" 0x0115 reads the same source.
-//   Use it to size MOTOR_UV_TRIP_V: RUN + torque, watch the bus SAG under phase current on the bench supply.
-//   The UV trip (safety.c) is INSTANTANEOUS (no debounce) and fires only in FOC_RUN, comparing this exact value
-//   to MOTOR_UV_TRIP_V — so set the trip BELOW the observed noisy MINIMUM, not the mean. NOTE the scope is
-//   burst-captured (128 samples = 12.8 ms at decim=1, then a ~237 ms gap); raise decim to widen each contiguous
-//   window if a fast dip falls in the gap, or hold steady torque and read the sustained level.
-//   [2026-07-23] vbus read WRONG (compressed at rest, ~10V at real 23V under the align/cal drive) was NOT the
-//   74.18 divider — it was the ADC acquisition window: myADCC SOC1 (Vbus=ADCINC2) had only a 15-cycle (75 ns)
-//   sample window and is sampled right after SOC0=Iv (low-Z) on the same ADC-C. The high-Z divider (~30 kOhm)
-//   can't charge the S/H in 75 ns, so vbus charge-shared with the prior Iv sample (~15% gain; dragged by Iv when
-//   current flows). FIXED via SysConfig: myADCC.soc1SampleWindow 15->512 (2.56 us). DURABLE HW fix still wanted:
-//   ~1-10 nF from ADCINC2 to AGND (charge reservoir + noise filter).
-//   [2026-07-23 part 2] SCALE was ALSO wrong: the PrimeSTACK "Analog DC link voltage sensor output" is a SENSOR
-//   (6.5 V @ 900 V per datasheet), THEN a /2 external divider (two 69k) -> ADCINC2. So VBUS_DIVIDER_RATIO =
-//   (900/6.5)*2 = 276.92, NOT 74.18 (cal'd against the settling-corrupted reading; the older 138.46 was the sensor
-//   factor alone, missing the /2). Verified: firmware saw 106 mV at the pin at 30 V, model says 108. Bench bus
-//   floors at ~6 V (inverter logic supply back-feeds the DC link) -> never reads 0 V; 24-30 V is ~3% of the 900 V
-//   range so it's low-res/noisy and scope-probe loading skews mV reads -- trust g_dbg_vbus_raw codes. See memory
-//   foc-vbus-adc-acqwindow.
-//   [2026-07-29 part 3] 276.92 is STILL ~40% low at a metered 50 V, and the "verified 106 mV vs model 108" above was
-//   a PIN-VOLTAGE cross-check at ONE point, not a two-point calibration -- it could not have caught a gain error.
-//   The reading is now AFFINE and bench-fittable (vbus_ratio / vbus_off / vbus_raw params, `foc_debug vbuscal`);
-//   see the "DC-bus AFFINE calibration" block below for the fit procedure and why the error must be gain, not offset.
+volatile float32_t g_dbg_vbus_v;    // MEASURED DC-bus [V] every ISR (real adc_read_vbus, even while control runs on
+//   the vbus_ovr override or an open-loop mode feeds SVGEN a unity bus). Host: scope channel "vbus" (SCOPE_BIT_VBUS
+//   0x1000, datalog col 13); RO param "vbus" 0x0115 reads the same source. Size the UV trip with it: RUN + torque,
+//   watch the bus SAG under phase current, and set uv_trip_v below the noisy MINIMUM (the trip is debounced, see
+//   below). The scope is burst-captured (128 samples, then a gap): raise decim to widen a contiguous window.
+//   CONTROL_V2 SENSE HISTORY (2026-07-23..29) -- lessons only, that board's numbers are obsolete:
+//   * A high-impedance tap with no pin capacitor charge-shares with the previous SOC on the same ADC (vbus was
+//     dragged by the Iv sample before it); Control_V2 needed a 512-cycle window. FE_UFPR 4.0 has 3.3k + 22 nF at
+//     the pin, so the window is back to 15 cycles (2026-11-06). A fit made on one sampling is not valid on another.
+//   * A one-point pin-voltage cross-check cannot catch a gain or offset error: fit >= 3 metered points (below).
+//   * The PrimeSTACK sense floors well above 0 V on the bench (the gate-drive supply back-feeds the DC link) and is
+//     non-linear at the bottom of its range: never use it to judge bus-discharged / safe-to-touch.
+//   FE_UFPR 4.0: design ratio 327.273 (module sensor, then R57 3.00k / R58 2.20k), offset not yet fitted; it read
+//   ~46-48 codes with the link off and ~77 at 31 V (2026-11-05) -- run vbuscal before trusting it.
 
 // src/adc_iface.c          (DC-bus voltage low-pass — variant-agnostic)
 volatile uint16_t g_vbus_filt_en;      // "vbus_filt_en" param 0x0046, LIVE; default VBUS_FILT_DEFAULT_EN=1
@@ -680,8 +612,8 @@ volatile float32_t g_vbus_filt_hz;     // "vbus_filt_hz" param 0x0047, LIVE [Hz]
 volatile float32_t g_vbus_filt_alpha;  // derived IIR coeff = clamp(2*pi*fc*Ts, 0..1) (VBUS_FILT_ALPHA in build_config.h)
 volatile float32_t g_vbus_filt;        // IIR state [V], updated EVERY ISR in adc_read_vbus() (primed on 1st read)
 //   First-order IIR on the measured bus, applied in adc_read_vbus() so the UV/OV trips, the vmax_dyn PI clamp AND
-//   the vbus scope/param all see the de-noised value (raw bus is spike-noisy on the high-Z sensor divider and was
-//   nuisance-tripping the INSTANTANEOUS UV compare in safety.c). State runs every ISR regardless of en -> toggling
+//   the vbus scope/param all see the de-noised value (the raw reading was spike-noisy on Control_V2 and
+//   nuisance-tripped the then-instantaneous UV compare in safety.c). State runs every ISR regardless of en -> toggling
 //   vbus_filt_en is bumpless and A/Bs raw-vs-filtered on the "vbus" scope channel. Both params live in the GUI
 //   Advanced tab (auto-discovered). If it still nuisance-trips after the filter + the HW RC cap: lower vbus_filt_hz,
 //   or lower uv_trip_v (the debounce is now built in, see below). NOTE the filter also lags a REAL bus collapse by
@@ -701,41 +633,17 @@ volatile float32_t g_uv_trip_v;       // "uv_trip_v" 0x0054, LIVE [V]; boot MOTO
 //   **WHY AFFINE — a single-point ratio trim is structurally wrong.** It forces the line through the origin, so any
 //   real zero error in the analog chain (sensor zero output, divider bias, ADC leakage / residual charge-share)
 //   reappears as a GAIN error that grows with distance from the cal point.
-//   **[2026-07-29] MEASURED AND FITTED.** Three externally-metered points (`host/vbus_reads/*.csv`, 128-sample
-//   "vbus" scope captures; divide by the then-active 0.202822 V/code to recover raw codes):
-//       40 V -> 103.6 codes      65 V -> 221.1 codes      90 V -> 326.6 codes
-//   The sense DOES track (the earlier "flat-line" worry came from a 2026-07-23 note claiming 145 codes at 30 V —
-//   this fit predicts ~61 codes there, so **discard that datum**; it was a single-point pin-voltage cross-check
-//   taken mid-saga). The old (276.92, no offset) model read 21.0 / 44.8 / 66.2 V, i.e. **~-19 to -24 V of error
-//   that is nearly CONSTANT IN VOLTS — an OFFSET signature, not a gain error** (~94-117 codes below the
-//   proportional model). Affine fit: **ratio 305.81, offset -73.1 codes**, residuals within +/-0.9 V. A gain-only
-//   retrim anchored at 65 V (ratio 401.4) would leave -9.6 V at 40 V and +6.0 V at 90 V — the affine-vs-single-point
-//   argument demonstrated on real data. Baked into hw_control_v2.h; builds clean on Production.
-//   **[2026-07-29, 8-point live vbuscal 20-150 V — SUPERSEDES the 3-point fit above; now ratio 298.35 / off -79.4]**
-//   Interleaved, meter-verified: 20->27.41  30->64.50  40->103.66  65->221.48  90->327.36  115->444.13
-//   150->610.28  40->104.67 (repeat). Local segment gain [codes/V] is FLAT above 40 V and COMPRESSED below:
-//       20->30: 3.709   30->40: 3.916  |  40->65: 4.672   65->90: 4.235   90->115: 4.671   115->150: 4.747
-//     * **DRIFT IS NOT THE PROBLEM — that hypothesis is dead.** The 40 V repeat moved only +1.01 codes (+0.22 V)
-//       across the session (inside 3 sigma), and 40/65/90 V reproduced the PREVIOUS session within ~1 code.
-//     * **Fit 40-150 V, EXCLUDING 20/30 V.** Codes 27/64 are 0.7%/1.6% of ADC full scale, deep where the SAR's own
-//       INL/offset dominate. Including them biased the slope 1% and doubled residual RMS (0.67 -> 1.12 V). Keep them
-//       as EVIDENCE the sense is unusable below ~40 V, not as fit inputs. 40-150 residuals: max 1.11 V, RMS 0.67 V.
-//     * **The negative offset is what drags the bench range into the ADC's worst decade** — 150 V is only code 610
-//       (15% of scale). At a real 400 V bus the code is ~1750 (43%), where the ADC behaves, so most of this
-//       nonlinearity is a BENCH artifact that should shrink as the bus rises. Encouraging, not yet verified.
-//     * **The 65->90 V gain dip REPRODUCED across both sessions** (4.220 then 4.235 vs ~4.7 either side) — a real
-//       localized feature, not noise and not smooth curvature; 90 V is the largest residual (+1.11 V). Codes
-//       221->327 cross the **256 major-carry boundary**, where SAR INL is typically worst: suspect ADC INL over the
-//       analog front end. Do NOT fit a quadratic (diverges when extrapolated).
-//     * **offset -79.4 puts the reading at +17.4 V when the ADC reads code 0**, so below ~40 V it OVER-reads and the
-//       bench idle bus (~6 V gate-drive back-feed) shows ~17-20 V. Fine for a UV threshold near the operating bus;
-//       **never use this fit to judge bus-discharged / safe-to-touch.**
-//     * Extrapolation to 400 V is +/-3.4 V statistical (0.84% slope), but the choice of fit SUBSET moves it 395-400.
-//       **Re-run vbuscal near the real bus before relying on the 460 V OV trip** (a compressive curve reads low =>
-//       OV fires LATE, the unsafe direction).
-//   Sampling lesson that paid off: interleaved order + a repeated bracket point is what let drift be RULED OUT
-//   rather than argued about. `vbuscal` now echoes the captured points as a `--fit` string so a subset can be
-//   re-fitted without re-measuring (a live session costs bus voltages, a meter and ~10 min).
+//   WHAT THE CONTROL_V2 FITS TAUGHT (2026-07-29; ratio 298.35 / offset -79.4, obsolete with that divider):
+//   * The error was an OFFSET (nearly constant in volts: the gain-only model read ~20 V low at every point), not a
+//     gain error. A gain-only retrim at one point leaves errors that grow on either side of it. Fit affine.
+//   * Fit from ~40 V up and keep lower points OUT of the fit: codes under ~2 % of full scale sit where the SAR's own
+//     offset/INL dominate (there they biased the slope 1 % and doubled the residual). Keep them as evidence only.
+//   * Drift was RULED OUT, not argued about, by an interleaved order with a repeated bracket point (< 3 sigma).
+//   * A real local gain dip reproduced across sessions near the 256-code major carry (ADC INL suspect). Do NOT fit a
+//     quadratic to it: extrapolated to the HV bus it diverges. Calibrate AT the operating bus instead.
+//   * A compressive curve reads LOW at HV, so the compile-time 460 V OV trip would fire LATE: re-run vbuscal near
+//     the real bus before relying on it.
+//   vbuscal echoes the captured points as a `--fit` string, so a subset can be re-fitted without re-measuring.
 //   **SAMPLING DESIGN (asked 2026-07-29: "many points high, a couple low?").** RANGE beats COUNT, and ORDER beats
 //   both. More points inside 40-90 V shrink only the RANDOM error (already ~0.1 V, ~3% on the slope) and do nothing
 //   about the SYSTEMATIC error of extrapolating past 90 V — going 3 -> 12 points there buys precision you cannot
@@ -744,18 +652,17 @@ volatile float32_t g_uv_trip_v;       // "uv_trip_v" 0x0054, LIVE [V]; boot MOTO
 //   * **Interleave the order, never sweep monotonically.** A monotonic sweep aliases a drifting offset into
 //     curvature EXACTLY — the two are indistinguishable. Go e.g. 40, 150, 20, 90, 65, 40-again; the repeat at the
 //     end is the drift check (vbuscal warns if it moved > 3 sigma).
-//   * **Low points earn their place by TESTING the offset, not by being accurate there.** Careful: "unreliable
-//     below 30 V" is an INFERENCE from the extrapolated offset, not a measurement — we have no data under 40 V.
-//     What is provably blind is only **below ~16.4 V** (pin at/below 0 => ADC floors at code 0); 16-40 V is merely
-//     unmeasured and may well be linear. 2-3 low points settle it.
+//   * **Low points earn their place by TESTING the offset, not by being accurate there.** What is provably blind
+//     is only the range where the pin sits at/below 0 V (the ADC floors at code 0); just above that the sense may
+//     well be linear. 2-3 low points settle it.
 //   * **Do NOT fit a quadratic** to rescue the curvature: fitted over 40-90 and extrapolated to 400 a quadratic is
 //     WORSE than a line (it diverges). Either calibrate AT the operating bus, or fix the analog.
-//   * **HYPOTHESIS worth testing while sweeping — a load-dependent offset.** A -73 code offset is ~-52 mV at the
-//     pin, exactly what a ground IR drop between the PrimeSTACK sensor return and ADC AGND looks like. If so it
+//   * **HYPOTHESIS worth testing while sweeping — a load-dependent offset.** A few tens of mV of offset at the
+//     pin is exactly what a ground IR drop between the PrimeSTACK sensor return and ADC AGND looks like. If so it
 //     moves with inverter current, so the "curvature" could just be the three captures having had different loads.
 //     Test directly: hold ONE bus voltage and read vbus_raw at two different load currents. Take every calibration
 //     point at the SAME load (ideally IDLE, no PWM).
-//   Tooling: `vbuscal --cal-csv 40:v40.csv,65:v65.csv --csv-ratio 276.92` fits saved "vbus" scope CSVs directly
+//   Tooling: `vbuscal --cal-csv 40:v40.csv,65:v65.csv --csv-ratio <ratio>` fits saved "vbus" scope CSVs directly
 //   (pass the ratio that was ACTIVE at capture time — it recovers raw codes by dividing it back out, and derates
 //   n for the IIR correlation). Prefer live `vbuscal` where possible: the 128-sample captures are IIR-correlated
 //   (tau ~32 samples at 50 Hz => only ~2 independent samples each, SE ~0.4-0.9 codes), whereas polling vbus_raw
@@ -769,7 +676,7 @@ volatile float32_t g_uv_trip_v;       // "uv_trip_v" 0x0054, LIVE [V]; boot MOTO
 //   code span, a nonlinear segment, and noise that is a large fraction of the span, and it reports the 1-sigma
 //   extrapolation error at 50/100/400 V -- read that number before trusting a 400 V trip fitted at 50 V.
 //   **Averaging is what makes this possible at all**: at the 900 V-class PrimeSTACK scale a 50 V bench bus is only
-//   ~150 codes with ~12 codes of noise; the raw code refreshes every ISR (10 kHz) while the host polls every few ms,
+//   ~150-200 codes with several codes of noise; the raw code refreshes every ISR (10 kHz) while the host polls every few ms,
 //   so reads are effectively independent and the mean converges as 1/sqrt(n) (300 samples -> ~0.7 code).
 //   **DIAGNOSTIC the raw code buys you**: if the code barely MOVES between two bus voltages, no gain/offset fit can
 //   help -- that is an analog fault (unbuffered tap loaded down, acquisition window too short for the source
@@ -847,41 +754,17 @@ volatile uint16_t  g_resolver_dir_inv;  // 1 = mirror mech angle th→2π−th (
 //   by construction → omega_meas must read ≈ +2π·ol_freq; negative ⇒ set res_dir_inv=1. RE-RUN ALIGN after
 //   changing it (offset belongs to the direction it was captured with).
 
-// [RESTORED 2026-07-23] The bench VBUS override (g_vbus_override_v / "vbus_ovr"
-//   0x0043) and the SW undervoltage-trip bypass (g_uv_fault_en / "uv_en" 0x0037)
-//   are BACK (they were deleted 2026-07-22 when the sense was first connected).
-//   Reason: the PrimeSTACK sensor scale isn't trusted at low bench voltage (see
-//   the g_vbus_filt / VBUS_DIVIDER_RATIO=276.92 saga) and the noisy reading
-//   nuisance-trips UV. **Key difference from the old design:** MONITORING is now
-//   split from CONTROL. adc_read_vbus() -> vbus_meas -> g_dbg_vbus_v: the scope
-//   channel AND the "vbus" RO param 0x0115 always show the MEASURED bus. But
-//   s_refs.vbus (used by vmax_dyn, 1/vbus SVGEN, and the OV/UV trips) = the fixed
-//   override when g_vbus_override_v > 0, else vbus_meas. So you keep watching the
-//   live sensor while the control loop + trips run on a safe fixed nominal.
-//   Defaults are BENCH-gated: VBUS_OVERRIDE_DEFAULT_V = (BENCH_NO_POWER_STAGE ?
-//   24 : 0), UV_FAULT_EN_DEFAULT = (BENCH_NO_POWER_STAGE ? 0 : 1) -- both in
-//   hw_control_v2.h with build_config.h fallbacks (0.0f / 1U). So at the bench:
-//   control uses a fixed 24 V and UV is bypassed; in production: measured bus,
-//   UV armed. Set vbus_ovr=0 + uv_en=1 to switch control/UV back to the measured
-//   bus once the sensor is calibrated. OV stays always-armed against s_refs.vbus.
-//   **[2026-07-29] Hand-back order, once vbuscal agrees with a meter:** vbus_ovr=0
-//   (control + trips follow the measured bus) -> uv_trip_v=<70-80% of the bus you
-//   are running> -> uv_en=1. The UV threshold is a LIVE param now (0x0054), so no
-//   re-flash per bench voltage; MOTOR_UV_TRIP_V is only its boot seed (**EMRAX 12 V,
-//   Teknic 18 V** — the "still 18 V" in the older note was the Teknic value).
-//   **[2026-07-29] The EMRAX 12 V seed is now UNREACHABLE and the UV trip is inert
-//   until you raise it**: with VBUS_OFFSET_CODE -73.1 the reading floors at +16.4 V
-//   (ADC code 0), so `vbus < 12.0` can never be true. Set uv_trip_v explicitly.
-//   Mirror risk on OV (compile-time 460 V vs VBUS_MAX 470): the fitted curve is
-//   COMPRESSIVE, so at HV it reads low and OV fires LATE — re-verify near the real
-//   bus before relying on it.
-//   Size it against the noisy MINIMUM on the "vbus" scope channel under load, not
-//   the mean -- though the compare is on the FILTERED bus and needs 2 ms of
-//   sustained sag (UV_TRIP_DEBOUNCE_TICKS), so it is far less twitchy than the old
-//   instantaneous one. Keep vbus_ovr > 0 until the fit is trusted: while the ratio
-//   is wrong the control loop would run 1/vbus SVGEN and vmax_dyn off a bus that
-//   reads 40% low, which SCALES DUTY UP by vbus_real/vbus_read.
-//   BENCH_NO_POWER_STAGE / "module_faults_en" UNCHANGED (power stage still off).
+// Bench VBUS override (g_vbus_override_v / "vbus_ovr" 0x0043) + SW undervoltage-trip bypass (g_uv_fault_en /
+//   "uv_en" 0x0037). MONITORING is split from CONTROL: adc_read_vbus() -> g_dbg_vbus_v (scope channel + "vbus" RO
+//   param 0x0115) always shows the MEASURED bus, while s_refs.vbus (vmax_dyn, 1/vbus SVGEN, OV/UV trips) = the
+//   override when > 0, else the measurement. Boot values come from hw_control_v2.h BENCH_LOW_VOLTAGE_DC_LINK:
+//   vbus_ovr = BENCH_DC_LINK_V (31 V), UV bypassed; build_config.h fallbacks 0.0f / 1U (measured bus, UV armed).
+//   **vbus_ovr must equal the real supply**: SVGEN divides by it, so a wrong value scales every commanded volt by
+//   real/assumed (31 V supply vs 24 V assumed = x1.29, 2026-11-05). OV stays armed against s_refs.vbus.
+//   Hand-back order, once vbuscal agrees with a meter: vbus_ovr=0 (control + trips follow the measured bus) ->
+//   uv_trip_v = 70-80 % of the bus you are running -> uv_en=1. The UV threshold is LIVE (0x0054); MOTOR_UV_TRIP_V is
+//   only its boot seed (EMRAX 45 V, Teknic 18 V). Size it against the noisy MINIMUM on the "vbus" channel under
+//   load; the compare runs on the FILTERED bus and needs UV_TRIP_DEBOUNCE_TICKS (2 ms) of sustained sag.
 
 // src/isr.c                 (Step 9 — HW trip-zone)
 volatile uint32_t g_dbg_tz_trip;        // count of ePWM one-shot trip-zone events (nFAULT→TZ1)
@@ -935,7 +818,9 @@ volatile float32_t g_resolver_cos_filt;    // IIR state, cos channel
 volatile uint16_t  g_resolver_filt_comp;   // 1=add the filter's lag back to the angle; "res_filt_comp" 0x003C, LIVE, default 1
 volatile float32_t g_resolver_filt_lag_k;  // = 1/(2π·fc), precomputed with alpha (ISR stays division-free)
 //   Matched 1st-order LPF on sin/cos applied before atan2 (sensor_rm44ac_inline.h); loss-of-signal still on RAW mag.
-//   **[2026-07-15] en=1 @ 200 Hz is what FIRST MADE THE MOTOR COMMUTATE.** 200 Hz ≈ 4x noise-amplitude reduction
+//   **[2026-07-15] en=1 @ 200 Hz is what FIRST MADE THE MOTOR COMMUTATE** (on Control_V2's ~26° elec front end;
+//   FE_UFPR 4.0 sits at ~2.6°, so a higher fc may now be enough -- measure theta/omega noise at 200 vs 400-500 Hz
+//   first, and keep res_filt_hz >= ~5x res_pll_bw). 200 Hz ≈ 4x noise-amplitude reduction
 //   (1st-order noise BW = (π/2)·fc ≈ 314 Hz vs the ADC's 5 kHz Nyquist) vs only ~1.8x at the old 1000 Hz default.
 //   200 Hz also keeps alpha ≈ 2π·fc·Ts honest (0.126 vs exact 0.118); at 1000 Hz it's ~35% off so the REAL cutoff
 //   was well above the label — another reason the old default underperformed.
@@ -965,8 +850,9 @@ volatile float     g_res_sin_bias, g_res_sin_ampl_inv, g_res_cos_bias, g_res_cos
                                         //   (adc_iface.c; seeded from RES_SINCOS_BIAS/AMPL_CODE in adc_init, ampl as reciprocal)
 volatile uint16_t  g_resolver_loss_inhibit; // loss check held reset from ALIGN entry until the scale commits (untrusted
                                         //   normalization would false-trip); force-cleared on ANY ALIGN exit (fault/stop too)
-//   Align ladder (production, 2026-07-15): settle 3 s → CAL sweep **3 mech revs** (SENSOR_RES_CAL_MECH_REVS, was 1)
-//   at 0.5 rev/s = 6 s → finalize. **~9 s total; the offset sweep no longer runs** (align_off_en=0, see below).
+//   Align ladder (production, FE_UFPR 4.0): phase-ID dwells (3 x 1.2 s, open-loop) → settle 3 s → CAL sweep
+//   **3 mech revs** (SENSOR_RES_CAL_MECH_REVS) at 0.5 rev/s = 6 s → bidirectional offset sweep → finalize; ~33 s,
+//   everything after phase-ID closed-loop at align_id_a (bring-up K).
 //   Only ≥1 rev is needed mathematically (1 mech rev = 1 full sin/cos cycle), but under the (then open-loop)
 //   drag the rotor cogs and can stall/skip, so one rev may never reach part of the cycle → short min/max. Extra revs
 //   only ever widen them. Need NOT be an integer (unlike the offset sweep, where integer revs cancel cogging).
@@ -981,13 +867,12 @@ volatile uint16_t  g_resolver_loss_inhibit; // loss check held reset from ALIGN 
 
 // src/foc_pipeline.c        (ALIGN offset capture — BOTH backends)
 volatile uint16_t  g_align_offset_en;   // "align_off_en" 0x0044, NEEDS_IDLE; latched at ALIGN entry (like res_cal_en).
-//   Default is PER-MOTOR: ALIGN_OFFSET_CAPTURE_DEFAULT = **0 on EMRAX/production**, 1 on Teknic.
+//   Default ALIGN_OFFSET_CAPTURE_DEFAULT (per motor) = **1 on both** today.
 //   0 = skip the ramp sweep entirely and pin the electrical offset to **0** (theta_elec = RAW sensor angle). Pinned
-//   EXPLICITLY, not just skipped — a previous align's offset must not survive. Disabled on production because the
-//   resolver front-end is still mis-scaled + noisy (~26° elec RMS pre-filter), so the swept average was garbage and
-//   the bench demonstrably runs BETTER on a plain zero offset (2026-07-15). Re-enable once the analog is rescaled.
-//   Teknic stays 1: the QEP is INCREMENTAL and has no usable zero without the sweep — unlike the absolute resolver
-//   it genuinely cannot run offset-free. The SIN/COS cal sweep (res_cal_en) is INDEPENDENT and still runs.
+//   EXPLICITLY, not just skipped -- a previous align's offset must not survive. The EMRAX ran with 0 on Control_V2,
+//   whose ~26° elec resolver noise made the swept average garbage; FE_UFPR 4.0 re-enabled it (2026-11-05: 106.6° elec,
+//   three runs within 0.02°). The Teknic QEP is INCREMENTAL and has no usable zero without the sweep. The SIN/COS
+//   cal sweep (res_cal_en) is INDEPENDENT of this flag.
 
 // src/inverter_custom_v2.c  (Step 9/10 — production module faults; HW_CONTROL_BOARD_V2 only)
 volatile uint16_t g_dbg_module_fault;   // MODULE_FLT_* bitfield snapshot at fault entry (OC_A/B/C,OT,DCOV)
