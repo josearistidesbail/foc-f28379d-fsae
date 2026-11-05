@@ -93,17 +93,14 @@
 #define UV_TRIP_DEBOUNCE_TICKS  20U
 #endif
 
-//----- Phase-current sense: channel count / mapping / phase-ID -------------
-// The current-sense ADC inputs are FIXED per board; which motor phase each one
-// measures can change (movable LEM clamps on Control_V2). adc_iface.c scatters
-// the channels onto phases through the runtime g_isense_map ("isense_map"
-// param) with per-channel polarity g_isense_inv ("isense_inv"). Both are
-// auto-detected by the ALIGN phase-ID stage when PHASE_ID enabled: the field is
-// parked open-loop at 0/120/240 deg electrical and each channel's dwell
-// averages identify its phase (peak dwell) and clamp direction (peak sign).
-#ifndef ISENSE_NUM_CHANNELS
-#define ISENSE_NUM_CHANNELS     3    // physical sense channels (2 on Control_V2)
-#endif
+//----- Phase-current sense: mapping / phase-ID ----------------------------
+// Three current-sense channels, ADC inputs FIXED per board. adc_iface.c
+// scatters the channels onto phases through the runtime g_isense_map
+// ("isense_map" param) with per-channel polarity g_isense_inv ("isense_inv").
+// Both are auto-detected by the ALIGN phase-ID stage when PHASE_ID is enabled:
+// the field is parked open-loop at 0/120/240 deg electrical and each channel's
+// dwell-average SIGN pattern gives its phase (the odd sign out) and polarity
+// (that dwell's sign). See adc_isense_phase_id_commit().
 #ifndef ISENSE_MAP_DEFAULT
 #define ISENSE_MAP_DEFAULT      0U   // boot map: 0 = identity (A=U, B=V, C=W)
 #endif
@@ -226,7 +223,7 @@
 #define FOC_MODE_SPEED          1U   // iq_ref from the speed PI (omega_ref)
 
 //----- Bench bypass default ----------------------------------------------
-// Only the Control_V2 header defines this (set to 1 during power-stage-less
+// Only hw_control_v2.h defines this (set to 1 during power-stage-less
 // bring-up). Everything else defaults to 0 = module-fault protection ACTIVE.
 #ifndef BENCH_NO_POWER_STAGE
 #define BENCH_NO_POWER_STAGE    0U
@@ -240,7 +237,7 @@
 #define INVERTER_GATE_ON_FOR_CALIBRATE  1U
 #endif
 
-// Bench DC-bus override + UV-bypass defaults. Only the Control_V2 header sets the
+// Bench DC-bus override + UV-bypass defaults. Only hw_control_v2.h sets the
 // bench values; everything else defaults to "off" (control uses the measured bus,
 // UV trip armed).
 #ifndef VBUS_OVERRIDE_DEFAULT_V

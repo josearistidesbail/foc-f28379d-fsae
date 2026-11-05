@@ -217,21 +217,18 @@ def build(pg, QtCore, QtGui, QtWidgets):
     # Enum-style params are rendered as labeled dropdowns (instead of plain
     # numeric cells). Labels are positional: index == firmware value.
     ENUM_PARAMS = {
-        # KCL-reconstructed phase. On 2-channel hardware (Control_V2) this is
-        # derived from isense_map by the firmware and writes are ignored.
+        # Phase rebuilt from the other two via KCL (dead-channel workaround).
         "isense_recon": ["none", "U", "V", "W"],
-        # Current-sense channel->phase map: which motor phase each physical
-        # sense channel (A/B = the two LEM inputs, C = the third slot on
-        # 3-channel hardware) is hooked to. Parenthesised C = the phase that is
-        # KCL-reconstructed on 2-channel boards. Auto-detected by the ALIGN
+        # Current-sense channel->phase map: which motor phase each of the three
+        # physical sense channels (A/B/C) measures. Auto-detected by the ALIGN
         # phase-ID stage when phase_id_en=1.
         "isense_map": [
-            "A=U  B=V  (C=W)",
-            "A=U  B=W  (C=V)",
-            "A=V  B=U  (C=W)",
-            "A=V  B=W  (C=U)",
-            "A=W  B=U  (C=V)",
-            "A=W  B=V  (C=U)",
+            "A=U  B=V  C=W",
+            "A=U  B=W  C=V",
+            "A=V  B=U  C=W",
+            "A=V  B=W  C=U",
+            "A=W  B=U  C=V",
+            "A=W  B=V  C=U",
         ],
         # Sensorless (Step 12): which source commutates (the supervisor mediates
         # every transition, so this is LIVE), which observer feeds the PLL, and

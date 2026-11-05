@@ -35,10 +35,11 @@ void pwm_init(void)
 }
 
 // (Re)arm or disarm the module-fault one-shot trip-zone sources to match
-// g_module_faults_en. Control_V2 only: SysConfig wires the module OC lines to
-// OSHT1/2/3 on all three half-bridges. With no power stage those lines assert
-// spuriously and trip the bridge in any state, so bench mode disables them and
-// clears any latched one-shot. No-op on other variants (their TZ is untouched).
+// g_module_faults_en. Production board (HW_CONTROL_BOARD_V2) only: SysConfig
+// wires the module OC lines to OSHT1/2/3 on all three half-bridges. With no
+// power stage those lines assert spuriously and trip the bridge in any state,
+// so bench mode disables them and clears any latched one-shot. No-op on other
+// variants (their TZ is untouched).
 void pwm_apply_module_tz(void)
 {
 #if defined(HW_CONTROL_BOARD_V2)

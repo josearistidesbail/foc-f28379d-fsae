@@ -41,15 +41,13 @@
 #define PWM_DEADBAND_NS         1500U       // larger for high-power IGBT/SiC
 
 // ---- Dead-zone compensation (see build_config.h DTC_* for the model) -----
-// PrimeSTACK 6PS04512E43W39693, a 900 V-class IGBT stack run at a 24 V bench
-// bus, so the fixed-volts tax is at its worst here relative to the commanded
-// volts. Measured 2026-08-01 via the ALIGN dwell governor: phase_id_mod = 0.058
-// at 24 V => Vdt ~= 0.75 * 0.058 * 24 ~= 1.04 V total (0.0435 duty). The
-// dead-time term at 1.5 us / 10 kHz accounts for 0.015 duty = 0.36 V of that,
-// leaving ~0.68 V of IGBT Vce(sat) + diode Vf -- a believable pair of drops at
-// ~1 A on a stack sized for hundreds. Same PrimeSTACK on FE_UFPR 4.0, so the
-// value carries over. RE-MEASURE at the real bus before trusting the split
-// (see the caveat in build_config.h).
+// PrimeSTACK 6PS04512E43W39693, a 900 V-class IGBT stack on a low-voltage
+// bench bus, so the fixed-volts tax is at its worst here relative to the
+// commanded volts. The dead-time term at 1.5 us / 10 kHz is 0.015 duty; the
+// rest is IGBT Vce(sat) + diode Vf. (The first fit, 0.68 V on the Control_V2
+// bench 2026-08-01, is superseded by the FE_UFPR 4.0 measurements below.)
+// RE-MEASURE at the real bus before trusting the split (see the caveat in
+// build_config.h).
 // [2026-11-05, FE_UFPR 4.0, 31 V bench bus] phase_id_mod = 0.0706 for 3 A =>
 // total ~= 0.75 * 0.0706 = 0.053 duty (~1.64 V at 31 V). The first closed-loop
 // run used 0.046 duty (~87 %, deliberately on the under-compensating side,
@@ -174,7 +172,6 @@
 // specifies for either current source (handoff S6 "bench"). KCL reconstruction
 // becomes optional (isense_recon, default 0 = none) -- keep it as a cross-check
 // or as a dead-channel workaround.
-#define ISENSE_NUM_CHANNELS      3
 #define ISENSE_MAP_DEFAULT       0U
 #define PHASE_ID_DEFAULT_EN      1U
 
@@ -220,10 +217,11 @@
 #define ISENSE_AMPS_PER_CODE    (ADC_VREF_V / ADC_FULL_SCALE_CODE / ISENSE_V_PER_A)
 
 // Boot polarity per CHANNEL (slot A/B/C, not motor phase): seeds the runtime
-// g_isense_inv bitmask in adc_init(). The sign of BOTH sources is unknown until
-// the bench (handoff S6/S14 item 2); the ALIGN phase-ID stage detects and
-// corrects it automatically (live-editable via "isense_inv"), so these only
-// matter before the first align.
+// g_isense_inv bitmask in adc_init(). LEM path (JP3-JP5 at 2-3): all +1,
+// confirmed by phase-ID on the bench (map 0, inv 0, 2026-11-05). The internal
+// module-sensor path's sign is still unmeasured (handoff S6/S14 item 2). The
+// ALIGN phase-ID stage detects and corrects it automatically (live-editable via
+// "isense_inv"), so these only matter before the first align.
 #define ISENSE_SIGN_U           (+1.0f)     // channel A (ADCINA5, phase U)
 #define ISENSE_SIGN_V           (+1.0f)     // channel B (ADCINC4, phase V)
 #define ISENSE_SIGN_W           (+1.0f)     // channel C (ADCINB4, phase W)

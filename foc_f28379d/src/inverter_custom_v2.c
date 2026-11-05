@@ -119,7 +119,7 @@ bool inverter_is_faulted(void)
 
 void inverter_clear_faults(void)
 {
-    // Nothing to do: Control_V2 has no fault-reset line, and the module's fault
+    // Nothing to do: this board has no fault-reset line, and the module's fault
     // outputs are level signals (they self-clear when the condition goes away).
     // The latched ePWM trip-zone is released by pwm_clear_trip() when the state
     // machine returns to IDLE.

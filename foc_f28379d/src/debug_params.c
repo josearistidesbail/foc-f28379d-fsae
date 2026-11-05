@@ -193,16 +193,8 @@ static void set_ki_fw(uint32_t  r){ foc_set_gain(FOC_GAIN_KI_FW, raw_to_f32(r));
 // ---- Hardware / diagnostic config (needs_idle) ---------------------------
 // Reconstruct selector clamps to the valid 0..3 range; out-of-range writes are
 // ignored so the live value never goes undefined (the GUI dropdown also bounds it).
-// On 2-channel hardware the readback is DERIVED from isense_map (the un-sensed
-// phase is always the reconstructed one) and writes are ignored.
-static void get_recon(uint32_t *r){ *r = (uint32_t)adc_isense_recon_phase(); }
-static void set_recon(uint32_t  r){
-#if ISENSE_NUM_CHANNELS == 2
-    (void)r;    // derived from isense_map -- nothing to choose with 2 sensors
-#else
-    if(r <= 3U) g_isense_reconstruct_phase = (uint16_t)r;
-#endif
-}
+static void get_recon(uint32_t *r){ *r = (uint32_t)g_isense_reconstruct_phase; }
+static void set_recon(uint32_t  r){ if(r <= 3U) g_isense_reconstruct_phase = (uint16_t)r; }
 
 // Channel->phase map (permutation 0..5 of channels A,B,C over phases U,V,W:
 // 0:UVW 1:UWV 2:VUW 3:VWU 4:WUV 5:WVU) and per-channel polarity bitmask

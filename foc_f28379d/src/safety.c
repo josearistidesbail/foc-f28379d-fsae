@@ -62,8 +62,9 @@ volatile uint16_t g_warn_code;
 // TODO: Debugging Step 6, remove after. Snapshot of the three phase currents at
 // the instant the phase-OC check first latches FAULT_OVERCURRENT, plus which
 // phase breached (1=U, 2=V, 3=W). Lets us see the ACTUAL tripping current rather
-// than guessing. NOTE: value[1] (V) is KCL-reconstructed on this bench board, so
-// a V trip with small U/W means the reconstruction amplified a transient.
+// than guessing. NOTE: if isense_recon is reconstructing a phase from the other
+// two (KCL), a trip on that phase with the other two small means the
+// reconstruction amplified a transient.
 volatile float    g_dbg_trip_iu;
 volatile float    g_dbg_trip_iv;
 volatile float    g_dbg_trip_iw;

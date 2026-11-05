@@ -127,9 +127,11 @@
 #define SENSOR_RES_LOSS_TICKS       5       // consecutive out-of-window ISRs (0.5 ms)
 
 // ---- Sin/Cos input filtering (software noise reduction) ----------------
-// The analog SIN/COS lines pick up board noise that can't be filtered in HW
-// right now. A MATCHED 1st-order IIR low-pass on each channel (run every ISR,
-// before atan2) knocks it down. Because SIN and COS share the same coefficient,
+// The analog SIN/COS lines carry noise that the analog front end does not
+// remove (on FE_UFPR 4.0 mostly the ADC interference common to every input,
+// ~2.6 deg elec rms before this filter; the Control_V2 front end was ~26). A
+// MATCHED 1st-order IIR low-pass on each channel (run every ISR, before atan2)
+// knocks it down. Because SIN and COS share the same coefficient,
 // a steady angle is preserved; the speed-dependent lag it adds is characterized
 // and compensated in the next block, so fc no longer has to stay far above the
 // running electrical frequency. Tune/defeat live via the "res_filt_en" /
@@ -167,11 +169,12 @@
                                      ? (1.0f / (2.0f * 3.14159265f * (hz))) : 0.0f)
 
 // ---- SIN/COS scale calibration (runs during FOC_ALIGN_ROTOR) ------------
-// The hw_*.h RES_SINCOS_BIAS/AMPL_CODE values are analog-design guesses; the
-// real front-end neither spans the full ADC range nor is guaranteed
-// channel-matched. Before the offset-capture sweep, the align controller drags
-// the rotor through CAL_MECH_REVS mech rev(s) (= full sin/cos cycles,
-// the sensor is 1-speed) while tracking raw min/max codes per channel, then
+// The hw_*.h RES_SINCOS_BIAS/AMPL_CODE values are only the boot scale: the
+// sensor's output amplitude varies part to part (2.0-2.4 Vpp) and the two
+// channels are not guaranteed matched. Before the offset-capture sweep, the
+// align controller drags the rotor through CAL_MECH_REVS mech rev(s) (= full
+// sin/cos cycles, the sensor is 1-speed) while tracking raw min/max codes per
+// channel, then
 // applies bias=(min+max)/2 and ampl=(max-min)/2 at runtime. Captured extremes
 // are readable via the cal_* serial params to bake into the hw header later.
 #define SENSOR_RES_CAL_DEFAULT_EN      1U      // 0 = keep hw_*.h constants

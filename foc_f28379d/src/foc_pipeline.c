@@ -90,8 +90,9 @@ volatile float32_t g_dbg_vbus_v;
 // (vmax_dyn clamp + 1/vbus SVGEN normalization) and the OV/UV trips use this fixed
 // nominal instead of the live sensor reading, which isn't trusted yet at low bench
 // voltage (and nuisance-trips UV). Monitoring (g_dbg_vbus_v, scope, "vbus" param)
-// still shows the measured bus. Default VBUS_OVERRIDE_DEFAULT_V (24 V at the
-// bench); set g_vbus_override_v = 0 ("vbus_ovr" param) to use the measured bus.
+// still shows the measured bus. Default VBUS_OVERRIDE_DEFAULT_V (= BENCH_DC_LINK_V
+// on the bench, which must match the supply); set g_vbus_override_v = 0
+// ("vbus_ovr" param) to use the measured bus.
 volatile float32_t g_vbus_override_v = VBUS_OVERRIDE_DEFAULT_V;
 
 // Alignment result (Step 6). g_dbg_align_offset_elec is the captured electrical
@@ -167,9 +168,10 @@ volatile float32_t g_iq_cmd_max = IQ_CMD_MAX_DEFAULT_A;
 // REFERENCE, but a sign-flipped or oscillating current PI rails its OUTPUT to
 // the voltage clamp regardless of the reference -- on a milliohm machine that
 // is hundreds of amps and folds a bench supply before anything is observable.
-// Closed-loop bring-up recipe: vmax_frac=0.05 (0.6 V at 24 V -> worst-case
-// rail current ~30 A phase, ~1 A DC-side), engage RUN, watch id/iq/vd/vq on
-// the scope, then walk it back up once the loop is proven. NOTE: the FW
+// Bring-up: start it low, but ABOVE the inverter dead zone (~0.05 duty on the
+// FE_UFPR 4.0 bench) -- below it no current flows at all and the integrators
+// just wind to the rail. 0.15 is the bench boot value (VDQ_MAX_FRAC_DEFAULT in
+// hw_control_v2.h); raise it live for speed once the loop is proven. NOTE: the FW
 // regulator's vmax_fw target intentionally stays on FW_VMAX_FRACTION (FW is a
 // high-speed feature; do not exercise it with vmax_frac lowered).
 volatile float32_t g_vdq_max_frac = VDQ_MAX_FRAC_DEFAULT;
@@ -588,12 +590,10 @@ static float32_t align_step(void)
             if(imax < 0.0f) imax = -imax;
             if(m < 0.0f)    m = -m;
             if(m > imax)    imax = m;
-#if ISENSE_NUM_CHANNELS > 2
             s_pid_filt[2] += PHASE_ID_IFILT_ALPHA * (g_isense_ch_amps[2] - s_pid_filt[2]);
             m = s_pid_filt[2];
             if(m < 0.0f)    m = -m;
             if(m > imax)    imax = m;
-#endif
             // Bus-agnostic cap: the modelled dead zone x margin + headroom,
             // in duty at the live bus (last tick's s_refs.vbus). No bus (sense
             // dead, no override) -> only the dead-time term remains: the
