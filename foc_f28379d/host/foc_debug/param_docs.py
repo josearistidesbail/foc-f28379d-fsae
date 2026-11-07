@@ -177,7 +177,8 @@ PARAM_DOCS: dict[str, tuple[str, str]] = {
         "Bench DC-link override. > 0: control (SVGEN, PI clamp) and the OV/UV "
         "trips use this instead of the sensor; 0 = measured bus. Must equal "
         "the real supply, or every commanded volt is scaled by "
-        "V_real/vbus_ovr. Boot (FE_UFPR 4.0 bench): 31 V."),
+        "V_real/vbus_ovr. Boot: 0 (measured bus; FE_UFPR 4.0 vbuscal 2026-11-07). "
+        "Use it only below ~30 V, where the sense compresses and reads high."),
     "vbus_filt_en": ("0/1",
         "Low-pass on the measured bus feeding the trips, the PI clamp and the "
         "readouts. Toggling is bumpless. Boot: 1."),

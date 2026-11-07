@@ -171,7 +171,8 @@ PARAM_DOCS_PT: dict[str, tuple[str, str]] = {
         "PI) e os disparos de OV/UV usam este valor em vez do sensor; 0 = "
         "barramento medido. Precisa ser igual à fonte real, senão todo volt "
         "comandado é escalado por V_real/vbus_ovr. "
-        "Valor de boot (bancada FE_UFPR 4.0): 31 V."),
+        "Valor de boot: 0 (barramento medido; vbuscal FE_UFPR 4.0 de 2026-11-07). "
+        "Use só abaixo de ~30 V, onde o sensor comprime e lê alto."),
     "vbus_filt_en": ("0/1",
         "Passa-baixa na tensão medida do barramento que alimenta os disparos, o "
         "limite do PI e as leituras. A troca é sem solavanco. Valor de boot: 1."),

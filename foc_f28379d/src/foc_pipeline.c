@@ -88,11 +88,11 @@ volatile float32_t g_dbg_vbus_v;
 
 // BENCH DC-bus override [V] (restored 2026-07-23): when > 0, the CONTROL loop
 // (vmax_dyn clamp + 1/vbus SVGEN normalization) and the OV/UV trips use this fixed
-// nominal instead of the live sensor reading, which isn't trusted yet at low bench
-// voltage (and nuisance-trips UV). Monitoring (g_dbg_vbus_v, scope, "vbus" param)
-// still shows the measured bus. Default VBUS_OVERRIDE_DEFAULT_V (= BENCH_DC_LINK_V
-// on the bench, which must match the supply); set g_vbus_override_v = 0
-// ("vbus_ovr" param) to use the measured bus.
+// nominal instead of the live sensor reading -- for a bus the sense can't be trusted
+// at (FE_UFPR 4.0: below ~30 V, where it compresses). Monitoring (g_dbg_vbus_v,
+// scope, "vbus" param) still shows the measured bus. Default VBUS_OVERRIDE_DEFAULT_V
+// (0 = measured bus on every variant since the 2026-11-07 vbuscal); a value set
+// here must match the supply, or every commanded volt scales by real/assumed.
 volatile float32_t g_vbus_override_v = VBUS_OVERRIDE_DEFAULT_V;
 
 // Alignment result (Step 6). g_dbg_align_offset_elec is the captured electrical

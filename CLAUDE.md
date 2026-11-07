@@ -102,26 +102,26 @@ condensed). **Build + flash the tip before vbuscal.**
   `bench/calibrate.py` or the GUI). Healthy: `phase_id_status` 1 (map 0 / inv 0), `cal_status` 1,
   `align_offset` ≈ 106.6–107.3° elec, `align_delta` ≈ 6° at 8 A.
 - Boot defaults now in firmware: `align_id_a` 8 A, `kp_d`/`kp_q` 0.5, `dtc_v` 1.0,
-  `dtc_ith` 0.5, `dtc_src` 1 (reference sign, bring-up L), `kp_w` 0.35, `ki_w` 0.02, `res_w_mode` 1 (PLL), `vmax_frac` 0.15, `vbus_ovr` 31
-  (= `BENCH_DC_LINK_V`), UV trip off, `iq_max` 10 A, `oc_trip_a` 40 A.
-- **`vbus_ovr` must equal the real DC link whenever the motor runs** (control uses it, not the
-  sensor): at a different supply voltage every commanded volt is scaled by V_real/`vbus_ovr`.
+  `dtc_ith` 0.5, `dtc_src` 1 (reference sign, bring-up L), `kp_w` 0.35, `ki_w` 0.02, `res_w_mode` 1 (PLL), `vmax_frac` 0.15, `vbus_ovr` **0
+  (measured bus, since the 2026-11-07 vbuscal)**, UV trip off, `iq_max` 10 A, `oc_trip_a` 40 A.
+- **Flash check:** firmware built before 2026-11-07 boots `vbus_ovr` 31 — if `vbus_ovr` reads 31 after a
+  boot, the vbuscal build isn't on the board: set it to 0 (or to the real supply) before the motor runs,
+  or every commanded volt scales by V_real/31. A nonzero `vbus_ovr` must equal the real DC link.
+- Measured bus is good ±1.4 V over 40–200 V; below ~30 V it compresses and reads high (29.1 V → +0.9 V,
+  a 0 V link may read tens of volts) — under-delivers volts (safe), but use `vbus_ovr` for a sub-30 V bench.
+  UV: set `uv_trip_v` to ~75 % of the bus you run, then `uv_en` 1 (boots off; the supply now moves 30–200 V).
 - Don't hot-plug the encoder (drops the XDS100). Scripts must restore every param they touch.
 - Phase current ≫ supply current at low speed (20 A phase drew ~1 A at 31 V — buck converter).
 
 **Next tasks, in order.**
-1. **vbuscal with the lab supply** (wide voltage range). FE_UFPR 4.0 uses the DESIGN values
-   `VBUS_DIVIDER_RATIO` 327.273 / `VBUS_OFFSET_CODE` 0 (hw_control_v2.h); they are visibly off
-   (the link reads ~46–48 codes with 0 V and ~77 codes at 31 V → displays ~18 V). The older
-   298.35/−79.4 fit quoted in the debug-globals lessons is CONTROL_V2 hardware — ignore it for 4.0.
-   (a) Flash the tip first: `f8e06ef` changes the Vbus sampling, which shifts the reading ~1–2 codes.
-   (b) Motor IDLE (no PWM) at every point, same conditions. (c) 5–7 voltages as wide as the supply
-   allows, interleaved, not monotonic (e.g. 40, 150, 20, 90, 65, 40-again), DC link METERED each
-   time. (d) `python -m foc_debug -p <port> vbuscal` (interactive: type the metered volts per point,
-   blank line ends; `--apply` writes `vbus_ratio`/`vbus_off` live; it prints a `--fit` string to
-   refit offline). (e) Bake `VBUS_DIVIDER_RATIO`/`VBUS_OFFSET_CODE` into hw_control_v2.h.
-   (f) Hand-back: `vbus_ovr` 0 → set `uv_trip_v` (~70–80 % of the running bus) → `uv_en` 1. Read the
-   "DC-bus AFFINE calibration" notes below (range beats point count; low codes are unreliable).
+1. ~~vbuscal~~ **DONE 2026-11-07** (lab supply, 12 metered points 29–200 V, IDLE, interleaved, 15-cycle
+   sampling): **`VBUS_DIVIDER_RATIO` 336.90 / `VBUS_OFFSET_CODE` −54.19**, fitted 40–200 V, rms 0.66 V,
+   worst −1.35 V at 90 V; baked in hw_control_v2.h (the header comment has the `--fit` string) and the
+   bench build now boots on the MEASURED bus (`vbus_ovr` 0). 120–200 V is linear to 1 %; 40–120 V has an
+   S-shaped wiggle (75–90 V slope ~15 % low) that a histogram at 74.9 V shows is NOT an ADC code-256 step —
+   suspect the module sensor. 400 V is extrapolation (the 40–200 and 120–200 fits differ ~5 V there):
+   re-run vbuscal near the pack bus before trusting the 460 V OV trip. **Build + flash still owed** if
+   `vbus_ovr` boots at 31 (see Bench procedure).
 2. **λ (flux linkage)**: `bench/lambda_fit.py` (written, not yet run; ~30 s of spinning). Bench
    data hints 0.034 V·s vs datasheet 0.0387 (bring-up H). Update `MOTOR_FLUX_VS` if confirmed.
 3. **Loaded torque tests** (needs a strap/band brake on the rotor; 10 A Iq ≈ 6 N·m — not by hand):
@@ -403,8 +403,8 @@ bench supply, UV trip off, `iq_max` 10 A), current-limited bench supply.**
   zero current (DTC adds ~nothing at i ≈ 0), 0.15 tracks 0→2→5 A q-steps in 1–2 ms with Id ≈ 0, +iq → +speed,
   speed clamp-limited (~57 elec rad/s). All of that is now the boot default. (The old "calibrate open-loop, then switch the current loop on" procedure is gone:
   K made calibration closed-loop, and the `iloop_en` switch was removed afterwards.)
-  **Bus trap:** the supply was 31 V while `vbus_ovr` said 24 — every commanded volt was ×1.29. `BENCH_DC_LINK_V`
-  is now 31; keep it equal to the supply. **Noise:** ~5 codes (~0.8 A) rms on EVERY ADC channel, including the
+  **Bus trap:** the supply was 31 V while `vbus_ovr` said 24 — every commanded volt was ×1.29. (`BENCH_DC_LINK_V`
+  went to 31 then; since the 2026-11-07 vbuscal the bench boots on the measured bus instead.) **Noise:** ~5 codes (~0.8 A) rms on EVERY ADC channel, including the
   passive Vbus divider and the buffered ISNS_VREF, level-independent → ground (board GND vs LaunchPad VSSA), not
   the LEM or encoder stages; it saturates the PI clamp with kp ≈ 0.8. Pending split: jumper LaunchPad J3-23
   (ADCIN14, NC on the board) to J3-22 and read it.
@@ -484,10 +484,10 @@ bench supply, UV trip off, `iq_max` 10 A), current-limited bench supply.**
 - [ ] **Phase 2 firmware (deferred)**: aux ADC SOCs (A3 3V3 monitor, A4/B5 current-sense reference cross-check,
   B3 motor KTY, C3 module NTC) + temperature conversion + motor over-temperature stop; SW_MAIN as a FIRMWARE run
   permissive (today only the hardware removes the gate when it drops, while the FW still thinks it runs); CAN-A
-  driver (GPIO4/5); runtime current-source param (JP3–5 internal vs LEM); `vbuscal` for `VBUS_OFFSET_CODE`.
+  driver (GPIO4/5); runtime current-source param (JP3–5 internal vs LEM); re-run `vbuscal` near the pack bus.
 - **Bench values still owed (handoff §14):** internal current-sensor bias + sensitivity (path abandoned for now,
-  see E), `VBUS_OFFSET_CODE` (the bus sense reads ~46–48 codes with the link off and ~77 at 31 V: run `vbuscal`),
-  KTY reading vs a thermometer. Done: current-channel signs (phase-ID), encoder amplitude (F).
+  see E), KTY reading vs a thermometer. Done: current-channel signs (phase-ID), encoder amplitude (F),
+  `VBUS_DIVIDER_RATIO`/`VBUS_OFFSET_CODE` (vbuscal 2026-11-07, 40–200 V).
 
 ## Temporary Debug Globals + Hacks (remove before production)
 
@@ -629,8 +629,10 @@ volatile float32_t g_dbg_vbus_v;    // MEASURED DC-bus [V] every ISR (real adc_r
 //   * A one-point pin-voltage cross-check cannot catch a gain or offset error: fit >= 3 metered points (below).
 //   * The PrimeSTACK sense floors well above 0 V on the bench (the gate-drive supply back-feeds the DC link) and is
 //     non-linear at the bottom of its range: never use it to judge bus-discharged / safe-to-touch.
-//   FE_UFPR 4.0: design ratio 327.273 (module sensor, then R57 3.00k / R58 2.20k), offset not yet fitted; it read
-//   ~46-48 codes with the link off and ~77 at 31 V (2026-11-05) -- run vbuscal before trusting it.
+//   FE_UFPR 4.0: design ratio 327.273 (module sensor, then R57 3.00k / R58 2.20k); FITTED 2026-11-07 over 40-200 V
+//   to 336.90 / -54.19 codes (+/-1.4 V, see hw_control_v2.h). Like Control_V2 it is mostly an offset, and the
+//   bottom compresses: the line through 40-200 V hits 0 V at -54 codes, but a dead link read ~+47 (2026-11-05,
+//   old 512-cycle sampling; not re-checked on the 15-cycle one).
 
 // src/adc_iface.c          (DC-bus voltage low-pass — variant-agnostic)
 volatile uint16_t g_vbus_filt_en;      // "vbus_filt_en" param 0x0046, LIVE; default VBUS_FILT_DEFAULT_EN=1
@@ -783,8 +785,9 @@ volatile uint16_t  g_resolver_dir_inv;  // 1 = mirror mech angle th→2π−th (
 // Bench VBUS override (g_vbus_override_v / "vbus_ovr" 0x0043) + SW undervoltage-trip bypass (g_uv_fault_en /
 //   "uv_en" 0x0037). MONITORING is split from CONTROL: adc_read_vbus() -> g_dbg_vbus_v (scope channel + "vbus" RO
 //   param 0x0115) always shows the MEASURED bus, while s_refs.vbus (vmax_dyn, 1/vbus SVGEN, OV/UV trips) = the
-//   override when > 0, else the measurement. Boot values come from hw_control_v2.h BENCH_LOW_VOLTAGE_DC_LINK:
-//   vbus_ovr = BENCH_DC_LINK_V (31 V), UV bypassed; build_config.h fallbacks 0.0f / 1U (measured bus, UV armed).
+//   override when > 0, else the measurement. Boot values: vbus_ovr = 0 (measured bus) on every variant since the
+//   2026-11-07 vbuscal (BENCH_DC_LINK_V 31 V removed); UV bypassed on the FE_UFPR 4.0 bench (BENCH_LOW_VOLTAGE_DC_LINK),
+//   armed otherwise. Keep a nonzero vbus_ovr for a bench below ~30 V, where the sense compresses and reads high.
 //   **vbus_ovr must equal the real supply**: SVGEN divides by it, so a wrong value scales every commanded volt by
 //   real/assumed (31 V supply vs 24 V assumed = x1.29, 2026-11-05). OV stays armed against s_refs.vbus.
 //   Hand-back order, once vbuscal agrees with a meter: vbus_ovr=0 (control + trips follow the measured bus) ->

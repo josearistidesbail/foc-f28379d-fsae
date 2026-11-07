@@ -22,8 +22,8 @@ change. The day-by-day log (bring-ups A–K) is the "FE_UFPR 4.0 board bring-up"
 
 1. **Resolver front end** rescaled on 4.0: bias ~2050 / amplitude ~1585 codes, no clipping, ~2.6° elec
    rms angle noise before the software filter (bring-up F). Baked as `RES_SINCOS_*`.
-2. **Vbus sense:** design ratio 327.273 (full scale ~982 V, so the old 415 V clipping is gone). The
-   offset is not fitted yet and the reading is visibly off at the bench — run `vbuscal` (table below).
+2. **Vbus sense:** design ratio 327.273 (full scale ~982 V, so the old 415 V clipping is gone); fitted
+   2026-11-07 to 336.90 / −54.19 codes over 40–200 V (±1.4 V; compresses and reads high below ~30 V).
 3. **Current sense:** LEM LA 100-P path (`ISENSE_SOURCE_LEM 1`, board JP3–JP5 at 2-3), ±150 A range,
    software OC trip capped at 130 A. The internal module sensors don't idle at the 2.5 V the ×0.6 stage
    assumes, so that path is unusable until the stage is re-biased (bring-up E).
@@ -39,9 +39,10 @@ change. The day-by-day log (bring-ups A–K) is the "FE_UFPR 4.0 board bring-up"
   state. `BENCH_NO_POWER_STAGE 1` (or `module_faults_en 0` live, in IDLE) drops the OSHT trip sources and
   ignores the flags, and unlocks the `gate_en_dbg` enable override. **Must be 0 whenever the power
   stage is connected.**
-- **`BENCH_LOW_VOLTAGE_DC_LINK`** (1 now): `vbus_ovr` boots at `BENCH_DC_LINK_V` (31 V — must equal the
-  supply), UV trip bypassed, `iq_max` 10 A, `oc_trip_a` 40 A, `vmax_frac` 0.15. Set 0 for the HV bus
-  once `vbuscal` agrees with a meter.
+- **`BENCH_LOW_VOLTAGE_DC_LINK`** (1 now): UV trip bypassed at boot (set `uv_trip_v` ≈ 75 % of the bus
+  you run, then `uv_en` 1), `iq_max` 10 A, `oc_trip_a` 40 A, `vmax_frac` 0.15. Set 0 for the HV bus.
+  Control and trips boot on the measured bus (`vbus_ovr` 0) since the 2026-11-07 vbuscal; use a nonzero
+  `vbus_ovr` (= the real supply) only for a bench below ~30 V.
 - **Open-loop PWM (`FOC_OPENLOOP`)**: a rotating voltage vector (Vd = 0, Vq = `ol_mod`) at `ol_freq`
   through IPARK/SVGEN with a synthetic unity bus — no current loop, no sensor. Runs with protection ON
   (since 2026-11-03); its main use is the resolver-direction check (+`ol_freq` must give a positive
@@ -62,7 +63,7 @@ Values marked RAM-only are re-measured at every calibrate (each power-up/reflash
 | ADC zero-current offsets | `adc_calibrate_offsets()` at CALIBRATE (RAM-only) | ✓ LEMs idle ~1996–2005 codes |
 | `ISENSE_V_PER_A` | `hw_control_v2.h` | design value (23.5 Ω burden × 0.4158); gain against a metered DC current not yet checked |
 | Channel map + signs | ALIGN phase-ID (RAM-only) | ✓ map 0 / inv 0 at `phase_id_a` 3 A |
-| `VBUS_DIVIDER_RATIO` / `VBUS_OFFSET_CODE` | `hw_control_v2.h`, live `vbus_ratio` / `vbus_off` | **open** — `python -m foc_debug vbuscal`, ≥ 5 interleaved metered points, motor IDLE, on the 15-cycle Vbus sampling (`f8e06ef`); then bake and hand back `vbus_ovr` 0 → `uv_trip_v` → `uv_en` 1 |
+| `VBUS_DIVIDER_RATIO` / `VBUS_OFFSET_CODE` | `hw_control_v2.h`, live `vbus_ratio` / `vbus_off` | **done 2026-11-07** — 336.90 / −54.19, 12 interleaved metered points 29–200 V (fit 40–200 V, rms 0.66 V, worst 1.35 V at 90 V), motor IDLE, 15-cycle sampling. Re-run near the pack bus before trusting the 460 V OV trip (400 V is extrapolation, ~5 V uncertain) |
 | Resolver SIN/COS scale | ALIGN cal sweep (RAM-only), boot `RES_SINCOS_*` | ✓ 2050 / 1585 baked |
 | Resolver direction | `res_dir_inv` | ✓ 0 (`ol_run` +5 Hz → `omega_meas` +31.1) |
 | Loss window `SENSOR_RES_MAG_LOW/HIGH` | `sensor_rm44ac.h` | defaults (0.25 / 2.25), not re-tuned on 4.0 |
