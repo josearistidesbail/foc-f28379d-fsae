@@ -30,7 +30,7 @@ FAULT) it prints what was NOT restored: clear the fault and fix it by hand.
 | `dtc_sweep.py vmax iq points` | **spins ~100 rpm** | dead-time comp A/B while voltage-clamped (its "leftover" assumes λ!) |
 | `vmax_steps.py [iq] [steps]` | **spins** | clamp-limited speed per `vmax_frac` |
 | `speed_step.py [kp_w] [ki_w] [refs] [mode]` | **spins** | speed-loop ramp steps (bring-up I) |
-| `lambda_fit.py [speeds]` | **spins ≤ ~100 rpm** | PM flux linkage from the Vq-vs-ω slope. **Not run yet.** |
+| `lambda_fit.py [--vbus V] [speeds]` | **spins ≤ ~100 rpm** | PM flux linkage from the Vq-vs-ω slope. Below 40 V pass `--vbus <metered>` (bus error = λ error). One speed sign per run. **Not run yet.** |
 
 Calibration lives in RAM: after every power-up or reflash, run `calibrate.py` (or the GUI's
 calibrate) before RUN. Speeds are **electrical** rad/s (10 pole pairs: 30 ≈ 29 rpm).

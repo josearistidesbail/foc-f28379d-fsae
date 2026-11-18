@@ -124,6 +124,9 @@ condensed). **Build + flash the tip before vbuscal.**
    `vbus_ovr` boots at 31 (see Bench procedure).
 2. **λ (flux linkage)**: `bench/lambda_fit.py` (written, not yet run; ~30 s of spinning). Bench
    data hints 0.034 V·s vs datasheet 0.0387 (bring-up H). Update `MOTOR_FLUX_VS` if confirmed.
+   A bus error lands 1:1 in λ, and the measured bus reads ~3 % high at 31 V: below 40 V pass
+   `--vbus <metered V>` (the script refuses otherwise, and refuses a stale nonzero `vbus_ovr`).
+   Run positive and negative speeds as two separate runs; the slopes should agree.
 3. **Loaded torque tests** (needs a strap/band brake on the rotor; 10 A Iq ≈ 6 N·m — not by hand):
    q-axis steps and the dead-time null at higher current under load.
 4. Firmware: boot-time grace for the power-up FAULT 0x11; LaunchPad U12 (LMR62421X) kill test
