@@ -100,13 +100,21 @@ with connect() as d, restore(d, "vmax_frac", "control_mode", "omega_ref", "iq_re
     d.request_run(); wait_state(d, ST_RUN); time.sleep(1.0)
     for w_ref in speeds:
         d.write_param("omega_ref", w_ref); time.sleep(abs(w_ref) / 80.0 + 2.0)   # ramp + settle
-        C = [capture_now(d, bits("Id", "Iq", "omega_elec", "Vd", "Vq", "vbus"), decim=8) for _ in range(4)]
+        C = [capture_now(d, bits("Id", "Iq", "omega_elec", "Vd", "Vq", "vbus", "Iu", "Iv", "Iw"), decim=8)
+             for _ in range(4)]
         C = {n: np.concatenate([np.array(c[n]) for c in C]) for n in C[0]}
-        pts.append({n: float(C[n].mean()) for n in C} | {"ref": w_ref, "w_rms": float(C["omega_elec"].std())})
+        # Current-map check: a star with no neutral has Iu+Iv+Iw = 0, so the zero sequence is noise only
+        # when isense_map/isense_inv match the wiring; a wrong permutation/sign leaves ~2x one phase.
+        iph = np.vstack([C["Iu"], C["Iv"], C["Iw"]])
+        z_ratio = float(np.std(iph.sum(axis=0)) / max(np.sqrt(np.mean(iph.std(axis=1) ** 2)), 1e-6))
+        pts.append({n: float(C[n].mean()) for n in C if n not in ("Iu", "Iv", "Iw")}
+                   | {"ref": w_ref, "w_rms": float(C["omega_elec"].std()), "z_ratio": z_ratio,
+                      "iph_rms": float(np.sqrt(np.mean(iph ** 2)))})
         p = pts[-1]
         flag = "  <-- off its ref (clamp-limited?)" if abs(p["omega_elec"] - w_ref) > 3.0 else ""
         print(f"  ref {w_ref:6.1f}: omega {p['omega_elec']:6.1f} (rms {p['w_rms']:.2f})  Vq {p['Vq']:+.3f}"
-              f"  Iq {p['Iq']:+.3f}  Vd {p['Vd']:+.3f}  vbus(meas) {p['vbus']:.1f}{flag}")
+              f"  Iq {p['Iq']:+.3f}  Vd {p['Vd']:+.3f}  vbus(meas) {p['vbus']:.1f}"
+              f"  |Iph| {p['iph_rms']:.2f} A, z/phase {z_ratio:.2f}{flag}")
     d.write_param("omega_ref", 0.0); time.sleep(1.5)
 
 W = np.array([p["omega_elec"] for p in pts]); V = np.array([p["Vq"] for p in pts])
@@ -126,6 +134,9 @@ print(f"lambda = {lam:.5f} +/- {lam_se:.5f} V*s (datasheet {LAM_DATASHEET}, {100
 print(f"control bus {vbus_ctrl:.2f} V ({src}); measured during the run {vb_run:.2f} V."
       " A bus error of x % moves lambda by x %.")
 print(f"Vd-vs-omega slope {kd:+.5f} V*s -> angle-offset indicator {delta_deg:+.1f} deg elec (~0 expected)")
+zr = max(p["z_ratio"] for p in pts)
+print(f"current-map check: worst zero-sequence/phase ratio {zr:.2f} "
+      + ("(OK: Iu+Iv+Iw ~ 0)" if zr < 0.5 else "-- SUSPECT isense_map/isense_inv: the sum of the phases is not ~0"))
 if src == "vbus_ovr" and abs(vb_run - vbus_ctrl) > max(3.0, 0.10 * vbus_ctrl):
     print("WARNING: the measured bus moved away from vbus_ovr during the run (supply sag?) -- the result"
           " assumes vbus_ovr was the real link throughout")

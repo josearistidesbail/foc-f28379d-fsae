@@ -30,7 +30,7 @@ TRIG_DONE = 2
 # EMRAX 208 + FE_UFPR 4.0 constants used by the analysis (firmware headers).
 RS = 0.01277          # MOTOR_RS_OHM
 LD, LQ = 110e-6, 115e-6
-LAM_DATASHEET = 0.03867  # MOTOR_FLUX_VS. Bench data says ~0.034 -- see CLAUDE.md bring-up H.
+LAM_DATASHEET = 0.03867  # v1.7 HV datasheet. Measured 0.0342 (MOTOR_FLUX_VS, 2026-11-18, bring-up M).
 POLE_PAIRS = 10
 
 

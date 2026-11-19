@@ -64,28 +64,30 @@ interface B = the SCI backchannel — the backchannel is **`/dev/ttyUSB1`** when
 `ttyUSB0` while CCS holds interface A (check with `ls /dev/ttyUSB*`). Host tools need pyserial (not installed
 system-wide; use a venv).
 
-## ▶ NEXT SESSION — START HERE (handoff written 2026-11-06)
+## ▶ NEXT SESSION — START HERE (handoff updated 2026-11-18)
 
-Self-contained: the next session runs on a different machine (laptop) with no Claude memory and no
+Self-contained: the next session may run on a different machine with no Claude memory and no
 peer sessions, so everything needed is here and in `foc_f28379d/host/bench/README.md`.
 
-**Where things stand.** FE_UFPR 4.0 + EMRAX 208 + RM44AC resolver runs closed-loop on the 31 V bench:
-calibrate → RUN in torque or speed mode, all closed-loop. Branch `sensorless-observer`; the
-day's work is bring-ups **G–K** in the FE_UFPR 4.0 log below (same-slot current sampling, dead-time
-comp, speed mode, current-PI retune, bus-agnostic calibration). The board was last flashed with
-`b655878`. **First `git pull` and read `git log`** — a parallel cleanup session
-(`foc-f28379d-fsae-d9`) committed on top of `b655878`, none of it flashed on 2026-11-06:
-`f8e06ef` (Vbus ADC sample window 512 → 15 cycles), `86f33a3` (dead Control_V2 2-channel
-current-sense code removed, stale comments), `3ee6151` (`iloop_en` and the RUN open-loop resistive
-mode removed — the param no longer exists), then a docs commit (Control_V2 pin form moved to
-`docs/archive/`, `production_bringup.md` rewritten for 4.0, Control_V2 history in this file
-condensed). **Build + flash the tip before vbuscal.**
+**Where things stand (2026-11-18, laptop, lab supply at 31 V then 60 V).** FE_UFPR 4.0 + EMRAX 208 +
+RM44AC resolver runs closed-loop: calibrate → RUN in torque or speed mode. Branch `sensorless-observer`;
+the board carries the tip (`MOTOR_FLUX_VS` 0.0342). Bring-up **M** below has the day: λ measured; the
+measured bus reads **~+2.5 V high whenever the bridge switches** (a fixed offset, not a gain error);
+the **SMO** passed the sensorless shadow test both directions at 150–350 elec rad/s and ran live
+(forced hand-over and back, AUTO fail-over on a forced sensor loss, the below-floor FAULT + coast); the
+**flux observer fails** on hardware; the software fault paths (sensor loss, OC, UV) trip and coast while
+running. **The current-sense map is now 5 / 5** (channel A reads −Iw, C reads −Iu; firmware ruled out,
+so something between the inverter legs and the LEMs changed since 11-06 — not yet identified on the
+bench; phase-ID handles it, see M).
 
 **Laptop setup checklist** (paths in this file are the Linux desktop's):
 1. CCS 21.0.1 + C2000Ware 26.01 + MotorControl SDK 6.00 (see Build Configurations; the project
    hard-codes `~/ti/c2000/...` names, satisfied by symlinks on the desktop). Point
    `.claude/ccs.settings.md` and `.mcp.json` at the laptop's CCS (both are tracked and hold desktop
-   paths — don't commit laptop paths back without thinking about it).
+   paths — don't commit laptop paths back without thinking about it). The laptop has CCS 20.5.1
+   (`~/ti/ccs2051`) with **CGT 25.11.0** — it builds the project (warning: "created with 25.11.1"),
+   but 25.11.0 is the compiler that miscompiled in-place clamps on volatile globals (fixed in
+   `36cdfc6` by clamping locals); if a param reads stuck at a clamp limit, check the `.asm`.
 2. Import the project into CCS **as a link** (not copied); active build config
    `Production_CtrlV2_EMRAX_Resolver` (switch it in the CCS GUI; `buildProject` builds the active one).
 3. Flash with the ccs-debug MCP `debugProject` (halts at `main` → `continue` → `terminate` to free
@@ -99,8 +101,9 @@ condensed). **Build + flash the tip before vbuscal.**
 - Power the board BEFORE/WITH the LaunchPad. Every power-up boots into FAULT 0x11 (OVERCURRENT|
   GATE_DRIVER, `tz_trip` 1, module flags settle after the MCU): `clearfault`, sometimes twice.
 - Calibration is RAM-only: after each power-up/reflash run calibrate (~33 s, **motor turns**,
-  `bench/calibrate.py` or the GUI). Healthy: `phase_id_status` 1 (map 0 / inv 0), `cal_status` 1,
-  `align_offset` ≈ 106.6–107.3° elec, `align_delta` ≈ 6° at 8 A.
+  `bench/calibrate.py` or the GUI). Healthy: `phase_id_status` 1 (map 5 / inv 5 with today's cabling,
+  0 / 0 before 11-18), `cal_status` 1, `align_offset` ≈ 106.6–107.3° elec, `align_delta` ≈ 6° at 8 A.
+  The offset is bus-independent (106.83° at 31 V, 106.84° at 60 V).
 - Boot defaults now in firmware: `align_id_a` 8 A, `kp_d`/`kp_q` 0.5, `dtc_v` 1.0,
   `dtc_ith` 0.5, `dtc_src` 1 (reference sign, bring-up L), `kp_w` 0.35, `ki_w` 0.02, `res_w_mode` 1 (PLL), `vmax_frac` 0.15, `vbus_ovr` **0
   (measured bus, since the 2026-11-07 vbuscal)**, UV trip off, `iq_max` 10 A, `oc_trip_a` 40 A.
@@ -109,6 +112,10 @@ condensed). **Build + flash the tip before vbuscal.**
   or every commanded volt scales by V_real/31. A nonzero `vbus_ovr` must equal the real DC link.
 - Measured bus is good ±1.4 V over 40–200 V; below ~30 V it compresses and reads high (29.1 V → +0.9 V,
   a 0 V link may read tens of volts) — under-delivers volts (safe), but use `vbus_ovr` for a sub-30 V bench.
+  **That accuracy holds in IDLE only: once the bridge switches the reading jumps ~+2.5 V** (31 and 60 V
+  alike, independent of current; bring-up M). For anything that trusts volts (λ, the observers, a
+  dead-time null) set `vbus_ovr` to the DC link **metered while running** (the bench link also sags:
+  31.3 → 30.6 V at 31 V, 60.1 → ~58.9 V at 60 V).
   UV: set `uv_trip_v` to ~75 % of the bus you run, then `uv_en` 1 (boots off; the supply now moves 30–200 V).
 - Don't hot-plug the encoder (drops the XDS100). Scripts must restore every param they touch.
 - Phase current ≫ supply current at low speed (20 A phase drew ~1 A at 31 V — buck converter).
@@ -122,14 +129,28 @@ condensed). **Build + flash the tip before vbuscal.**
    suspect the module sensor. 400 V is extrapolation (the 40–200 and 120–200 fits differ ~5 V there):
    re-run vbuscal near the pack bus before trusting the 460 V OV trip. **Build + flash still owed** if
    `vbus_ovr` boots at 31 (see Bench procedure).
-2. **λ (flux linkage)**: `bench/lambda_fit.py` (written, not yet run; ~30 s of spinning). Bench
-   data hints 0.034 V·s vs datasheet 0.0387 (bring-up H). Update `MOTOR_FLUX_VS` if confirmed.
-   A bus error lands 1:1 in λ, and the measured bus reads ~3 % high at 31 V: below 40 V pass
-   `--vbus <metered V>` (the script refuses otherwise, and refuses a stale nonzero `vbus_ovr`).
-   Run positive and negative speeds as two separate runs; the slopes should agree.
-3. **Loaded torque tests** (needs a strap/band brake on the rotor; 10 A Iq ≈ 6 N·m — not by hand):
+2. ~~λ~~ **DONE 2026-11-18: `MOTOR_FLUX_VS` 0.0342** (11.5 % below the datasheet; bring-up M). The
+   honest range is 0.0342–0.0350: the correction rests on a DMM that wandered while the bridge
+   switched. A scope (averaged) on the DC link during `lambda_fit.py` settles it.
+3. **Flux observer** (fails on hardware, bring-up M): try `obs_vsrc` 1/2 at 250 elec rad/s
+   (`sensorless_shadow.py` with `obs_mode` 0) — its voltage model subtracts a dead zone driven by the
+   MEASURED current sign (the bring-up-L noise path) with a dead-time term that looks ~0.01 duty too
+   small. Until it is fixed, make the SMO the default (`OBS_MODE_DEFAULT` 1 for the EMRAX).
+4. **Hand-over polish** (firmware): start a forced switch only when |θ_err| is small, or blend from a
+   filtered offset — the first live switch froze a +11.6° SMO noise peak and the speed loop kicked Iq
+   to 6 A for ~15 ms (M).
+5. **Dead time**: phase-ID says the effective dead time is ~0.025 duty, not the modelled 0.015
+   (`dtc_duty`). Check with `id_steps.py` at 60 V with `vbus_ovr` = the metered running bus; at 400 V
+   the difference is ~4 V uncompensated.
+6. **Loaded torque tests** (needs a strap/band brake on the rotor; 10 A Iq ≈ 6 N·m — not by hand):
    q-axis steps and the dead-time null at higher current under load.
-4. Firmware: boot-time grace for the power-up FAULT 0x11; LaunchPad U12 (LMR62421X) kill test
+7. **Hardware/bench**: find what changed in the phase-cable/LEM routing since 11-06 and decide whether
+   to restore map 0 / inv 0 (with two channels inverted, ~2/3 of the common ADC interference no longer cancels
+   in Clarke — small today, z/phase 0.2–0.4); find the bench DC-link source resistance (~3 Ω
+   effective: 1.3 V sag at ~0.4 A DC); root-cause the switching bus offset (gate-drive supply load on
+   the module sensor's reference is the guess; < 1 % at a 400 V pack). Still owed from before: OC_C and
+   the OT/DCOV pins of the trip path, a real resolver-channel pull under torque, the start input.
+8. Firmware: boot-time grace for the power-up FAULT 0x11; LaunchPad U12 (LMR62421X) kill test
    (deferred by the user — the board has its own U12, name it this way); see also "Phase 2
    firmware (deferred)" in the FE_UFPR 4.0 log.
 
@@ -137,6 +158,10 @@ condensed). **Build + flash the tip before vbuscal.**
 hasn't been measured (the dtc_v "null" against an assumed λ was wrong by 0.45 V; the standstill
 d-axis test is λ-free). Same-instant sampling turns a common interference into something Clarke
 cancels. A script that leaves a param changed will break the next person's procedure.
+**From 2026-11-18.** A calibration made in IDLE is not valid in RUN: check every sensor once with the
+bridge switching (the bus sense moved 2.5 V). Meter what the bridge actually sees while it runs, not
+the supply at rest. Phase-ID is a wiring check — when it reports a new map, find out what changed on
+the bench before trusting anything else.
 Board-side docs (schematic, S12 handoff/fab notes) live in the KiCad repo `FE_UFPR_4_0`
 (`/home/jose/Kicad/FE_UFPR_4_0` on the desktop) — clone it on the laptop if hardware questions come up.
 
@@ -484,6 +509,44 @@ bench supply, UV trip off, `iq_max` 10 A), current-limited bench supply.**
   0.27/0.53 → 0.15/0.41; 60 rad/s Vq −0.05 V, ripple 0.23/0.39 → 0.13/0.34. **Boot default now 1 on FE_UFPR 4.0**
   (`DTC_SRC_DEFAULT` in hw_control_v2.h; the build_config.h fallback stays 0). Neither source is advanced
   for the PWM update delay (1.5·ω·Ts; ~50° elec at 6000 rpm on the EMRAX) — revisit at speed, with the IPARK angle.
+- [x] **M — λ, bus sense in RUN, SMO sensorless live, fault paths** (2026-11-18, laptop, lab supply
+  31.2 V then 60.1 V metered at the DC link; scripts in `host/bench/`, results in `bench/out/*.json`).
+  **Flash:** `bfb5521` was on the board (`vbus_ovr` 0); booted IDLE without the FAULT 0x11 (board
+  already powered at the MCU reset). **Phase-ID: map 5 / inv 5** (was 0 / 0): channel A = −Iw,
+  C = −Iu, B = +Iv. Firmware ruled out (ADC routing, signs, map default and solver identical to
+  `b655878`); the offset (106.83°) and delta (5.9°) came out unchanged, so the motor-to-leg order
+  is untouched — something between the legs and the LEMs moved. Iu+Iv+Iw ≈ 0 with the new map
+  (z/phase 0.16–0.36, a wrong map gives ~2), so it is correct for the bench as it stands.
+  **λ** (`lambda_fit.py --vbus 31.2`, speed mode 20–100 elec rad/s): +0.03500 / −0.03491 V·s on the
+  assumed bus, intercepts +0.195 / −0.168 V (dead zone + friction flip with direction), residual
+  0.015 V. The meter then showed the link at **30.6 V while running** (31.3 V idle) → corrected
+  **0.03417 / 0.03409**, and a 2-point check at a metered bus gave 0.03440 → `MOTOR_FLUX_VS`
+  **0.0342** (datasheet 0.03867). The DMM wandered (58.6–59.2 V at 60 V) while the bridge switched, so
+  0.0350 is the upper bound if the "sag" is partly the meter.
+  **Bus sense in RUN** (`bus_sense_split.py`, fw − meter): idle +0.5 V; RUN at zero current +3.0 V;
+  Id 10 A at standstill +3.2; spinning 20/100 rad/s +2.9 / +2.9. At 60 V: idle +0.7, zero-current RUN
+  +2.8. So **a fixed ~+2.3 V shift appears the moment the bridge switches**, independent of current,
+  DC power, duty and bus level (raw +7.3 codes at 31 V, +4.0 at 60 V on top of a real sag that grows with
+  the bus). Not a gain error: < 1 % at 400 V, but ~8 % on a 30 V bench → the observers, λ and a
+  dead-time null need `vbus_ovr` = the metered running bus. Suspect the gate-drive supply loading the
+  module sensor's reference. The bench link itself sags (0.6 V at zero current, 1.3 V at ~0.4 A DC).
+  **Dead time:** phase-ID duty 0.0758 at 31 V and 0.0555 at 60 V → Vdt ≈ 1.8 / 2.5 V → ~0.025 duty
+  + ~1.0 V (model: 0.015 + 1.0 V `dtc_v`). Two points, crude; check with the d-axis null at 60 V.
+  **Sensorless shadow** (`sensorless_shadow.py --vbus 58.9`, 60 V, resolver commutating): SMO
+  (`obs_mode` 1) mean within ±2°, rms **3–5° at 250–350, 6–9° at 150**, healthy, both directions;
+  flux observer (`obs_mode` 0) rms 12–50°, its PLL slipped (omega_est 46–66 vs 250). ISR peak with
+  both observers: **3991 cycles = 20 %** of the budget. (`isr_cycles_max` reads ~41 M after any RUN
+  entry: the CALIBRATE offset capture blocks inside the ISR for 205 ms — reset it in RUN.)
+  **Live hand-over** (`handover_test.py`, SMO, 250 elec rad/s): angle blend linear over the 500 ticks,
+  4 s sensorless at 250.0 rad/s (sd 2.5, θ_err +1.1° / 3.0° rms), clean hand-back (Iq 1.0–2.0 A). The
+  switch landed on a +11.6° SMO excursion; the blend froze it, the SMO's PLL speed then dipped 17 rad/s
+  for ~10 ms and the speed PI pushed Iq to 6.2 A for ~15 ms (the angle error itself peaked ~10°).
+  **AUTO fail-over** (`--auto`): `pos_force_lost` → `angle_act` 1, `pos_status` **0x063**, `warn_code` 1,
+  jump (no blend), RUN held 250.0 rad/s for 4 s (θ_err +0.9° / 2.9°); ramping down sensorless →
+  **FAULT_SENSOR_LOSS at 151 rad/s** (floor 150), `pos_status` 0x06a, gate master off = coast;
+  clearfault → IDLE, `warn_code` 0. **Software fault paths** (`fault_paths.py`, 60 rad/s): forced
+  sensor loss → 0x20, `oc_trip_a` 0.5 A → 0x01 with `tz_trip` unchanged, `uv_trip_v` above the bus →
+  0x04; all three coast and clear back to IDLE.
 - [ ] **Phase 2 firmware (deferred)**: aux ADC SOCs (A3 3V3 monitor, A4/B5 current-sense reference cross-check,
   B3 motor KTY, C3 module NTC) + temperature conversion + motor over-temperature stop; SW_MAIN as a FIRMWARE run
   permissive (today only the hardware removes the gate when it drops, while the FW still thinks it runs); CAN-A
