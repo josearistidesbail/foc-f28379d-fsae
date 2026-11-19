@@ -238,15 +238,27 @@
 // VBUS_RTN -> 3.3k + 22 nF -> ADCINC2.
 //   ratio = 900/6.5 * 5.20/2.20 = 327.273 -> 0.2397 V/code, full scale ~982 V
 //   (the 415 V clipping caveat of the old divider is gone).
-// VBUS_OFFSET_CODE is a placeholder: the old 11.4 belonged to the Control_V2
-// divider. Re-measure with `python -m foc_debug vbuscal` (>= 3 metered points,
-// interleaved order, see CLAUDE.md "DC-bus AFFINE calibration") and bake the
-// fit in here. Below ~40 V the sensor itself is non-linear (module behaviour,
-// unchanged) -- keep vbus_ovr on the 24 V bench until measured.
+// FITTED 2026-11-07 (vbuscal, lab supply, motor IDLE / gate off, 15-cycle S+H,
+// 12 points 29-200 V metered at the link, interleaved, 500 raw reads each):
+// affine fit over 40-200 V (11 points) = ratio 336.90 / offset -54.19 codes
+// (slope 1-sigma 0.42 %). Design values read 40 V as 25.7 V, 200 V as 180 V.
+// Residuals: rms 0.66 V, worst -1.35 V at 90 V. Drift check: 40.1 V repeated
+// 13 min apart within 0.002 codes; 150 V repeat within the meter's 0.1 V.
+//   * 120-200 V is linear to 1 % (3.95-3.99 codes/V); a fit of that range alone
+//     (344.87 / -38.54) is within 0.1 V there but reads 2-3 V LOW below 90 V.
+//   * 40-120 V carries an S-shaped wiggle (65-75 V 4.37, 75-90 V 3.45, 90-120 V
+//     4.39 codes/V) = the 40-200 fit's +/-1.4 V. NOT an ADC carry step: a
+//     1000-sample histogram at 74.9 V runs smoothly through code 256. Suspect the
+//     module sensor. Below 40 V it compresses (29.1 V reads +0.9 V high).
+//   * 400 V is extrapolation: the two fits above differ by ~5 V there. Re-run
+//     vbuscal near the real pack bus before trusting the 460 V OV trip.
+// Re-fit offline: python -m foc_debug vbuscal --fit 40.1:107.18,40.1:107.18,
+//   64.9:209.12,74.9:252.80,80:270.18,89.9:304.68,120:436.73,149.7:554.09,
+//   149.9:554.81,174.8:653.13,199.8:752.75   (29.1:67.56 kept out of the fit)
 // Always run a calibration after changes to the front end.
-#define VBUS_DIVIDER_RATIO      327.273f
+#define VBUS_DIVIDER_RATIO      336.90f
 #define VBUS_VOLTS_PER_CODE     (ADC_VREF_V * VBUS_DIVIDER_RATIO / ADC_FULL_SCALE_CODE)
-#define VBUS_OFFSET_CODE        0.0f        // bench: re-measure (handoff S14 item 3)
+#define VBUS_OFFSET_CODE        (-54.19f)   // ADC codes at 0 V (fit intercept)
 
 // ---- RM44AC notes -------------------------------------------------------
 // The RM44AC is a magnetic sin/cos angle sensor (already-demodulated Va/Vb
@@ -380,23 +392,22 @@
 #define BENCH_NO_POWER_STAGE    0U
 
 // ---- Low-voltage bench DC link (power stage connected) -----------------
-// Independent of BENCH_NO_POWER_STAGE: protection is armed, but the bus sense
-// is not calibrated on this board yet (VBUS_OFFSET_CODE 0 is a placeholder,
-// handoff §14) and the bench bus is far below the EMRAX UV seed (45 V). So:
-//   - the CONTROL loop + OV/UV trips run on a fixed override (vbus_ovr). The
-//     scope / "vbus" readout still show the live MEASURED bus -- fit it with
-//     `foc_debug vbuscal`, then hand back: vbus_ovr = 0, uv_trip_v, uv_en = 1;
-//   - the SW UV trip is bypassed;
+// Independent of BENCH_NO_POWER_STAGE: protection is armed; the bench supply
+// moves between ~30 and 200 V and sits below the EMRAX UV seed (45 V). So:
+//   - the SW UV trip is bypassed at boot (set uv_trip_v to ~75 % of the bus you
+//     run, then uv_en = 1 -- the threshold is live, the bus is not fixed);
 //   - the commanded-current clamp ("iq_max") boots at 10 A, not the machine limit.
-// All three are live params; these are only their boot values. Set to 0 for
-// the real HV bus once vbuscal agrees with a meter.
+// Both are live params; these are only their boot values. Set to 0 for the
+// real HV bus.
+// Control + OV/UV trips boot on the MEASURED bus (vbus_ovr = 0) since vbuscal
+// 2026-11-07 (VBUS_* above); the 31 V override it replaced had to be retyped
+// whenever the supply moved, or every commanded volt scaled by real/assumed.
+// vbus_ovr stays as a live override for a bench BELOW ~30 V, where the sense
+// compresses and reads high (29.1 V -> +0.9 V; a 0 V link may read tens of
+// volts) -- reading high under-delivers volts, the safe direction.
 #define BENCH_LOW_VOLTAGE_DC_LINK   1U      // 2026-11-03: low-voltage bench supply
-// The bench bus vbus_ovr boots at. MUST match the supply: SVGEN divides by it,
-// so a wrong value scales every commanded volt by real/assumed. The first
-// closed-loop day ran a 31 V supply against a 24 V assumption (2026-11-05).
-#define BENCH_DC_LINK_V             31.0f
 
-#define VBUS_OVERRIDE_DEFAULT_V (BENCH_LOW_VOLTAGE_DC_LINK ? BENCH_DC_LINK_V : 0.0f)
+#define VBUS_OVERRIDE_DEFAULT_V 0.0f
 #define UV_FAULT_EN_DEFAULT     (BENCH_LOW_VOLTAGE_DC_LINK ? 0U : 1U)
 #if BENCH_LOW_VOLTAGE_DC_LINK
 #define IQ_CMD_MAX_DEFAULT_A    10.0f       // build_config.h keeps it otherwise

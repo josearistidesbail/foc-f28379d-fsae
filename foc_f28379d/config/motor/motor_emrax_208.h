@@ -21,7 +21,13 @@
 #define MOTOR_RS_OHM            0.01277f    // phase resistance at 25 degC (v1.7 HV)
 #define MOTOR_LD_H              0.000110f   // 110 uH (v1.7 HV)
 #define MOTOR_LQ_H              0.000115f   // 115 uH: 4.5 % saliency
-#define MOTOR_FLUX_VS           0.03867f    // PM flux linkage (Vs), v1.7 HV
+// PM flux linkage (Vs), MEASURED 2026-11-18 on FE_UFPR 4.0 (bench, cold magnets ~20 degC):
+// host/bench/lambda_fit.py, Vq-vs-omega slope in speed mode at 20-100 elec rad/s, both directions
+// (0.03417 / 0.03409) plus a 2-point check at a metered bus (0.03440), all with the bridge voltage
+// corrected to the DC link METERED while running (the sense reads ~+2.5 V high once the bridge
+// switches -- see CLAUDE.md). +/-1 %. The v1.7 HV datasheet says 0.03867 (11.5 % higher).
+// Hot magnets lower it further (NdFeB ~ -0.1 %/degC).
+#define MOTOR_FLUX_VS           0.0342f
 
 // ---- Ratings ------------------------------------------------------------
 #define MOTOR_I_CONT_A          140.0f      // continuous phase (rms), v1.7 HV
@@ -45,15 +51,16 @@
 // Above this ELECTRICAL speed a lost-angle / fault shutdown applies a 3-phase
 // ACTIVE SHORT (low-side on) to clamp back-EMF and prevent uncontrolled
 // generation -> DC-link overvoltage; below it the bridge coasts (tristate).
-// At 2600 elec rad/s the line-to-line back-EMF peak is sqrt(3)*lambda*w ~= 174 V,
-// far below the ~5970 rad/s at which it exceeds a 400 V link. The margin is
+// At 2600 elec rad/s the line-to-line back-EMF peak is sqrt(3)*lambda*w ~= 154 V,
+// far below the ~6750 rad/s at which it exceeds a 400 V link. The margin is
 // deliberate: a fault opens the shutdown circuit, the AIRs open and the
 // discharge circuit pulls the link down, so the speed at which the diodes start
 // to rectify falls with it. Tune on the vehicle.
-// NOTE: the steady short-circuit current lambda_pm/Ld ~= 352 A exceeds
-// MOTOR_OC_TRIP_A (260 A), and entering the ASC directly from zero current can
-// transiently reach up to twice that (~700 A; Chen et al., IEEE TIE 2023),
-// ABOVE the module's own 625 A overcurrent shutdown. Coordinate the ASC entry,
+// NOTE: the steady short-circuit current lambda_pm/Ld ~= 311 A (measured lambda;
+// 352 A with the datasheet's) exceeds MOTOR_OC_TRIP_A (260 A), and entering the
+// ASC directly from zero current can transiently reach up to twice that (~620 A;
+// Chen et al., IEEE TIE 2023), AT the module's own 625 A overcurrent shutdown
+// (Ld is still the datasheet value). Coordinate the ASC entry,
 // this threshold and the current trips before the car is driven.
 #define FAULT_ASC_OMEGA_ELEC    2600.0f
 

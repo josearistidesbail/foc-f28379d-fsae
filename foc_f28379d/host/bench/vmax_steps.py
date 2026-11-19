@@ -8,7 +8,7 @@ iq = float(sys.argv[1]) if len(sys.argv) > 1 else 2.0
 steps = [float(x) for x in (sys.argv[2] if len(sys.argv) > 2 else "0.15,0.25,0.35").split(",")]
 dwell = float(sys.argv[3]) if len(sys.argv) > 3 else 4.0
 with connect() as d, restore(d, "vmax_frac", "control_mode", "iq_ref"):
-    vb = d.read_param("vbus_ovr")
+    vb = d.read_param("vbus_ovr") or d.read_param("vbus")   # override, else measured
     d.write_param("control_mode", 0); d.write_param("iq_ref", 0.0); d.write_param("vmax_frac", steps[0])
     d.request_run(); wait_state(d, ST_RUN); d.write_param("iq_ref", iq)
     for vm in steps:

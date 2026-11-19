@@ -30,7 +30,14 @@ FAULT) it prints what was NOT restored: clear the fault and fix it by hand.
 | `dtc_sweep.py vmax iq points` | **spins ~100 rpm** | dead-time comp A/B while voltage-clamped (its "leftover" assumes λ!) |
 | `vmax_steps.py [iq] [steps]` | **spins** | clamp-limited speed per `vmax_frac` |
 | `speed_step.py [kp_w] [ki_w] [refs] [mode]` | **spins** | speed-loop ramp steps (bring-up I) |
-| `lambda_fit.py [speeds]` | **spins ≤ ~100 rpm** | PM flux linkage from the Vq-vs-ω slope. **Not run yet.** |
+| `lambda_fit.py [--vbus V] [speeds]` | **spins ≤ ~100 rpm** | PM flux linkage from the Vq-vs-ω slope; also checks Iu+Iv+Iw ≈ 0 (current map). Below 40 V pass `--vbus <metered>` (bus error = λ error). One speed sign per run. Run 2026-11-18 → 0.0342 |
+| `bus_sense_split.py --vbus V [--short]` | **spins in the last 50 s** (`--short`: no) | measured bus vs a DC-link meter in IDLE / zero-current RUN / Id 10 A / spinning — the operator reads the meter per 25 s window |
+| `sensorless_shadow.py --vbus V [speeds]` | **spins ≤ ~334 rpm** | observer angle error vs the resolver per speed, flux then SMO; resolver commutates (`angle_src` 0, checked) |
+| `handover_test.py --vbus V [--auto] [w] [hold] [mode]` | **spins ~239 rpm** | live resolver → observer → resolver hand-over with one-shot captures; `--auto`: forced loss → AUTO fail-over, then ramp to the floor fault (coast) |
+| `fault_paths.py --vbus V [w] [tests]` | **spins ~57 rpm, coasts** | sensor-loss / software OC / UV trips while running: fault bit, coast, clear |
+
+`--vbus` on the newer scripts = the DC link **metered while the bridge runs**: the firmware's measured
+bus reads ~+2.5 V high once it switches (2026-11-18), and the bench link sags under load.
 
 Calibration lives in RAM: after every power-up or reflash, run `calibrate.py` (or the GUI's
 calibrate) before RUN. Speeds are **electrical** rad/s (10 pole pairs: 30 ≈ 29 rpm).
